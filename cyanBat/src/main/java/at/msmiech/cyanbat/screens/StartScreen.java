@@ -11,8 +11,6 @@ import at.grueneis.game.framework.Input.TouchEvent;
 import at.msmiech.cyanbat.CyanBatGame;
 
 public class StartScreen extends CyanBatBaseScreen {
-	// Author: Martin Smiech
-	// Thanks for playing!
 
 	private Graphics g;
 
@@ -23,7 +21,6 @@ public class StartScreen extends CyanBatBaseScreen {
 
 	private void init() {
 		g = game.getGraphics();
-		CyanBatGame.ShowAds();
 		System.gc();
 		if (!CyanBatGame.menuTheme.isLooping()) {
 			CyanBatGame.menuTheme.setLooping(true);

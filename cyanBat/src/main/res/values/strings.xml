@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="hello">Hello World, MSmiech_CyanBatActivity!</string>
-    <string name="app_name">MSmiech_CyanBat</string>
+    <string name="hello">Hello World!</string>
+    <string name="app_name">CyanBat</string>
 
 </resources>

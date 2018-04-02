@@ -17,7 +17,6 @@ public class CyanBatGame extends AndroidGame {
 
 	public static final String TAG = "mSmiech_CyanBat";
 	public static final boolean DEBUG = false;
-	public static final boolean SHOW_ADS = true;
 	public static final boolean SHOOTING_ENABLED = false;
 
 	public static Pixmap bat;
@@ -39,26 +38,12 @@ public class CyanBatGame extends AndroidGame {
 	public static Pixmap shot;
 	public static CyanBatGame currentActivity = null;
 
-	// DO NOT MODIFY! DO NOT DISTRIBUTE! You are a closed alpha beta tester and
-	// not even meant to see the code. This class contains the games resources.
-
 	public Screen getStartScreen() {
 		if (DEBUG)
 			Log.d(TAG, "getStartScreen");
 		currentActivity = this;
 		initAssets();
-		if (SHOW_ADS)
-			initAds();
 		return new StartScreen(this);
-	}
-
-	private void initAds() {
-		if (DEBUG)
-			Log.d(TAG, "initAds");
-		/**
-		 * adView = (AdView) findViewById(R.id.adView); adView.bringToFront();
-		 * adView.setVisibility(AdView.GONE);
-		 */
 	}
 
 	private void initAssets() {
@@ -88,49 +73,6 @@ public class CyanBatGame extends AndroidGame {
 		explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB4444);
 		shot = g.newPixmap("shot.png", PixmapFormat.ARGB4444);
 		vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
-	}
-
-	public static void ShowAds() {
-		if (!SHOW_ADS)
-			return;
-		currentActivity.runOnUiThread(new Runnable() {
-
-			public void run() {
-				currentActivity.showAds();
-			}
-		});
-	}
-
-	public static void HideAds() {
-		if (!SHOW_ADS)
-			return;
-		currentActivity.runOnUiThread(new Runnable() {
-
-			public void run() {
-				currentActivity.hideAds();
-			}
-		});
-	}
-
-	private void showAds() {
-		if (DEBUG)
-			Log.d(TAG, "showAds");
-		/**
-		 * AdRequest adRequest = new AdRequest(); adView.loadAd(adRequest);
-		 * adView.setVisibility(AdView.VISIBLE);
-		 */
-	}
-
-	private void hideAds() {
-		if (DEBUG)
-			Log.d(TAG, "hideAds");
-		/**
-		 * adView.setVisibility(AdView.GONE);
-		 */
-	}
-
-	public Context getContext() {
-		return currentActivity.getContext();
 	}
 
 }

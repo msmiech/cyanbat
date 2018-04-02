@@ -57,7 +57,6 @@ public class GameScreen extends CyanBatBaseScreen {
 	private void init() {
 		if (DEBUG)
 			Log.d(TAG, "init");
-		CyanBatGame.HideAds();
 		g = game.getGraphics();
 		rnd = new Random();
 		gameObjects.add(new Background(0, 0, CyanBatGame.background,

@@ -14,8 +14,8 @@ public class MultiTouchHandler implements TouchHandler {
 	int[] touchX = new int[20];
 	int[] touchY = new int[20];
 	Pool<TouchEvent> touchEventPool;
-	List<TouchEvent> touchEvents = new ArrayList<TouchEvent>();
-	List<TouchEvent> touchEventsBuffer = new ArrayList<TouchEvent>();
+	List<TouchEvent> touchEvents = new ArrayList<>();
+	List<TouchEvent> touchEventsBuffer = new ArrayList<>();
 	float scaleX;
 	float scaleY;
 	private int pointerCount;

@@ -10,7 +10,7 @@ import at.grueneis.game.framework.Music;
 public class AndroidMusic implements Music, OnCompletionListener
 {
 	MediaPlayer mediaPlayer;
-	boolean isPrepared = false;
+	boolean isPrepared;
 	
 	public AndroidMusic(AssetFileDescriptor afd)
 	{
