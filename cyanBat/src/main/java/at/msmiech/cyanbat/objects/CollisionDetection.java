@@ -17,13 +17,13 @@ public class CollisionDetection {
 	private static final int COLLISION_TOLERANCE = 5;
 	private static final boolean DEBUG = CyanBatGame.DEBUG;
 	private static final String TAG = CyanBatGame.TAG;
-	private List<GameObject> gameObjects;
+	private final List<GameObject> gameObjects;
 	private List<Collidable> objectsToCheck;
 	private Rect tolRect;
 
 	public CollisionDetection(List<GameObject> gameObjects) {
 		this.gameObjects = gameObjects;
-		this.objectsToCheck = new ArrayList<Collidable>();
+		this.objectsToCheck = new ArrayList<>();
 	}
 
 	public void checkCollisions() {
@@ -59,8 +59,6 @@ public class CollisionDetection {
 				main.rect.top + COLLISION_TOLERANCE, main.rect.right - 2
 						* COLLISION_TOLERANCE, main.rect.bottom - 2
 						* COLLISION_TOLERANCE);
-		if(tolRect == null)
-			return;
 		if (Rect.intersects(tolRect,go.rect)) {
 			if (go instanceof Shot) {
 				Shot shot = (Shot) go;
@@ -88,6 +86,6 @@ public class CollisionDetection {
 		if (!(go instanceof Collidable))
 			return;
 		go.removeMe = true;
-		objectsToCheck.remove((Collidable) go);
+		objectsToCheck.remove(go);
 	}
 }
