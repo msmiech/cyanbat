@@ -15,7 +15,7 @@ import at.msmiech.cyanbat.screens.StartScreen;
 
 public class CyanBatGame extends AndroidGame {
 
-	public static final String TAG = "mSmiech_CyanBat";
+	public static final String TAG = "CyanBatGame";
 	public static final boolean DEBUG = false;
 	public static final boolean SHOOTING_ENABLED = false;
 
