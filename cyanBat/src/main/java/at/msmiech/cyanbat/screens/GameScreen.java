@@ -27,7 +27,7 @@ import at.msmiech.cyanbat.threads.ObstacleGenerator;
 public class GameScreen extends CyanBatBaseScreen {
 
     public static final boolean DEBUG = CyanBatGame.DEBUG;
-    public final List<GameObject> gameObjects = new ArrayList<GameObject>();
+    public final List<GameObject> gameObjects = new ArrayList<>();
     private CyanBat bat = new CyanBat(CyanBatBaseScreen.DISPLAY_HEIGHT / 3,
             CyanBatBaseScreen.DISPLAY_WIDTH / 2, CyanBat.realWidth,
             CyanBatGame.bat.getHeight(), CyanBatGame.bat, this);
@@ -117,10 +117,7 @@ public class GameScreen extends CyanBatBaseScreen {
                     Background.count -= 1;
                 if (go instanceof Shot)
                     Shot.count -= 1;
-                go.rect = null;
-                go.velocity = null;
                 gameObjects.remove(go);
-                go = null;
             }
         }
     }
