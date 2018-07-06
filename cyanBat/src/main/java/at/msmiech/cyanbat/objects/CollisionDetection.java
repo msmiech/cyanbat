@@ -80,10 +80,11 @@ public class CollisionDetection {
                 return;
             }
             Collidable collidableMain = (Collidable) main;
+            Collidable collidableOther = (Collidable) other;
             collidableMain.hit();
             Rect explosionRect = new Rect(otherRect); // copy the rectangle
             explosionRect.right = explosionRect.left + Explosion.realWidth;
-            collidableMain.hit();
+            collidableOther.hit();
             GameObject explosionObject = new Explosion(explosionRect, CyanBatGame.explosion);
             gameObjects.add(explosionObject);
         }

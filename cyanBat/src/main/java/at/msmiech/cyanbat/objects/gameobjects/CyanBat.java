@@ -30,6 +30,8 @@ public class CyanBat extends PixmapGameObject implements Collidable {
     private int srcX;
     private GameScreen gs;
     private ArrayList<CyanCurvature> curvatures = new ArrayList<>();
+    private static final float MAX_HIT_COOLDOWN = 0.5f;
+    private float hitCooldown = MAX_HIT_COOLDOWN; // cooldown grace period in seconds
 
     public CyanBat(int x, int y, int width, int height, Pixmap pm, GameScreen gs) {
         super(new Rect(x, y, x + DEFAULT_WIDTH, y + height), pm);
@@ -101,6 +103,9 @@ public class CyanBat extends PixmapGameObject implements Collidable {
 
     private void updateLogic(float deltaTime, List<TouchEvent> touchEvents) {
         if (alive) {
+            if(hitCooldown > 0.f) {
+                hitCooldown -= deltaTime;
+            }
             velocity.x = 0;
             velocity.y = 0;
             if (!touchEvents.isEmpty()) {
@@ -159,7 +164,10 @@ public class CyanBat extends PixmapGameObject implements Collidable {
 
     public void hit() {
         CyanBatGame.vib.vibrate(250);
-        lives -= 1;
+        if (hitCooldown <= 0.01f) {
+            lives -= 1;
+            hitCooldown = MAX_HIT_COOLDOWN;
+        }
         if (lives < 1) {
             lives = 0;
             CyanBatGame.deathSound.play(100);
