@@ -6,6 +6,7 @@ import java.util.List;
 import android.graphics.Rect;
 import android.util.Log;
 
+import at.grueneis.game.framework.Game;
 import at.msmiech.cyanbat.CyanBatGame;
 import at.msmiech.cyanbat.interfaces.Collidable;
 import at.msmiech.cyanbat.interfaces.GameObject;
@@ -20,7 +21,6 @@ public class CollisionDetection {
     private static final String TAG = CyanBatGame.TAG;
     private final List<GameObject> gameObjects;
     private List<Collidable> objectsToCheck;
-    private Rect tolRect; // tolerance rectangle
 
     public CollisionDetection(List<GameObject> gameObjects) {
         this.gameObjects = gameObjects;
@@ -31,15 +31,15 @@ public class CollisionDetection {
         if (DEBUG)
             Log.d(TAG, "checkCollisions");
         synchronized (gameObjects) {
-            if (objectsToCheck == null || objectsToCheck.isEmpty() || objectsToCheck.size() < 2) // at least two objects must be involved in a collision
+            if (objectsToCheck == null || objectsToCheck.isEmpty() || objectsToCheck.size() < 2) // at least two different objects have to be involved in a collision
                 return;
             for (int i = 0; i < objectsToCheck.size(); i++) {
-                AbstractGameObject main = (AbstractGameObject) gameObjects
+                GameObject main = gameObjects
                         .get(i);
-                if (main.removeMe)
+                if (main.scheduledForRemoval())
                     removeObjectToCheck(main);
                 for (int j = 0; j < gameObjects.size(); j++) {
-                    AbstractGameObject other = (AbstractGameObject) gameObjects
+                    GameObject other = gameObjects
                             .get(j);
                     if (other == main)
                         continue;
@@ -51,31 +51,42 @@ public class CollisionDetection {
         }
     }
 
-    private void checkCollision(AbstractGameObject main, AbstractGameObject go) {
+    private void checkCollision(GameObject main, GameObject other) {
         if (DEBUG)
             Log.d(TAG,
                     "(CheckCollision(GameObject) with this Object (by using rect.intersect(rect2))");
 
-        tolRect = new Rect(main.rect.left + COLLISION_TOLERANCE,
-                main.rect.top + COLLISION_TOLERANCE, main.rect.right - 2
-                * COLLISION_TOLERANCE, main.rect.bottom - 2
+        Rect mainRect = main.getRectangle();
+        Rect otherRect = other.getRectangle();
+
+        if (mainRect == null || otherRect == null || mainRect == otherRect) {
+            return;
+        }
+
+        Rect tolRect = new Rect(mainRect.left + COLLISION_TOLERANCE,
+                mainRect.top + COLLISION_TOLERANCE, mainRect.right - 2
+                * COLLISION_TOLERANCE, mainRect.bottom - 2
                 * COLLISION_TOLERANCE);
-        if (Rect.intersects(tolRect, go.rect)) {
-            if (go instanceof Shot) {
-                Shot shot = (Shot) go;
+        if (Rect.intersects(tolRect, otherRect)) {
+            if (other instanceof Shot) {
+                Shot shot = (Shot) other;
                 if (main == shot.firedByObject)
                     return;
             }
-            if (!(main instanceof Collidable))
+            if (!(main instanceof Collidable)) {
                 return;
-            ((Collidable) main).hit();
-            Rect explosionRect = go.rect;
+            }
+            if (main.scheduledForRemoval() || other.scheduledForRemoval()) {
+                return;
+            }
+            Collidable collidableMain = (Collidable) main;
+            collidableMain.hit();
+            Rect explosionRect = new Rect(otherRect); // copy the rectangle
             explosionRect.right = explosionRect.left + Explosion.realWidth;
-            ((Collidable) go).hit();
-            go = new Explosion(explosionRect, CyanBatGame.explosion);
-            gameObjects.add(go);
+            collidableMain.hit();
+            GameObject explosionObject = new Explosion(explosionRect, CyanBatGame.explosion);
+            gameObjects.add(explosionObject);
         }
-        tolRect = null;
     }
 
     public synchronized void addObjectToCheck(AbstractGameObject go) {
@@ -83,10 +94,9 @@ public class CollisionDetection {
             objectsToCheck.add((Collidable) go);
     }
 
-    public synchronized void removeObjectToCheck(AbstractGameObject go) {
-        if (!(go instanceof Collidable))
-            return;
-        go.removeMe = true;
+    public synchronized void removeObjectToCheck(GameObject go) {
+        if (go == null)
+            throw new IllegalArgumentException("Passed game object to remove from collision detection was null!");
         objectsToCheck.remove(go);
     }
 }

@@ -17,7 +17,6 @@ import at.msmiech.cyanbat.CyanBatGame;
 import at.msmiech.cyanbat.interfaces.GameObject;
 import at.msmiech.cyanbat.objects.CollisionDetection;
 import at.msmiech.cyanbat.objects.MusicPlayer;
-import at.msmiech.cyanbat.objects.gameobjects.AbstractGameObject;
 import at.msmiech.cyanbat.objects.gameobjects.Background;
 import at.msmiech.cyanbat.objects.gameobjects.CyanBat;
 import at.msmiech.cyanbat.objects.gameobjects.Shot;
@@ -30,7 +29,7 @@ public class GameScreen extends CyanBatBaseScreen {
     public static final boolean DEBUG = CyanBatGame.DEBUG;
     public final List<GameObject> gameObjects = new ArrayList<>();
     private CyanBat bat = new CyanBat(CyanBatBaseScreen.DISPLAY_HEIGHT / 3,
-            CyanBatBaseScreen.DISPLAY_WIDTH / 2, CyanBat.realWidth,
+            CyanBatBaseScreen.DISPLAY_WIDTH / 2, CyanBat.DEFAULT_WIDTH,
             CyanBatGame.bat.getHeight(), CyanBatGame.bat, this);
 
     static final float TICK_INITIAL = 0.019f;

@@ -1,5 +1,7 @@
 package at.msmiech.cyanbat.interfaces;
 
+import android.graphics.Rect;
+
 import java.util.List;
 
 import at.grueneis.game.framework.Graphics;
@@ -12,11 +14,15 @@ import at.msmiech.cyanbat.CyanBatGame;
  * @author mart1n8891
  */
 public interface GameObject {
-	// const
-	String TAG = CyanBatGame.TAG;
-	boolean DEBUG = CyanBatGame.DEBUG;
+    // const
+    String TAG = CyanBatGame.TAG;
+    boolean DEBUG = CyanBatGame.DEBUG;
 
-	boolean scheduledForRemoval();
-	void update(float deltaTime, List<TouchEvent> touchEvents);
-	void draw(Graphics g);
+    boolean scheduledForRemoval();
+
+    void update(float deltaTime, List<TouchEvent> touchEvents);
+
+    void draw(Graphics g);
+
+    Rect getRectangle();
 }

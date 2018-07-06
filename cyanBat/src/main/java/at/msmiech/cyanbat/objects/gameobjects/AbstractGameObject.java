@@ -29,6 +29,12 @@ public abstract class AbstractGameObject implements GameObject {
         return removeMe;
     }
 
+    @Override
+    public Rect getRectangle() {
+        return rect;
+    }
+
+    @Override
     public void update(float deltaTime, List<TouchEvent> touchEvents) {
         rect.left += velocity.x;
         rect.right += velocity.x;
@@ -38,6 +44,7 @@ public abstract class AbstractGameObject implements GameObject {
             removeMe = true;
     }
 
+    @Override
     public void draw(Graphics g) {
         if (DEBUG) {
             g.drawRect(rect.left, rect.top, rect.width(), rect.height(),
