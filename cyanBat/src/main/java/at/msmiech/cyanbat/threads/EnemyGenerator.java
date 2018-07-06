@@ -7,6 +7,7 @@ import android.util.Log;
 
 import at.msmiech.cyanbat.CyanBatGame;
 import at.msmiech.cyanbat.interfaces.GameObject;
+import at.msmiech.cyanbat.objects.CollisionDetection;
 import at.msmiech.cyanbat.objects.gameobjects.Enemy;
 import at.msmiech.cyanbat.screens.CyanBatBaseScreen;
 
@@ -16,6 +17,7 @@ public class EnemyGenerator extends Thread {
     private final List<GameObject> gameObjects;
     private final Random rnd = new Random();
     private int realEnemyHeight = CyanBatGame.enemies.getHeight();
+    private CollisionDetection collisionDetection;
 
     public EnemyGenerator(List<GameObject> gameObjects) {
         this.gameObjects = gameObjects;
@@ -39,9 +41,17 @@ public class EnemyGenerator extends Thread {
         if (DEBUG)
             Log.d(TAG, "generateObstacle");
         synchronized (gameObjects) {
-            gameObjects.add(new Enemy(CyanBatBaseScreen.DISPLAY_HEIGHT, rnd
+            Enemy en = new Enemy(CyanBatBaseScreen.DISPLAY_HEIGHT, rnd
                     .nextInt(200) + 100, Enemy.realWidth, realEnemyHeight,
-                    CyanBatGame.enemies, rnd.nextInt(3)));
+                    CyanBatGame.enemies, rnd.nextInt(3));
+            gameObjects.add(en);
+            if(collisionDetection != null) {
+                collisionDetection.addObjectToCheck(en);
+            }
         }
+    }
+
+    public void setCollisionDetection(CollisionDetection collisionDetection) {
+        this.collisionDetection = collisionDetection;
     }
 }

@@ -6,9 +6,17 @@ import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
 import at.msmiech.cyanbat.CyanBatGame;
 
+/**
+ * A common in-game-object that can be updated and drawn on screen
+ *
+ * @author mart1n8891
+ */
 public interface GameObject {
-	public static final String TAG = CyanBatGame.TAG;
-	public static final boolean DEBUG = CyanBatGame.DEBUG;
-	public void update(float deltaTime, List<TouchEvent> touchEvents);
-	public void draw(Graphics g);
+	// const
+	String TAG = CyanBatGame.TAG;
+	boolean DEBUG = CyanBatGame.DEBUG;
+
+	boolean scheduledForRemoval();
+	void update(float deltaTime, List<TouchEvent> touchEvents);
+	void draw(Graphics g);
 }

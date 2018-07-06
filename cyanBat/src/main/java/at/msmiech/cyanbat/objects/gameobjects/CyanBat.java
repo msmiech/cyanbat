@@ -33,12 +33,6 @@ public class CyanBat extends PixmapGameObject implements Collidable {
 	public CyanBat(int x, int y, int width, int height, Pixmap pm, GameScreen gs) {
 		super(new Rect(x, y, x + realWidth, y + height), pm);
 		this.gs = gs;
-		init();
-	}
-
-	private void init() {
-		// TODO Auto-generated method stub
-
 	}
 
 	@Override

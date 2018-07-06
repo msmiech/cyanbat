@@ -23,6 +23,12 @@ public abstract class AbstractGameObject implements GameObject {
         this.rect = rect;
     }
 
+
+    @Override
+    public boolean scheduledForRemoval() {
+        return removeMe;
+    }
+
     public void update(float deltaTime, List<TouchEvent> touchEvents) {
         rect.left += velocity.x;
         rect.right += velocity.x;

@@ -1,13 +1,11 @@
 package at.msmiech.cyanbat.objects;
 
-public class Vector2D { // A C# like vector-class, not to get confused with the
-						// old java Collection
+/**
+ * Classic (movement) vector class in two dimensions
+ */
+public class Vector2D {
 	public float x;
 	public float y;
-
-	/*
-	 * others following...
-	 */
 
 	public Vector2D() {
 		x = 0f;
@@ -20,11 +18,17 @@ public class Vector2D { // A C# like vector-class, not to get confused with the
 	}
 
 	public void add(Vector2D val) {
+		if(val == null) {
+			throw new IllegalArgumentException("Passed 2d vector was null!");
+		}
 		x += val.x;
 		y += val.y;
 	}
 
 	public void subtract(Vector2D val) {
+		if(val == null) {
+			throw new IllegalArgumentException("Passed 2d vector was null!");
+		}
 		x -= val.x;
 		y -= val.y;
 	}

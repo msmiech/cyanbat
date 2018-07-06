@@ -8,6 +8,7 @@ import android.util.Log;
 import at.grueneis.game.framework.Pixmap;
 import at.msmiech.cyanbat.CyanBatGame;
 import at.msmiech.cyanbat.interfaces.GameObject;
+import at.msmiech.cyanbat.objects.CollisionDetection;
 import at.msmiech.cyanbat.objects.gameobjects.Obstacle;
 import at.msmiech.cyanbat.screens.CyanBatBaseScreen;
 
@@ -15,8 +16,10 @@ public class ObstacleGenerator extends Thread {
 
     private static final boolean DEBUG = false;
     private static final String TAG = CyanBatGame.TAG;
-    private Random rnd = new Random();
-    private List<GameObject> gameObjects;
+    private static final int OBSTACLE_GENERATION_INTERVAL = 1000; // in ms
+    private final List<GameObject> gameObjects;
+    private final Random rnd = new Random();
+    private CollisionDetection collisionDetection;
 
     public ObstacleGenerator(List<GameObject> gameObjects) {
         this.gameObjects = gameObjects;
@@ -26,7 +29,7 @@ public class ObstacleGenerator extends Thread {
     public void run() {
         try {
             while (!interrupted()) {
-                sleep(rnd.nextInt(1000) + 1000);
+                sleep(rnd.nextInt(OBSTACLE_GENERATION_INTERVAL) + OBSTACLE_GENERATION_INTERVAL);
                 generateObstacle();
             }
         } catch (InterruptedException e) {
@@ -53,8 +56,16 @@ public class ObstacleGenerator extends Thread {
                     - obstaclePixmap.getHeight();
         }
         synchronized (gameObjects) {
-            gameObjects.add(new Obstacle(CyanBatBaseScreen.DISPLAY_HEIGHT,
-                    obstacleHeight, obstaclePixmap));
+            Obstacle obs = new Obstacle(CyanBatBaseScreen.DISPLAY_HEIGHT,
+                    obstacleHeight, obstaclePixmap);
+            gameObjects.add(obs);
+            if(collisionDetection != null) {
+                collisionDetection.addObjectToCheck(obs);
+            }
         }
+    }
+
+    public void setCollisionDetection(CollisionDetection collisionDetection) {
+        this.collisionDetection = collisionDetection;
     }
 }

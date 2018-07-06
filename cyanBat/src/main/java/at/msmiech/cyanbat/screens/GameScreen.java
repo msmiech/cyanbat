@@ -25,6 +25,7 @@ import at.msmiech.cyanbat.threads.EnemyGenerator;
 import at.msmiech.cyanbat.threads.ObstacleGenerator;
 
 public class GameScreen extends CyanBatBaseScreen {
+    private static final String TAG = CyanBatGame.TAG;
 
     public static final boolean DEBUG = CyanBatGame.DEBUG;
     public final List<GameObject> gameObjects = new ArrayList<>();
@@ -37,16 +38,16 @@ public class GameScreen extends CyanBatBaseScreen {
     float tickTime = 0;
     static float tick = TICK_INITIAL;
 
-    private static final String TAG = CyanBatGame.TAG;
+
+    public static Random rnd;
+    public static int highscore = 0;
+    private static SharedPreferences.Editor prefEditor;
     private List<TouchEvent> touchEvents;
     private Graphics g;
     private ObstacleGenerator obstclGen;
     private EnemyGenerator enmGen;
     public int score;
-    public static Random rnd;
     public CollisionDetection colChk;
-    public static int highscore = 0;
-    private static SharedPreferences.Editor prefEditor;
     private SharedPreferences prefs;
     private MusicPlayer musicPlayer = CyanBatGame.musicPlayer;
 
@@ -60,11 +61,13 @@ public class GameScreen extends CyanBatBaseScreen {
             Log.d(TAG, "init");
         g = game.getGraphics();
         rnd = new Random();
+
         gameObjects.add(new Background(0, 0, CyanBatGame.background,
-                gameObjects));
+                gameObjects)); // Add the first background
+        gameObjects.add(bat); // Add the main player character
+
         colChk = new CollisionDetection(gameObjects);
         colChk.addObjectToCheck(bat);
-        gameObjects.add(bat);
         Shot.count = 0;
         musicPlayer.continueMusic();
         initStats();
@@ -97,27 +100,30 @@ public class GameScreen extends CyanBatBaseScreen {
         super.update(deltaTime);
     }
 
+
+    // a simple gameloop, essentially
     private void updateGameObjects(float deltaTime) {
         if (DEBUG)
             Log.d(TAG, "updateGameObjects");
         Background.count = 0;
         synchronized (gameObjects) {
             for (int i = 0; i < gameObjects.size(); i++) {
-                AbstractGameObject go = (AbstractGameObject) gameObjects.get(i);
+                GameObject go = gameObjects.get(i);
                 // Check for remove:
-                if (!(go == null))
-                    if (!go.removeMe) {
-                        if (bat.alive)
-                            colChk.checkCollisions();
-                        go.update(deltaTime, touchEvents);
-                        continue;
-                    }
-                // Let's give the garbage collector something to do:
-                if (go instanceof Background)
-                    Background.count -= 1;
-                if (go instanceof Shot)
-                    Shot.count -= 1;
-                gameObjects.remove(go);
+                if (go.scheduledForRemoval()) {
+                    // Let's give the garbage collector something to do:
+                    if (go instanceof Background)
+                        Background.count -= 1;
+                    if (go instanceof Shot)
+                        Shot.count -= 1;
+                    gameObjects.remove(go);
+                }
+
+                if (bat.alive)
+                    colChk.checkCollisions();
+
+                go.update(deltaTime, touchEvents);
+
             }
         }
     }
@@ -199,7 +205,11 @@ public class GameScreen extends CyanBatBaseScreen {
     private void initThreads() {
         if (DEBUG)
             Log.d(TAG, "initThreads");
+
         obstclGen = new ObstacleGenerator(gameObjects);
+        obstclGen.setCollisionDetection(colChk);
+
         enmGen = new EnemyGenerator(gameObjects);
+        enmGen.setCollisionDetection(colChk);
     }
 }
