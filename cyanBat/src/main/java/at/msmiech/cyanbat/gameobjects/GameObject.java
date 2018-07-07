@@ -1,4 +1,4 @@
-package at.msmiech.cyanbat.interfaces;
+package at.msmiech.cyanbat.gameobjects;
 
 import android.graphics.Rect;
 

@@ -1,4 +1,4 @@
-package at.msmiech.cyanbat.objects.gameobjects;
+package at.msmiech.cyanbat.gameobjects.impl;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -10,7 +10,9 @@ import at.grueneis.game.framework.Input.TouchEvent;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Pixmap;
 import at.msmiech.cyanbat.CyanBatGame;
-import at.msmiech.cyanbat.interfaces.Collidable;
+import at.msmiech.cyanbat.gameobjects.AbstractGameObject;
+import at.msmiech.cyanbat.gameobjects.Collidable;
+import at.msmiech.cyanbat.gameobjects.PixmapGameObject;
 import at.msmiech.cyanbat.screens.CyanBatBaseScreen;
 import at.msmiech.cyanbat.screens.FailScreen;
 import at.msmiech.cyanbat.screens.GameScreen;
@@ -29,7 +31,7 @@ public class CyanBat extends PixmapGameObject implements Collidable {
     private float tick = TICK_INITIAL;
     private int srcX;
     private GameScreen gs;
-    private ArrayList<CyanCurvature> curvatures = new ArrayList<>();
+    private ArrayList<CyanTrail> curvatures = new ArrayList<>();
     private static final float MAX_HIT_COOLDOWN = 0.5f;
     private float hitCooldown = MAX_HIT_COOLDOWN; // cooldown grace period in seconds
 
@@ -58,7 +60,7 @@ public class CyanBat extends PixmapGameObject implements Collidable {
                 (rect.top + (rect.height() / 2)), rect.left + rect.width() / 4,
                 rect.bottom);
         for (int i = 0; i < curvatures.size(); i++) {
-            CyanCurvature curv = curvatures.get(i);
+            CyanTrail curv = curvatures.get(i);
             if (curv == null || curv.removeMe) {
                 curvatures.remove(curv);
                 continue;
@@ -70,7 +72,7 @@ public class CyanBat extends PixmapGameObject implements Collidable {
 
         potentialRect.left -= 2;
         potentialRect.right -= 1;
-        CyanCurvature go = new CyanCurvature(potentialRect);
+        CyanTrail go = new CyanTrail(potentialRect);
         curvatures.add(go);
         gs.gameObjects.add(go);
     }
@@ -78,7 +80,7 @@ public class CyanBat extends PixmapGameObject implements Collidable {
     private void shoot() {
         if (Shot.count > 1)
             return;
-        AbstractGameObject shot = new Shot(new Rect(rect.left, rect.top,
+        Shot shot = new Shot(new Rect(rect.left, rect.top,
                 rect.left + CyanBatGame.shot.getWidth(), rect.top
                 + CyanBatGame.shot.getHeight()), CyanBatGame.shot, this);
         gs.gameObjects.add(shot);

@@ -1,4 +1,4 @@
-package at.msmiech.cyanbat.objects;
+package at.msmiech.cyanbat.util;
 
 import at.msmiech.cyanbat.CyanBatGame;
 

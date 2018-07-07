@@ -14,14 +14,14 @@ import at.grueneis.game.framework.Game;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
 import at.msmiech.cyanbat.CyanBatGame;
-import at.msmiech.cyanbat.interfaces.GameObject;
-import at.msmiech.cyanbat.objects.CollisionDetection;
-import at.msmiech.cyanbat.objects.MusicPlayer;
-import at.msmiech.cyanbat.objects.gameobjects.Background;
-import at.msmiech.cyanbat.objects.gameobjects.CyanBat;
-import at.msmiech.cyanbat.objects.gameobjects.Shot;
-import at.msmiech.cyanbat.threads.EnemyGenerator;
-import at.msmiech.cyanbat.threads.ObstacleGenerator;
+import at.msmiech.cyanbat.gameobjects.GameObject;
+import at.msmiech.cyanbat.service.CollisionDetection;
+import at.msmiech.cyanbat.util.MusicPlayer;
+import at.msmiech.cyanbat.gameobjects.impl.Background;
+import at.msmiech.cyanbat.gameobjects.impl.CyanBat;
+import at.msmiech.cyanbat.gameobjects.impl.Shot;
+import at.msmiech.cyanbat.service.EnemyGenerator;
+import at.msmiech.cyanbat.service.ObstacleGenerator;
 
 public class GameScreen extends CyanBatBaseScreen {
     private static final String TAG = CyanBatGame.TAG;
@@ -43,7 +43,9 @@ public class GameScreen extends CyanBatBaseScreen {
     private static SharedPreferences.Editor prefEditor;
     private List<TouchEvent> touchEvents;
     private Graphics g;
+    private Thread obstclGenThread;
     private ObstacleGenerator obstclGen;
+    private Thread enmGenThread;
     private EnemyGenerator enmGen;
     public int score;
     public CollisionDetection colChk;
@@ -180,8 +182,8 @@ public class GameScreen extends CyanBatBaseScreen {
     public void interruptThreads() {
         if (DEBUG)
             Log.d(TAG, "interruptThreads");
-        obstclGen.interrupt();
-        enmGen.interrupt();
+        obstclGen.stop();
+        enmGen.stop();
     }
 
     @Override
@@ -197,18 +199,27 @@ public class GameScreen extends CyanBatBaseScreen {
         if (DEBUG)
             Log.d(TAG, "startThreads");
         initThreads();
-        obstclGen.start();
-        enmGen.start();
+        obstclGenThread.start();
+        enmGenThread.start();
     }
 
     private void initThreads() {
         if (DEBUG)
             Log.d(TAG, "initThreads");
+        if(obstclGenThread != null && obstclGenThread.isAlive()) {
+            obstclGenThread.interrupt();
+        }
 
         obstclGen = new ObstacleGenerator(gameObjects);
         obstclGen.setCollisionDetection(colChk);
+        obstclGenThread = new Thread(obstclGen);
 
+
+        if(enmGenThread != null && enmGenThread.isAlive()) {
+            enmGenThread.interrupt();
+        }
         enmGen = new EnemyGenerator(gameObjects);
         enmGen.setCollisionDetection(colChk);
+        enmGenThread = new Thread(enmGen);
     }
 }

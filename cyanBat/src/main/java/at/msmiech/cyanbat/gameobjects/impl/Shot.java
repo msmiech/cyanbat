@@ -1,4 +1,4 @@
-package at.msmiech.cyanbat.objects.gameobjects;
+package at.msmiech.cyanbat.gameobjects.impl;
 
 import java.util.List;
 
@@ -6,8 +6,9 @@ import android.graphics.Rect;
 
 import at.grueneis.game.framework.Input.TouchEvent;
 import at.grueneis.game.framework.Pixmap;
-import at.msmiech.cyanbat.interfaces.Collidable;
-import at.msmiech.cyanbat.interfaces.GameObject;
+import at.msmiech.cyanbat.gameobjects.Collidable;
+import at.msmiech.cyanbat.gameobjects.GameObject;
+import at.msmiech.cyanbat.gameobjects.PixmapGameObject;
 
 /**
  * TODO implement shots to be fired at enemies

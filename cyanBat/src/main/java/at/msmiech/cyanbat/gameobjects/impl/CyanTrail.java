@@ -1,4 +1,4 @@
-package at.msmiech.cyanbat.objects.gameobjects;
+package at.msmiech.cyanbat.gameobjects.impl;
 
 import java.util.List;
 
@@ -6,14 +6,15 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
+import at.msmiech.cyanbat.gameobjects.AbstractGameObject;
 
-public class CyanCurvature extends AbstractGameObject {
+public class CyanTrail extends AbstractGameObject {
 	private final float TICK_INITIAL = 0.008f;
 	private float tickTime = 0;
 	private float tick = TICK_INITIAL;
 	private int color = Color.CYAN;
 
-	public CyanCurvature(Rect rect) {
+	public CyanTrail(Rect rect) {
 		super(rect);
 	}
 

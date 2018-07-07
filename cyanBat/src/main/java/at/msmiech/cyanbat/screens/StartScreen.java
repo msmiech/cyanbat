@@ -56,21 +56,17 @@ public class StartScreen extends CyanBatBaseScreen {
 		drawMap(g);
 		g.drawPixmap(CyanBatGame.mainMenu, -2, -2);
 		g.drawPixmap(CyanBatGame.menuButtons, 5, 5);
-		Context context = ((CyanBatGame) game).getContext();
+		Context context = game.getContext();
 		try {
 			g.drawString(
-					"v" + context.getPackageManager().getPackageInfo(
-							context.getPackageName(), 0).versionName + " [preview]", 5, 310, 15,
+					"Version: " + context.getPackageManager().getPackageInfo(
+							context.getPackageName(), 0).versionName, 5, 310, 15,
 					Color.RED);
 		} catch (NameNotFoundException e) {
 			g.drawString(
 					"NaN", 5, 310, 15,
 					Color.RED);
 		}
-		// ChangeLog:
-		// Shooting disabled due to performance problems.
-		// Redone object processing... For some reason performance decrease
-		// instead of increase
 	}
 
 	@Override

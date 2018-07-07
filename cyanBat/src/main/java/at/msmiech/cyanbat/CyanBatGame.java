@@ -10,7 +10,7 @@ import at.grueneis.game.framework.Pixmap;
 import at.grueneis.game.framework.Screen;
 import at.grueneis.game.framework.Sound;
 import at.grueneis.game.framework.code.AndroidGame;
-import at.msmiech.cyanbat.objects.MusicPlayer;
+import at.msmiech.cyanbat.util.MusicPlayer;
 import at.msmiech.cyanbat.screens.StartScreen;
 
 public class CyanBatGame extends AndroidGame {

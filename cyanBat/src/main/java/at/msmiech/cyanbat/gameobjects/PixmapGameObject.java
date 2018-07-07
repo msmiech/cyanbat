@@ -1,4 +1,4 @@
-package at.msmiech.cyanbat.objects.gameobjects;
+package at.msmiech.cyanbat.gameobjects;
 
 import java.util.List;
 

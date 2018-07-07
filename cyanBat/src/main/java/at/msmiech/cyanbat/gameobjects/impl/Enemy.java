@@ -1,4 +1,4 @@
-package at.msmiech.cyanbat.objects.gameobjects;
+package at.msmiech.cyanbat.gameobjects.impl;
 
 import java.util.List;
 import java.util.Random;
@@ -9,7 +9,8 @@ import android.util.Log;
 import at.grueneis.game.framework.Input.TouchEvent;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Pixmap;
-import at.msmiech.cyanbat.interfaces.Collidable;
+import at.msmiech.cyanbat.gameobjects.Collidable;
+import at.msmiech.cyanbat.gameobjects.PixmapGameObject;
 
 public class Enemy extends PixmapGameObject implements Collidable {
 

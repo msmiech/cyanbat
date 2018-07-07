@@ -1,4 +1,4 @@
-package at.msmiech.cyanbat.objects.gameobjects;
+package at.msmiech.cyanbat.gameobjects;
 
 import java.util.List;
 
@@ -7,8 +7,7 @@ import android.graphics.Rect;
 
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
-import at.msmiech.cyanbat.interfaces.GameObject;
-import at.msmiech.cyanbat.objects.Vector2D;
+import at.msmiech.cyanbat.util.Vector2D;
 import at.msmiech.cyanbat.screens.CyanBatBaseScreen;
 
 public abstract class AbstractGameObject implements GameObject {

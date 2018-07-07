@@ -1,4 +1,4 @@
-package at.msmiech.cyanbat.interfaces;
+package at.msmiech.cyanbat.gameobjects;
 
 public interface Collidable {
 	void hit();
