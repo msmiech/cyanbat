@@ -3,6 +3,17 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent" android:layout_height="match_parent">
     <!-- Resource for Button Design: http://angrytools.com/android/button/ -->
+
+    <ImageView
+        android:id="@+id/game_title_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_below="@+id/btnStartGame"
+        android:layout_marginEnd="27dp"
+        android:contentDescription="Test"
+        android:src="@drawable/title" />
+
     <Button
         android:id="@+id/btnStartGame"
         android:layout_width="wrap_content"

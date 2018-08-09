@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:key="game_options">
+    <EditTextPreference
+        android:defaultValue="user"
+        android:dialogMessage="@string/settings_username_summary"
+        android:dialogTitle="@string/settings_username_title"
+        android:key="username"
+        android:summary="@string/settings_username_summary"
+        android:title="@string/settings_username_title" />
+
+    <CheckBoxPreference
+        android:defaultValue="true"
+        android:key="music_enabled"
+        android:title="@string/settings_music_title" />
+
+    <CheckBoxPreference
+        android:defaultValue="true"
+        android:key="sounds_enabled"
+        android:title="@string/settings_sound_title" />
+
+    <ListPreference
+        android:defaultValue="@string/controlscheme_classic"
+        android:entries="@array/controlschemes"
+        android:entryValues="@array/controlschemes"
+        android:key="controlscheme"
+        android:summary="@string/settings_controlscheme_summary"
+        android:title="@string/settings_controlscheme_title" />
+</PreferenceScreen>

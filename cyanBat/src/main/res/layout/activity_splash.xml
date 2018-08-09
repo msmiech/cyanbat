@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/splash_screen_layout"
+    android:focusable="true"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    tools:context="at.msmiech.cyanbat.activities.SplashScreenActivity">
+
+    <ImageView
+        android:id="@+id/game_title_view"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerHorizontal="true"
+        android:layout_centerVertical="true"
+        android:contentDescription="Test"
+        android:src="@drawable/title" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/tap_to_continue"
+        android:id="@+id/tap_to_continue"
+        android:layout_below="@+id/game_title_view"
+        android:layout_centerHorizontal="true"
+        android:layout_marginTop="54dp"
+        android:textColor="#0c2ce4"
+        android:textSize="16sp" />
+
+</RelativeLayout>
