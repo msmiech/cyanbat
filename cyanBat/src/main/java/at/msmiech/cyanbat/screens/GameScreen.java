@@ -13,7 +13,7 @@ import android.util.Log;
 import at.grueneis.game.framework.Game;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
-import at.msmiech.cyanbat.CyanBatGame;
+import at.msmiech.cyanbat.activities.CyanBatGameActivity;
 import at.msmiech.cyanbat.gameobjects.GameObject;
 import at.msmiech.cyanbat.service.CollisionDetection;
 import at.msmiech.cyanbat.util.MusicPlayer;
@@ -24,13 +24,13 @@ import at.msmiech.cyanbat.service.EnemyGenerator;
 import at.msmiech.cyanbat.service.ObstacleGenerator;
 
 public class GameScreen extends CyanBatBaseScreen {
-    private static final String TAG = CyanBatGame.TAG;
+    private static final String TAG = CyanBatGameActivity.TAG;
 
-    public static final boolean DEBUG = CyanBatGame.DEBUG;
+    public static final boolean DEBUG = CyanBatGameActivity.DEBUG;
     public final List<GameObject> gameObjects = new ArrayList<>();
     private CyanBat bat = new CyanBat(CyanBatBaseScreen.DISPLAY_HEIGHT / 3,
             CyanBatBaseScreen.DISPLAY_WIDTH / 2, CyanBat.DEFAULT_WIDTH,
-            CyanBatGame.bat.getHeight(), CyanBatGame.bat, this);
+            CyanBatGameActivity.bat.getHeight(), CyanBatGameActivity.bat, this);
 
     static final float TICK_INITIAL = 0.019f;
     static final float TICK_DECREAMENT_FACTOR = 0.9f;
@@ -50,7 +50,7 @@ public class GameScreen extends CyanBatBaseScreen {
     public int score;
     public CollisionDetection colChk;
     private SharedPreferences prefs;
-    private MusicPlayer musicPlayer = CyanBatGame.musicPlayer;
+    private MusicPlayer musicPlayer = CyanBatGameActivity.musicPlayer;
 
     public GameScreen(Game game) {
         super(game);
@@ -63,9 +63,9 @@ public class GameScreen extends CyanBatBaseScreen {
         g = game.getGraphics();
         rnd = new Random();
 
-        gameObjects.add(new Background(0, 0, CyanBatGame.background,
+        gameObjects.add(new Background(0, 0, CyanBatGameActivity.background,
                 gameObjects)); // Add the first background
-        gameObjects.add(bat); // Add the main player character
+        gameObjects.add(bat); // Add the activity_main player character
 
         colChk = new CollisionDetection(gameObjects);
         colChk.addObjectToCheck(bat);
@@ -144,7 +144,7 @@ public class GameScreen extends CyanBatBaseScreen {
         drawGameObjects();
         drawStats();
         if (!bat.alive)
-            g.drawPixmap(CyanBatGame.death, 15, 15);
+            g.drawPixmap(CyanBatGameActivity.death, 15, 15);
     }
 
     private void drawStats() {
@@ -174,7 +174,7 @@ public class GameScreen extends CyanBatBaseScreen {
     public void pause() {
         if (DEBUG)
             Log.d(TAG, "pause");
-        CyanBatGame.musicPlayer.stopMusic();
+        CyanBatGameActivity.musicPlayer.stopMusic();
         interruptThreads();
         super.pause();
     }

@@ -5,7 +5,7 @@ import java.util.List;
 import at.grueneis.game.framework.Game;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
-import at.msmiech.cyanbat.CyanBatGame;
+import at.msmiech.cyanbat.activities.CyanBatGameActivity;
 
 public class FailScreen extends CyanBatBaseScreen {
 
@@ -25,9 +25,9 @@ public class FailScreen extends CyanBatBaseScreen {
     }
 
     private void initSounds() {
-        if (CyanBatGame.gameTrack.isPlaying()) {
-            CyanBatGame.gameTrack.stop();
-            CyanBatGame.gameTrack.setLooping(false);
+        if (CyanBatGameActivity.gameTrack.isPlaying()) {
+            CyanBatGameActivity.gameTrack.stop();
+            CyanBatGameActivity.gameTrack.setLooping(false);
         }
     }
 
@@ -36,7 +36,7 @@ public class FailScreen extends CyanBatBaseScreen {
         touchEvents = game.getInput().getTouchEvents();
         for (TouchEvent event : touchEvents) {
             if (event.type == TouchEvent.TOUCH_UP) {
-                CyanBatGame.vib.vibrate(250);
+                CyanBatGameActivity.vib.vibrate(250);
                 game.setScreen(new StartScreen(game));
             }
         }
@@ -46,7 +46,7 @@ public class FailScreen extends CyanBatBaseScreen {
     @Override
     public void present(float deltaTime) {
         drawMap(g);
-        g.drawPixmap(CyanBatGame.gameOver, 0, 0);
+        g.drawPixmap(CyanBatGameActivity.gameOver, 0, 0);
     }
 
     @Override

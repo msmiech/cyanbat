@@ -8,7 +8,7 @@ import android.graphics.Color;
 import at.grueneis.game.framework.Game;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
-import at.msmiech.cyanbat.CyanBatGame;
+import at.msmiech.cyanbat.activities.CyanBatGameActivity;
 
 public class StartScreen extends CyanBatBaseScreen {
 
@@ -22,9 +22,9 @@ public class StartScreen extends CyanBatBaseScreen {
 	private void init() {
 		g = game.getGraphics();
 		System.gc();
-		if (!CyanBatGame.menuTheme.isLooping()) {
-			CyanBatGame.menuTheme.setLooping(true);
-			CyanBatGame.menuTheme.play();
+		if (!CyanBatGameActivity.menuTheme.isLooping()) {
+			CyanBatGameActivity.menuTheme.setLooping(true);
+			CyanBatGameActivity.menuTheme.play();
 		}
 	}
 
@@ -35,12 +35,12 @@ public class StartScreen extends CyanBatBaseScreen {
 			if (event.type == TouchEvent.TOUCH_UP) {
 				if (event.x > 50 && event.x < 190 && event.y < 150
 						&& event.y > 90) {
-					CyanBatGame.vib.vibrate(250);
+					CyanBatGameActivity.vib.vibrate(250);
 					game.setScreen(new GameScreen(game));
 				}
 				if (event.x > 20 && event.x < 210 && event.y < 50
 						&& event.y > 25) {
-					CyanBatGame.vib.vibrate(200);
+					CyanBatGameActivity.vib.vibrate(200);
 					System.exit(0);
 
 				}
@@ -54,8 +54,8 @@ public class StartScreen extends CyanBatBaseScreen {
 	public void present(float deltaTime) {
 
 		drawMap(g);
-		g.drawPixmap(CyanBatGame.mainMenu, -2, -2);
-		g.drawPixmap(CyanBatGame.menuButtons, 5, 5);
+		g.drawPixmap(CyanBatGameActivity.mainMenu, -2, -2);
+		g.drawPixmap(CyanBatGameActivity.menuButtons, 5, 5);
 		Context context = game.getContext();
 		try {
 			g.drawString(
@@ -71,17 +71,17 @@ public class StartScreen extends CyanBatBaseScreen {
 
 	@Override
 	public void pause() {
-		if (CyanBatGame.menuTheme.isPlaying())
-			CyanBatGame.menuTheme.stop();
-		CyanBatGame.menuTheme.setLooping(false);
+		if (CyanBatGameActivity.menuTheme.isPlaying())
+			CyanBatGameActivity.menuTheme.stop();
+		CyanBatGameActivity.menuTheme.setLooping(false);
 		super.pause();
 	}
 
 	@Override
 	public void resume() {
-		if (!CyanBatGame.menuTheme.isPlaying())
-			CyanBatGame.menuTheme.play();
-		CyanBatGame.menuTheme.setLooping(true);
+		if (!CyanBatGameActivity.menuTheme.isPlaying())
+			CyanBatGameActivity.menuTheme.play();
+		CyanBatGameActivity.menuTheme.setLooping(true);
 		super.resume();
 	}
 }

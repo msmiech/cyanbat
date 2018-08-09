@@ -6,18 +6,17 @@ import java.util.List;
 import android.graphics.Rect;
 import android.util.Log;
 
-import at.msmiech.cyanbat.CyanBatGame;
+import at.msmiech.cyanbat.activities.CyanBatGameActivity;
 import at.msmiech.cyanbat.gameobjects.Collidable;
 import at.msmiech.cyanbat.gameobjects.GameObject;
-import at.msmiech.cyanbat.gameobjects.AbstractGameObject;
 import at.msmiech.cyanbat.gameobjects.impl.Explosion;
 import at.msmiech.cyanbat.gameobjects.impl.Shot;
 
-public class CollisionDetection<T> {
+public class CollisionDetection {
 
     private static final int COLLISION_TOLERANCE = 5;
-    private static final boolean DEBUG = CyanBatGame.DEBUG;
-    private static final String TAG = CyanBatGame.TAG;
+    private static final boolean DEBUG = CyanBatGameActivity.DEBUG;
+    private static final String TAG = CyanBatGameActivity.TAG;
     private final List<GameObject> gameObjects;
     private List<Collidable> objectsToCheck;
 
@@ -94,7 +93,7 @@ public class CollisionDetection<T> {
             Rect explosionRect = new Rect(otherRect); // copy the rectangle
             explosionRect.right = explosionRect.left + Explosion.realWidth;
             collidableOther.hit();
-            GameObject explosionObject = new Explosion(explosionRect, CyanBatGame.explosion);
+            GameObject explosionObject = new Explosion(explosionRect, CyanBatGameActivity.explosion);
             gameObjects.add(explosionObject);
         }
     }

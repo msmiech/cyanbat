@@ -6,7 +6,7 @@ import java.util.List;
 
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
-import at.msmiech.cyanbat.CyanBatGame;
+import at.msmiech.cyanbat.activities.CyanBatGameActivity;
 
 /**
  * A common in-game-object that can be updated and drawn on screen
@@ -15,8 +15,8 @@ import at.msmiech.cyanbat.CyanBatGame;
  */
 public interface GameObject {
     // const
-    String TAG = CyanBatGame.TAG;
-    boolean DEBUG = CyanBatGame.DEBUG;
+    String TAG = CyanBatGameActivity.TAG;
+    boolean DEBUG = CyanBatGameActivity.DEBUG;
 
     boolean scheduledForRemoval();
 

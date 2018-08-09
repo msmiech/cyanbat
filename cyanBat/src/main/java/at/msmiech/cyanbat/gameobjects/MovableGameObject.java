@@ -10,15 +10,15 @@ import at.grueneis.game.framework.Input.TouchEvent;
 import at.msmiech.cyanbat.util.Vector2D;
 import at.msmiech.cyanbat.screens.CyanBatBaseScreen;
 
-public abstract class AbstractGameObject implements GameObject {
+/**
+ * Describes the of an GameObject.
+ */
+public abstract class MovableGameObject implements GameObject {
     public Rect rect;
     public boolean removeMe = false;
-    public Vector2D velocity = new Vector2D();
+    protected Vector2D velocity = new Vector2D();
 
-    // Describes the
-    // movement of an GameObject.
-
-    protected AbstractGameObject(Rect rect) {
+    protected MovableGameObject(Rect rect) {
         this.rect = rect;
     }
 

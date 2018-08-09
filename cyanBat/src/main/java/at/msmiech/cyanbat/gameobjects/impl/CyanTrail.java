@@ -6,9 +6,9 @@ import android.graphics.Color;
 import android.graphics.Rect;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
-import at.msmiech.cyanbat.gameobjects.AbstractGameObject;
+import at.msmiech.cyanbat.gameobjects.MovableGameObject;
 
-public class CyanTrail extends AbstractGameObject {
+public class CyanTrail extends MovableGameObject {
 	private final float TICK_INITIAL = 0.008f;
 	private float tickTime = 0;
 	private float tick = TICK_INITIAL;

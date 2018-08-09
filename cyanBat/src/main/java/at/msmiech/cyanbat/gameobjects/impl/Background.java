@@ -8,7 +8,7 @@ import android.util.Log;
 import at.grueneis.game.framework.Input.TouchEvent;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Pixmap;
-import at.msmiech.cyanbat.CyanBatGame;
+import at.msmiech.cyanbat.activities.CyanBatGameActivity;
 import at.msmiech.cyanbat.gameobjects.GameObject;
 import at.msmiech.cyanbat.gameobjects.PixmapGameObject;
 import at.msmiech.cyanbat.screens.CyanBatBaseScreen;
@@ -33,7 +33,7 @@ public class Background extends PixmapGameObject {
             if (bgArea - 5 < CyanBatBaseScreen.DISPLAY_HEIGHT) {
                 gameObjects.add(0, new Background(
                         CyanBatBaseScreen.DISPLAY_HEIGHT, 0,
-                        CyanBatGame.background, gameObjects));
+                        CyanBatGameActivity.background, gameObjects));
             }
         }
         super.update(deltaTime, touchEvents);

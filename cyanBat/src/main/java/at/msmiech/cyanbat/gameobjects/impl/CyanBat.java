@@ -9,8 +9,7 @@ import android.util.Log;
 import at.grueneis.game.framework.Input.TouchEvent;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Pixmap;
-import at.msmiech.cyanbat.CyanBatGame;
-import at.msmiech.cyanbat.gameobjects.AbstractGameObject;
+import at.msmiech.cyanbat.activities.CyanBatGameActivity;
 import at.msmiech.cyanbat.gameobjects.Collidable;
 import at.msmiech.cyanbat.gameobjects.PixmapGameObject;
 import at.msmiech.cyanbat.screens.CyanBatBaseScreen;
@@ -48,7 +47,7 @@ public class CyanBat extends PixmapGameObject implements Collidable {
         updateAnimation(deltaTime);
         updateCurvatations();
 
-        if (CyanBatGame.SHOOTING_ENABLED) {
+        if (CyanBatGameActivity.SHOOTING_ENABLED) {
             if (CyanBatBaseScreen.game.getInput().getTouchEvents().size() > 1)
                 shoot();
         }
@@ -81,8 +80,8 @@ public class CyanBat extends PixmapGameObject implements Collidable {
         if (Shot.count > 1)
             return;
         Shot shot = new Shot(new Rect(rect.left, rect.top,
-                rect.left + CyanBatGame.shot.getWidth(), rect.top
-                + CyanBatGame.shot.getHeight()), CyanBatGame.shot, this);
+                rect.left + CyanBatGameActivity.shot.getWidth(), rect.top
+                + CyanBatGameActivity.shot.getHeight()), CyanBatGameActivity.shot, this);
         gs.gameObjects.add(shot);
         gs.colChk.addObjectToCheck(shot);
     }
@@ -165,19 +164,19 @@ public class CyanBat extends PixmapGameObject implements Collidable {
     }
 
     public void hit() {
-        CyanBatGame.vib.vibrate(250);
+        CyanBatGameActivity.vib.vibrate(250);
         if (hitCooldown <= 0.01f) {
             lives -= 1;
             hitCooldown = MAX_HIT_COOLDOWN;
         }
         if (lives < 1) {
             lives = 0;
-            CyanBatGame.deathSound.play(100);
+            CyanBatGameActivity.deathSound.play(100);
             alive = false;
             gs.saveHighscore();
-            CyanBatGame.musicPlayer.stopMusic();
+            CyanBatGameActivity.musicPlayer.stopMusic();
             gs.interruptThreads();
-            CyanBatGame.gameOverMusic.play();
+            CyanBatGameActivity.gameOverMusic.play();
         }
     }
 }

@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent" android:layout_height="match_parent">
+    <!-- Resource for Button Design: http://angrytools.com/android/button/ -->
+    <Button
+        android:id="@+id/btnStartGame"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="40dp"
+        android:layout_marginTop="10dp"
+        android:background="@drawable/buttonshape"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="@string/button_start_game" />
+
+    <Button
+        android:id="@+id/btnHighscore"
+        android:layout_width="127dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignStart="@+id/btnStartGame"
+        android:layout_marginTop="90dp"
+        android:background="@drawable/buttonshape"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="@string/button_highscore"
+        tools:ignore="UnknownId" />
+
+    <Button
+        android:id="@+id/btnSettings"
+        android:layout_width="127dp"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/btnStartGame"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="170dp"
+        android:background="@drawable/buttonshape"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="@string/button_settings" />
+
+
+    <Button
+        android:id="@+id/btnExit"
+        android:layout_width="127dp"
+        android:layout_height="wrap_content"
+        android:layout_alignStart="@+id/btnStartGame"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="250dp"
+        android:background="@drawable/buttonshape"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="@string/button_exit" />
+
+
+    <Button
+        android:id="@+id/btnHelp"
+        android:layout_width="127dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignTop="@+id/btnExit"
+        android:layout_marginEnd="40dp"
+        android:background="@drawable/buttonshape"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="@string/button_help" />
+
+</RelativeLayout>

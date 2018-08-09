@@ -1,6 +1,6 @@
 package at.msmiech.cyanbat.util;
 
-import at.msmiech.cyanbat.CyanBatGame;
+import at.msmiech.cyanbat.activities.CyanBatGameActivity;
 
 public class MusicPlayer {
 	public static boolean enabled = true;
@@ -8,19 +8,19 @@ public class MusicPlayer {
 	public void stopMusic() {
 		if (!enabled)
 			return;
-		if (CyanBatGame.gameTrack.isPlaying())
-			CyanBatGame.gameTrack.stop();
-		CyanBatGame.gameTrack.setLooping(false);
+		if (CyanBatGameActivity.gameTrack.isPlaying())
+			CyanBatGameActivity.gameTrack.stop();
+		CyanBatGameActivity.gameTrack.setLooping(false);
 	}
 
 	public void continueMusic() {
 		if (!enabled)
 			return;
-		if (CyanBatGame.menuTheme.isPlaying()) {
-			CyanBatGame.menuTheme.stop();
-			CyanBatGame.menuTheme.setLooping(false);
+		if (CyanBatGameActivity.menuTheme.isPlaying()) {
+			CyanBatGameActivity.menuTheme.stop();
+			CyanBatGameActivity.menuTheme.setLooping(false);
 		}
-		CyanBatGame.gameTrack.play();
-		CyanBatGame.gameTrack.setLooping(true);
+		CyanBatGameActivity.gameTrack.play();
+		CyanBatGameActivity.gameTrack.setLooping(true);
 	}
 }

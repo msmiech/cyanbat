@@ -7,7 +7,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import android.util.Log;
 
 import at.grueneis.game.framework.Pixmap;
-import at.msmiech.cyanbat.CyanBatGame;
+import at.msmiech.cyanbat.activities.CyanBatGameActivity;
 import at.msmiech.cyanbat.gameobjects.GameObject;
 import at.msmiech.cyanbat.gameobjects.impl.Obstacle;
 import at.msmiech.cyanbat.screens.CyanBatBaseScreen;
@@ -15,7 +15,7 @@ import at.msmiech.cyanbat.screens.CyanBatBaseScreen;
 public class ObstacleGenerator implements Runnable {
 
     private static final boolean DEBUG = false;
-    private static final String TAG = CyanBatGame.TAG;
+    private static final String TAG = CyanBatGameActivity.TAG;
     private static final int OBSTACLE_GENERATION_INTERVAL = 1000; // in ms
     private final List<GameObject> gameObjects;
     private final Random rnd = new Random();
@@ -52,13 +52,13 @@ public class ObstacleGenerator implements Runnable {
         Pixmap obstaclePixmap;
         if (rnd.nextBoolean()) // Top or not?
         {
-            obstaclePixmap = CyanBatGame.topObstacles[rnd
-                    .nextInt(CyanBatGame.topObstacles.length)];
+            obstaclePixmap = CyanBatGameActivity.topObstacles[rnd
+                    .nextInt(CyanBatGameActivity.topObstacles.length)];
             obstacleHeight = 0;
 
         } else {
-            obstaclePixmap = CyanBatGame.bottomObstacles[rnd
-                    .nextInt(CyanBatGame.bottomObstacles.length)];
+            obstaclePixmap = CyanBatGameActivity.bottomObstacles[rnd
+                    .nextInt(CyanBatGameActivity.bottomObstacles.length)];
             obstacleHeight = CyanBatBaseScreen.DISPLAY_WIDTH
                     - obstaclePixmap.getHeight();
         }

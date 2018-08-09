@@ -7,7 +7,7 @@ import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Input.TouchEvent;
 import at.grueneis.game.framework.Pixmap;
 
-public abstract class PixmapGameObject extends AbstractGameObject {
+public abstract class PixmapGameObject extends MovableGameObject {
 
 	public Pixmap pixmap;
 
