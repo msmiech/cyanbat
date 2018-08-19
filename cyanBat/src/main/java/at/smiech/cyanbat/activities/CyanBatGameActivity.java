@@ -50,11 +50,10 @@ public class CyanBatGameActivity extends AndroidGameActivity {
     private void initAssets() {
         if (DEBUG)
             Log.d(TAG, "initAssets");
+
         Graphics g = getGraphics();
+        // Loading image assets
         bat = g.newPixmap("cyanBat.png", PixmapFormat.ARGB4444);
-        musicPlayer = new MusicPlayer();
-        mainMenu = g.newPixmap("menuBackground.png", PixmapFormat.ARGB4444);
-        menuButtons = g.newPixmap("menuButtons.png", PixmapFormat.ARGB4444);
         gameOver = g.newPixmap("gameover.png", PixmapFormat.ARGB4444);
         background = g.newPixmap("background.jpg", PixmapFormat.ARGB4444);
         topObstacles[0] = g
@@ -65,14 +64,17 @@ public class CyanBatGameActivity extends AndroidGameActivity {
                 PixmapFormat.ARGB4444);
         bottomObstacles[1] = g.newPixmap("bottomObstacle2.png",
                 PixmapFormat.ARGB4444);
-        menuTheme = getAudio().newMusic("cyanBatTheme.mp3");
-        gameTrack = getAudio().newMusic("gameTrack.mp3");
         death = g.newPixmap("death.png", PixmapFormat.ARGB4444);
-        deathSound = getAudio().newSound("deathSound.mp3");
-        gameOverMusic = getAudio().newMusic("gameOverMusic.mp3");
         enemies = g.newPixmap("enemies.png", PixmapFormat.ARGB4444);
         explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB4444);
         shot = g.newPixmap("shot.png", PixmapFormat.ARGB4444);
+
+        musicPlayer = new MusicPlayer();
+        menuTheme = getAudio().newMusic("cyanBatTheme.mp3");
+        gameTrack = getAudio().newMusic("gameTrack.mp3");
+        deathSound = getAudio().newSound("deathSound.mp3");
+        gameOverMusic = getAudio().newMusic("gameOverMusic.mp3");
+
         vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
     }
 

@@ -27,7 +27,7 @@
         android:paddingRight="20dp"
         android:text="@string/button_start_game" />
 
-    <Button
+    <!--Button
         android:id="@+id/btnHighscore"
         android:layout_width="127dp"
         android:layout_height="wrap_content"
@@ -50,7 +50,7 @@
         android:background="@drawable/buttonshape"
         android:paddingLeft="20dp"
         android:paddingRight="20dp"
-        android:text="@string/button_settings" />
+        android:text="@string/button_settings" /-->
 
 
     <Button
@@ -70,9 +70,8 @@
         android:id="@+id/btnHelp"
         android:layout_width="127dp"
         android:layout_height="wrap_content"
-        android:layout_alignParentEnd="true"
-        android:layout_alignTop="@+id/btnExit"
-        android:layout_marginEnd="40dp"
+        android:layout_alignBottom="@+id/game_title_view"
+        android:layout_alignStart="@+id/btnStartGame"
         android:background="@drawable/buttonshape"
         android:paddingLeft="20dp"
         android:paddingRight="20dp"

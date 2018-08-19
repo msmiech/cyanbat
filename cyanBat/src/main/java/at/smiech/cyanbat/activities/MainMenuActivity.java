@@ -59,11 +59,11 @@ public class MainMenuActivity extends AppCompatActivity implements View.OnClickL
         Button btnStartGame = findViewById(R.id.btnStartGame);
         btnStartGame.setOnClickListener(this);
 
-        Button btnHighscore = findViewById(R.id.btnHighscore);
+        /*Button btnHighscore = findViewById(R.id.btnHighscore);
         btnHighscore.setOnClickListener(this);
 
         Button btnSettings = findViewById(R.id.btnSettings);
-        btnSettings.setOnClickListener(this);
+        btnSettings.setOnClickListener(this);*/
 
         Button btnHelp = findViewById(R.id.btnHelp);
         btnHelp.setOnClickListener(this);
@@ -121,19 +121,19 @@ public class MainMenuActivity extends AppCompatActivity implements View.OnClickL
                 Intent startGameActivity = new Intent(this, CyanBatGameActivity.class);
                 startActivity(startGameActivity);
                 break;
-            case R.id.btnHighscore:
+            /*case R.id.btnHighscore:
                 //Intent startScoreActivity = new Intent(this, ScoreActivity.class);
                 //startActivity(startScoreActivity);
                 break;
             case R.id.btnSettings:
                 //Intent gameOptionsIntent = new Intent(this, GameOptionsActivity.class);
                 //startActivity(gameOptionsIntent);
-                break;
+                break;*/
             case R.id.btnHelp:
                 helpDialog.show();
                 break;
             case R.id.btnExit:
-                this.finish();
+                this.finishAffinity();
                 break;
         }
 
