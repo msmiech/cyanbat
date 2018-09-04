@@ -28,7 +28,6 @@ public class CyanBatGameActivity extends AndroidGameActivity {
     public static Pixmap background;
     public static Pixmap[] topObstacles = new Pixmap[2];
     public static Pixmap[] bottomObstacles = new Pixmap[2];
-    public static Music menuTheme;
     public static Music gameTrack;
     public static Sound deathSound;
     public static Music gameOverMusic;
@@ -70,10 +69,9 @@ public class CyanBatGameActivity extends AndroidGameActivity {
         shot = g.newPixmap("shot.png", PixmapFormat.ARGB4444);
 
         musicPlayer = new MusicPlayer();
-        menuTheme = getAudio().newMusic("cyanBatTheme.mp3");
-        gameTrack = getAudio().newMusic("gameTrack.mp3");
+        gameTrack = getAudio().newMusic("game_theme.mp3");
+        gameOverMusic = getAudio().newMusic("game_over.mp3");
         deathSound = getAudio().newSound("deathSound.mp3");
-        gameOverMusic = getAudio().newMusic("gameOverMusic.mp3");
 
         vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
     }

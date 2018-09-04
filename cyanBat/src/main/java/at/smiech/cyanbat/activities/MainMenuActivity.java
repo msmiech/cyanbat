@@ -68,6 +68,9 @@ public class MainMenuActivity extends AppCompatActivity implements View.OnClickL
         Button btnHelp = findViewById(R.id.btnHelp);
         btnHelp.setOnClickListener(this);
 
+        Button btnCredits = findViewById(R.id.btnCredits);
+        btnCredits.setOnClickListener(this);
+
         Button btnExit = findViewById(R.id.btnExit);
         btnExit.setOnClickListener(this);
     }
@@ -94,7 +97,7 @@ public class MainMenuActivity extends AppCompatActivity implements View.OnClickL
             audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0);
 
             if (mediaPlayer == null) {
-                mediaPlayer = MediaPlayer.create(this, R.raw.main_theme);
+                mediaPlayer = MediaPlayer.create(this, R.raw.menu_theme);
             }
             mediaPlayer.setOnCompletionListener(this);
             mediaPlayer.start();
@@ -131,6 +134,10 @@ public class MainMenuActivity extends AppCompatActivity implements View.OnClickL
                 break;*/
             case R.id.btnHelp:
                 helpDialog.show();
+                break;
+            case R.id.btnCredits:
+                Intent startCreditsActivity = new Intent(this, CreditsActivity.class);
+                startActivity(startCreditsActivity);
                 break;
             case R.id.btnExit:
                 this.finishAffinity();

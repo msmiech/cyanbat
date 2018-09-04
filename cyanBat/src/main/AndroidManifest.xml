@@ -33,6 +33,10 @@
             android:name=".activities.CyanBatGameActivity"
             android:label="@string/in_game"
             android:screenOrientation="landscape" />
+        <activity android:name=".activities.CreditsActivity"
+            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:label="@string/credits"
+            android:screenOrientation="landscape" />
     </application>
 
 </manifest>

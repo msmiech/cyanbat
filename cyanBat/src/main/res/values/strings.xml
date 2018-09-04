@@ -4,6 +4,7 @@
     <string name="app_name">CyanBat</string>
     <string name="in_game">CyanBat In-Game</string>
     <string name="splash">CyanBat Splash Screen</string>
+    <string name="credits">Credits</string>
 
     <string name="button_help">Help</string>
     <string name="button_settings">Settings</string>
@@ -29,4 +30,7 @@
 
 
     <string name="tap_to_continue">Tap on screen to continue</string>
+    <string name="button_credits">Credits</string>
+    <string name="credit_music">Music: Ozzed</string>
+    <string name="credit_gameframework">Game Framework Implementation (based on early libGDX): Robert Grüneis</string>
 </resources>

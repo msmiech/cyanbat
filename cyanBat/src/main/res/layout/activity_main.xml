@@ -53,28 +53,42 @@
         android:text="@string/button_settings" /-->
 
 
+
+    <Button
+        android:id="@+id/btnHelp"
+        android:layout_width="127dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignStart="@+id/btnStartGame"
+        android:layout_marginTop="100dp"
+        android:background="@drawable/buttonshape"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="@string/button_help" />
+
+    <Button
+        android:id="@+id/btnCredits"
+        android:layout_width="127dp"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_alignStart="@+id/btnStartGame"
+        android:layout_marginTop="190dp"
+        android:background="@drawable/buttonshape"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:text="@string/button_credits" />
+
     <Button
         android:id="@+id/btnExit"
         android:layout_width="127dp"
         android:layout_height="wrap_content"
         android:layout_alignStart="@+id/btnStartGame"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="250dp"
+        android:layout_marginTop="280dp"
         android:background="@drawable/buttonshape"
         android:paddingLeft="20dp"
         android:paddingRight="20dp"
         android:text="@string/button_exit" />
 
-
-    <Button
-        android:id="@+id/btnHelp"
-        android:layout_width="127dp"
-        android:layout_height="wrap_content"
-        android:layout_alignBottom="@+id/game_title_view"
-        android:layout_alignStart="@+id/btnStartGame"
-        android:background="@drawable/buttonshape"
-        android:paddingLeft="20dp"
-        android:paddingRight="20dp"
-        android:text="@string/button_help" />
 
 </RelativeLayout>
