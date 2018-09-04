@@ -32,5 +32,5 @@
     <string name="tap_to_continue">Tap on screen to continue</string>
     <string name="button_credits">Credits</string>
     <string name="credit_music">Music: Ozzed</string>
-    <string name="credit_gameframework">Game Framework Implementation (based on early libGDX): Robert Grüneis</string>
+    <string name="credit_gameframework">Game Framework Implementation (based on Beginning Android Games/early libGDX): Robert Grüneis</string>
 </resources>

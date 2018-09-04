@@ -22,7 +22,7 @@ import at.grueneis.game.framework.Input;
 import at.grueneis.game.framework.Screen;
 
 /**
- * Android Game Framework implementation
+ * Android Game Framework implementation based on Beginning Android Games
  *
  * @author Robert Grüneis
  * <p>

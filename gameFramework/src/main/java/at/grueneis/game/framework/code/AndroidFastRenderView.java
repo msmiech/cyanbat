@@ -6,6 +6,9 @@ import android.graphics.Rect;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 
+/**
+ * Implementation from Beginning Android Games
+ */
 public class AndroidFastRenderView extends SurfaceView implements Runnable {
     AndroidGameActivity game;
     Bitmap framebuffer;
