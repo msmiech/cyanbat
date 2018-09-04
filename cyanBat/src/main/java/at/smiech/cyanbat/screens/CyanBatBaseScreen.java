@@ -1,51 +1,55 @@
 package at.smiech.cyanbat.screens;
 
 import android.graphics.Color;
+
 import at.grueneis.game.framework.Game;
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Screen;
 
-public class CyanBatBaseScreen extends Screen {
-	public static int DISPLAY_HEIGHT = 480;
-	public static int DISPLAY_WIDTH = 320;
+public abstract class CyanBatBaseScreen extends Screen {
+    public static int DISPLAY_HEIGHT = 480;
+    public static int DISPLAY_WIDTH = 320;
 
-	public static Game game;
+    public static Game game;
 
-	public CyanBatBaseScreen(Game game) {
-		super(game);
-		CyanBatBaseScreen.game = game;
-	}
+    public CyanBatBaseScreen(Game game) {
+        super(game);
+        CyanBatBaseScreen.game = game;
+    }
 
-	@Override
-	public void update(float deltaTime) {
 
-	}
+    public void drawMap(Graphics g) {
+        g.clear(Color.BLACK);
+    }
 
-	@Override
-	public void present(float deltaTime) {
 
-	}
+    // Default screen implementations - override if needed
+    @Override
+    public void update(float deltaTime) {
+        // empty default method
+    }
 
-	@Override
-	public void pause() {
-		// TODO Auto-generated method stub
+    @Override
+    public void present(float deltaTime) {
+        // empty default method
+    }
 
-	}
+    @Override
+    public void pause() {
+        // empty default method
 
-	@Override
-	public void resume() {
-		// TODO Auto-generated method stub
+    }
 
-	}
+    @Override
+    public void resume() {
+        // empty default method
 
-	@Override
-	public void dispose() {
-		// TODO Auto-generated method stub
+    }
 
-	}
+    @Override
+    public void dispose() {
+        // empty default method
 
-	public void drawMap(Graphics g) {
-		g.clear(Color.BLACK);
+    }
 
-	}
 }

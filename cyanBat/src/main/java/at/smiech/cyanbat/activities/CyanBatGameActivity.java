@@ -1,8 +1,15 @@
 package at.smiech.cyanbat.activities;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.os.Build;
+import android.os.Bundle;
+import android.os.PersistableBundle;
 import android.os.Vibrator;
+import android.support.annotation.Nullable;
 import android.util.Log;
+import android.view.Window;
+import android.view.WindowManager;
 
 import at.grueneis.game.framework.Graphics;
 import at.grueneis.game.framework.Graphics.PixmapFormat;
@@ -76,4 +83,14 @@ public class CyanBatGameActivity extends AndroidGameActivity {
         vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
     }
 
+    @Override
+    public void onCreate(@Nullable Bundle savedInstanceState, @Nullable PersistableBundle persistentState) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            Window window = getWindow();
+            window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS);
+            window.setNavigationBarColor(Color.BLACK);
+        }
+
+        super.onCreate(savedInstanceState, persistentState);
+    }
 }

@@ -98,7 +98,6 @@ public class GameScreen extends CyanBatBaseScreen {
             updateGameObjects(deltaTime);
             score++;
         }
-        super.update(deltaTime);
     }
 
 
@@ -176,7 +175,6 @@ public class GameScreen extends CyanBatBaseScreen {
             Log.d(TAG, "pause");
         CyanBatGameActivity.musicPlayer.stopMusic();
         interruptThreads();
-        super.pause();
     }
 
     public void interruptThreads() {
@@ -192,7 +190,6 @@ public class GameScreen extends CyanBatBaseScreen {
             Log.d(TAG, "resume");
         initStats();
         startThreads();
-        super.resume();
     }
 
     private void startThreads() {

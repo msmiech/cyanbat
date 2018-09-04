@@ -2,29 +2,29 @@ package at.grueneis.game.framework;
 
 public interface Graphics
 {
-	public static enum PixmapFormat {
+	enum PixmapFormat {
 		ARGB8888, ARGB4444, RGB565
-	};
-	
-	public Pixmap newPixmap(String filename, PixmapFormat format);
-	
-	public void clear(int color);
-	
-	public void drawPixel(int x, int y, int color);
-	
-	public void drawLine(int xFrom, int yFrom, int xTo, int yTo, int color);
-	
-	public void drawRect(int x, int y, int width, int height, int color);
-	
-	public void drawOval(int x, int y, int width, int height, int color);
-	
-	public void drawPixmap(Pixmap pixmap, int x, int y, int srcX, int srcY, int srcWidth, int srcHeight);
-	
-	public void drawPixmap(Pixmap pixmap, int x, int y);
+	}
 
-	public void drawString(String s, int x, int y, int fontSize, int col);
-	
-	public int getWidth();
-	
-	public int getHeight();
+	Pixmap newPixmap(String filename, PixmapFormat format);
+
+	void clear(int color);
+
+	void drawPixel(int x, int y, int color);
+
+	void drawLine(int xFrom, int yFrom, int xTo, int yTo, int color);
+
+	void drawRect(int x, int y, int width, int height, int color);
+
+	void drawOval(int x, int y, int width, int height, int color);
+
+	void drawPixmap(Pixmap pixmap, int x, int y, int srcX, int srcY, int srcWidth, int srcHeight);
+
+	void drawPixmap(Pixmap pixmap, int x, int y);
+
+	void drawString(String s, int x, int y, int fontSize, int col);
+
+	int getWidth();
+
+	int getHeight();
 }
