@@ -18,12 +18,4 @@
         android:defaultValue="true"
         android:key="sounds_enabled"
         android:title="@string/settings_sound_title" />
-
-    <ListPreference
-        android:defaultValue="@string/controlscheme_classic"
-        android:entries="@array/controlschemes"
-        android:entryValues="@array/controlschemes"
-        android:key="controlscheme"
-        android:summary="@string/settings_controlscheme_summary"
-        android:title="@string/settings_controlscheme_title" />
 </PreferenceScreen>

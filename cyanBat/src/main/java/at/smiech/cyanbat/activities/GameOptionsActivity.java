@@ -16,6 +16,7 @@ public class GameOptionsActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         //Adding our settings fragment
+        //getSupportFragmentManager()
         getFragmentManager().beginTransaction().replace(android.R.id.content, new GameOptionFragment()).commit();
     }
 }

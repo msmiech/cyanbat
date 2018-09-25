@@ -4,7 +4,7 @@ android {
     buildToolsVersion '28.0.2'
 
     defaultConfig {
-        minSdkVersion 16
+        minSdkVersion 17
         targetSdkVersion 28
         compileOptions {
             sourceCompatibility JavaVersion.VERSION_1_8
