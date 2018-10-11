@@ -1,12 +1,15 @@
 package at.grueneis.game.framework.code;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.PowerManager;
 import android.os.PowerManager.WakeLock;
 import androidx.appcompat.app.AppCompatActivity;
+
+import android.preference.PreferenceManager;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
@@ -31,6 +34,7 @@ import at.grueneis.game.framework.Screen;
 public abstract class AndroidGameActivity extends AppCompatActivity implements Game {
     private static final long WAKE_LOCK_TIMEOUT = 512L;
     public static boolean useWakeLock = false;
+    protected SharedPreferences sharedPrefs;
     AndroidFastRenderView renderView;
     Graphics graphics;
     Audio audio;
@@ -69,15 +73,26 @@ public abstract class AndroidGameActivity extends AppCompatActivity implements G
         audio = new AndroidAudio(this);
         input = new AndroidInput(this, renderView, scaleX, scaleY);
         mainLayout.addView(renderView);
+
+        initPreferences();
+
         screen = getStartScreen();
 
         if (useWakeLock) {
             PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
             if (powerManager != null) {
-                wakeLock = powerManager.newWakeLock(PowerManager.FULL_WAKE_LOCK,
-                        "Game");
+                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
+                        "androidgame:wakelock");
             }
         }
+    }
+
+
+    /**
+     * Initialization and preparation of preferences and settings.
+     */
+    private void initPreferences() {
+        this.sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
     }
 
     @Override

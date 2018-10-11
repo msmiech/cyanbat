@@ -1,12 +1,16 @@
 package at.smiech.cyanbat.activities;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.PersistableBundle;
 import android.os.Vibrator;
+
 import androidx.annotation.Nullable;
+
+import android.preference.PreferenceManager;
 import android.util.Log;
 import android.view.Window;
 import android.view.WindowManager;
@@ -27,10 +31,9 @@ public class CyanBatGameActivity extends AndroidGameActivity {
     public static final boolean DEBUG = false;
     public static final boolean SHOOTING_ENABLED = false;
 
+    //Legacy code... public static for simplicity
     public static Pixmap bat;
     public static Pixmap death;
-    public static Pixmap menuButtons;
-    public static Pixmap mainMenu;
     public static Pixmap gameOver;
     public static Pixmap background;
     public static Pixmap[] topObstacles = new Pixmap[2];
@@ -44,6 +47,8 @@ public class CyanBatGameActivity extends AndroidGameActivity {
     public static Pixmap explosion;
     public static Pixmap shot;
     public static CyanBatGameActivity currentActivity = null;
+    public static boolean musicEnabled = true;
+    public static boolean soundsEnabled = true;
 
     public Screen getStartScreen() {
         if (DEBUG)
@@ -76,8 +81,14 @@ public class CyanBatGameActivity extends AndroidGameActivity {
         shot = g.newPixmap("shot.png", PixmapFormat.ARGB4444);
 
         musicPlayer = new MusicPlayer();
+        musicEnabled = this.sharedPrefs.getBoolean("music_enabled", true);
+        musicPlayer.setEnabled(musicEnabled);
+
+        //music
         gameTrack = getAudio().newMusic("game_theme.mp3");
         gameOverMusic = getAudio().newMusic("game_over.mp3");
+        //sound
+        soundsEnabled = this.sharedPrefs.getBoolean("sounds_enabled", true);
         deathSound = getAudio().newSound("deathSound.mp3");
 
         vib = (Vibrator) getSystemService(Context.VIBRATOR_SERVICE);
@@ -92,5 +103,15 @@ public class CyanBatGameActivity extends AndroidGameActivity {
         }
 
         super.onCreate(savedInstanceState, persistentState);
+    }
+
+
+    @Override
+    protected void onResume() {
+        //checking changes prefs
+        musicEnabled = this.sharedPrefs.getBoolean("music_enabled", true);
+        musicPlayer.setEnabled(musicEnabled);
+        soundsEnabled = this.sharedPrefs.getBoolean("sounds_enabled", true);
+        super.onResume();
     }
 }

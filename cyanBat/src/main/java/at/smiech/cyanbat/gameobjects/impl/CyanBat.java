@@ -104,7 +104,7 @@ public class CyanBat extends PixmapGameObject implements Collidable {
 
     private void updateLogic(float deltaTime, List<TouchEvent> touchEvents) {
         if (alive) {
-            if(hitCooldown > 0.f) {
+            if (hitCooldown > 0.f) {
                 hitCooldown -= deltaTime;
             }
             velocity.x = 0;
@@ -171,12 +171,16 @@ public class CyanBat extends PixmapGameObject implements Collidable {
         }
         if (lives < 1) {
             lives = 0;
-            CyanBatGameActivity.deathSound.play(100);
+            if (CyanBatGameActivity.soundsEnabled) {
+                CyanBatGameActivity.deathSound.play(100);
+            }
             alive = false;
             gs.saveHighscore();
             CyanBatGameActivity.musicPlayer.stopMusic();
             gs.interruptThreads();
-            CyanBatGameActivity.gameOverMusic.play();
+            if (CyanBatGameActivity.musicEnabled) {
+                CyanBatGameActivity.gameOverMusic.play();
+            }
         }
     }
 }

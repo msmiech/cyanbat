@@ -87,6 +87,7 @@ public class MainMenuActivity extends AppCompatActivity implements View.OnClickL
      * Initialization of music playback. MediaPlayer starts music if settings were made to do so.
      */
     private void initMusicPlayback() {
+        musicEnabled = this.sharedPrefs.getBoolean("music_enabled", true);
         if (musicEnabled) {
             AudioManager audioManager = (AudioManager) getSystemService(AUDIO_SERVICE);
             if (audioManager == null) {
