@@ -29,7 +29,7 @@ import at.grueneis.game.framework.Screen;
  *
  * @author Robert Grüneis
  * <p>
- * Modifications by mart1n8891
+ * Modifications by msmiech
  */
 public abstract class AndroidGameActivity extends AppCompatActivity implements Game {
     private static final long WAKE_LOCK_TIMEOUT = 512L;
