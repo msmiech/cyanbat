@@ -10,6 +10,7 @@
     <uses-permission android:name="android.permission.VIBRATE" />
 
     <application
+        android:allowBackup="false"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/Theme.AppCompat.NoActionBar">
@@ -39,14 +40,21 @@
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/in_game"
             android:screenOrientation="landscape" />
-        <activity android:name=".activities.CreditsActivity"
+        <activity
+            android:name=".activities.CreditsActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/credits"
             android:screenOrientation="landscape" />
-        <activity android:name=".activities.GameOptionsActivity"
+        <activity
+            android:name=".activities.GameOptionsActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/settings"
             android:screenOrientation="landscape" />
+
+        <provider
+            android:name=".persistence.ScoreProvider"
+            android:authorities="at.smiech.cyanbat"
+            android:exported="false" />
     </application>
 
 </manifest>
