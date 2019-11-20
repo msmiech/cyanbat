@@ -24,7 +24,7 @@ class ScoreProvider : ContentProvider() {
     private var sqLiteHelper: CyanBatSQLiteHelper? = null
 
     override fun onCreate(): Boolean {
-        this.sqLiteHelper = CyanBatSQLiteHelper(context)
+        this.sqLiteHelper = CyanBatSQLiteHelper(context!!)
         return true
     }
 
