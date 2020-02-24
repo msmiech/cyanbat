@@ -42,5 +42,6 @@
     <string name="credit_gameframework_title">Game Framework</string>
     <string name="credit_gameframework_0">Based on Beginning Android Games by Mario Zechner and Robert Green</string>
     <string name="credit_gameframework_1">Implementation by Robert Grüneis</string>
+    <string name="game_title_image_description">CyanBat title image</string>
 
 </resources>

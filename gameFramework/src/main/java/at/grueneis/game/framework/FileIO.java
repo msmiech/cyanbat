@@ -6,9 +6,9 @@ import java.io.OutputStream;
 
 public interface FileIO
 {
-	public InputStream readAsset(String filename) throws IOException;
+	InputStream readAsset(String filename) throws IOException;
 	
-	public InputStream readFile(String filename) throws IOException;
+	InputStream readFile(String filename) throws IOException;
 	
-	public OutputStream writeFile(String filename) throws IOException;
+	OutputStream writeFile(String filename) throws IOException;
 }

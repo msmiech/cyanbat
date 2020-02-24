@@ -10,6 +10,7 @@ import android.os.PowerManager.WakeLock;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.preference.PreferenceManager;
+import android.util.DisplayMetrics;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup.LayoutParams;
@@ -57,8 +58,12 @@ public abstract class AndroidGameActivity extends AppCompatActivity implements G
         int frameBufferHeight = isLandscape ? 320 : 480;
         Bitmap frameBuffer = Bitmap.createBitmap(frameBufferWidth,
                 frameBufferHeight, Bitmap.Config.RGB_565);
-        int displayWidth = getWindowManager().getDefaultDisplay().getWidth();
-        int displayHeight = getWindowManager().getDefaultDisplay().getHeight();
+
+        DisplayMetrics displaymetrics = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
+        int displayWidth = displaymetrics.widthPixels;
+        int displayHeight = displaymetrics.heightPixels;
+
         float scaleX = (float) frameBufferWidth / displayWidth;
         float scaleY = (float) frameBufferHeight / displayHeight;
 
