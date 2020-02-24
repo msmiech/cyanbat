@@ -4,7 +4,7 @@ import java.util.List;
 
 public interface Input
 {
-	public static class TouchEvent
+	class TouchEvent
 	{
 		public static final int TOUCH_DOWN = 0;
 		public static final int TOUCH_UP = 1;
@@ -15,20 +15,20 @@ public interface Input
 		public int pointer;
 	}
 	
-	public boolean isTouchDown(int pointer);
+	boolean isTouchDown(int pointer);
 	
-	public int getTouchX(int pointer);
+	int getTouchX(int pointer);
 	
-	public int getTouchY(int pointer);
+	int getTouchY(int pointer);
 	
-	public float getAccelX();
+	float getAccelX();
 	
-	public float getAccelY();
+	float getAccelY();
 	
-	public float getAccelZ();
+	float getAccelZ();
 	
-	public List<TouchEvent> getTouchEvents();
+	List<TouchEvent> getTouchEvents();
 	
-	public int getPointerCount();
+	int getPointerCount();
 	
 }

@@ -7,7 +7,7 @@ public class Pool<T>
 {
 	public interface PoolObjectFactory<T>
 	{
-		public T createObject();
+		T createObject();
 	}
 	
 	private final List<T> freeObjects;
@@ -18,7 +18,7 @@ public class Pool<T>
 	{
 		this.factory = factory;
 		this.maxSize = maxSize;
-		freeObjects = new ArrayList<T>(maxSize);
+		freeObjects = new ArrayList<>(maxSize);
 	}
 	
 	public T newObject()

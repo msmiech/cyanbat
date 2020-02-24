@@ -23,7 +23,7 @@ class CollisionDetection(private val gameObjects: MutableList<GameObject>) {
             if (objectsToCheck == null || objectsToCheck.isEmpty() || objectsToCheck.size < 2)
             // at least two different objects have to be involved in a collision
                 return
-            for (i in objectsToCheck!!.indices) {
+            for (i in objectsToCheck.indices) {
                 val main = objectsToCheck[i]
                 if (main !is GameObject) {
                     continue
@@ -33,7 +33,7 @@ class CollisionDetection(private val gameObjects: MutableList<GameObject>) {
                     val other = objectsToCheck[j]
                     if (other === main)
                         continue
-                    if (other == null || other !is GameObject) {
+                    if (other !is GameObject) {
                         continue
                     }
                     val goOther = other as GameObject
@@ -52,7 +52,7 @@ class CollisionDetection(private val gameObjects: MutableList<GameObject>) {
         val mainRect = main.rectangle
         val otherRect = other.rectangle
 
-        if (mainRect == null || otherRect == null || mainRect === otherRect) {
+        if (mainRect === otherRect) {
             return
         }
 

@@ -10,23 +10,19 @@ import at.grueneis.game.framework.Input.TouchEvent;
 import at.grueneis.game.framework.code.Pool.PoolObjectFactory;
 
 public class MultiTouchHandler implements TouchHandler {
-	boolean[] isTouched = new boolean[20];
-	int[] touchX = new int[20];
-	int[] touchY = new int[20];
-	Pool<TouchEvent> touchEventPool;
-	List<TouchEvent> touchEvents = new ArrayList<>();
-	List<TouchEvent> touchEventsBuffer = new ArrayList<>();
-	float scaleX;
-	float scaleY;
+	private boolean[] isTouched = new boolean[20];
+	private int[] touchX = new int[20];
+	private int[] touchY = new int[20];
+	private Pool<TouchEvent> touchEventPool;
+	private List<TouchEvent> touchEvents = new ArrayList<>();
+	private List<TouchEvent> touchEventsBuffer = new ArrayList<>();
+	private float scaleX;
+	private float scaleY;
 	private int pointerCount;
 
 	public MultiTouchHandler(View view, float scaleX, float scaleY) {
-		PoolObjectFactory<TouchEvent> factory = new PoolObjectFactory<TouchEvent>() {
-			public TouchEvent createObject() {
-				return new TouchEvent();
-			}
-		};
-		touchEventPool = new Pool<TouchEvent>(factory, 100);
+		PoolObjectFactory<TouchEvent> factory = TouchEvent::new;
+		touchEventPool = new Pool<>(factory, 100);
 		view.setOnTouchListener(this);
 
 		this.scaleX = scaleX;
@@ -36,7 +32,7 @@ public class MultiTouchHandler implements TouchHandler {
 	public boolean onTouch(View v, MotionEvent event) {
 		synchronized (this) {
 			int action = event.getAction() & MotionEvent.ACTION_MASK;
-			int pointerIndex = (event.getAction() & MotionEvent.ACTION_POINTER_ID_MASK) >> MotionEvent.ACTION_POINTER_ID_SHIFT;
+			int pointerIndex = (event.getAction() & MotionEvent.ACTION_POINTER_INDEX_MASK) >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
 			int pointerId = event.getPointerId(pointerIndex);
 			TouchEvent touchEvent;
 
