@@ -16,7 +16,6 @@ class GameOptionsActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         //Adding our settings fragment
-        //getSupportFragmentManager()
-        fragmentManager.beginTransaction().replace(android.R.id.content, GameOptionFragment()).commit()
+        supportFragmentManager.beginTransaction().replace(android.R.id.content, GameOptionFragment()).commit()
     }
 }

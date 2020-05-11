@@ -1,7 +1,7 @@
 package at.smiech.cyanbat.fragments
 
 import android.os.Bundle
-import android.preference.PreferenceFragment
+import androidx.preference.PreferenceFragmentCompat
 
 import at.smiech.cyanbat.R
 
@@ -10,12 +10,11 @@ import at.smiech.cyanbat.R
  *
  * @author msmiech
  */
-class GameOptionFragment : PreferenceFragment() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
+class GameOptionFragment : PreferenceFragmentCompat() {
+    override fun onCreatePreferences(savedInstanceState: Bundle?, rootKey: String?) {
         /**
          * Using xml resources to describe the layout of this fragment/PreferenceScreens.
          */
-        this.addPreferencesFromResource(R.xml.gameoptions)
+        setPreferencesFromResource(R.xml.gameoptions, rootKey)
     }
 }

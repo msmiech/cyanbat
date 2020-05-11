@@ -1,34 +1,28 @@
 package at.smiech.cyanbat.screens
 
-import java.util.ArrayList
-import java.util.Random
-
-import android.content.Context
 import android.content.SharedPreferences
 import android.graphics.Color
-import android.preference.PreferenceManager
 import android.util.Log
-
+import androidx.preference.PreferenceManager
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.smiech.cyanbat.activities.CyanBatGameActivity
 import at.smiech.cyanbat.gameobjects.GameObject
-import at.smiech.cyanbat.service.CollisionDetection
-import at.smiech.cyanbat.util.MusicPlayer
 import at.smiech.cyanbat.gameobjects.impl.Background
 import at.smiech.cyanbat.gameobjects.impl.CyanBat
 import at.smiech.cyanbat.gameobjects.impl.Shot
+import at.smiech.cyanbat.service.CollisionDetection
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.ObstacleGenerator
+import java.util.*
 
-class GameScreen(game: Game) : CyanBatBaseScreen(game) {
-    val game = game
+class GameScreen(val game: Game) : CyanBatBaseScreen(game) {
     val gameObjects: MutableList<GameObject> = ArrayList()
     private val bat = CyanBat(DISPLAY_HEIGHT / 3,
             DISPLAY_WIDTH / 2, CyanBat.DEFAULT_WIDTH,
             CyanBatGameActivity.bat.height, CyanBatGameActivity.bat, this)
-    internal var tickTime = 0f
+    private var tickTime = 0f
     private var touchEvents: List<TouchEvent>? = null
     private var g: Graphics? = null
     private var obstclGenThread: Thread? = null
@@ -66,7 +60,6 @@ class GameScreen(game: Game) : CyanBatBaseScreen(game) {
         score = 0
         val ctx = super.game.context
         prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
-        prefEditor = prefs!!.edit()
         readHighscore()
     }
 
@@ -121,8 +114,7 @@ class GameScreen(game: Game) : CyanBatBaseScreen(game) {
     fun saveHighscore() {
         if (score > highscore)
             highscore = score
-        prefEditor!!.putInt("highscore", highscore)
-        prefEditor!!.commit()
+        prefs!!.edit().putInt("highscore", highscore).apply()
     }
 
     override fun present(deltaTime: Float) {
@@ -219,6 +211,5 @@ class GameScreen(game: Game) : CyanBatBaseScreen(game) {
 
         var rnd = Random()
         var highscore = 0
-        private var prefEditor: SharedPreferences.Editor? = null
     }
 }

@@ -1,19 +1,13 @@
 package at.smiech.cyanbat.activities
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.os.Vibrator
-
-import android.preference.PreferenceManager
 import android.util.Log
-import android.view.Window
 import android.view.WindowManager
-
-import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Graphics.PixmapFormat
 import at.grueneis.game.framework.Music
 import at.grueneis.game.framework.Pixmap
