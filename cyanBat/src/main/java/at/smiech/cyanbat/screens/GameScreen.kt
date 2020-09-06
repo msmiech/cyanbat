@@ -17,7 +17,7 @@ import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.ObstacleGenerator
 import java.util.*
 
-class GameScreen(val game: Game) : CyanBatBaseScreen(game) {
+class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     val gameObjects: MutableList<GameObject> = ArrayList()
     private val bat = CyanBat(DISPLAY_HEIGHT / 3,
             DISPLAY_WIDTH / 2, CyanBat.DEFAULT_WIDTH,
@@ -70,7 +70,7 @@ class GameScreen(val game: Game) : CyanBatBaseScreen(game) {
     override fun update(deltaTime: Float) {
         if (DEBUG)
             Log.d(TAG, "update")
-        touchEvents = super.game.input.touchEvents
+        touchEvents = super.game.input!!.touchEvents
         tickTime += deltaTime
         while (tickTime > tick) {
             tickTime -= tick

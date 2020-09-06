@@ -34,7 +34,7 @@ class CyanBat(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, private val g
         updateCurvatations()
 
         if (CyanBatGameActivity.SHOOTING_ENABLED) {
-            if (gs.game.input.touchEvents.size > 1)
+            if (gs.game.input!!.touchEvents!!.size > 1)
                 shoot()
         }
         super.update(deltaTime, touchEvents)
