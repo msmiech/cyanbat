@@ -1,34 +1,25 @@
-package at.grueneis.game.framework;
+package at.grueneis.game.framework
 
-import java.util.List;
+interface Input {
+    class TouchEvent {
+        var type = 0
+        var x = 0
+        var y = 0
+        var pointer = 0
 
-public interface Input
-{
-	class TouchEvent
-	{
-		public static final int TOUCH_DOWN = 0;
-		public static final int TOUCH_UP = 1;
-		public static final int TOUCH_DRAGGED = 2;
-		public int type;
-		public int x;
-		public int y;
-		public int pointer;
-	}
-	
-	boolean isTouchDown(int pointer);
-	
-	int getTouchX(int pointer);
-	
-	int getTouchY(int pointer);
-	
-	float getAccelX();
-	
-	float getAccelY();
-	
-	float getAccelZ();
-	
-	List<TouchEvent> getTouchEvents();
-	
-	int getPointerCount();
-	
+        companion object {
+            const val TOUCH_DOWN = 0
+            const val TOUCH_UP = 1
+            const val TOUCH_DRAGGED = 2
+        }
+    }
+
+    fun isTouchDown(pointer: Int): Boolean
+    fun getTouchX(pointer: Int): Int
+    fun getTouchY(pointer: Int): Int
+    val accelX: Float
+    val accelY: Float
+    val accelZ: Float
+    val touchEvents: List<TouchEvent>?
+    val pointerCount: Int
 }

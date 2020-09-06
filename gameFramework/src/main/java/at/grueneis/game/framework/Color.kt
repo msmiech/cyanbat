@@ -1,10 +1,10 @@
-package at.grueneis.game.framework;
+package at.grueneis.game.framework
 
-public class Color {
-    public static int convert (int r, int g, int b, int a) {
-        return ((a & 0xff) << 24) |
-               ((r & 0xff) << 16) |
-               ((g & 0xff) << 8) |
-               ((b & 0xff));               
+object Color {
+    fun convert(r: Int, g: Int, b: Int, a: Int): Int {
+        return a and 0xff shl 24 or
+                (r and 0xff shl 16) or
+                (g and 0xff shl 8) or
+                (b and 0xff)
     }
 }

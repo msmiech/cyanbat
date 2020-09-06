@@ -1,131 +1,122 @@
-package at.grueneis.game.framework.code;
+package at.grueneis.game.framework.code
 
-import java.util.ArrayList;
-import java.util.List;
+import android.content.Context
+import android.view.MotionEvent
+import android.view.View
+import at.grueneis.game.framework.Input.TouchEvent
+import java.util.*
 
-import android.view.MotionEvent;
-import android.view.View;
+class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler {
+    private val isTouched = BooleanArray(20)
+    private val touchX = IntArray(20)
+    private val touchY = IntArray(20)
+    private val touchEventPool: Pool<TouchEvent>
+    private val internalTouchEvents: MutableList<TouchEvent> = ArrayList()
+    private val touchEventsBuffer: MutableList<TouchEvent> = ArrayList()
+    private val scaleX: Float
+    private val scaleY: Float
+    override var pointerCount = 0
+        private set
 
-import at.grueneis.game.framework.Input.TouchEvent;
-import at.grueneis.game.framework.code.Pool.PoolObjectFactory;
+    override fun onTouch(v: View, event: MotionEvent): Boolean {
+        synchronized(this) {
+            val action = event.action and MotionEvent.ACTION_MASK
+            var pointerIndex = event.action and MotionEvent.ACTION_POINTER_INDEX_MASK shr MotionEvent.ACTION_POINTER_INDEX_SHIFT
+            var pointerId = event.getPointerId(pointerIndex)
+            var touchEvent: TouchEvent?
+            when (action) {
+                MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
+                    touchEvent = touchEventPool.newObject()
+                    touchEvent.type = TouchEvent.Companion.TOUCH_DOWN
+                    touchEvent.pointer = pointerId
+                    run {
+                        touchX[pointerId] = (event
+                                .getX(pointerIndex) * scaleX).toInt()
+                        touchEvent!!.x = touchX[pointerId]
+                    }
+                    run {
+                        touchY[pointerId] = (event
+                                .getY(pointerIndex) * scaleY).toInt()
+                        touchEvent!!.y = touchY[pointerId]
+                    }
+                    isTouched[pointerId] = true
+                    touchEventsBuffer.add(touchEvent)
+                }
+                MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_CANCEL -> {
+                    touchEvent = touchEventPool.newObject()
+                    touchEvent.type = TouchEvent.Companion.TOUCH_UP
+                    touchEvent.pointer = pointerId
+                    run {
+                        touchX[pointerId] = (event
+                                .getX(pointerIndex) * scaleX).toInt()
+                        touchEvent!!.x = touchX[pointerId]
+                    }
+                    run {
+                        touchY[pointerId] = (event
+                                .getY(pointerIndex) * scaleY).toInt()
+                        touchEvent!!.y = touchY[pointerId]
+                    }
+                    isTouched[pointerId] = false
+                    touchEventsBuffer.add(touchEvent)
+                }
+                MotionEvent.ACTION_MOVE -> {
+                    val pointerCount = event.pointerCount
+                    var i = 0
+                    while (i < pointerCount) {
+                        pointerIndex = i
+                        pointerId = event.getPointerId(pointerIndex)
+                        touchEvent = touchEventPool.newObject()
+                        touchEvent.type = TouchEvent.Companion.TOUCH_DRAGGED
+                        touchEvent.pointer = pointerId
+                        touchX[pointerId] = (event
+                                .getX(pointerIndex) * scaleX).toInt()
+                        touchEvent.x = touchX[pointerId]
+                        touchY[pointerId] = (event
+                                .getY(pointerIndex) * scaleY).toInt()
+                        touchEvent.y = touchY[pointerId]
+                        touchEventsBuffer.add(touchEvent)
+                        i++
+                    }
+                }
+            }
+            pointerCount = event.pointerCount
+            return true
+        }
+    }
 
-public class MultiTouchHandler implements TouchHandler {
-	private boolean[] isTouched = new boolean[20];
-	private int[] touchX = new int[20];
-	private int[] touchY = new int[20];
-	private Pool<TouchEvent> touchEventPool;
-	private List<TouchEvent> touchEvents = new ArrayList<>();
-	private List<TouchEvent> touchEventsBuffer = new ArrayList<>();
-	private float scaleX;
-	private float scaleY;
-	private int pointerCount;
+    override fun isTouchDown(pointer: Int): Boolean {
+        synchronized(this) { return if (pointer < 0 || pointer >= 20) false else isTouched[pointer] }
+    }
 
-	public MultiTouchHandler(View view, float scaleX, float scaleY) {
-		PoolObjectFactory<TouchEvent> factory = TouchEvent::new;
-		touchEventPool = new Pool<>(factory, 100);
-		view.setOnTouchListener(this);
+    override fun getTouchX(pointer: Int): Int {
+        synchronized(this) { return if (pointer < 0 || pointer >= 20) 0 else touchX[pointer] }
+    }
 
-		this.scaleX = scaleX;
-		this.scaleY = scaleY;
-	}
+    override fun getTouchY(pointer: Int): Int {
+        synchronized(this) { return if (pointer < 0 || pointer >= 20) 0 else touchY[pointer] }
+    }
 
-	public boolean onTouch(View v, MotionEvent event) {
-		synchronized (this) {
-			int action = event.getAction() & MotionEvent.ACTION_MASK;
-			int pointerIndex = (event.getAction() & MotionEvent.ACTION_POINTER_INDEX_MASK) >> MotionEvent.ACTION_POINTER_INDEX_SHIFT;
-			int pointerId = event.getPointerId(pointerIndex);
-			TouchEvent touchEvent;
+    override val touchEvents: List<TouchEvent>
+        get() = refreshTouchEvents()
 
-			switch (action) {
-			case MotionEvent.ACTION_DOWN:
-			case MotionEvent.ACTION_POINTER_DOWN:
-				touchEvent = touchEventPool.newObject();
-				touchEvent.type = TouchEvent.TOUCH_DOWN;
-				touchEvent.pointer = pointerId;
-				touchEvent.x = touchX[pointerId] = (int) (event
-						.getX(pointerIndex) * scaleX);
-				touchEvent.y = touchY[pointerId] = (int) (event
-						.getY(pointerIndex) * scaleY);
-				isTouched[pointerId] = true;
-				touchEventsBuffer.add(touchEvent);
-				break;
+    private fun refreshTouchEvents(): List<TouchEvent> {
+        synchronized(this) {
+            val len = internalTouchEvents.size
+            for (i in 0 until len) touchEventPool.free(internalTouchEvents[i])
+            internalTouchEvents.clear()
+            internalTouchEvents.addAll(touchEventsBuffer)
+            touchEventsBuffer.clear()
+            return internalTouchEvents
+        }
+    }
 
-			case MotionEvent.ACTION_UP:
-			case MotionEvent.ACTION_POINTER_UP:
-			case MotionEvent.ACTION_CANCEL:
-				touchEvent = touchEventPool.newObject();
-				touchEvent.type = TouchEvent.TOUCH_UP;
-				touchEvent.pointer = pointerId;
-				touchEvent.x = touchX[pointerId] = (int) (event
-						.getX(pointerIndex) * scaleX);
-				touchEvent.y = touchY[pointerId] = (int) (event
-						.getY(pointerIndex) * scaleY);
-				isTouched[pointerId] = false;
-				touchEventsBuffer.add(touchEvent);
-				break;
-
-			case MotionEvent.ACTION_MOVE:
-				int pointerCount = event.getPointerCount();
-				for (int i = 0; i < pointerCount; i++) {
-					pointerIndex = i;
-					pointerId = event.getPointerId(pointerIndex);
-
-					touchEvent = touchEventPool.newObject();
-					touchEvent.type = TouchEvent.TOUCH_DRAGGED;
-					touchEvent.pointer = pointerId;
-					touchEvent.x = touchX[pointerId] = (int) (event
-							.getX(pointerIndex) * scaleX);
-					touchEvent.y = touchY[pointerId] = (int) (event
-							.getY(pointerIndex) * scaleY);
-					touchEventsBuffer.add(touchEvent);
-				}
-				break;
-			}
-			pointerCount = event.getPointerCount();
-			return true;
-		}
-	}
-
-	public boolean isTouchDown(int pointer) {
-		synchronized (this) {
-			if (pointer < 0 || pointer >= 20)
-				return false;
-			else
-				return isTouched[pointer];
-		}
-	}
-
-	public int getTouchX(int pointer) {
-		synchronized (this) {
-			if (pointer < 0 || pointer >= 20)
-				return 0;
-			else
-				return touchX[pointer];
-		}
-	}
-
-	public int getTouchY(int pointer) {
-		synchronized (this) {
-			if (pointer < 0 || pointer >= 20)
-				return 0;
-			else
-				return touchY[pointer];
-		}
-	}
-
-	public List<TouchEvent> getTouchEvents() {
-		synchronized (this) {
-			int len = touchEvents.size();
-			for (int i = 0; i < len; i++)
-				touchEventPool.free(touchEvents.get(i));
-			touchEvents.clear();
-			touchEvents.addAll(touchEventsBuffer);
-			touchEventsBuffer.clear();
-			return touchEvents;
-		}
-	}
-
-	public int getPointerCount() {
-		return pointerCount;
-	}
+    init {
+        val factory = object : Pool.PoolObjectFactory<TouchEvent> { // anonymous implementation + override due to lack of SAM support in Kotlin
+            override fun createObject(): TouchEvent { return TouchEvent() }
+        }
+        touchEventPool = Pool(factory, 100)
+        view.setOnTouchListener(this)
+        this.scaleX = scaleX
+        this.scaleY = scaleY
+    }
 }

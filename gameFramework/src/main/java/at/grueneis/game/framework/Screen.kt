@@ -1,21 +1,9 @@
-package at.grueneis.game.framework;
+package at.grueneis.game.framework
 
-public abstract class Screen
-{
-	protected final Game game;
-	
-	public Screen(Game game)
-	{
-		this.game = game;
-	}
-	
-	public abstract void update(float deltaTime);
-	
-	public abstract void present(float deltaTime);
-	
-	public abstract void pause();
-	
-	public abstract void resume();
-	
-	public abstract void dispose();
+abstract class Screen(protected open val game: Game) {
+    abstract fun update(deltaTime: Float)
+    abstract fun present(deltaTime: Float)
+    abstract fun pause()
+    abstract fun resume()
+    abstract fun dispose()
 }

@@ -1,38 +1,16 @@
-package at.grueneis.game.framework.code;
+package at.grueneis.game.framework.code
 
-import android.graphics.Bitmap;
-import at.grueneis.game.framework.Graphics.PixmapFormat;
-import at.grueneis.game.framework.Pixmap;
+import android.graphics.Bitmap
+import at.grueneis.game.framework.Graphics.PixmapFormat
+import at.grueneis.game.framework.Pixmap
 
-public class AndroidPixmap implements Pixmap
-{
-	Bitmap bitmap;
-	PixmapFormat format;
-	
-	public AndroidPixmap(Bitmap bitmap, PixmapFormat format)
-	{
-		this.bitmap = bitmap;
-		this.format = format;
-	}
-	
-	public int getWidth()
-	{
-		return bitmap.getWidth();
-	}
-	
-	public int getHeight()
-	{
-		return bitmap.getHeight();
-	}
-	
-	public PixmapFormat getFormat()
-	{
-		return format;
-	}
-	
-	public void dispose()
-	{
-		bitmap.recycle();
-	}
-	
+class AndroidPixmap(var bitmap: Bitmap?, override var format: PixmapFormat) : Pixmap {
+    override val width: Int
+        get() = bitmap!!.width
+    override val height: Int
+        get() = bitmap!!.height
+
+    override fun dispose() {
+        bitmap!!.recycle()
+    }
 }

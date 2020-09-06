@@ -1,15 +1,14 @@
-package at.grueneis.game.framework;
+package at.grueneis.game.framework
 
-import android.content.Context;
+import android.content.Context
 
-public interface Game
-{
-	Input getInput();
-	FileIO getFileIO();
-	Graphics getGraphics();
-	Audio getAudio();
-	void setScreen(Screen screen);
-	Screen getCurrentScreen();
-	Screen getStartScreen();
-	Context getContext();
+interface Game {
+    val input: Input?
+    val fileIO: FileIO?
+    val graphics: Graphics?
+    val audio: Audio?
+    fun setScreen(screen: Screen?)
+    val currentScreen: Screen?
+    val startScreen: Screen?
+    val context: Context
 }

@@ -1,165 +1,122 @@
-package at.grueneis.game.framework.code;
+package at.grueneis.game.framework.code
 
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.os.Bundle;
-import android.os.PowerManager;
-import android.os.PowerManager.WakeLock;
-import androidx.appcompat.app.AppCompatActivity;
-
-import android.preference.PreferenceManager;
-import android.util.DisplayMetrics;
-import android.view.Gravity;
-import android.view.View;
-import android.view.ViewGroup.LayoutParams;
-import android.view.Window;
-import android.view.WindowManager;
-import android.widget.RelativeLayout;
-
-import at.grueneis.game.framework.Audio;
-import at.grueneis.game.framework.FileIO;
-import at.grueneis.game.framework.Game;
-import at.grueneis.game.framework.Graphics;
-import at.grueneis.game.framework.Input;
-import at.grueneis.game.framework.Screen;
+import android.content.Context
+import android.content.SharedPreferences
+import android.content.res.Configuration
+import android.graphics.Bitmap
+import android.os.Bundle
+import android.os.PowerManager
+import android.os.PowerManager.WakeLock
+import androidx.preference.PreferenceManager
+import android.util.DisplayMetrics
+import android.view.*
+import android.widget.RelativeLayout
+import androidx.appcompat.app.AppCompatActivity
+import at.grueneis.game.framework.*
 
 /**
  * Android Game Framework implementation based on Beginning Android Games
  *
  * @author Robert Grüneis
- * <p>
+ *
+ *
  * Modifications by msmiech
  */
-public abstract class AndroidGameActivity extends AppCompatActivity implements Game {
-    private static final long WAKE_LOCK_TIMEOUT = 512L;
-    public static boolean useWakeLock = false;
-    protected SharedPreferences sharedPrefs;
-    AndroidFastRenderView renderView;
-    Graphics graphics;
-    Audio audio;
-    Input input;
-    FileIO fileIO;
-    Screen screen;
-    WakeLock wakeLock;
-    RelativeLayout.LayoutParams layoutParams;
-    RelativeLayout mainLayout;
+abstract class AndroidGameActivity : AppCompatActivity(), Game {
+    protected var sharedPrefs: SharedPreferences? = null
+    var renderView: AndroidFastRenderView? = null
+    override var graphics: Graphics? = null
+    override var audio: Audio? = null
+    override var input: Input? = null
+    override var fileIO: FileIO? = null
+    override var currentScreen: Screen? = null
+    var wakeLock: WakeLock? = null
+    var layoutParams: RelativeLayout.LayoutParams? = null
+    var mainLayout: RelativeLayout? = null
 
-    @Override
-    protected void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        requestWindowFeature(Window.FEATURE_NO_TITLE);
-        getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN);
-
-        boolean isLandscape = getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE;
-        int frameBufferWidth = isLandscape ? 480 : 320;
-        int frameBufferHeight = isLandscape ? 320 : 480;
-        Bitmap frameBuffer = Bitmap.createBitmap(frameBufferWidth,
-                frameBufferHeight, Bitmap.Config.RGB_565);
-
-        DisplayMetrics displaymetrics = new DisplayMetrics();
-        getWindowManager().getDefaultDisplay().getMetrics(displaymetrics);
-        int displayWidth = displaymetrics.widthPixels;
-        int displayHeight = displaymetrics.heightPixels;
-
-        float scaleX = (float) frameBufferWidth / displayWidth;
-        float scaleY = (float) frameBufferHeight / displayHeight;
-
-        setContentView(at.grueneis.game.framework.R.layout.main);
-        mainLayout = findViewById(at.grueneis.game.framework.R.id.mainLayout);
-        layoutParams = new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT,
-                LayoutParams.MATCH_PARENT);
-
-        renderView = new AndroidFastRenderView(this, frameBuffer);
-        graphics = new AndroidGraphics(getAssets(), frameBuffer);
-        fileIO = new AndroidFileIO(getAssets());
-        audio = new AndroidAudio(this);
-        input = new AndroidInput(this, renderView, scaleX, scaleY);
-        mainLayout.addView(renderView);
-
-        initPreferences();
-
-        screen = getStartScreen();
-
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        requestWindowFeature(Window.FEATURE_NO_TITLE)
+        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
+                WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+        val frameBufferWidth = if (isLandscape) 480 else 320
+        val frameBufferHeight = if (isLandscape) 320 else 480
+        val frameBuffer = Bitmap.createBitmap(frameBufferWidth,
+                frameBufferHeight, Bitmap.Config.RGB_565)
+        val displaymetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displaymetrics)
+        val displayWidth = displaymetrics.widthPixels
+        val displayHeight = displaymetrics.heightPixels
+        val scaleX = frameBufferWidth.toFloat() / displayWidth
+        val scaleY = frameBufferHeight.toFloat() / displayHeight
+        setContentView(R.layout.main)
+        mainLayout = findViewById(R.id.mainLayout)
+        layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT)
+        renderView = AndroidFastRenderView(this, frameBuffer)
+        graphics = AndroidGraphics(assets, frameBuffer)
+        fileIO = AndroidFileIO(assets)
+        audio = AndroidAudio(this)
+        input = AndroidInput(this, renderView!!, scaleX, scaleY)
+        mainLayout?.addView(renderView)
+        initPreferences()
+        currentScreen = startScreen
         if (useWakeLock) {
-            PowerManager powerManager = (PowerManager) getSystemService(Context.POWER_SERVICE);
+            val powerManager = getSystemService(POWER_SERVICE) as PowerManager
             if (powerManager != null) {
                 wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                        "androidgame:wakelock");
+                        "androidgame:wakelock")
             }
         }
     }
 
-
     /**
      * Initialization and preparation of preferences and settings.
      */
-    private void initPreferences() {
-        this.sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this);
+    private fun initPreferences() {
+        sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
     }
 
-    @Override
-    protected void onResume() {
-        super.onResume();
+    override fun onResume() {
+        super.onResume()
         if (useWakeLock && wakeLock != null) {
-            wakeLock.acquire(WAKE_LOCK_TIMEOUT);
+            wakeLock!!.acquire(WAKE_LOCK_TIMEOUT)
         }
-        screen.resume();
-        renderView.resume();
+        currentScreen!!.resume()
+        renderView!!.resume()
     }
 
-    @Override
-    protected void onPause() {
-        super.onPause();
-        if (useWakeLock)
-            wakeLock.release();
-        renderView.pause();
-        screen.pause();
-        if (isFinishing())
-            screen.dispose();
+    override fun onPause() {
+        super.onPause()
+        if (useWakeLock) wakeLock!!.release()
+        renderView!!.pause()
+        currentScreen!!.pause()
+        if (isFinishing) currentScreen!!.dispose()
     }
 
-    public Input getInput() {
-        return input;
+    override fun setScreen(screen: Screen?) {
+        requireNotNull(screen) { "Screen is null!" }
+        currentScreen!!.pause()
+        currentScreen!!.dispose()
+        screen.resume()
+        screen.update(0f)
+        currentScreen = screen
     }
 
-    public FileIO getFileIO() {
-        return fileIO;
+    override val context: Context
+        get() = this
+
+    fun addView(v: View?) {
+        layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT)
+        mainLayout!!.addView(v, layoutParams)
+        mainLayout!!.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
+        mainLayout!!.bringToFront()
     }
 
-    public Graphics getGraphics() {
-        return graphics;
-    }
-
-    public Audio getAudio() {
-        return audio;
-    }
-
-    public void setScreen(Screen screen) {
-        if (screen == null)
-            throw new IllegalArgumentException("Screen is null!");
-        this.screen.pause();
-        this.screen.dispose();
-        screen.resume();
-        screen.update(0);
-        this.screen = screen;
-    }
-
-    public Screen getCurrentScreen() {
-        return screen;
-    }
-
-    public Context getContext() {
-        return this;
-    }
-
-    public void addView(View v) {
-        layoutParams = new RelativeLayout.LayoutParams(LayoutParams.MATCH_PARENT,
-                LayoutParams.MATCH_PARENT);
-        mainLayout.addView(v, layoutParams);
-        mainLayout.setGravity(Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-        mainLayout.bringToFront();
+    companion object {
+        private const val WAKE_LOCK_TIMEOUT = 512L
+        var useWakeLock = false
     }
 }

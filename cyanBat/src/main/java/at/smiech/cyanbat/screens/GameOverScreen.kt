@@ -32,7 +32,7 @@ class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
     }
 
     override fun update(deltaTime: Float) {
-        touchEvents = super.game.input.touchEvents
+        touchEvents = super.game.input!!.touchEvents
         for (event in touchEvents!!) {
             if (event.type == TouchEvent.TOUCH_UP) {
                 CyanBatGameActivity.vib.vibrate(250)

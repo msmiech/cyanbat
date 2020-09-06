@@ -19,19 +19,20 @@ import at.smiech.cyanbat.util.MusicPlayer
 
 class CyanBatGameActivity : AndroidGameActivity() {
 
-    override fun getStartScreen(): Screen {
-        if (DEBUG)
-            Log.d(TAG, "getStartScreen")
-        currentActivity = this
-        initAssets()
-        return GameScreen(this)
-    }
+    override val startScreen: Screen
+        get() {
+            if (DEBUG)
+                Log.d(TAG, "getStartScreen")
+            currentActivity = this
+            initAssets()
+            return GameScreen(this)
+        }
 
     private fun initAssets() {
         if (DEBUG)
             Log.d(TAG, "initAssets")
 
-        val g = graphics
+        val g = graphics!!
         // Loading image assets
         bat = g.newPixmap("cyanBat.png", PixmapFormat.ARGB4444)
         gameOver = g.newPixmap("gameover.png", PixmapFormat.ARGB4444)
@@ -50,15 +51,15 @@ class CyanBatGameActivity : AndroidGameActivity() {
         shot = g.newPixmap("shot.png", PixmapFormat.ARGB4444)
 
         musicPlayer = MusicPlayer()
-        musicEnabled = this.sharedPrefs.getBoolean("music_enabled", true)
+        musicEnabled = this.sharedPrefs!!.getBoolean("music_enabled", true)
         musicPlayer.setEnabled(musicEnabled)
 
         //music
-        gameTrack = audio.newMusic("game_theme.mp3")
-        gameOverMusic = audio.newMusic("game_over.mp3")
+        gameTrack = audio!!.newMusic("game_theme.mp3")
+        gameOverMusic = audio!!.newMusic("game_over.mp3")
         //sound
-        soundsEnabled = this.sharedPrefs.getBoolean("sounds_enabled", true)
-        deathSound = audio.newSound("deathSound.mp3")
+        soundsEnabled = this.sharedPrefs!!.getBoolean("sounds_enabled", true)
+        deathSound = audio!!.newSound("deathSound.mp3")
 
         vib = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
     }
@@ -76,9 +77,9 @@ class CyanBatGameActivity : AndroidGameActivity() {
 
     override fun onResume() {
         //checking changes prefs
-        musicEnabled = this.sharedPrefs.getBoolean("music_enabled", true)
+        musicEnabled = this.sharedPrefs!!.getBoolean("music_enabled", true)
         musicPlayer.setEnabled(musicEnabled)
-        soundsEnabled = this.sharedPrefs.getBoolean("sounds_enabled", true)
+        soundsEnabled = this.sharedPrefs!!.getBoolean("sounds_enabled", true)
         super.onResume()
     }
 

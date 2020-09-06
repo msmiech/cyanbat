@@ -1,8 +1,6 @@
-package at.grueneis.game.framework;
+package at.grueneis.game.framework
 
-public interface Sound
-{
-	void play(float volume);
-	
-	void dispose();
+interface Sound {
+    fun play(volume: Float)
+    fun dispose()
 }

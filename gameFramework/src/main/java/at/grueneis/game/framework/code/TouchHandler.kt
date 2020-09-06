@@ -1,19 +1,12 @@
-package at.grueneis.game.framework.code;
+package at.grueneis.game.framework.code
 
-import java.util.List;
+import android.view.View.OnTouchListener
+import at.grueneis.game.framework.Input.TouchEvent
 
-import android.view.View.OnTouchListener;
-import at.grueneis.game.framework.Input.TouchEvent;
-
-public interface TouchHandler extends OnTouchListener
-{
-	boolean isTouchDown(int pointer);
-	
-	int getTouchX(int pointer);
-	
-	int getTouchY(int pointer);
-	
-	List<TouchEvent> getTouchEvents();
-
-	int getPointerCount();
+interface TouchHandler : OnTouchListener {
+    fun isTouchDown(pointer: Int): Boolean
+    fun getTouchX(pointer: Int): Int
+    fun getTouchY(pointer: Int): Int
+    val touchEvents: List<TouchEvent>
+    val pointerCount: Int
 }

@@ -1,34 +1,22 @@
-package at.grueneis.game.framework.code;
+package at.grueneis.game.framework.code
 
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*
 
-public class Pool<T>
-{
-	public interface PoolObjectFactory<T>
-	{
-		T createObject();
-	}
-	
-	private final List<T> freeObjects;
-	private final PoolObjectFactory<T> factory;
-	private final int maxSize;
-	
-	public Pool(PoolObjectFactory<T> factory, int maxSize)
-	{
-		this.factory = factory;
-		this.maxSize = maxSize;
-		freeObjects = new ArrayList<>(maxSize);
-	}
-	
-	public T newObject()
-	{
-		if (freeObjects.isEmpty()) return factory.createObject();
-		return freeObjects.remove(freeObjects.size() - 1);
-	}
-	
-	public void free(T obj)
-	{
-		if ( freeObjects.size()<maxSize) freeObjects.add(obj);
-	}
+class Pool<T>(private val factory: PoolObjectFactory<T>, private val maxSize: Int) {
+    interface PoolObjectFactory<T> {
+        fun createObject(): T
+    }
+
+    private val freeObjects: MutableList<T>
+    fun newObject(): T {
+        return if (freeObjects.isEmpty()) factory.createObject() else freeObjects.removeAt(freeObjects.size - 1)
+    }
+
+    fun free(obj: T) {
+        if (freeObjects.size < maxSize) freeObjects.add(obj)
+    }
+
+    init {
+        freeObjects = ArrayList(maxSize)
+    }
 }

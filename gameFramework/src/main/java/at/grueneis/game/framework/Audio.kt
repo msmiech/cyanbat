@@ -1,8 +1,6 @@
-package at.grueneis.game.framework;
+package at.grueneis.game.framework
 
-public interface Audio
-{
-	Music newMusic(String filename);
-	
-	Sound newSound(String filename);
+interface Audio {
+    fun newMusic(filename: String): Music
+    fun newSound(filename: String): Sound
 }

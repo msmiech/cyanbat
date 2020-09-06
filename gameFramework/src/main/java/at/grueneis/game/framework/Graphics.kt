@@ -1,30 +1,19 @@
-package at.grueneis.game.framework;
+package at.grueneis.game.framework
 
-public interface Graphics
-{
-	enum PixmapFormat {
-		ARGB8888, ARGB4444, RGB565
-	}
+interface Graphics {
+    enum class PixmapFormat {
+        ARGB8888, ARGB4444, RGB565
+    }
 
-	Pixmap newPixmap(String filename, PixmapFormat format);
-
-	void clear(int color);
-
-	void drawPixel(int x, int y, int color);
-
-	void drawLine(int xFrom, int yFrom, int xTo, int yTo, int color);
-
-	void drawRect(int x, int y, int width, int height, int color);
-
-	void drawOval(int x, int y, int width, int height, int color);
-
-	void drawPixmap(Pixmap pixmap, int x, int y, int srcX, int srcY, int srcWidth, int srcHeight);
-
-	void drawPixmap(Pixmap pixmap, int x, int y);
-
-	void drawString(String s, int x, int y, int fontSize, int col);
-
-	int getWidth();
-
-	int getHeight();
+    fun newPixmap(filename: String, format: PixmapFormat): Pixmap
+    fun clear(color: Int)
+    fun drawPixel(x: Int, y: Int, color: Int)
+    fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int)
+    fun drawRect(x: Int, y: Int, width: Int, height: Int, color: Int)
+    fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int)
+    fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int)
+    fun drawPixmap(pixmap: Pixmap, x: Int, y: Int)
+    fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
+    val width: Int
+    val height: Int
 }
