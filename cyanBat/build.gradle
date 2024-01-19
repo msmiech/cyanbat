@@ -4,9 +4,9 @@ apply plugin: 'kotlin-android'
 android {
     defaultConfig {
         applicationId "at.smiech.cyanbat"
-        minSdkVersion 17
-        compileSdk 33
-        targetSdkVersion 33
+        minSdkVersion 21
+        compileSdk 34
+        targetSdkVersion 34
     }
 
     buildTypes {
@@ -16,8 +16,8 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = 1.17
-        targetCompatibility = 1.17
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     namespace 'at.smiech.cyanbat'
 }
@@ -28,9 +28,9 @@ android {
 dependencies {
     implementation project(':gameFramework')
     implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.preference:preference-ktx:1.2.0'
-    implementation 'androidx.core:core-ktx:1.10.1'
-    implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:${kotlin_version}"
+    implementation 'androidx.preference:preference-ktx:1.2.1'
+    implementation 'androidx.core:core-ktx:1.12.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:${kotlin_version}"
 }
 repositories {
     mavenCentral()

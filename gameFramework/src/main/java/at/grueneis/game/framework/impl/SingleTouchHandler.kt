@@ -1,4 +1,4 @@
-package at.grueneis.game.framework.code
+package at.grueneis.game.framework.impl
 
 import android.view.MotionEvent
 import android.view.View
@@ -14,20 +14,21 @@ class SingleTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandle
     private val internalTouchEvents: MutableList<TouchEvent> = ArrayList()
     var scaleX: Float
     var scaleY: Float
+
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         synchronized(this) {
             val touchEvent = touchEventPool.newObject()
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
-                    touchEvent!!.type = TouchEvent.TOUCH_DOWN
+                    touchEvent.type = TouchEvent.TOUCH_DOWN
                     isTouched = true
                 }
                 MotionEvent.ACTION_MOVE -> {
-                    touchEvent!!.type = TouchEvent.TOUCH_DRAGGED
+                    touchEvent.type = TouchEvent.TOUCH_DRAGGED
                     isTouched = true
                 }
                 MotionEvent.ACTION_CANCEL, MotionEvent.ACTION_UP -> {
-                    touchEvent!!.type = TouchEvent.TOUCH_UP
+                    touchEvent.type = TouchEvent.TOUCH_UP
                     isTouched = false
                 }
             }

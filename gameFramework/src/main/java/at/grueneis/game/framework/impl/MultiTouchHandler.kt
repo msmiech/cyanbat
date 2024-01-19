@@ -1,6 +1,5 @@
-package at.grueneis.game.framework.code
+package at.grueneis.game.framework.impl
 
-import android.content.Context
 import android.view.MotionEvent
 import android.view.View
 import at.grueneis.game.framework.Input.TouchEvent
@@ -27,7 +26,7 @@ class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler
             when (action) {
                 MotionEvent.ACTION_DOWN, MotionEvent.ACTION_POINTER_DOWN -> {
                     touchEvent = touchEventPool.newObject()
-                    touchEvent.type = TouchEvent.Companion.TOUCH_DOWN
+                    touchEvent.type = TouchEvent.TOUCH_DOWN
                     touchEvent.pointer = pointerId
                     run {
                         touchX[pointerId] = (event
@@ -44,7 +43,7 @@ class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler
                 }
                 MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP, MotionEvent.ACTION_CANCEL -> {
                     touchEvent = touchEventPool.newObject()
-                    touchEvent.type = TouchEvent.Companion.TOUCH_UP
+                    touchEvent.type = TouchEvent.TOUCH_UP
                     touchEvent.pointer = pointerId
                     run {
                         touchX[pointerId] = (event

@@ -1,9 +1,12 @@
-package at.grueneis.game.framework.code
+package at.grueneis.game.framework.impl
 
 import android.app.Activity
 import android.content.res.AssetManager
+import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
+import android.os.Build
+import androidx.annotation.RequiresApi
 import at.grueneis.game.framework.Audio
 import at.grueneis.game.framework.Music
 import at.grueneis.game.framework.Sound
@@ -34,6 +37,11 @@ class AndroidAudio(activity: Activity) : Audio {
     init {
         activity.volumeControlStream = AudioManager.STREAM_MUSIC
         assets = activity.assets
-        soundPool = SoundPool(20, AudioManager.STREAM_MUSIC, 0)
+        SoundPool.Builder().apply {
+            setMaxStreams(20)
+            setAudioAttributes(
+                AudioAttributes.Builder().setLegacyStreamType(AudioManager.STREAM_MUSIC).build()
+            )
+        }.build().also { this.soundPool = it }
     }
 }

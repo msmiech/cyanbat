@@ -11,8 +11,7 @@ import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.PixmapGameObject
 import at.smiech.cyanbat.screens.CyanBatBaseScreen
 
-class Background(x: Int, y: Int, pm: Pixmap, gameObjects: MutableList<GameObject>) : PixmapGameObject(Rect(x, y, x + pm.width, y + pm.height), pm) {
-    private val gameObjects: MutableList<GameObject> = gameObjects
+class Background(x: Int, y: Int, pm: Pixmap, private val gameObjects: MutableList<GameObject>) : PixmapGameObject(Rect(x, y, x + pm.width, y + pm.height), pm) {
 
     init {
         velocity.x = -2f
@@ -21,8 +20,8 @@ class Background(x: Int, y: Int, pm: Pixmap, gameObjects: MutableList<GameObject
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
         if (GameObject.DEBUG)
             Log.d(GameObject.TAG, "updateBackground")
-        Background.count += 1
-        if (Background.count < 2) {
+        count += 1
+        if (count < 2) {
             val bgArea = rectangle.right
             if (bgArea - 5 < CyanBatBaseScreen.DISPLAY_HEIGHT) {
                 gameObjects.add(0, Background(

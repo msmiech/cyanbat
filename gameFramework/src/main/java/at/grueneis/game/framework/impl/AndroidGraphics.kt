@@ -1,50 +1,65 @@
-package at.grueneis.game.framework.code
+package at.grueneis.game.framework.impl
 
 import android.content.res.AssetManager
-import android.graphics.*
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
+import android.graphics.Paint
+import android.graphics.Rect
+import android.graphics.RectF
+import android.graphics.Typeface
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Graphics.PixmapFormat
 import at.grueneis.game.framework.Pixmap
 import java.io.IOException
 import java.io.InputStream
 
-class AndroidGraphics(var assets: AssetManager, var frameBuffer: Bitmap) : Graphics {
-    var canvas: Canvas
-    var paint: Paint
-    var typeface: Typeface
-    var srcRect = Rect()
-    var dstRect = Rect()
+class AndroidGraphics(private var assets: AssetManager, private var frameBuffer: Bitmap) :
+    Graphics {
+    private var canvas: Canvas = Canvas(frameBuffer)
+    private var paint: Paint = Paint()
+    private var typeface: Typeface = Typeface.create("Arial", Typeface.NORMAL)
+    private var srcRect = Rect()
+    private var dstRect = Rect()
+
     override fun newPixmap(filename: String, format: PixmapFormat): Pixmap {
-        var format = format
         var config: Bitmap.Config? = null // Bitmap.Config
-        config = if (format == PixmapFormat.RGB565) Bitmap.Config.RGB_565 else if (format == PixmapFormat.ARGB4444) Bitmap.Config.ARGB_4444 else Bitmap.Config.ARGB_8888
+        config =
+            if (format == PixmapFormat.RGB565) Bitmap.Config.RGB_565 else Bitmap.Config.ARGB_8888
         val options = BitmapFactory.Options()
         options.inPreferredConfig = config
-        var `in`: InputStream? = null
-        var bitmap: Bitmap? = null
+        var inputStream: InputStream? = null
+        val bitmap: Bitmap?
         try {
-            `in` = assets.open(filename)
-            bitmap = BitmapFactory.decodeStream(`in`)
-            if (bitmap == null) throw RuntimeException("Asset-Bitmap <" + filename
-                    + "> not found!")
+            inputStream = assets.open(filename)
+            bitmap = BitmapFactory.decodeStream(inputStream)
+            if (bitmap == null) throw RuntimeException(
+                "Asset-Bitmap <" + filename
+                        + "> not found!"
+            )
         } catch (exc: IOException) {
-            throw RuntimeException("Asset-Bitmap <" + filename
-                    + "> not found!")
+            throw RuntimeException(
+                "Asset-Bitmap <" + filename
+                        + "> not found!"
+            )
         } finally {
-            if (`in` != null) {
+            if (inputStream != null) {
                 try {
-                    `in`.close()
-                } catch (exc: IOException) {
+                    inputStream.close()
+                } catch (_: IOException) {
                 }
             }
         }
-        format = if (bitmap!!.config == Bitmap.Config.RGB_565) PixmapFormat.RGB565 else if (bitmap.config == Bitmap.Config.ARGB_4444) PixmapFormat.ARGB4444 else PixmapFormat.ARGB8888
-        return AndroidPixmap(bitmap, format)
+        val resultFormat =
+            if (bitmap?.config == Bitmap.Config.RGB_565) PixmapFormat.RGB565 else PixmapFormat.ARGB8888
+        return AndroidPixmap(bitmap, resultFormat)
     }
 
     override fun clear(color: Int) {
-        canvas.drawRGB(color and 0xff0000 shr 16, color and 0xff00 shr 8,
-                color and 0xff)
+        canvas.drawRGB(
+            color and 0xff0000 shr 16, color and 0xff00 shr 8,
+            color and 0xff
+        )
     }
 
     override fun drawPixel(x: Int, y: Int, color: Int) {
@@ -63,8 +78,10 @@ class AndroidGraphics(var assets: AssetManager, var frameBuffer: Bitmap) : Graph
         canvas.drawRect(x.toFloat(), y.toFloat(), x + width.toFloat(), y + height.toFloat(), paint)
     }
 
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int,
-                            srcWidth: Int, srcHeight: Int) {
+    override fun drawPixmap(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int,
+        srcWidth: Int, srcHeight: Int
+    ) {
         srcRect.left = srcX
         srcRect.top = srcY
         srcRect.right = srcX + srcWidth - 1
@@ -73,8 +90,10 @@ class AndroidGraphics(var assets: AssetManager, var frameBuffer: Bitmap) : Graph
         dstRect.top = y
         dstRect.right = x + srcWidth - 1
         dstRect.bottom = y + srcHeight - 1
-        canvas.drawBitmap((pixmap as AndroidPixmap).bitmap!!, srcRect, dstRect,
-                null)
+        canvas.drawBitmap(
+            (pixmap as AndroidPixmap).bitmap!!, srcRect, dstRect,
+            null
+        )
     }
 
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) {
@@ -95,13 +114,17 @@ class AndroidGraphics(var assets: AssetManager, var frameBuffer: Bitmap) : Graph
     override fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int) {
         paint.color = color
         paint.style = Paint.Style.FILL
-        canvas.drawOval(RectF(x.toFloat(), y.toFloat(), (x + width).toFloat(), (y + height).toFloat()), paint)
+        canvas.drawOval(
+            RectF(
+                x.toFloat(),
+                y.toFloat(),
+                (x + width).toFloat(),
+                (y + height).toFloat()
+            ), paint
+        )
     }
 
     init {
-        canvas = Canvas(frameBuffer)
-        paint = Paint()
-        typeface = Typeface.create("Arial", Typeface.NORMAL)
         paint.typeface = typeface
     }
 }
