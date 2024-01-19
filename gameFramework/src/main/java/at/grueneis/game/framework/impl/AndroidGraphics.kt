@@ -23,8 +23,7 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
     private var dstRect = Rect()
 
     override fun newPixmap(filename: String, format: PixmapFormat): Pixmap {
-        var config: Bitmap.Config? = null // Bitmap.Config
-        config =
+        val config: Bitmap.Config =
             if (format == PixmapFormat.RGB565) Bitmap.Config.RGB_565 else Bitmap.Config.ARGB_8888
         val options = BitmapFactory.Options()
         options.inPreferredConfig = config
