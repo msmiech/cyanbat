@@ -1,13 +1,12 @@
-package at.grueneis.game.framework.code
+package at.grueneis.game.framework.impl
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Rect
-import android.view.SurfaceHolder
 import android.view.SurfaceView
 
 /**
- * Implementation from Beginning Android Games
+ * Implementation based on "Beginning Android Games".
  */
 class AndroidFastRenderView(var game: AndroidGameActivity, var framebuffer: Bitmap) : SurfaceView(game), Runnable {
     var renderThread: Thread? = null

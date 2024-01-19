@@ -1,4 +1,4 @@
-package at.grueneis.game.framework.code
+package at.grueneis.game.framework.impl
 
 import java.util.*
 

@@ -1,4 +1,4 @@
-package at.grueneis.game.framework.code
+package at.grueneis.game.framework.impl
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -7,12 +7,22 @@ import android.graphics.Bitmap
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
-import androidx.preference.PreferenceManager
 import android.util.DisplayMetrics
-import android.view.*
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.view.Window
+import android.view.WindowManager
 import android.widget.RelativeLayout
 import androidx.appcompat.app.AppCompatActivity
-import at.grueneis.game.framework.*
+import androidx.preference.PreferenceManager
+import at.grueneis.game.framework.Audio
+import at.grueneis.game.framework.FileIO
+import at.grueneis.game.framework.Game
+import at.grueneis.game.framework.Graphics
+import at.grueneis.game.framework.Input
+import at.grueneis.game.framework.R
+import at.grueneis.game.framework.Screen
 
 /**
  * Android Game Framework implementation based on Beginning Android Games
@@ -37,13 +47,17 @@ abstract class AndroidGameActivity : AppCompatActivity(), Game {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
-        window.setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN,
-                WindowManager.LayoutParams.FLAG_FULLSCREEN)
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_FULLSCREEN,
+            WindowManager.LayoutParams.FLAG_FULLSCREEN
+        )
         val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
         val frameBufferWidth = if (isLandscape) 480 else 320
         val frameBufferHeight = if (isLandscape) 320 else 480
-        val frameBuffer = Bitmap.createBitmap(frameBufferWidth,
-                frameBufferHeight, Bitmap.Config.RGB_565)
+        val frameBuffer = Bitmap.createBitmap(
+            frameBufferWidth,
+            frameBufferHeight, Bitmap.Config.RGB_565
+        )
         val displaymetrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(displaymetrics)
         val displayWidth = displaymetrics.widthPixels
@@ -52,8 +66,10 @@ abstract class AndroidGameActivity : AppCompatActivity(), Game {
         val scaleY = frameBufferHeight.toFloat() / displayHeight
         setContentView(R.layout.main)
         mainLayout = findViewById(R.id.mainLayout)
-        layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT)
+        layoutParams = RelativeLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.MATCH_PARENT
+        )
         renderView = AndroidFastRenderView(this, frameBuffer)
         graphics = AndroidGraphics(assets, frameBuffer)
         fileIO = AndroidFileIO(assets)
@@ -64,10 +80,10 @@ abstract class AndroidGameActivity : AppCompatActivity(), Game {
         currentScreen = startScreen
         if (useWakeLock) {
             val powerManager = getSystemService(POWER_SERVICE) as PowerManager
-            if (powerManager != null) {
-                wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK,
-                        "androidgame:wakelock")
-            }
+            wakeLock = powerManager.newWakeLock(
+                PowerManager.PARTIAL_WAKE_LOCK,
+                "androidgame:wakelock"
+            )
         }
     }
 
@@ -81,18 +97,18 @@ abstract class AndroidGameActivity : AppCompatActivity(), Game {
     override fun onResume() {
         super.onResume()
         if (useWakeLock && wakeLock != null) {
-            wakeLock!!.acquire(WAKE_LOCK_TIMEOUT)
+            wakeLock?.acquire(WAKE_LOCK_TIMEOUT)
         }
-        currentScreen!!.resume()
-        renderView!!.resume()
+        currentScreen?.resume()
+        renderView?.resume()
     }
 
     override fun onPause() {
         super.onPause()
-        if (useWakeLock) wakeLock!!.release()
-        renderView!!.pause()
-        currentScreen!!.pause()
-        if (isFinishing) currentScreen!!.dispose()
+        if (useWakeLock) wakeLock?.release()
+        renderView?.pause()
+        currentScreen?.pause()
+        if (isFinishing) currentScreen?.dispose()
     }
 
     override fun setScreen(screen: Screen?) {
@@ -106,14 +122,6 @@ abstract class AndroidGameActivity : AppCompatActivity(), Game {
 
     override val context: Context
         get() = this
-
-    fun addView(v: View?) {
-        layoutParams = RelativeLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT)
-        mainLayout!!.addView(v, layoutParams)
-        mainLayout!!.gravity = Gravity.TOP or Gravity.CENTER_HORIZONTAL
-        mainLayout!!.bringToFront()
-    }
 
     companion object {
         private const val WAKE_LOCK_TIMEOUT = 512L

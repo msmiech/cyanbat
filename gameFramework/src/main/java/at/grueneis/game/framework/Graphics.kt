@@ -2,7 +2,7 @@ package at.grueneis.game.framework
 
 interface Graphics {
     enum class PixmapFormat {
-        ARGB8888, ARGB4444, RGB565
+        ARGB8888, RGB565
     }
 
     fun newPixmap(filename: String, format: PixmapFormat): Pixmap
