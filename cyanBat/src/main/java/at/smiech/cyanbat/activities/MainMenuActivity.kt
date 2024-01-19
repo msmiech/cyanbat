@@ -17,8 +17,8 @@ import android.widget.LinearLayout
 import at.smiech.cyanbat.R
 
 /**
- * MainActivity represents the menu and is used to navigate to other activities
- * It contains Buttons for the navigation
+ * MainActivity represents the menu and is used to navigate to other activities.
+ * It contains buttons for the navigation.
  *
  * @author msmiech, KittysCode
  */
@@ -30,7 +30,7 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
     private var helpDialog: AlertDialog? = null
 
     /**
-     * Sets the contentView and initialises Buttons
+     * Sets the contentView and initialises buttons.
      *
      * @param savedInstanceState State of activity - not considered at the moment
      */
@@ -84,7 +84,7 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
      * Initialization of music playback. MediaPlayer starts music if settings were made to do so.
      */
     private fun initMusicPlayback() {
-        musicEnabled = this.sharedPrefs!!.getBoolean("music_enabled", true)
+        musicEnabled = this.sharedPrefs?.getBoolean("music_enabled", true) == true
         if (musicEnabled) {
             val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
@@ -94,9 +94,9 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
             if (mediaPlayer == null) {
                 mediaPlayer = MediaPlayer.create(this, R.raw.menu_theme)
             }
-            mediaPlayer!!.setOnCompletionListener(this)
-            mediaPlayer!!.start()
-            mediaPlayer!!.isLooping = true
+            mediaPlayer?.setOnCompletionListener(this)
+            mediaPlayer?.start()
+            mediaPlayer?.isLooping = true
         }
     }
 
@@ -104,10 +104,9 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
      * Stops music if media player exists.
      */
     private fun stopMusic() {
-        if (mediaPlayer != null) {
-            mediaPlayer!!.stop()
-            mediaPlayer!!.release()
-            mediaPlayer = null
+        mediaPlayer?.let {
+            it.stop()
+            it.release()
         }
     }
 
@@ -137,7 +136,7 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
     }
 
     /**
-     * Is used for creating and initializing the Help Dialog
+     * Is used for creating and initializing the Help dialog.
      */
     private fun initHelpDialog() {
         // Use the Builder class for convenient dialog construction
@@ -162,10 +161,9 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
 
     override fun onDestroy() {
         super.onDestroy()
-        if (mediaPlayer != null) {
-            mediaPlayer!!.stop()
-            mediaPlayer!!.release()
-            mediaPlayer = null
+        mediaPlayer?.let {
+            it.stop()
+            it.release()
         }
     }
 
@@ -180,7 +178,6 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
     }
 
     companion object {
-
-        val TAG = "DucklingsFlightGame"
+        const val TAG = "DucklingsFlightGame"
     }
 }
