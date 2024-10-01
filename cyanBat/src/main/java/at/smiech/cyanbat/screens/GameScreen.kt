@@ -15,13 +15,15 @@ import at.smiech.cyanbat.gameobjects.impl.Shot
 import at.smiech.cyanbat.service.CollisionDetection
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.ObstacleGenerator
-import java.util.*
+import java.util.Random
 
 class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     val gameObjects: MutableList<GameObject> = ArrayList()
-    private val bat = CyanBat(DISPLAY_HEIGHT / 3,
-            DISPLAY_WIDTH / 2, CyanBat.DEFAULT_WIDTH,
-            CyanBatGameActivity.bat.height, CyanBatGameActivity.bat, this)
+    private val bat = CyanBat(
+        DISPLAY_HEIGHT / 3,
+        DISPLAY_WIDTH / 2, CyanBat.DEFAULT_WIDTH,
+        CyanBatGameActivity.bat.height, CyanBatGameActivity.bat, this
+    )
     private var tickTime = 0f
     private var touchEvents: List<TouchEvent>? = null
     private var g: Graphics? = null
@@ -35,18 +37,20 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     private val musicPlayer = CyanBatGameActivity.musicPlayer
 
     init {
-        init()
-    }
-
-    private fun init() {
         if (DEBUG)
             Log.d(TAG, "init")
         g = super.game.graphics
         rnd = Random()
 
-        gameObjects.add(Background(0, 0, CyanBatGameActivity.background,
-                gameObjects)) // Add the first background
-        gameObjects.add(bat) // Add the activity_main player character
+        // Add the primary background
+        gameObjects.add(
+            Background(
+                0, 0, CyanBatGameActivity.background,
+                gameObjects
+            )
+        )
+        // Add the activity_main player character
+        gameObjects.add(bat)
 
         colChk = CollisionDetection(gameObjects)
         colChk.addObjectToCheck(bat)
@@ -70,7 +74,7 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     override fun update(deltaTime: Float) {
         if (DEBUG)
             Log.d(TAG, "update")
-        touchEvents = super.game.input!!.touchEvents
+        touchEvents = game.input?.touchEvents
         tickTime += deltaTime
         while (tickTime > tick) {
             tickTime -= tick
@@ -114,7 +118,7 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     fun saveHighscore() {
         if (score > highscore)
             highscore = score
-        prefs!!.edit().putInt("highscore", highscore).apply()
+        prefs?.edit()?.putInt("highscore", highscore)?.apply()
     }
 
     override fun present(deltaTime: Float) {
@@ -124,20 +128,22 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
         drawGameObjects()
         drawStats()
         if (!bat.alive)
-            g!!.drawPixmap(CyanBatGameActivity.death, 15, 15)
+            g?.drawPixmap(CyanBatGameActivity.death, 15, 15)
     }
 
     private fun drawStats() {
         if (DEBUG)
             Log.d(TAG, "drawStats")
-        g!!.drawString("Score: $score", 5, 20, 15, Color.CYAN)
-        g!!.drawString("Highscore: $highscore", 5, 40, 15, Color.CYAN)
-        g!!.drawString("Lives: " + bat.lives, 5, 60, 15, Color.CYAN)
+        g?.apply {
+            drawString("Score: $score", 5, 20, 15, Color.CYAN)
+            drawString("Highscore: $highscore", 5, 40, 15, Color.CYAN)
+            drawString("Lives: " + bat.lives, 5, 60, 15, Color.CYAN)
+        }
 
     }
 
     private fun clearScreen() {
-        drawMap(g!!) // Clear screen
+        g?.clear(Color.BLACK)
     }
 
     private fun drawGameObjects() {

@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.screens
 
 import android.content.Intent
+import android.graphics.Color
 
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Graphics
@@ -10,7 +11,6 @@ import at.smiech.cyanbat.activities.MainMenuActivity
 
 class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
 
-    private var touchEvents: List<TouchEvent>? = null
     private var g: Graphics? = null
 
     init {
@@ -32,21 +32,17 @@ class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
     }
 
     override fun update(deltaTime: Float) {
-        touchEvents = super.game.input!!.touchEvents
-        for (event in touchEvents!!) {
-            if (event.type == TouchEvent.TOUCH_UP) {
-                CyanBatGameActivity.vib.vibrate(250)
-                //game.setScreen(new StartScreen(game));
-                val mainMenuIntent = Intent(super.game.context, MainMenuActivity::class.java)
-                super.game.context.startActivity(mainMenuIntent)
-            }
+        if (game.input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true) {
+            CyanBatGameActivity.vib.vibrate(250)
+            val mainMenuIntent = Intent(super.game.context, MainMenuActivity::class.java)
+            super.game.context.startActivity(mainMenuIntent)
         }
         super.update(deltaTime)
     }
 
     override fun present(deltaTime: Float) {
-        drawMap(g!!)
-        g!!.drawPixmap(CyanBatGameActivity.gameOver, 0, 0)
+        g?.clear(Color.BLACK)
+        g?.drawPixmap(CyanBatGameActivity.gameOver, 0, 0)
     }
 
     override fun pause() {

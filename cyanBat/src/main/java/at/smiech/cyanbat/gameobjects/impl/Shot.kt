@@ -11,7 +11,8 @@ import at.smiech.cyanbat.gameobjects.PixmapGameObject
 /**
  * TODO implement shots to be fired at enemies
  */
-class Shot(rect: Rect, pixmap: Pixmap, var firedByObject: GameObject // For future use...
+class Shot(
+    rect: Rect, pixmap: Pixmap, var firedByObject: GameObject
 ) : PixmapGameObject(rect, pixmap), Collidable {
 
     init {
@@ -21,7 +22,7 @@ class Shot(rect: Rect, pixmap: Pixmap, var firedByObject: GameObject // For futu
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
         super.update(deltaTime, touchEvents)
-
+        TODO()
     }
 
     override fun hit() {
