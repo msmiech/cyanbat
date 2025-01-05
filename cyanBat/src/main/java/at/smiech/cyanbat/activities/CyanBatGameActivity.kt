@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import android.os.PersistableBundle
 import android.os.Vibrator
+import android.os.VibratorManager
 import android.util.Log
 import android.view.WindowManager
 import at.grueneis.game.framework.Graphics.PixmapFormat
@@ -14,7 +15,7 @@ import at.grueneis.game.framework.Pixmap
 import at.grueneis.game.framework.Screen
 import at.grueneis.game.framework.Sound
 import at.grueneis.game.framework.impl.AndroidGameActivity
-import at.smiech.cyanbat.screens.GameScreen
+import at.smiech.cyanbat.screen.GameScreen
 import at.smiech.cyanbat.util.MusicPlayer
 
 class CyanBatGameActivity : AndroidGameActivity() {
@@ -23,7 +24,6 @@ class CyanBatGameActivity : AndroidGameActivity() {
         get() {
             if (DEBUG)
                 Log.d(TAG, "getStartScreen")
-            currentActivity = this
             initAssets()
             return GameScreen(this)
         }
@@ -32,36 +32,49 @@ class CyanBatGameActivity : AndroidGameActivity() {
         if (DEBUG)
             Log.d(TAG, "initAssets")
 
-        val g = graphics!!
         // Loading image assets
-        bat = g.newPixmap("cyanBat.png", PixmapFormat.ARGB8888)
-        gameOver = g.newPixmap("gameover.png", PixmapFormat.ARGB8888)
-        background = g.newPixmap("background.jpg", PixmapFormat.ARGB8888)
-        topObstacles[0] = g
+        graphics?.let { g ->
+            bat = g.newPixmap("cyanBat.png", PixmapFormat.ARGB8888)
+            gameOver = g.newPixmap("gameover.png", PixmapFormat.ARGB8888)
+            background = g.newPixmap("background.jpg", PixmapFormat.ARGB8888)
+            topObstacles[0] = g
                 .newPixmap("topObstacle1.png", PixmapFormat.ARGB8888)
-        topObstacles[1] = g
+            topObstacles[1] = g
                 .newPixmap("topObstacle2.png", PixmapFormat.ARGB8888)
-        bottomObstacles[0] = g.newPixmap("bottomObstacle1.png",
+            bottomObstacles[0] = g.newPixmap("bottomObstacle1.png",
                 PixmapFormat.ARGB8888)
-        bottomObstacles[1] = g.newPixmap("bottomObstacle2.png",
+            bottomObstacles[1] = g.newPixmap("bottomObstacle2.png",
                 PixmapFormat.ARGB8888)
-        death = g.newPixmap("death.png", PixmapFormat.ARGB8888)
-        enemies = g.newPixmap("enemies.png", PixmapFormat.ARGB8888)
-        explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888)
-        shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888)
+            death = g.newPixmap("death.png", PixmapFormat.ARGB8888)
+            enemies = g.newPixmap("enemies.png", PixmapFormat.ARGB8888)
+            explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888)
+            shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888)
+        }
 
         musicPlayer = MusicPlayer()
-        musicEnabled = this.sharedPrefs!!.getBoolean("music_enabled", true)
+        musicEnabled = sharedPrefs?.getBoolean("music_enabled", true) ?: true
         musicPlayer.setEnabled(musicEnabled)
 
         //music
-        gameTrack = audio!!.newMusic("game_theme.mp3")
-        gameOverMusic = audio!!.newMusic("game_over.mp3")
-        //sound
-        soundsEnabled = this.sharedPrefs!!.getBoolean("sounds_enabled", true)
-        deathSound = audio!!.newSound("deathSound.mp3")
+        audio?.let {
+            gameTrack = it.newMusic("game_theme.mp3")
+            gameOverMusic = it.newMusic("game_over.mp3")
+            deathSound = it.newSound("deathSound.mp3")
+        }
 
-        vib = getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
+        //sound
+        soundsEnabled = sharedPrefs?.getBoolean("sounds_enabled", true) ?: true
+
+        vib = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            val vibratorManager =
+                getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+            vibratorManager.defaultVibrator
+        } else {
+            @Suppress("DEPRECATION")
+            getSystemService(VIBRATOR_SERVICE) as Vibrator
+        }
+
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
@@ -81,12 +94,10 @@ class CyanBatGameActivity : AndroidGameActivity() {
     }
 
     companion object {
+        const val TAG = "CyanBatGameActivity"
+        const val DEBUG = false
+        const val SHOOTING_ENABLED = false
 
-        val TAG = "CyanBatGameActivity"
-        val DEBUG = false
-        val SHOOTING_ENABLED = false
-
-        //Legacy code... public static for simplicity
         lateinit var bat: Pixmap
         lateinit var death: Pixmap
         lateinit var gameOver: Pixmap
@@ -101,7 +112,6 @@ class CyanBatGameActivity : AndroidGameActivity() {
         lateinit var musicPlayer: MusicPlayer
         lateinit var explosion: Pixmap
         lateinit var shot: Pixmap
-        var currentActivity: CyanBatGameActivity? = null
         var musicEnabled = true
         var soundsEnabled = true
     }

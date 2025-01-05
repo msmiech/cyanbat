@@ -9,12 +9,19 @@ import at.smiech.cyanbat.activities.CyanBatGameActivity
 import at.smiech.cyanbat.gameobjects.Collidable
 import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.PixmapGameObject
-import at.smiech.cyanbat.screens.CyanBatBaseScreen
-import at.smiech.cyanbat.screens.GameOverScreen
-import at.smiech.cyanbat.screens.GameScreen
+import at.smiech.cyanbat.screen.CyanBatBaseScreen
+import at.smiech.cyanbat.screen.GameOverScreen
+import at.smiech.cyanbat.screen.GameScreen
 import java.util.*
 
-class CyanBat(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, private val gs: GameScreen) : PixmapGameObject(Rect(x, y, x + DEFAULT_WIDTH, y + height), pm), Collidable {
+class CyanBat(
+    x: Int,
+    y: Int,
+    width: Int = DEFAULT_WIDTH,
+    height: Int,
+    pm: Pixmap,
+    private val gs: GameScreen
+) : PixmapGameObject(Rect(x, y, x + width, y + height), pm), Collidable {
 
     private var animTickTime = 0f
     var alive = true
@@ -23,7 +30,7 @@ class CyanBat(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, private val g
     private var tickTime = 0f
     private val tick = TICK_INITIAL
     private var srcX: Int = 0
-    private val curvatures = ArrayList<CyanTrail>()
+    private val trails = ArrayList<CyanTrail>()
     private var hitCooldown = MAX_HIT_COOLDOWN // cooldown grace period in seconds
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
@@ -31,40 +38,45 @@ class CyanBat(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, private val g
             Log.d(GameObject.TAG, "updateBat")
         updateLogic(deltaTime, touchEvents)
         updateAnimation(deltaTime)
-        updateCurvatations()
+        updateTrails()
 
         if (CyanBatGameActivity.SHOOTING_ENABLED) {
-            if (gs.game.input!!.touchEvents!!.size > 1)
+            if (gs.game.input?.touchEvents?.let { it.size > 1 } == true)
                 shoot()
         }
         super.update(deltaTime, touchEvents)
     }
 
-    private fun updateCurvatations() {
-        val potentialRect = Rect(rectangle.left,
-                rectangle.top + rectangle.height() / 2, rectangle.left + rectangle.width() / 4,
-                rectangle.bottom)
-        for (i in curvatures.indices) {
-            val curv = curvatures[i]
-            if (Rect.intersects(curv.rectangle, potentialRect)) {
-                return
-            }
+    private fun updateTrails() {
+        val potentialRect = Rect(
+            rectangle.left,
+            rectangle.top + rectangle.height() / 2, rectangle.left + rectangle.width() / 4,
+            rectangle.bottom
+        )
+        if (trails.any { Rect.intersects(it.rectangle, potentialRect) }) {
+            return
         }
 
-        curvatures.filter { curv -> curv.removeMe }.forEach { curv -> curvatures.remove(curv) }
+        trails.removeIf { curve -> curve.removeMe }
 
         potentialRect.left -= 2
         potentialRect.right -= 1
         val go = CyanTrail(potentialRect)
-        curvatures.add(go)
+        trails.add(go)
         gs.gameObjects.add(go)
     }
 
     private fun shoot() {
         if (Shot.count > 1)
             return
-        val shot = Shot(Rect(rectangle.left, rectangle.top,
-                rectangle.left + CyanBatGameActivity.shot.width, rectangle.top + CyanBatGameActivity.shot.height), CyanBatGameActivity.shot, this)
+        val shot = Shot(
+            Rect(
+                rectangle.left,
+                rectangle.top,
+                rectangle.left + CyanBatGameActivity.shot.width,
+                rectangle.top + CyanBatGameActivity.shot.height
+            ), CyanBatGameActivity.shot, this
+        )
         gs.gameObjects.add(shot)
         gs.colChk.addObjectToCheck(shot)
     }
@@ -135,8 +147,10 @@ class CyanBat(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, private val g
     override fun draw(g: Graphics) {
         if (GameObject.DEBUG)
             Log.d(GameObject.TAG, "drawBat")
-        g.drawPixmap(pixmap, rectangle.left, rectangle.top, srcX, 0, DEFAULT_WIDTH,
-                rectangle.height())
+        g.drawPixmap(
+            pixmap, rectangle.left, rectangle.top, srcX, 0, DEFAULT_WIDTH,
+            rectangle.height()
+        )
         super.draw(g)
     }
 
@@ -162,10 +176,9 @@ class CyanBat(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, private val g
     }
 
     companion object {
-
-        val DEFAULT_WIDTH = 45
-        private val ANIM_TICK_INTERVAL = 0.2f
-        private val TICK_INITIAL = 0.009f
-        private val MAX_HIT_COOLDOWN = 0.5f
+        const val DEFAULT_WIDTH = 45
+        private const val ANIM_TICK_INTERVAL = 0.2f
+        private const val TICK_INITIAL = 0.009f
+        private const val MAX_HIT_COOLDOWN = 0.5f
     }
 }

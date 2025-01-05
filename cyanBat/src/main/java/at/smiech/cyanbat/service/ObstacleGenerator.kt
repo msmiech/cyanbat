@@ -9,23 +9,13 @@ import at.grueneis.game.framework.Pixmap
 import at.smiech.cyanbat.activities.CyanBatGameActivity
 import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.impl.Obstacle
-import at.smiech.cyanbat.screens.CyanBatBaseScreen
+import at.smiech.cyanbat.screen.CyanBatBaseScreen
 
-class ObstacleGenerator : Runnable {
-    private val gameObjects: MutableList<GameObject>
+class ObstacleGenerator(private val gameObjects: MutableList<GameObject>) : Runnable {
     private val rnd = Random()
     private val running = AtomicBoolean(false)
-    private var collisionDetection: CollisionDetection? = null
+    private var collisionDetector: CollisionDetector? = null
     private var generationInterval = OBSTACLE_GENERATION_INTERVAL
-
-    constructor(gameObjects: MutableList<GameObject>, interval: Int) {
-        this.gameObjects = gameObjects
-        this.generationInterval = interval
-    }
-
-    constructor(gameObjects: MutableList<GameObject>) {
-        this.gameObjects = gameObjects
-    }
 
     override fun run() {
         this.running.set(true)
@@ -61,14 +51,14 @@ class ObstacleGenerator : Runnable {
             val obs = Obstacle(CyanBatBaseScreen.DISPLAY_HEIGHT,
                     obstacleHeight, obstaclePixmap)
             gameObjects.add(obs)
-            if (collisionDetection != null) {
-                collisionDetection!!.addObjectToCheck(obs)
+            if (collisionDetector != null) {
+                collisionDetector!!.addObjectToCheck(obs)
             }
         }
     }
 
-    fun setCollisionDetection(collisionDetection: CollisionDetection) {
-        this.collisionDetection = collisionDetection
+    fun setCollisionDetection(collisionDetector: CollisionDetector) {
+        this.collisionDetector = collisionDetector
     }
 
     fun stop() {

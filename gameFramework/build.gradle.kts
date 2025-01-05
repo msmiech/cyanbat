@@ -6,10 +6,10 @@ plugins {
 
 android {
     namespace = "at.grueneis.game.framework"
-    compileSdk = 34
+    compileSdk = 35
 
     defaultConfig {
-        minSdk = 21
+        minSdk = 24
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

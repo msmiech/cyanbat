@@ -40,7 +40,6 @@ class CyanBatSQLiteHelper(context: Context) : SQLiteOpenHelper(context, DATABASE
     }
 
     companion object {
-
         val DATABASE_VERSION = 1
         val DATABASE_NAME = "ScoreGame.db"
     }

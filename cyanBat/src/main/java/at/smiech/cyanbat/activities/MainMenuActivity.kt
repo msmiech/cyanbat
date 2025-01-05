@@ -56,9 +56,6 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
         val btnStartGame = findViewById<Button>(R.id.btnStartGame)
         btnStartGame.setOnClickListener(this)
 
-        /*Button btnHighscore = findViewById(R.id.btnHighscore);
-        btnHighscore.setOnClickListener(this); */
-
         val btnSettings = findViewById<Button>(R.id.btnSettings)
         btnSettings.setOnClickListener(this)
 
@@ -117,10 +114,6 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
                 val startGameActivity = Intent(this, CyanBatGameActivity::class.java)
                 startActivity(startGameActivity)
             }
-            /*case R.id.btnHighscore:
-                //Intent startScoreActivity = new Intent(this, ScoreActivity.class);
-                //startActivity(startScoreActivity);
-                break;*/
             R.id.btnSettings -> {
                 val gameOptionsIntent = Intent(this, GameOptionsActivity::class.java)
                 startActivity(gameOptionsIntent)
@@ -148,22 +141,22 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
         input.layoutParams = lp
         builder.setTitle(R.string.dialog_help_title)
         builder.setMessage(R.string.dialog_help_text)
-        builder.setPositiveButton("OK") { dialog, id -> helpDialog!!.dismiss() }
+        builder.setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
         // Create the AlertDialog object and return it
         this.helpDialog = builder.create()
     }
 
     override fun onCompletion(mp: MediaPlayer) {
         if (musicEnabled) {
-            mediaPlayer!!.start()
+            mp.start()
         }
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        mediaPlayer?.let {
-            it.stop()
-            it.release()
+        mediaPlayer?.apply {
+            stop()
+            release()
         }
     }
 
@@ -178,6 +171,6 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
     }
 
     companion object {
-        const val TAG = "DucklingsFlightGame"
+        const val TAG = "CyanBatGame"
     }
 }

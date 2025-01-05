@@ -8,8 +8,6 @@ import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
 import android.util.DisplayMetrics
-import android.view.Gravity
-import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.view.WindowManager
@@ -113,8 +111,8 @@ abstract class AndroidGameActivity : AppCompatActivity(), Game {
 
     override fun setScreen(screen: Screen?) {
         requireNotNull(screen) { "Screen is null!" }
-        currentScreen!!.pause()
-        currentScreen!!.dispose()
+        currentScreen?.pause()
+        currentScreen?.dispose()
         screen.resume()
         screen.update(0f)
         currentScreen = screen

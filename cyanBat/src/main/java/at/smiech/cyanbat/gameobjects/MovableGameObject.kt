@@ -6,7 +6,7 @@ import android.graphics.Rect
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.smiech.cyanbat.util.Vector2D
-import at.smiech.cyanbat.screens.CyanBatBaseScreen
+import at.smiech.cyanbat.screen.CyanBatBaseScreen
 
 /**
  * Describes the of an GameObject.

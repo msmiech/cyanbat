@@ -1,4 +1,4 @@
-package at.smiech.cyanbat.screens
+package at.smiech.cyanbat.screen
 
 import android.content.SharedPreferences
 import android.graphics.Color
@@ -12,7 +12,7 @@ import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.impl.Background
 import at.smiech.cyanbat.gameobjects.impl.CyanBat
 import at.smiech.cyanbat.gameobjects.impl.Shot
-import at.smiech.cyanbat.service.CollisionDetection
+import at.smiech.cyanbat.service.CollisionDetector
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.ObstacleGenerator
 import java.util.Random
@@ -32,7 +32,7 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     private var enmGenThread: Thread? = null
     private var enmGen: EnemyGenerator? = null
     var score: Int = 0
-    lateinit var colChk: CollisionDetection
+    var colChk: CollisionDetector
     private var prefs: SharedPreferences? = null
     private val musicPlayer = CyanBatGameActivity.musicPlayer
 
@@ -52,7 +52,7 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
         // Add the activity_main player character
         gameObjects.add(bat)
 
-        colChk = CollisionDetection(gameObjects)
+        colChk = CollisionDetector(gameObjects)
         colChk.addObjectToCheck(bat)
         Shot.count = 0
         musicPlayer.continueMusic()

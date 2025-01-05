@@ -32,7 +32,7 @@
         <activity
             android:name=".activities.CreditsActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
-            android:label="@string/credits"
+            android:label="@string/credits_headline"
             android:screenOrientation="landscape" />
         <activity
             android:name=".activities.GameOptionsActivity"

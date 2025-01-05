@@ -8,27 +8,17 @@ import android.util.Log
 import at.smiech.cyanbat.activities.CyanBatGameActivity
 import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.impl.Enemy
-import at.smiech.cyanbat.screens.CyanBatBaseScreen
+import at.smiech.cyanbat.screen.CyanBatBaseScreen
 
-class EnemyGenerator : Runnable {
+class EnemyGenerator(private val gameObjects: MutableList<GameObject>) : Runnable {
 
-    private val gameObjects: MutableList<GameObject>
     private val rnd = Random()
     private val running = AtomicBoolean(false)
     private val realEnemyHeight = CyanBatGameActivity.enemies.height
-    private var collisionDetection: CollisionDetection? = null
+    private var collisionDetector: CollisionDetector? = null
     private var generationInterval = DEFAULT_GENERATION_INTERVAL
     private val startTime = System.currentTimeMillis()
 
-
-    constructor(gameObjects: MutableList<GameObject>, interval: Int) {
-        this.gameObjects = gameObjects
-        this.generationInterval = interval
-    }
-
-    constructor(gameObjects: MutableList<GameObject>) {
-        this.gameObjects = gameObjects
-    }
 
     override fun run() {
         running.set(true)
@@ -53,14 +43,14 @@ class EnemyGenerator : Runnable {
                     .nextInt(200) + 100, Enemy.realWidth, realEnemyHeight,
                     CyanBatGameActivity.enemies, rnd.nextInt(3))
             gameObjects.add(en)
-            if (collisionDetection != null) {
-                collisionDetection!!.addObjectToCheck(en)
+            if (collisionDetector != null) {
+                collisionDetector!!.addObjectToCheck(en)
             }
         }
     }
 
-    fun setCollisionDetection(collisionDetection: CollisionDetection) {
-        this.collisionDetection = collisionDetection
+    fun setCollisionDetection(collisionDetector: CollisionDetector) {
+        this.collisionDetector = collisionDetector
     }
 
     fun stop() {

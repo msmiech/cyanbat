@@ -1,4 +1,4 @@
-package at.smiech.cyanbat.screens
+package at.smiech.cyanbat.screen
 
 import android.content.Intent
 import android.graphics.Color
@@ -44,17 +44,4 @@ class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
         g?.clear(Color.BLACK)
         g?.drawPixmap(CyanBatGameActivity.gameOver, 0, 0)
     }
-
-    override fun pause() {
-
-    }
-
-    override fun resume() {
-
-    }
-
-    override fun dispose() {
-
-    }
-
 }

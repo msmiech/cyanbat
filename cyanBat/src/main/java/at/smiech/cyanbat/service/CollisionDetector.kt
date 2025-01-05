@@ -7,20 +7,18 @@ import at.smiech.cyanbat.gameobjects.Collidable
 import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.impl.Explosion
 import at.smiech.cyanbat.gameobjects.impl.Shot
-import java.util.*
 
-class CollisionDetection(private val gameObjects: MutableList<GameObject>) {
-    private val objectsToCheck: MutableList<Collidable>?
-
-    init {
-        this.objectsToCheck = ArrayList()
-    }
+/**
+ * Collision detection implementation to be run in a separate thread on each game loop.
+ */
+class CollisionDetector(private val gameObjects: MutableList<GameObject>) {
+    private val objectsToCheck = mutableListOf<Collidable>()
 
     fun checkCollisions() {
         if (DEBUG)
             Log.d(TAG, "checkCollisions")
         synchronized(gameObjects) {
-            if (objectsToCheck == null || objectsToCheck.isEmpty() || objectsToCheck.size < 2)
+            if (objectsToCheck.isEmpty() || objectsToCheck.size < 2)
             // at least two different objects have to be involved in a collision
                 return
             for (i in objectsToCheck.indices) {
@@ -30,24 +28,30 @@ class CollisionDetection(private val gameObjects: MutableList<GameObject>) {
                 }
                 val goMain = main as GameObject
                 for (j in objectsToCheck.indices) {
-                    val other = objectsToCheck[j]
-                    if (other === main)
-                        continue
-                    if (other !is GameObject) {
+                    if (i == j) {
                         continue
                     }
-                    val goOther = other as GameObject
+                    val goOther = objectsToCheck[j] as GameObject
                     checkCollision(goMain, goOther)
                 }
             }
-            objectsToCheck.filter { obj -> obj is GameObject && obj.scheduledForRemoval() }.forEach { objectsToCheck.remove(it) }
+            objectsToCheck.removeIf { obj -> obj is GameObject && obj.scheduledForRemoval() }
         }
     }
 
     private fun checkCollision(main: GameObject, other: GameObject) {
         if (DEBUG)
-            Log.d(TAG,
-                    "(CheckCollision(GameObject) with this Object (by using rect.intersect(rect2))")
+            Log.d(
+                TAG,
+                "(CheckCollision(GameObject) with this Object (by using rect.intersect(rect2))"
+            )
+
+        if (main !is Collidable) {
+            return
+        }
+        if (main.scheduledForRemoval() || other.scheduledForRemoval()) {
+            return
+        }
 
         val mainRect = main.rectangle
         val otherRect = other.rectangle
@@ -56,18 +60,16 @@ class CollisionDetection(private val gameObjects: MutableList<GameObject>) {
             return
         }
 
-        val tolRect = Rect(mainRect.left + COLLISION_TOLERANCE,
-                mainRect.top + COLLISION_TOLERANCE, mainRect.right - 2 * COLLISION_TOLERANCE, mainRect.bottom - 2 * COLLISION_TOLERANCE)
+        val tolRect = Rect(
+            mainRect.left + COLLISION_TOLERANCE,
+            mainRect.top + COLLISION_TOLERANCE,
+            mainRect.right - 2 * COLLISION_TOLERANCE,
+            mainRect.bottom - 2 * COLLISION_TOLERANCE
+        )
         if (Rect.intersects(tolRect, otherRect)) {
             if (other is Shot) {
                 if (main === other.firedByObject)
                     return
-            }
-            if (main !is Collidable) {
-                return
-            }
-            if (main.scheduledForRemoval() || other.scheduledForRemoval()) {
-                return
             }
             val collidableMain = main as Collidable
             val collidableOther = other as Collidable
@@ -82,20 +84,12 @@ class CollisionDetection(private val gameObjects: MutableList<GameObject>) {
 
     @Synchronized
     fun addObjectToCheck(go: Collidable) {
-        objectsToCheck!!.add(go)
-    }
-
-    @Synchronized
-    fun removeObjectToCheck(go: Collidable?) {
-        if (go == null)
-            throw IllegalArgumentException("Passed game object to remove from collision detection was null!")
-        objectsToCheck!!.remove(go)
+        objectsToCheck.add(go)
     }
 
     companion object {
-
-        private val COLLISION_TOLERANCE = 5
-        private val DEBUG = CyanBatGameActivity.DEBUG
-        private val TAG = CyanBatGameActivity.TAG
+        private const val COLLISION_TOLERANCE = 5
+        private const val DEBUG = CyanBatGameActivity.DEBUG
+        private const val TAG = CyanBatGameActivity.TAG
     }
 }

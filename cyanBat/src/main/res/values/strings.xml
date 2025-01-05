@@ -4,7 +4,7 @@
     <string name="app_name">CyanBat</string>
     <string name="in_game">CyanBat In-Game</string>
     <string name="splash">CyanBat Splash Screen</string>
-    <string name="credits">Credits</string>
+    <string name="credits_headline">Credits</string>
     <string name="settings">Settings</string>
 
     <string name="button_help">Help</string>
