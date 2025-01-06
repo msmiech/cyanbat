@@ -1,9 +1,9 @@
 package at.smiech.cyanbat.screen
 
-import android.content.SharedPreferences
+import android.content.Context
 import android.graphics.Color
 import android.util.Log
-import androidx.preference.PreferenceManager
+import androidx.datastore.preferences.preferencesDataStore
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
@@ -15,14 +15,16 @@ import at.smiech.cyanbat.gameobjects.impl.Shot
 import at.smiech.cyanbat.service.CollisionDetector
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.ObstacleGenerator
-import java.util.Random
 
 class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     val gameObjects: MutableList<GameObject> = ArrayList()
     private val bat = CyanBat(
         DISPLAY_HEIGHT / 3,
-        DISPLAY_WIDTH / 2, CyanBat.DEFAULT_WIDTH,
-        CyanBatGameActivity.bat.height, CyanBatGameActivity.bat, this
+        DISPLAY_WIDTH / 2,
+        CyanBat.DEFAULT_WIDTH,
+        CyanBatGameActivity.bat.height,
+        CyanBatGameActivity.bat,
+        this
     )
     private var tickTime = 0f
     private var touchEvents: List<TouchEvent>? = null
@@ -33,20 +35,16 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     private var enmGen: EnemyGenerator? = null
     var score: Int = 0
     var colChk: CollisionDetector
-    private var prefs: SharedPreferences? = null
     private val musicPlayer = CyanBatGameActivity.musicPlayer
 
     init {
-        if (DEBUG)
-            Log.d(TAG, "init")
+        if (DEBUG) Log.d(TAG, "init")
         g = super.game.graphics
-        rnd = Random()
 
         // Add the primary background
         gameObjects.add(
             Background(
-                0, 0, CyanBatGameActivity.background,
-                gameObjects
+                0, 0, CyanBatGameActivity.background, gameObjects
             )
         )
         // Add the activity_main player character
@@ -62,18 +60,15 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
 
     private fun initStats() {
         score = 0
-        val ctx = super.game.context
-        prefs = PreferenceManager.getDefaultSharedPreferences(ctx)
         readHighscore()
     }
 
     private fun readHighscore() {
-        highscore = prefs!!.getInt("highscore", 0)
+        highscore = 0
     }
 
     override fun update(deltaTime: Float) {
-        if (DEBUG)
-            Log.d(TAG, "update")
+        if (DEBUG) Log.d(TAG, "update")
         touchEvents = game.input?.touchEvents
         tickTime += deltaTime
         while (tickTime > tick) {
@@ -84,17 +79,15 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     }
 
 
-    // a simple gameloop, essentially
+    // a simple gameloop
     private fun updateGameObjects(deltaTime: Float) {
-        if (DEBUG)
-            Log.d(TAG, "updateGameObjects")
+        if (DEBUG) Log.d(TAG, "updateGameObjects")
         Background.count = 0
         synchronized(gameObjects) {
             for (i in gameObjects.indices) {
                 val go = gameObjects[i]
 
-                if (bat.alive)
-                    colChk.checkCollisions()
+                if (bat.alive) colChk.checkCollisions()
 
                 go.update(deltaTime, touchEvents!!)
 
@@ -105,10 +98,8 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
             toBeRemoved.forEach { go ->
                 run {
                     // Let's give the garbage collector something to do:
-                    if (go is Background)
-                        Background.count -= 1
-                    if (go is Shot)
-                        Shot.count -= 1
+                    if (go is Background) Background.count -= 1
+                    if (go is Shot) Shot.count -= 1
                     gameObjects.remove(go)
                 }
             }
@@ -116,24 +107,25 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     }
 
     fun saveHighscore() {
-        if (score > highscore)
-            highscore = score
-        prefs?.edit()?.putInt("highscore", highscore)?.apply()
+        if (score > highscore) highscore = score
+
+        // launch in coroutine scope
+        /*
+        prefs?.edit {
+            it[intPreferencesKey("highscore")] = highscore
+        }*/
     }
 
     override fun present(deltaTime: Float) {
-        if (DEBUG)
-            Log.d(TAG, "present")
+        if (DEBUG) Log.d(TAG, "present")
         clearScreen()
         drawGameObjects()
         drawStats()
-        if (!bat.alive)
-            g?.drawPixmap(CyanBatGameActivity.death, 15, 15)
+        if (!bat.alive) g?.drawPixmap(CyanBatGameActivity.death, 15, 15)
     }
 
     private fun drawStats() {
-        if (DEBUG)
-            Log.d(TAG, "drawStats")
+        if (DEBUG) Log.d(TAG, "drawStats")
         g?.apply {
             drawString("Score: $score", 5, 20, 15, Color.CYAN)
             drawString("Highscore: $highscore", 5, 40, 15, Color.CYAN)
@@ -147,61 +139,55 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     }
 
     private fun drawGameObjects() {
-        if (DEBUG)
-            Log.d(TAG, "drawGameObjects")
+        if (DEBUG) Log.d(TAG, "drawGameObjects")
         synchronized(gameObjects) {
             for (i in gameObjects.indices) {
-                gameObjects[i].draw(g!!)
+                g?.let { gameObjects[i].draw(it) }
             }
         }
     }
 
     override fun pause() {
-        if (DEBUG)
-            Log.d(TAG, "pause")
+        if (DEBUG) Log.d(TAG, "pause")
         CyanBatGameActivity.musicPlayer.stopMusic()
         interruptThreads()
     }
 
     fun interruptThreads() {
-        if (DEBUG)
-            Log.d(TAG, "interruptThreads")
-        obstclGen!!.stop()
-        enmGen!!.stop()
+        if (DEBUG) Log.d(TAG, "interruptThreads")
+        obstclGen?.stop()
+        enmGen?.stop()
     }
 
     override fun resume() {
-        if (DEBUG)
-            Log.d(TAG, "resume")
+        if (DEBUG) Log.d(TAG, "resume")
         initStats()
         startThreads()
     }
 
     private fun startThreads() {
-        if (DEBUG)
-            Log.d(TAG, "startThreads")
+        if (DEBUG) Log.d(TAG, "startThreads")
         initThreads()
-        obstclGenThread!!.start()
-        enmGenThread!!.start()
+        obstclGenThread?.start()
+        enmGenThread?.start()
     }
 
     private fun initThreads() {
-        if (DEBUG)
-            Log.d(TAG, "initThreads")
-        if (obstclGenThread != null && obstclGenThread!!.isAlive) {
-            obstclGenThread!!.interrupt()
+        if (DEBUG) Log.d(TAG, "initThreads")
+        if (obstclGenThread != null && obstclGenThread?.isAlive == true) {
+            obstclGenThread?.interrupt()
         }
 
-        obstclGen = ObstacleGenerator(gameObjects)
-        obstclGen!!.setCollisionDetection(colChk)
+        obstclGen = ObstacleGenerator(gameObjects).apply {
+            setCollisionDetection(colChk)
+        }
         obstclGenThread = Thread(obstclGen)
 
 
         if (enmGenThread != null && enmGenThread!!.isAlive) {
             enmGenThread!!.interrupt()
         }
-        enmGen = EnemyGenerator(gameObjects)
-        enmGen!!.setCollisionDetection(colChk)
+        enmGen = EnemyGenerator(gameObjects).apply { setCollisionDetection(colChk) }
         enmGenThread = Thread(enmGen)
     }
 
@@ -210,12 +196,8 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
 
         val DEBUG = CyanBatGameActivity.DEBUG
 
-        internal val TICK_INITIAL = 0.019f
-        internal val TICK_DECREAMENT_FACTOR = 0.9f
+        private val TICK_INITIAL = 0.019f
         internal var tick = TICK_INITIAL
-
-
-        var rnd = Random()
         var highscore = 0
     }
 }

@@ -50,7 +50,8 @@ dependencies {
     implementation(project(":gameFramework"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
-    implementation(libs.androidx.preference.ktx)
+    implementation(libs.androidx.datastore)
+    implementation(libs.androidx.datastore.preferences)
 
     implementation(libs.androidx.ui.tooling.preview)
     debugImplementation(libs.androidx.ui.tooling)

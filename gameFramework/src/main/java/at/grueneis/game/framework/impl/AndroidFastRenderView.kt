@@ -15,15 +15,14 @@ class AndroidFastRenderView(var game: AndroidGameActivity, var framebuffer: Bitm
     var running = false
     fun resume() {
         running = true
-        renderThread = Thread(this)
-        renderThread!!.start()
+        renderThread = Thread(this).apply { start() }
     }
 
     fun pause() {
         running = false
         while (true) {
             try {
-                renderThread!!.join()
+                renderThread?.join()
                 break
             } catch (e: InterruptedException) {
                 // can't do anything about that at this point

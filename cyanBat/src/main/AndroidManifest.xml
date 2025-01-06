@@ -11,7 +11,7 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.AppCompat.NoActionBar">
         <activity
-            android:name=".activities.MainMenuActivity"
+            android:name=".MainMenuActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:screenOrientation="landscape"
             android:exported="true">
@@ -35,7 +35,7 @@
             android:label="@string/credits_headline"
             android:screenOrientation="landscape" />
         <activity
-            android:name=".activities.GameOptionsActivity"
+            android:name=".activities.GameSettingsActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/settings"
             android:screenOrientation="landscape" />

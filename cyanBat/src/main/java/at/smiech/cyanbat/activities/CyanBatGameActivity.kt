@@ -1,14 +1,10 @@
 package at.smiech.cyanbat.activities
 
 import android.content.Context
-import android.graphics.Color
 import android.os.Build
-import android.os.Bundle
-import android.os.PersistableBundle
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
-import android.view.WindowManager
 import at.grueneis.game.framework.Graphics.PixmapFormat
 import at.grueneis.game.framework.Music
 import at.grueneis.game.framework.Pixmap
@@ -41,10 +37,14 @@ class CyanBatGameActivity : AndroidGameActivity() {
                 .newPixmap("topObstacle1.png", PixmapFormat.ARGB8888)
             topObstacles[1] = g
                 .newPixmap("topObstacle2.png", PixmapFormat.ARGB8888)
-            bottomObstacles[0] = g.newPixmap("bottomObstacle1.png",
-                PixmapFormat.ARGB8888)
-            bottomObstacles[1] = g.newPixmap("bottomObstacle2.png",
-                PixmapFormat.ARGB8888)
+            bottomObstacles[0] = g.newPixmap(
+                "bottomObstacle1.png",
+                PixmapFormat.ARGB8888
+            )
+            bottomObstacles[1] = g.newPixmap(
+                "bottomObstacle2.png",
+                PixmapFormat.ARGB8888
+            )
             death = g.newPixmap("death.png", PixmapFormat.ARGB8888)
             enemies = g.newPixmap("enemies.png", PixmapFormat.ARGB8888)
             explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888)
@@ -52,18 +52,17 @@ class CyanBatGameActivity : AndroidGameActivity() {
         }
 
         musicPlayer = MusicPlayer()
-        musicEnabled = sharedPrefs?.getBoolean("music_enabled", true) ?: true
+        musicEnabled = true
         musicPlayer.setEnabled(musicEnabled)
 
-        //music
+        // music setup
         audio?.let {
             gameTrack = it.newMusic("game_theme.mp3")
             gameOverMusic = it.newMusic("game_over.mp3")
             deathSound = it.newSound("deathSound.mp3")
         }
 
-        //sound
-        soundsEnabled = sharedPrefs?.getBoolean("sounds_enabled", true) ?: true
+        soundsEnabled = true
 
         vib = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager =
@@ -73,24 +72,15 @@ class CyanBatGameActivity : AndroidGameActivity() {
             @Suppress("DEPRECATION")
             getSystemService(VIBRATOR_SERVICE) as Vibrator
         }
-
-
-    }
-
-    override fun onCreate(savedInstanceState: Bundle?, persistentState: PersistableBundle?) {
-        window.addFlags(WindowManager.LayoutParams.FLAG_DRAWS_SYSTEM_BAR_BACKGROUNDS)
-        window.navigationBarColor = Color.BLACK
-
-        super.onCreate(savedInstanceState, persistentState)
     }
 
 
     override fun onResume() {
-        // checking pref changes
-        musicEnabled = this.sharedPrefs?.getBoolean("music_enabled", true) == true
-        musicPlayer.setEnabled(musicEnabled)
-        soundsEnabled = this.sharedPrefs?.getBoolean("sounds_enabled", true) == true
         super.onResume()
+        // checking pref changes
+        musicEnabled = true
+        musicPlayer.setEnabled(musicEnabled)
+        soundsEnabled = true
     }
 
     companion object {

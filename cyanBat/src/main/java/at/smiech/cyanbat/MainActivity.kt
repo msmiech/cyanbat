@@ -1,20 +1,28 @@
-package at.smiech.cyanbat.activities
+package at.smiech.cyanbat
 
 import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Bundle
-import androidx.preference.PreferenceManager
-import androidx.appcompat.app.AlertDialog
-import androidx.appcompat.app.AppCompatActivity
 import android.view.View
 import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
+import androidx.appcompat.app.AlertDialog
+import androidx.appcompat.app.AppCompatActivity
+import androidx.datastore.preferences.core.booleanPreferencesKey
+import androidx.datastore.preferences.preferencesDataStore
+import androidx.lifecycle.lifecycleScope
+import at.smiech.cyanbat.activities.CreditsActivity
+import at.smiech.cyanbat.activities.CyanBatGameActivity
+import at.smiech.cyanbat.activities.GameSettingsActivity
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 
-import at.smiech.cyanbat.R
+internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
+internal val Context.dataStore by preferencesDataStore(name = "cyanbat")
 
 /**
  * MainActivity represents the menu and is used to navigate to other activities.
@@ -22,11 +30,10 @@ import at.smiech.cyanbat.R
  *
  * @author msmiech, KittysCode
  */
-class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.OnCompletionListener {
+class MainMenuActivity : AppCompatActivity(), View.OnClickListener {
 
-    private var sharedPrefs: SharedPreferences? = null
     private var mediaPlayer: MediaPlayer? = null
-    private var musicEnabled = true
+    private var isMediaPlayerReleased: Boolean = false
     private var helpDialog: AlertDialog? = null
 
     /**
@@ -44,6 +51,7 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
          */
         window.setBackgroundDrawableResource(R.drawable.menu_background)
 
+        initMusicPlayback()
         initButtons()
         initPreferences()
         initHelpDialog()
@@ -73,27 +81,39 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
      * Initialization and preparation of preferences and settings.
      */
     private fun initPreferences() {
-        this.sharedPrefs = PreferenceManager.getDefaultSharedPreferences(this)
-        this.musicEnabled = this.sharedPrefs!!.getBoolean("music_enabled", true)
+        lifecycleScope.launch {
+            dataStore.data.map { it[PREFS_KEY_MUSIC] }.collectLatest {
+                if (it == true) {
+                    startMusic()
+                } else {
+                    stopMusic()
+                }
+            }
+        }
     }
 
     /**
      * Initialization of music playback. MediaPlayer starts music if settings were made to do so.
      */
     private fun initMusicPlayback() {
-        musicEnabled = this.sharedPrefs?.getBoolean("music_enabled", true) == true
-        if (musicEnabled) {
-            val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+        val audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
-            val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
+        val currentVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, currentVolume, 0)
 
-            if (mediaPlayer == null) {
-                mediaPlayer = MediaPlayer.create(this, R.raw.menu_theme)
-            }
-            mediaPlayer?.setOnCompletionListener(this)
-            mediaPlayer?.start()
-            mediaPlayer?.isLooping = true
+        if (mediaPlayer == null) {
+            mediaPlayer = MediaPlayer.create(this, R.raw.menu_theme)
+        }
+    }
+
+    private fun startMusic() {
+        if (isMediaPlayerReleased) {
+            mediaPlayer = MediaPlayer.create(this@MainMenuActivity, R.raw.menu_theme)
+            isMediaPlayerReleased = false
+        }
+        mediaPlayer?.apply {
+            start()
+            isLooping = true
         }
     }
 
@@ -101,9 +121,10 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
      * Stops music if media player exists.
      */
     private fun stopMusic() {
-        mediaPlayer?.let {
-            it.stop()
-            it.release()
+        mediaPlayer?.apply {
+            stop()
+            release()
+            isMediaPlayerReleased = true
         }
     }
 
@@ -111,18 +132,22 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
     override fun onClick(v: View) {
         when (v.id) {
             R.id.btnStartGame -> {
+                stopMusic()
                 val startGameActivity = Intent(this, CyanBatGameActivity::class.java)
                 startActivity(startGameActivity)
             }
+
             R.id.btnSettings -> {
-                val gameOptionsIntent = Intent(this, GameOptionsActivity::class.java)
+                val gameOptionsIntent = Intent(this, GameSettingsActivity::class.java)
                 startActivity(gameOptionsIntent)
             }
-            R.id.btnHelp -> helpDialog!!.show()
+
+            R.id.btnHelp -> helpDialog?.show()
             R.id.btnCredits -> {
                 val startCreditsActivity = Intent(this, CreditsActivity::class.java)
                 startActivity(startCreditsActivity)
             }
+
             R.id.btnExit -> this.finishAffinity()
         }
 
@@ -136,20 +161,15 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
         val input = EditText(this)
         val builder = AlertDialog.Builder(this)
         val lp = LinearLayout.LayoutParams(
-                LinearLayout.LayoutParams.MATCH_PARENT,
-                LinearLayout.LayoutParams.MATCH_PARENT)
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.MATCH_PARENT
+        )
         input.layoutParams = lp
         builder.setTitle(R.string.dialog_help_title)
         builder.setMessage(R.string.dialog_help_text)
         builder.setPositiveButton("OK") { dialog, _ -> dialog.dismiss() }
         // Create the AlertDialog object and return it
         this.helpDialog = builder.create()
-    }
-
-    override fun onCompletion(mp: MediaPlayer) {
-        if (musicEnabled) {
-            mp.start()
-        }
     }
 
     override fun onDestroy() {
@@ -160,14 +180,9 @@ class MainMenuActivity : AppCompatActivity(), View.OnClickListener, MediaPlayer.
         }
     }
 
-    override fun onPause() {
-        stopMusic()
-        super.onPause()
-    }
-
     override fun onResume() {
         super.onResume()
-        initMusicPlayback()
+        startMusic()
     }
 
     companion object {

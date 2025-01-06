@@ -2,25 +2,14 @@ package at.smiech.cyanbat.screen
 
 import android.content.Intent
 import android.graphics.Color
-
 import at.grueneis.game.framework.Game
-import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
+import at.smiech.cyanbat.MainMenuActivity
 import at.smiech.cyanbat.activities.CyanBatGameActivity
-import at.smiech.cyanbat.activities.MainMenuActivity
 
 class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
 
-    private var g: Graphics? = null
-
     init {
-        init()
-
-    }
-
-    private fun init() {
-        g = super.game.graphics
-        System.gc()
         initSounds()
     }
 
@@ -35,13 +24,15 @@ class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
         if (game.input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true) {
             CyanBatGameActivity.vib.vibrate(250)
             val mainMenuIntent = Intent(super.game.context, MainMenuActivity::class.java)
-            super.game.context.startActivity(mainMenuIntent)
+            game.context.startActivity(mainMenuIntent)
         }
         super.update(deltaTime)
     }
 
     override fun present(deltaTime: Float) {
-        g?.clear(Color.BLACK)
-        g?.drawPixmap(CyanBatGameActivity.gameOver, 0, 0)
+        game.graphics?.let { graphics ->
+            graphics.clear(Color.BLACK)
+            graphics.drawPixmap(CyanBatGameActivity.gameOver, 0, 0)
+        }
     }
 }
