@@ -9,7 +9,7 @@ import at.grueneis.game.framework.Pixmap
 import at.smiech.cyanbat.activities.CyanBatGameActivity
 import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.PixmapGameObject
-import at.smiech.cyanbat.screen.CyanBatBaseScreen
+import at.smiech.cyanbat.ui.CyanBatBaseScreen
 
 class Background(x: Int, y: Int, pm: Pixmap, private val gameObjects: MutableList<GameObject>) : PixmapGameObject(Rect(x, y, x + pm.width, y + pm.height), pm) {
 

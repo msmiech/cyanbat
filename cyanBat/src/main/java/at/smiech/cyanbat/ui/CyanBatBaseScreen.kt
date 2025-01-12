@@ -1,4 +1,4 @@
-package at.smiech.cyanbat.screen
+package at.smiech.cyanbat.ui
 
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Screen

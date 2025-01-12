@@ -1,4 +1,4 @@
-package at.smiech.cyanbat.screen
+package at.smiech.cyanbat.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

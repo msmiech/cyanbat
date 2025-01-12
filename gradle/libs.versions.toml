@@ -1,6 +1,6 @@
 [versions]
 activityKtx = "1.9.3"
-agp = "8.7.3"
+agp = "8.8.0"
 fragmentKtx = "1.8.5"
 kotlin = "2.1.0"
 coreKtx = "1.15.0"
@@ -10,9 +10,9 @@ junitVersion = "1.2.1"
 espressoCore = "3.6.1"
 appcompat = "1.7.0"
 lifecycleViewmodelCompose = "2.8.7"
-material = "1.12.0"
-material3 = "1.3.1"
+composeMaterial3 = "1.3.1"
 composeTooling = "1.7.6"
+composeNav = "2.8.5"
 
 [libraries]
 androidx-activity-compose = { module = "androidx.activity:activity-compose", version.ref = "activityKtx" }
@@ -20,16 +20,16 @@ androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-fragment-ktx = { module = "androidx.fragment:fragment-ktx", version.ref = "fragmentKtx" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
-androidx-material3 = { module = "androidx.compose.material3:material3", version.ref = "material3" }
+androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "composeMaterial3" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }
 androidx-datastore-preferences = { module = "androidx.datastore:datastore-preferences", version.ref = "datastore" }
-androidx-ui-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "composeTooling" }
-androidx-ui-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeTooling" }
+androidx-compose-tooling = { module = "androidx.compose.ui:ui-tooling", version.ref = "composeTooling" }
+androidx-compose-tooling-preview = { module = "androidx.compose.ui:ui-tooling-preview", version.ref = "composeTooling" }
+androidx-compose-navigation = { module = "androidx.navigation:navigation-compose", version.ref = "composeNav" }
 junit = { group = "junit", name = "junit", version.ref = "junit" }
 androidx-junit = { group = "androidx.test.ext", name = "junit", version.ref = "junitVersion" }
 androidx-espresso-core = { group = "androidx.test.espresso", name = "espresso-core", version.ref = "espressoCore" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appcompat" }
-material = { group = "com.google.android.material", name = "material", version.ref = "material" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

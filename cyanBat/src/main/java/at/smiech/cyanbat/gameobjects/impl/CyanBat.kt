@@ -9,9 +9,9 @@ import at.smiech.cyanbat.activities.CyanBatGameActivity
 import at.smiech.cyanbat.gameobjects.Collidable
 import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.PixmapGameObject
-import at.smiech.cyanbat.screen.CyanBatBaseScreen
-import at.smiech.cyanbat.screen.GameOverScreen
-import at.smiech.cyanbat.screen.GameScreen
+import at.smiech.cyanbat.ui.CyanBatBaseScreen
+import at.smiech.cyanbat.ui.GameOverScreen
+import at.smiech.cyanbat.ui.GameScreen
 import java.util.*
 
 class CyanBat(

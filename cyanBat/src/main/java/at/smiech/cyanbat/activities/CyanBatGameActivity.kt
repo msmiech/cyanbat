@@ -11,7 +11,7 @@ import at.grueneis.game.framework.Pixmap
 import at.grueneis.game.framework.Screen
 import at.grueneis.game.framework.Sound
 import at.grueneis.game.framework.impl.AndroidGameActivity
-import at.smiech.cyanbat.screen.GameScreen
+import at.smiech.cyanbat.ui.GameScreen
 import at.smiech.cyanbat.util.MusicPlayer
 
 class CyanBatGameActivity : AndroidGameActivity() {

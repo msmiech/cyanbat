@@ -9,7 +9,7 @@ import at.grueneis.game.framework.Pixmap
 import at.smiech.cyanbat.activities.CyanBatGameActivity
 import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.impl.Obstacle
-import at.smiech.cyanbat.screen.CyanBatBaseScreen
+import at.smiech.cyanbat.ui.CyanBatBaseScreen
 
 class ObstacleGenerator(private val gameObjects: MutableList<GameObject>) : Runnable {
     private val rnd = Random()

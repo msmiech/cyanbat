@@ -1,4 +1,4 @@
-package at.smiech.cyanbat.screen
+package at.smiech.cyanbat.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import at.smiech.cyanbat.R
 
 /**
@@ -28,7 +29,7 @@ import at.smiech.cyanbat.R
  * @author msmiech
  */
 @Composable
-fun SettingsScreen(settingsViewModel: SettingsViewModel) {
+fun SettingsScreen(settingsViewModel: SettingsViewModel = viewModel()) {
     MaterialTheme {
         val musicEnabled by settingsViewModel.isMusicEnabled().collectAsState(true)
         SettingsContent(musicEnabled, settingsViewModel::setMusicEnabled)

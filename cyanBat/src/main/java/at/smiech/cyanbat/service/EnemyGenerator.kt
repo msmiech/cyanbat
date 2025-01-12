@@ -8,7 +8,7 @@ import android.util.Log
 import at.smiech.cyanbat.activities.CyanBatGameActivity
 import at.smiech.cyanbat.gameobjects.GameObject
 import at.smiech.cyanbat.gameobjects.impl.Enemy
-import at.smiech.cyanbat.screen.CyanBatBaseScreen
+import at.smiech.cyanbat.ui.CyanBatBaseScreen
 
 class EnemyGenerator(private val gameObjects: MutableList<GameObject>) : Runnable {
 

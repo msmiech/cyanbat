@@ -22,7 +22,10 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
     compileOptions {
@@ -45,7 +48,8 @@ dependencies {
 
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
-    implementation(libs.androidx.material3)
+    implementation(libs.androidx.compose.material3)
+    implementation(libs.androidx.compose.navigation)
 
     implementation(project(":gameFramework"))
     implementation(libs.androidx.core.ktx)
@@ -53,6 +57,6 @@ dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.datastore.preferences)
 
-    implementation(libs.androidx.ui.tooling.preview)
-    debugImplementation(libs.androidx.ui.tooling)
+    implementation(libs.androidx.compose.tooling.preview)
+    debugImplementation(libs.androidx.compose.tooling)
 }

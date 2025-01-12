@@ -1,10 +1,10 @@
-package at.smiech.cyanbat.screen
+package at.smiech.cyanbat.ui
 
 import android.content.Intent
 import android.graphics.Color
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Input.TouchEvent
-import at.smiech.cyanbat.MainMenuActivity
+import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.activities.CyanBatGameActivity
 
 class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
@@ -23,7 +23,7 @@ class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
     override fun update(deltaTime: Float) {
         if (game.input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true) {
             CyanBatGameActivity.vib.vibrate(250)
-            val mainMenuIntent = Intent(super.game.context, MainMenuActivity::class.java)
+            val mainMenuIntent = Intent(super.game.context, MainActivity::class.java)
             game.context.startActivity(mainMenuIntent)
         }
         super.update(deltaTime)

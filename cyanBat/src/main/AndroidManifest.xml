@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:versionCode="12"
     android:versionName="1.2">
 
@@ -11,10 +12,11 @@
         android:label="@string/app_name"
         android:theme="@style/Theme.AppCompat.NoActionBar">
         <activity
-            android:name=".MainMenuActivity"
+            android:name=".MainActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
+            android:exported="true"
             android:screenOrientation="landscape"
-            android:exported="true">
+            tools:ignore="DiscouragedApi">
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
 
@@ -28,17 +30,8 @@
             android:name=".activities.CyanBatGameActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/in_game"
-            android:screenOrientation="landscape" />
-        <activity
-            android:name=".activities.CreditsActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:label="@string/credits_headline"
-            android:screenOrientation="landscape" />
-        <activity
-            android:name=".activities.GameSettingsActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden"
-            android:label="@string/settings"
-            android:screenOrientation="landscape" />
+            android:screenOrientation="landscape"
+            tools:ignore="DiscouragedApi" />
 
         <provider
             android:name=".persistence.ScoreProvider"

@@ -1,9 +1,7 @@
-package at.smiech.cyanbat.screen
+package at.smiech.cyanbat.ui
 
-import android.content.Context
 import android.graphics.Color
 import android.util.Log
-import androidx.datastore.preferences.preferencesDataStore
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
@@ -28,7 +26,6 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     )
     private var tickTime = 0f
     private var touchEvents: List<TouchEvent>? = null
-    private var g: Graphics? = null
     private var obstclGenThread: Thread? = null
     private var obstclGen: ObstacleGenerator? = null
     private var enmGenThread: Thread? = null
@@ -36,10 +33,11 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     var score: Int = 0
     var colChk: CollisionDetector
     private val musicPlayer = CyanBatGameActivity.musicPlayer
+    private lateinit var g: Graphics
 
     init {
         if (DEBUG) Log.d(TAG, "init")
-        g = super.game.graphics
+        game.graphics?.let { g = it }
 
         // Add the primary background
         gameObjects.add(
@@ -121,12 +119,12 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
         clearScreen()
         drawGameObjects()
         drawStats()
-        if (!bat.alive) g?.drawPixmap(CyanBatGameActivity.death, 15, 15)
+        if (!bat.alive) g.drawPixmap(CyanBatGameActivity.death, 15, 15)
     }
 
     private fun drawStats() {
         if (DEBUG) Log.d(TAG, "drawStats")
-        g?.apply {
+        g.apply {
             drawString("Score: $score", 5, 20, 15, Color.CYAN)
             drawString("Highscore: $highscore", 5, 40, 15, Color.CYAN)
             drawString("Lives: " + bat.lives, 5, 60, 15, Color.CYAN)
@@ -135,14 +133,14 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     }
 
     private fun clearScreen() {
-        g?.clear(Color.BLACK)
+        g.clear(Color.BLACK)
     }
 
     private fun drawGameObjects() {
         if (DEBUG) Log.d(TAG, "drawGameObjects")
         synchronized(gameObjects) {
             for (i in gameObjects.indices) {
-                g?.let { gameObjects[i].draw(it) }
+                g.let { gameObjects[i].draw(it) }
             }
         }
     }

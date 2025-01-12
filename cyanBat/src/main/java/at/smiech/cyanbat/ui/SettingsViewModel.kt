@@ -1,4 +1,4 @@
-package at.smiech.cyanbat.screen
+package at.smiech.cyanbat.ui
 
 import android.app.Application
 import androidx.datastore.preferences.core.edit
