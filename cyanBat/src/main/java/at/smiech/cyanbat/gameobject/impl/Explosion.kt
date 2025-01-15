@@ -1,10 +1,10 @@
-package at.smiech.cyanbat.gameobjects.impl
+package at.smiech.cyanbat.gameobject.impl
 
 import android.graphics.Rect
 import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Pixmap
-import at.smiech.cyanbat.gameobjects.PixmapGameObject
+import at.smiech.cyanbat.gameobject.PixmapGameObject
 
 class Explosion(rect: Rect, pixmap: Pixmap) : PixmapGameObject(rect, pixmap) {
 

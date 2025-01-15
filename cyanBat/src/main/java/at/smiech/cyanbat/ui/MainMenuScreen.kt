@@ -40,8 +40,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavHostController
 import at.smiech.cyanbat.R
-import at.smiech.cyanbat.activities.CyanBatGameActivity
-import at.smiech.cyanbat.activities.CyanBatGameActivity.Companion.TAG
+import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.cyanbat.util.TAG
 
 @Composable
 fun MainMenuScreen(
@@ -67,6 +67,7 @@ fun MainMenuScreen(
         }
 
         MainMenuContent(
+            onStartGameClicked = { viewModel.stopMusic() },
             onHelpClicked = { showHelpDialog.value = true },
             onSettingsClicked = {
                 navController.navigate(Screen.Settings.route)
@@ -104,6 +105,7 @@ private fun HelpDialog(dismiss: () -> Unit = {}) {
 
 @Composable
 fun MainMenuContent(
+    onStartGameClicked: () -> Unit = {},
     onHelpClicked: () -> Unit = {},
     onSettingsClicked: () -> Unit = {},
     onCreditsClicked: () -> Unit = {},
@@ -136,6 +138,7 @@ fun MainMenuContent(
             ) {
                 Column(Modifier.width(IntrinsicSize.Max)) {
                     Button(modifier = Modifier.fillMaxWidth(), onClick = {
+                        onStartGameClicked()
                         context.startActivity(Intent(context, CyanBatGameActivity::class.java))
                     }) {
                         Text(stringResource(R.string.button_start_game))

@@ -1,4 +1,4 @@
-package at.smiech.cyanbat.gameobjects
+package at.smiech.cyanbat.gameobject
 
 import android.graphics.Color
 import android.graphics.Rect
@@ -7,6 +7,7 @@ import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.smiech.cyanbat.util.Vector2D
 import at.smiech.cyanbat.ui.CyanBatBaseScreen
+import at.smiech.cyanbat.util.DEBUG
 
 /**
  * Describes the of an GameObject.
@@ -30,7 +31,7 @@ abstract class MovableGameObject protected constructor(override var rectangle: R
     }
 
     override fun draw(g: Graphics) {
-        if (GameObject.DEBUG) {
+        if (DEBUG) {
             g.drawRect(rectangle.left, rectangle.top, rectangle.width(), rectangle.height(),
                     Color.RED)
         }

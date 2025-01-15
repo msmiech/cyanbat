@@ -5,55 +5,63 @@ import android.util.Log
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
-import at.smiech.cyanbat.activities.CyanBatGameActivity
-import at.smiech.cyanbat.gameobjects.GameObject
-import at.smiech.cyanbat.gameobjects.impl.Background
-import at.smiech.cyanbat.gameobjects.impl.CyanBat
-import at.smiech.cyanbat.gameobjects.impl.Shot
+import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.cyanbat.gameobject.GameObject
+import at.smiech.cyanbat.gameobject.impl.Background
+import at.smiech.cyanbat.gameobject.impl.CyanBat
+import at.smiech.cyanbat.gameobject.impl.Shot
 import at.smiech.cyanbat.service.CollisionDetector
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.ObstacleGenerator
+import at.smiech.cyanbat.util.DEBUG
+import at.smiech.cyanbat.util.TAG
+import at.smiech.cyanbat.util.TICK_INITIAL
+import java.util.concurrent.CopyOnWriteArrayList
 
 class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
-    val gameObjects: MutableList<GameObject> = ArrayList()
+    val gameObjects = CopyOnWriteArrayList<GameObject>()
     private val bat = CyanBat(
         DISPLAY_HEIGHT / 3,
         DISPLAY_WIDTH / 2,
         CyanBat.DEFAULT_WIDTH,
-        CyanBatGameActivity.bat.height,
-        CyanBatGameActivity.bat,
+        CyanBatGameActivity.gameAssets.graphics.bat.height,
+        CyanBatGameActivity.gameAssets.graphics.bat,
         this
     )
     private var tickTime = 0f
     private var touchEvents: List<TouchEvent>? = null
-    private var obstclGenThread: Thread? = null
-    private var obstclGen: ObstacleGenerator? = null
-    private var enmGenThread: Thread? = null
-    private var enmGen: EnemyGenerator? = null
     var score: Int = 0
-    var colChk: CollisionDetector
-    private val musicPlayer = CyanBatGameActivity.musicPlayer
+    var highscore: Int = 0
+    var tick = TICK_INITIAL
+    var colChk = CollisionDetector(gameObjects)
+    var enmGen = EnemyGenerator(gameObjects).apply { setCollisionDetection(colChk) }
+    var obsGen = ObstacleGenerator(gameObjects).apply { setCollisionDetection(colChk) }
     private lateinit var g: Graphics
+    private var paused = false
 
     init {
-        if (DEBUG) Log.d(TAG, "init")
+        if (DEBUG) {
+            Log.d(TAG, "init")
+        }
         game.graphics?.let { g = it }
 
         // Add the primary background
         gameObjects.add(
             Background(
-                0, 0, CyanBatGameActivity.background, gameObjects
+                0, 0, CyanBatGameActivity.gameAssets.graphics.background, gameObjects
             )
         )
-        // Add the activity_main player character
-        gameObjects.add(bat)
 
-        colChk = CollisionDetector(gameObjects)
+        gameObjects.add(bat)
         colChk.addObjectToCheck(bat)
+
         Shot.count = 0
-        musicPlayer.continueMusic()
+
+        CyanBatGameActivity.gameAssets.audio.gameTrack.apply {
+            play()
+            isLooping = true
+        }
         initStats()
-        startThreads()
     }
 
     private fun initStats() {
@@ -76,31 +84,26 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
         }
     }
 
-
     // a simple gameloop
     private fun updateGameObjects(deltaTime: Float) {
-        if (DEBUG) Log.d(TAG, "updateGameObjects")
+        if (DEBUG) Log.d(TAG, "updateGameObjects $deltaTime")
         Background.count = 0
-        synchronized(gameObjects) {
-            for (i in gameObjects.indices) {
-                val go = gameObjects[i]
+        for (go in gameObjects) {
+            if (bat.alive) colChk.checkCollisions()
 
-                if (bat.alive) colChk.checkCollisions()
+            touchEvents?.let { go.update(deltaTime, it) }
+        }
+        enmGen.generateEnemy()
+        obsGen.generateObstacle()
 
-                go.update(deltaTime, touchEvents!!)
-
+        // Check for removal
+        val toBeRemoved = gameObjects.filter { go -> go.scheduledForRemoval() }
+        toBeRemoved.forEach { go ->
+            when (go) {
+                is Background -> Background.count -= 1
+                is Shot -> Shot.count -= 1
             }
-
-            // Check for removal
-            val toBeRemoved = gameObjects.filter { go -> go.scheduledForRemoval() }
-            toBeRemoved.forEach { go ->
-                run {
-                    // Let's give the garbage collector something to do:
-                    if (go is Background) Background.count -= 1
-                    if (go is Shot) Shot.count -= 1
-                    gameObjects.remove(go)
-                }
-            }
+            gameObjects.remove(go)
         }
     }
 
@@ -115,11 +118,15 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     }
 
     override fun present(deltaTime: Float) {
-        if (DEBUG) Log.d(TAG, "present")
+        if (DEBUG) {
+            Log.d(TAG, "present")
+        }
         clearScreen()
         drawGameObjects()
         drawStats()
-        if (!bat.alive) g.drawPixmap(CyanBatGameActivity.death, 15, 15)
+        if (!bat.alive) {
+            g.drawPixmap(CyanBatGameActivity.gameAssets.graphics.death, 15, 15)
+        }
     }
 
     private fun drawStats() {
@@ -137,65 +144,28 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     }
 
     private fun drawGameObjects() {
-        if (DEBUG) Log.d(TAG, "drawGameObjects")
-        synchronized(gameObjects) {
-            for (i in gameObjects.indices) {
-                g.let { gameObjects[i].draw(it) }
-            }
+        if (DEBUG) {
+            Log.d(TAG, "drawGameObjects")
         }
+        gameObjects.forEach { it.draw(g) }
     }
 
     override fun pause() {
-        if (DEBUG) Log.d(TAG, "pause")
-        CyanBatGameActivity.musicPlayer.stopMusic()
-        interruptThreads()
-    }
-
-    fun interruptThreads() {
-        if (DEBUG) Log.d(TAG, "interruptThreads")
-        obstclGen?.stop()
-        enmGen?.stop()
+        if (DEBUG) {
+            Log.d(TAG, "pause")
+        }
+        CyanBatGameActivity.gameAssets.audio.gameTrack.apply {
+            stop()
+            isLooping = false
+        }
+        paused = true
     }
 
     override fun resume() {
-        if (DEBUG) Log.d(TAG, "resume")
+        if (DEBUG) {
+            Log.d(TAG, "resume")
+        }
         initStats()
-        startThreads()
-    }
-
-    private fun startThreads() {
-        if (DEBUG) Log.d(TAG, "startThreads")
-        initThreads()
-        obstclGenThread?.start()
-        enmGenThread?.start()
-    }
-
-    private fun initThreads() {
-        if (DEBUG) Log.d(TAG, "initThreads")
-        if (obstclGenThread != null && obstclGenThread?.isAlive == true) {
-            obstclGenThread?.interrupt()
-        }
-
-        obstclGen = ObstacleGenerator(gameObjects).apply {
-            setCollisionDetection(colChk)
-        }
-        obstclGenThread = Thread(obstclGen)
-
-
-        if (enmGenThread != null && enmGenThread!!.isAlive) {
-            enmGenThread!!.interrupt()
-        }
-        enmGen = EnemyGenerator(gameObjects).apply { setCollisionDetection(colChk) }
-        enmGenThread = Thread(enmGen)
-    }
-
-    companion object {
-        private val TAG = CyanBatGameActivity.TAG
-
-        val DEBUG = CyanBatGameActivity.DEBUG
-
-        private val TICK_INITIAL = 0.019f
-        internal var tick = TICK_INITIAL
-        var highscore = 0
+        paused = false
     }
 }

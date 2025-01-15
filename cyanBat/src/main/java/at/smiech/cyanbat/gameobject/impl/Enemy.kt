@@ -1,4 +1,4 @@
-package at.smiech.cyanbat.gameobjects.impl
+package at.smiech.cyanbat.gameobject.impl
 
 import java.util.Random
 
@@ -8,9 +8,11 @@ import android.util.Log
 import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Pixmap
-import at.smiech.cyanbat.gameobjects.Collidable
-import at.smiech.cyanbat.gameobjects.GameObject
-import at.smiech.cyanbat.gameobjects.PixmapGameObject
+import at.smiech.cyanbat.gameobject.Collidable
+import at.smiech.cyanbat.gameobject.GameObject
+import at.smiech.cyanbat.gameobject.PixmapGameObject
+import at.smiech.cyanbat.util.DEBUG
+import at.smiech.cyanbat.util.TAG
 
 class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) : PixmapGameObject(Rect(x, y, x + realWidth, y + height), pm), Collidable {
 
@@ -43,8 +45,8 @@ class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) : Pi
     }
 
     override fun draw(g: Graphics) {
-        if (GameObject.DEBUG)
-            Log.d(GameObject.TAG, "drawEnemy")
+        if (DEBUG)
+            Log.d(TAG, "drawEnemy")
         when (type) {
             0 -> when (animTick) {
                 0 -> srcX = 0

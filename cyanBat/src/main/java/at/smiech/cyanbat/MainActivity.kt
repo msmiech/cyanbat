@@ -8,7 +8,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import androidx.navigation.compose.rememberNavController
-import at.smiech.cyanbat.ui.MainMenuScreen
 import at.smiech.cyanbat.ui.MainNavGraph
 
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")

@@ -27,7 +27,7 @@
 
         </activity>
         <activity
-            android:name=".activities.CyanBatGameActivity"
+            android:name=".activity.CyanBatGameActivity"
             android:configChanges="orientation|screenSize|keyboardHidden"
             android:label="@string/in_game"
             android:screenOrientation="landscape"

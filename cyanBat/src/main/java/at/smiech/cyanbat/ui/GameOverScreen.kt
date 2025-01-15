@@ -5,24 +5,25 @@ import android.graphics.Color
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Input.TouchEvent
 import at.smiech.cyanbat.MainActivity
-import at.smiech.cyanbat.activities.CyanBatGameActivity
+import at.smiech.cyanbat.activity.CyanBatGameActivity
 
 class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
-
     init {
         initSounds()
     }
 
     private fun initSounds() {
-        if (CyanBatGameActivity.gameTrack.isPlaying) {
-            CyanBatGameActivity.gameTrack.stop()
-            CyanBatGameActivity.gameTrack.isLooping = false
+        CyanBatGameActivity.gameAssets.audio.gameTrack.apply {
+            if (isPlaying) {
+                stop()
+                isLooping = false
+            }
         }
     }
 
     override fun update(deltaTime: Float) {
         if (game.input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true) {
-            CyanBatGameActivity.vib.vibrate(250)
+            CyanBatGameActivity.gameAssets.vib.vibrate(250)
             val mainMenuIntent = Intent(super.game.context, MainActivity::class.java)
             game.context.startActivity(mainMenuIntent)
         }
@@ -32,7 +33,7 @@ class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
     override fun present(deltaTime: Float) {
         game.graphics?.let { graphics ->
             graphics.clear(Color.BLACK)
-            graphics.drawPixmap(CyanBatGameActivity.gameOver, 0, 0)
+            graphics.drawPixmap(CyanBatGameActivity.gameAssets.graphics.gameOver, 0, 0)
         }
     }
 }

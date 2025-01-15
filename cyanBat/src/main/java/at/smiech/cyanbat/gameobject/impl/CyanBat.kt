@@ -1,17 +1,20 @@
-package at.smiech.cyanbat.gameobjects.impl
+package at.smiech.cyanbat.gameobject.impl
 
 import android.graphics.Rect
 import android.util.Log
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
-import at.smiech.cyanbat.activities.CyanBatGameActivity
-import at.smiech.cyanbat.gameobjects.Collidable
-import at.smiech.cyanbat.gameobjects.GameObject
-import at.smiech.cyanbat.gameobjects.PixmapGameObject
+import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.cyanbat.gameobject.Collidable
+import at.smiech.cyanbat.gameobject.GameObject
+import at.smiech.cyanbat.gameobject.PixmapGameObject
 import at.smiech.cyanbat.ui.CyanBatBaseScreen
 import at.smiech.cyanbat.ui.GameOverScreen
 import at.smiech.cyanbat.ui.GameScreen
+import at.smiech.cyanbat.util.DEBUG
+import at.smiech.cyanbat.util.SHOOTING_ENABLED
+import at.smiech.cyanbat.util.TAG
 import java.util.*
 
 class CyanBat(
@@ -34,13 +37,13 @@ class CyanBat(
     private var hitCooldown = MAX_HIT_COOLDOWN // cooldown grace period in seconds
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
-        if (GameObject.DEBUG)
-            Log.d(GameObject.TAG, "updateBat")
+        if (DEBUG)
+            Log.d(TAG, "updateBat")
         updateLogic(deltaTime, touchEvents)
         updateAnimation(deltaTime)
         updateTrails()
 
-        if (CyanBatGameActivity.SHOOTING_ENABLED) {
+        if (SHOOTING_ENABLED) {
             if (gs.game.input?.touchEvents?.let { it.size > 1 } == true)
                 shoot()
         }
@@ -73,9 +76,9 @@ class CyanBat(
             Rect(
                 rectangle.left,
                 rectangle.top,
-                rectangle.left + CyanBatGameActivity.shot.width,
-                rectangle.top + CyanBatGameActivity.shot.height
-            ), CyanBatGameActivity.shot, this
+                rectangle.left + CyanBatGameActivity.gameAssets.graphics.shot.width,
+                rectangle.top + CyanBatGameActivity.gameAssets.graphics.shot.height
+            ), CyanBatGameActivity.gameAssets.graphics.shot, this
         )
         gs.gameObjects.add(shot)
         gs.colChk.addObjectToCheck(shot)
@@ -100,7 +103,7 @@ class CyanBat(
             }
             velocity.x = 0f
             velocity.y = 0f
-            if (!touchEvents.isEmpty()) {
+            if (touchEvents.isNotEmpty()) {
                 tickTime += deltaTime
                 while (tickTime > tick) {
                     tickTime -= tick
@@ -121,8 +124,8 @@ class CyanBat(
     }
 
     private fun move(touch: TouchEvent) {
-        if (GameObject.DEBUG)
-            Log.d(GameObject.TAG, "moveBat")
+        if (DEBUG)
+            Log.d(TAG, "moveBat")
         if (touch.x > rectangle.left) {
             if (rectangle.right < CyanBatBaseScreen.DISPLAY_HEIGHT) {
                 velocity.x = 3f
@@ -145,8 +148,8 @@ class CyanBat(
     }
 
     override fun draw(g: Graphics) {
-        if (GameObject.DEBUG)
-            Log.d(GameObject.TAG, "drawBat")
+        if (DEBUG)
+            Log.d(TAG, "drawBat")
         g.drawPixmap(
             pixmap, rectangle.left, rectangle.top, srcX, 0, DEFAULT_WIDTH,
             rectangle.height()
@@ -155,7 +158,7 @@ class CyanBat(
     }
 
     override fun hit() {
-        CyanBatGameActivity.vib.vibrate(250)
+        CyanBatGameActivity.gameAssets.vib.vibrate(250)
         if (hitCooldown <= 0.01f) {
             lives -= 1
             hitCooldown = MAX_HIT_COOLDOWN
@@ -163,14 +166,16 @@ class CyanBat(
         if (lives < 1) {
             lives = 0
             if (CyanBatGameActivity.soundsEnabled) {
-                CyanBatGameActivity.deathSound.play(100f)
+                CyanBatGameActivity.gameAssets.audio.deathSound.play(100f)
             }
             alive = false
             gs.saveHighscore()
-            CyanBatGameActivity.musicPlayer.stopMusic()
-            gs.interruptThreads()
+            CyanBatGameActivity.gameAssets.audio.gameTrack.apply {
+                stop()
+                isLooping = false
+            }
             if (CyanBatGameActivity.musicEnabled) {
-                CyanBatGameActivity.gameOverMusic.play()
+                CyanBatGameActivity.gameAssets.audio.gameOverMusic.play()
             }
         }
     }

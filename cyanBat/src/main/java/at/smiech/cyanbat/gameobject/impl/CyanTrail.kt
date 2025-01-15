@@ -1,10 +1,10 @@
-package at.smiech.cyanbat.gameobjects.impl
+package at.smiech.cyanbat.gameobject.impl
 
 import android.graphics.Color
 import android.graphics.Rect
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
-import at.smiech.cyanbat.gameobjects.MovableGameObject
+import at.smiech.cyanbat.gameobject.MovableGameObject
 
 class CyanTrail(rect: Rect) : MovableGameObject(rect) {
     private val TICK_INITIAL = 0.008f
