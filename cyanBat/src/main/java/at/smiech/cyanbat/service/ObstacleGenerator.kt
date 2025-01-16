@@ -4,7 +4,6 @@ import android.util.Log
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.gameobject.GameObject
 import at.smiech.cyanbat.gameobject.impl.Obstacle
-import at.smiech.cyanbat.ui.CyanBatBaseScreen
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
 import kotlinx.coroutines.DelicateCoroutinesApi
@@ -14,7 +13,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-class ObstacleGenerator(private val gameObjects: MutableList<GameObject>) {
+class ObstacleGenerator(private val worldWidth: Int, private val worldHeight: Int, private val gameObjects: MutableList<GameObject>) {
     private var collisionDetector: CollisionDetector? = null
     private var generationInterval = OBSTACLE_GENERATION_INTERVAL
 
@@ -34,7 +33,7 @@ class ObstacleGenerator(private val gameObjects: MutableList<GameObject>) {
             delay((Random.nextInt(generationInterval) + generationInterval).toLong())
         }
 
-        var obstacleHeight = 0
+        var y = 0
         val obstaclePixmap = if (Random.nextBoolean())
         // Top or not?
         {
@@ -44,14 +43,14 @@ class ObstacleGenerator(private val gameObjects: MutableList<GameObject>) {
         } else {
             CyanBatGameActivity.gameAssets.graphics.bottomObstacles[Random
                 .nextInt(CyanBatGameActivity.gameAssets.graphics.bottomObstacles.size)]?.also {
-                obstacleHeight = CyanBatBaseScreen.DISPLAY_WIDTH - it.height
+                y = worldHeight - it.height
             }
         }
 
         obstaclePixmap?.let {
             Obstacle(
-                CyanBatBaseScreen.DISPLAY_HEIGHT,
-                obstacleHeight, it
+                worldWidth,
+                y, it
             ).also {
                 gameObjects.add(it)
                 collisionDetector?.addObjectToCheck(it)
@@ -65,6 +64,6 @@ class ObstacleGenerator(private val gameObjects: MutableList<GameObject>) {
     }
 
     companion object {
-        private val OBSTACLE_GENERATION_INTERVAL = 1000 // in ms
+        private const val OBSTACLE_GENERATION_INTERVAL = 1000 // in ms
     }
 }

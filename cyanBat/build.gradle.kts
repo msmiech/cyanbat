@@ -11,7 +11,7 @@ android {
 
     defaultConfig {
         applicationId = "at.smiech.cyanbat"
-        minSdk = 24
+        minSdk = 26
         targetSdk = 35
         versionCode = 13
         versionName = "1.3"
@@ -36,7 +36,6 @@ android {
         jvmTarget = JavaVersion.VERSION_17.toString()
     }
     buildFeatures {
-        viewBinding = true
         compose = true
     }
 }
@@ -53,7 +52,6 @@ dependencies {
 
     implementation(project(":gameFramework"))
     implementation(libs.androidx.core.ktx)
-    implementation(libs.androidx.appcompat)
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.datastore.preferences)
 

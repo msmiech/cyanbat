@@ -1,11 +1,15 @@
-package at.smiech.cyanbat.ui
+package at.smiech.cyanbat.ui.game
 
 import android.graphics.Color
 import android.util.Log
+import androidx.datastore.preferences.core.edit
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
+import at.grueneis.game.framework.Screen
+import at.smiech.cyanbat.PREFS_KEY_HIGH_SCORE
 import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.gameobject.GameObject
 import at.smiech.cyanbat.gameobject.impl.Background
 import at.smiech.cyanbat.gameobject.impl.CyanBat
@@ -16,17 +20,22 @@ import at.smiech.cyanbat.service.ObstacleGenerator
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
 import at.smiech.cyanbat.util.TICK_INITIAL
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.launch
 import java.util.concurrent.CopyOnWriteArrayList
 
-class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
+class GameScreen(override val game: Game) : Screen {
     val gameObjects = CopyOnWriteArrayList<GameObject>()
     private val bat = CyanBat(
-        DISPLAY_HEIGHT / 3,
-        DISPLAY_WIDTH / 2,
-        CyanBat.DEFAULT_WIDTH,
-        CyanBatGameActivity.gameAssets.graphics.bat.height,
-        CyanBatGameActivity.gameAssets.graphics.bat,
-        this
+        x = game.frameBufferWidth / 3,
+        y = game.frameBufferHeight / 2,
+        height = CyanBatGameActivity.gameAssets.graphics.bat.height,
+        pixmap = CyanBatGameActivity.gameAssets.graphics.bat,
+        frameBufferWidth = game.frameBufferWidth,
+        frameBufferHeight = game.frameBufferHeight,
+        gameScreen = this
     )
     private var tickTime = 0f
     private var touchEvents: List<TouchEvent>? = null
@@ -34,8 +43,16 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     var highscore: Int = 0
     var tick = TICK_INITIAL
     var colChk = CollisionDetector(gameObjects)
-    var enmGen = EnemyGenerator(gameObjects).apply { setCollisionDetection(colChk) }
-    var obsGen = ObstacleGenerator(gameObjects).apply { setCollisionDetection(colChk) }
+    var enmGen = EnemyGenerator(
+        xSpawnPosition = game.frameBufferWidth,
+        worldHeight = game.frameBufferHeight,
+        gameObjects
+    ).apply { setCollisionDetection(colChk) }
+    var obsGen = ObstacleGenerator(
+        worldWidth = game.frameBufferWidth,
+        worldHeight = game.frameBufferHeight,
+        gameObjects
+    ).apply { setCollisionDetection(colChk) }
     private lateinit var g: Graphics
     private var paused = false
 
@@ -48,7 +65,11 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
         // Add the primary background
         gameObjects.add(
             Background(
-                0, 0, CyanBatGameActivity.gameAssets.graphics.background, gameObjects
+                0,
+                0,
+                CyanBatGameActivity.gameAssets.graphics.background,
+                game.frameBufferWidth,
+                gameObjects
             )
         )
 
@@ -69,8 +90,10 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
         readHighscore()
     }
 
-    private fun readHighscore() {
-        highscore = 0
+    private fun readHighscore() = GlobalScope.launch(Dispatchers.Main) {
+        game.context.dataStore.data.collectLatest {
+            highscore = it[PREFS_KEY_HIGH_SCORE] ?: 0
+        }
     }
 
     override fun update(deltaTime: Float) {
@@ -97,7 +120,7 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
         obsGen.generateObstacle()
 
         // Check for removal
-        val toBeRemoved = gameObjects.filter { go -> go.scheduledForRemoval() }
+        val toBeRemoved = gameObjects.filter { go -> go.isScheduledForRemoval() }
         toBeRemoved.forEach { go ->
             when (go) {
                 is Background -> Background.count -= 1
@@ -108,13 +131,16 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
     }
 
     fun saveHighscore() {
-        if (score > highscore) highscore = score
+        if (score > highscore) {
+            highscore = score
+        }
 
         // launch in coroutine scope
-        /*
-        prefs?.edit {
-            it[intPreferencesKey("highscore")] = highscore
-        }*/
+        GlobalScope.launch(Dispatchers.Main) {
+            game.context.dataStore.edit {
+                it[PREFS_KEY_HIGH_SCORE] = highscore
+            }
+        }
     }
 
     override fun present(deltaTime: Float) {
@@ -167,5 +193,9 @@ class GameScreen(public override val game: Game) : CyanBatBaseScreen(game) {
         }
         initStats()
         paused = false
+    }
+
+    override fun dispose() {
+
     }
 }

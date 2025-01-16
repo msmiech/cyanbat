@@ -1,19 +1,18 @@
 package at.smiech.cyanbat.gameobject.impl
 
 import android.graphics.Rect
+import android.os.VibrationEffect
+import android.os.VibrationEffect.DEFAULT_AMPLITUDE
 import android.util.Log
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.gameobject.Collidable
-import at.smiech.cyanbat.gameobject.GameObject
 import at.smiech.cyanbat.gameobject.PixmapGameObject
-import at.smiech.cyanbat.ui.CyanBatBaseScreen
-import at.smiech.cyanbat.ui.GameOverScreen
-import at.smiech.cyanbat.ui.GameScreen
+import at.smiech.cyanbat.ui.game.GameOverScreen
+import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.DEBUG
-import at.smiech.cyanbat.util.SHOOTING_ENABLED
 import at.smiech.cyanbat.util.TAG
 import java.util.*
 
@@ -22,9 +21,11 @@ class CyanBat(
     y: Int,
     width: Int = DEFAULT_WIDTH,
     height: Int,
-    pm: Pixmap,
-    private val gs: GameScreen
-) : PixmapGameObject(Rect(x, y, x + width, y + height), pm), Collidable {
+    pixmap: Pixmap,
+    private val frameBufferWidth: Int,
+    private val frameBufferHeight: Int,
+    private val gameScreen: GameScreen
+) : PixmapGameObject(Rect(x, y, x + width, y + height), pixmap), Collidable {
 
     private var animTickTime = 0f
     var alive = true
@@ -43,10 +44,6 @@ class CyanBat(
         updateAnimation(deltaTime)
         updateTrails()
 
-        if (SHOOTING_ENABLED) {
-            if (gs.game.input?.touchEvents?.let { it.size > 1 } == true)
-                shoot()
-        }
         super.update(deltaTime, touchEvents)
     }
 
@@ -66,7 +63,7 @@ class CyanBat(
         potentialRect.right -= 1
         val go = CyanTrail(potentialRect)
         trails.add(go)
-        gs.gameObjects.add(go)
+        gameScreen.gameObjects.add(go)
     }
 
     private fun shoot() {
@@ -80,8 +77,8 @@ class CyanBat(
                 rectangle.top + CyanBatGameActivity.gameAssets.graphics.shot.height
             ), CyanBatGameActivity.gameAssets.graphics.shot, this
         )
-        gs.gameObjects.add(shot)
-        gs.colChk.addObjectToCheck(shot)
+        gameScreen.gameObjects.add(shot)
+        gameScreen.colChk.addObjectToCheck(shot)
     }
 
     private fun updateAnimation(deltaTime: Float) {
@@ -118,16 +115,21 @@ class CyanBat(
         } else {
             velocity.x = 0f
             velocity.y = 2f
-            if (rectangle.top > CyanBatBaseScreen.DISPLAY_WIDTH)
-                gs.game.setScreen(GameOverScreen(gs.game))
+            // check whether the bat animation has finished (i.e. bat is outside the screen)
+            if (rectangle.top > frameBufferWidth) {
+                // switch to the GameOverScreen, if so
+                gameScreen.game.setScreen(GameOverScreen(gameScreen.game))
+            }
         }
     }
 
     private fun move(touch: TouchEvent) {
         if (DEBUG)
+        {
             Log.d(TAG, "moveBat")
-        if (touch.x > rectangle.left) {
-            if (rectangle.right < CyanBatBaseScreen.DISPLAY_HEIGHT) {
+        }
+        if (touch.x > rectangle.centerX()) {
+            if (rectangle.right < frameBufferWidth) {
                 velocity.x = 3f
             }
         } else {
@@ -135,8 +137,8 @@ class CyanBat(
                 velocity.x = -3f
             }
         }
-        if (touch.y > rectangle.bottom) {
-            if (rectangle.bottom < CyanBatBaseScreen.DISPLAY_WIDTH) {
+        if (touch.y > rectangle.centerY()) {
+            if (rectangle.bottom < frameBufferHeight) {
                 velocity.y = 3f
             }
         } else {
@@ -158,7 +160,7 @@ class CyanBat(
     }
 
     override fun hit() {
-        CyanBatGameActivity.gameAssets.vib.vibrate(250)
+        CyanBatGameActivity.gameAssets.vib.vibrate(VibrationEffect.createOneShot(250, DEFAULT_AMPLITUDE))
         if (hitCooldown <= 0.01f) {
             lives -= 1
             hitCooldown = MAX_HIT_COOLDOWN
@@ -169,7 +171,7 @@ class CyanBat(
                 CyanBatGameActivity.gameAssets.audio.deathSound.play(100f)
             }
             alive = false
-            gs.saveHighscore()
+            gameScreen.saveHighscore()
             CyanBatGameActivity.gameAssets.audio.gameTrack.apply {
                 stop()
                 isLooping = false

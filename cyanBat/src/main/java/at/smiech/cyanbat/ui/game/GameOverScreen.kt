@@ -1,13 +1,16 @@
-package at.smiech.cyanbat.ui
+package at.smiech.cyanbat.ui.game
 
 import android.content.Intent
 import android.graphics.Color
+import android.os.VibrationEffect
+import android.os.VibrationEffect.DEFAULT_AMPLITUDE
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Input.TouchEvent
+import at.grueneis.game.framework.Screen
 import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 
-class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
+class GameOverScreen(override val game: Game) : Screen {
     init {
         initSounds()
     }
@@ -23,11 +26,10 @@ class GameOverScreen(game: Game) : CyanBatBaseScreen(game) {
 
     override fun update(deltaTime: Float) {
         if (game.input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true) {
-            CyanBatGameActivity.gameAssets.vib.vibrate(250)
-            val mainMenuIntent = Intent(super.game.context, MainActivity::class.java)
+            CyanBatGameActivity.gameAssets.vib.vibrate(VibrationEffect.createOneShot(250, DEFAULT_AMPLITUDE))
+            val mainMenuIntent = Intent(game.context, MainActivity::class.java)
             game.context.startActivity(mainMenuIntent)
         }
-        super.update(deltaTime)
     }
 
     override fun present(deltaTime: Float) {

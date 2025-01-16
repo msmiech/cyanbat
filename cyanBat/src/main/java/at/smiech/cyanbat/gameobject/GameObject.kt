@@ -14,9 +14,9 @@ import at.smiech.cyanbat.activity.CyanBatGameActivity
 interface GameObject {
     val rectangle: Rect
 
-    fun scheduledForRemoval(): Boolean
-
     fun update(deltaTime: Float, touchEvents: List<TouchEvent>)
 
     fun draw(g: Graphics)
+
+    fun isScheduledForRemoval(): Boolean
 }

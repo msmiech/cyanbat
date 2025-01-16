@@ -1,5 +1,6 @@
 package at.grueneis.game.framework.impl
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Rect
@@ -8,7 +9,9 @@ import android.view.SurfaceView
 /**
  * Implementation based on "Beginning Android Games".
  */
-class AndroidFastRenderView(var game: AndroidGameActivity, var framebuffer: Bitmap) : SurfaceView(game), Runnable {
+@SuppressLint("ViewConstructor")
+class AndroidFastRenderView(var gameActivity: AndroidGameActivity, var framebuffer: Bitmap) :
+    SurfaceView(gameActivity), Runnable {
     var renderThread: Thread? = null
 
     @Volatile
@@ -35,12 +38,13 @@ class AndroidFastRenderView(var game: AndroidGameActivity, var framebuffer: Bitm
         var startTime = System.nanoTime()
         var deltaTime: Float
         var canvas: Canvas
+        // gameloop
         while (running) {
             if (!holder.surface.isValid) continue
             deltaTime = (System.nanoTime() - startTime) / 1e9f
             startTime = System.nanoTime()
-            game.currentScreen?.update(deltaTime)
-            game.currentScreen?.present(deltaTime)
+            gameActivity.currentScreen?.update(deltaTime)
+            gameActivity.currentScreen?.present(deltaTime)
             canvas = holder.lockCanvas()
             canvas.getClipBounds(dstRec)
             canvas.drawBitmap(framebuffer, null, dstRec, null)

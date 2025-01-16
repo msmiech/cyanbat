@@ -35,7 +35,7 @@ class CollisionDetector(private val gameObjects: MutableList<GameObject>) {
                 checkCollision(main, goOther)
             }
         }
-        objectsToCheck.removeIf { obj -> obj is GameObject && obj.scheduledForRemoval() }
+        objectsToCheck.removeIf { obj -> obj is GameObject && obj.isScheduledForRemoval() }
     }
 
     private fun checkCollision(main: GameObject, other: GameObject) {
@@ -48,7 +48,7 @@ class CollisionDetector(private val gameObjects: MutableList<GameObject>) {
         if (main !is Collidable) {
             return
         }
-        if (main.scheduledForRemoval() || other.scheduledForRemoval()) {
+        if (main.isScheduledForRemoval() || other.isScheduledForRemoval()) {
             return
         }
 

@@ -2,18 +2,22 @@ package at.smiech.cyanbat.gameobject.impl
 
 import android.graphics.Rect
 import android.util.Log
-
-import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Graphics
+import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.gameobject.GameObject
 import at.smiech.cyanbat.gameobject.PixmapGameObject
-import at.smiech.cyanbat.ui.CyanBatBaseScreen
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
 
-class Background(x: Int, y: Int, pm: Pixmap, private val gameObjects: MutableList<GameObject>) : PixmapGameObject(Rect(x, y, x + pm.width, y + pm.height), pm) {
+class Background(
+    x: Int,
+    y: Int,
+    pixmap: Pixmap,
+    private val frameBufferWidth: Int,
+    private val gameObjects: MutableList<GameObject>
+) : PixmapGameObject(Rect(x, y, x + pixmap.width, y + pixmap.height), pixmap) {
 
     init {
         velocity.x = -2f
@@ -25,10 +29,17 @@ class Background(x: Int, y: Int, pm: Pixmap, private val gameObjects: MutableLis
         count += 1
         if (count < 2) {
             val bgArea = rectangle.right
-            if (bgArea - 5 < CyanBatBaseScreen.DISPLAY_HEIGHT) {
-                gameObjects.add(0, Background(
-                        CyanBatBaseScreen.DISPLAY_HEIGHT, 0,
-                        CyanBatGameActivity.gameAssets.graphics.background, gameObjects))
+            if (bgArea - 5 < frameBufferWidth) {
+                gameObjects.add(
+                    0,
+                    Background(
+                        frameBufferWidth,
+                        0,
+                        CyanBatGameActivity.gameAssets.graphics.background,
+                        frameBufferWidth,
+                        gameObjects
+                    )
+                )
             }
         }
         super.update(deltaTime, touchEvents)

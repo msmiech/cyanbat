@@ -3,21 +3,24 @@ package at.grueneis.game.framework.impl
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
 import android.util.DisplayMetrics
-import android.view.ViewGroup
 import android.view.Window
-import android.view.WindowManager
-import android.widget.RelativeLayout
-import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
+import androidx.activity.compose.setContent
+import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.viewinterop.AndroidView
 import at.grueneis.game.framework.Audio
 import at.grueneis.game.framework.FileIO
 import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input
-import at.grueneis.game.framework.R
 import at.grueneis.game.framework.Screen
 
 /**
@@ -28,7 +31,7 @@ import at.grueneis.game.framework.Screen
  *
  * Modifications by msmiech
  */
-abstract class AndroidGameActivity : AppCompatActivity(), Game {
+abstract class AndroidGameActivity : ComponentActivity(), Game {
     private var renderView: AndroidFastRenderView? = null
     override var graphics: Graphics? = null
     override var audio: Audio? = null
@@ -36,19 +39,18 @@ abstract class AndroidGameActivity : AppCompatActivity(), Game {
     override var fileIO: FileIO? = null
     override var currentScreen: Screen? = null
     private var wakeLock: WakeLock? = null
-    private var layoutParams: RelativeLayout.LayoutParams? = null
-    private var mainLayout: RelativeLayout? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
-        window.setFlags(
-            WindowManager.LayoutParams.FLAG_FULLSCREEN,
-            WindowManager.LayoutParams.FLAG_FULLSCREEN
+        enableEdgeToEdge(
+            statusBarStyle = SystemBarStyle.light(
+                Color.TRANSPARENT, Color.TRANSPARENT
+            ),
+            navigationBarStyle = SystemBarStyle.light(
+                Color.TRANSPARENT, Color.TRANSPARENT
+            )
         )
-        val isLandscape = resources.configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
-        val frameBufferWidth = if (isLandscape) 480 else 320
-        val frameBufferHeight = if (isLandscape) 320 else 480
         val frameBuffer = Bitmap.createBitmap(
             frameBufferWidth,
             frameBufferHeight, Bitmap.Config.RGB_565
@@ -59,18 +61,21 @@ abstract class AndroidGameActivity : AppCompatActivity(), Game {
         val displayHeight = displaymetrics.heightPixels
         val scaleX = frameBufferWidth.toFloat() / displayWidth
         val scaleY = frameBufferHeight.toFloat() / displayHeight
-        setContentView(R.layout.main)
-        mainLayout = findViewById(R.id.mainLayout)
-        layoutParams = RelativeLayout.LayoutParams(
-            ViewGroup.LayoutParams.MATCH_PARENT,
-            ViewGroup.LayoutParams.MATCH_PARENT
-        )
-        renderView = AndroidFastRenderView(this, frameBuffer)
+        AndroidFastRenderView(this, frameBuffer).also { afrv ->
+            setContent {
+                AndroidView(
+                    modifier = Modifier.fillMaxSize(),
+                    factory = {
+                        afrv
+                    }
+                )
+            }
+            renderView = afrv
+            input = AndroidInput(this, afrv, scaleX, scaleY)
+        }
         graphics = AndroidGraphics(assets, frameBuffer)
         fileIO = AndroidFileIO(assets)
         audio = AndroidAudio(this)
-        input = AndroidInput(this, renderView!!, scaleX, scaleY)
-        mainLayout?.addView(renderView)
 
         currentScreen = startScreen
         if (useWakeLock) {
@@ -99,8 +104,7 @@ abstract class AndroidGameActivity : AppCompatActivity(), Game {
         if (isFinishing) currentScreen?.dispose()
     }
 
-    override fun setScreen(screen: Screen?) {
-        requireNotNull(screen) { "Screen is null!" }
+    override fun setScreen(screen: Screen) {
         currentScreen?.pause()
         currentScreen?.dispose()
         screen.resume()

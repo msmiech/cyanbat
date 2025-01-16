@@ -9,23 +9,34 @@ import at.grueneis.game.framework.Graphics.PixmapFormat
 import at.grueneis.game.framework.Screen
 import at.grueneis.game.framework.impl.AndroidGameActivity
 import at.smiech.cyanbat.resource.GameAssets
-import at.smiech.cyanbat.ui.GameScreen
+import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
 
 class CyanBatGameActivity : AndroidGameActivity() {
-
     override val startScreen: Screen
         get() {
-            if (DEBUG)
+            if (DEBUG) {
                 Log.d(TAG, "getStartScreen")
+            }
             initAssets()
             return GameScreen(this)
         }
+    override val frameBufferWidth: Int
+        get() = 480
+    override val frameBufferHeight: Int
+        get() = 320
+
+    companion object {
+        lateinit var gameAssets: GameAssets
+        var musicEnabled = true
+        var soundsEnabled = true
+    }
 
     private fun initAssets() {
-        if (DEBUG)
+        if (DEBUG) {
             Log.d(TAG, "initAssets")
+        }
 
         // Loading image assets
         val graphicsAssets = graphics?.let { g ->
@@ -89,11 +100,5 @@ class CyanBatGameActivity : AndroidGameActivity() {
         // checking pref changes
         musicEnabled = true
         soundsEnabled = true
-    }
-
-    companion object {
-        lateinit var gameAssets: GameAssets
-        var musicEnabled = true
-        var soundsEnabled = true
     }
 }
