@@ -1,8 +1,8 @@
 package at.smiech.cyanbat.gameobject.impl
 
 import android.graphics.Rect
-import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Graphics
+import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
 import at.smiech.cyanbat.gameobject.PixmapGameObject
 

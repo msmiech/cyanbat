@@ -2,11 +2,10 @@ package at.smiech.cyanbat.gameobject.impl
 
 import android.graphics.Rect
 import android.util.Log
-import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Graphics
+import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
 import at.smiech.cyanbat.gameobject.Collidable
-import at.smiech.cyanbat.gameobject.GameObject
 import at.smiech.cyanbat.gameobject.PixmapGameObject
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG

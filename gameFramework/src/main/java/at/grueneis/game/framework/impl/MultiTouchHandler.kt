@@ -3,7 +3,6 @@ package at.grueneis.game.framework.impl
 import android.view.MotionEvent
 import android.view.View
 import at.grueneis.game.framework.Input.TouchEvent
-import java.util.*
 
 class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler {
     private val isTouched = BooleanArray(20)

@@ -1,7 +1,5 @@
 package at.grueneis.game.framework
 
-import java.util.*
-
 class Pool<T>(private val factory: PoolObjectFactory<T>, private val maxSize: Int) {
     interface PoolObjectFactory<T> {
         fun createObject(): T

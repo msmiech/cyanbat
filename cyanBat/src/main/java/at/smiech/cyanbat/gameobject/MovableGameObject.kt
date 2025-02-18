@@ -2,11 +2,10 @@ package at.smiech.cyanbat.gameobject
 
 import android.graphics.Color
 import android.graphics.Rect
-
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
-import at.smiech.cyanbat.util.Vector2D
 import at.smiech.cyanbat.util.DEBUG
+import at.smiech.cyanbat.util.Vector2D
 
 /**
  * Describes the of an GameObject.

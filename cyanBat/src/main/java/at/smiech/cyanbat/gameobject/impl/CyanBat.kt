@@ -14,7 +14,6 @@ import at.smiech.cyanbat.ui.game.GameOverScreen
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
-import java.util.*
 
 class CyanBat(
     x: Int,
