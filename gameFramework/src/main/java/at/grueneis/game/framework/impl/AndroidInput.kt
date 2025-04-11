@@ -26,7 +26,7 @@ class AndroidInput(context: Context, view: View, scaleX: Float, scaleY: Float) :
         get() = sensorHandler.gravityY
     override val accelZ: Float
         get() = sensorHandler.gravityZ
-    override val touchEvents: List<TouchEvent>?
+    override val touchEvents: List<TouchEvent>
         get() = touchHandler.touchEvents
     override val pointerCount: Int
         get() = touchHandler.pointerCount

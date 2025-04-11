@@ -5,12 +5,11 @@ import android.os.Environment
 import at.grueneis.game.framework.FileIO
 import java.io.*
 
-class AndroidFileIO(var assets: AssetManager) : FileIO {
-    var sdPath: String
+class AndroidFileIO(val assets: AssetManager) : FileIO {
+    var sdPath: String = Environment.getExternalStorageDirectory().absolutePath + File.separator
+
     @Throws(IOException::class)
-    override fun readAsset(filename: String?): InputStream {
-        return assets.open(filename!!)
-    }
+    override fun readAsset(filename: String) = assets.open(filename)
 
     @Throws(IOException::class)
     override fun readFile(filename: String): InputStream {
@@ -20,9 +19,5 @@ class AndroidFileIO(var assets: AssetManager) : FileIO {
     @Throws(IOException::class)
     override fun writeFile(filename: String): OutputStream {
         return FileOutputStream(sdPath + filename)
-    }
-
-    init {
-        sdPath = Environment.getExternalStorageDirectory().absolutePath + File.separator
     }
 }

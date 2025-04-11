@@ -3,35 +3,21 @@
 
     <string name="app_name">CyanBat</string>
     <string name="in_game">CyanBat In-Game</string>
-    <string name="splash">CyanBat Splash Screen</string>
-    <string name="credits">Credits</string>
+    <string name="credits_headline">Credits</string>
     <string name="settings">Settings</string>
 
     <string name="button_help">Help</string>
     <string name="button_settings">Settings</string>
     <string name="button_start_game">Start Game</string>
-    <string name="button_highscore">Highscore</string>
     <string name="button_exit">Exit</string>
-    <string name="image_title_description">CyanBat title image</string>
 
     <string name="dialog_help_title">Help</string>
     <string name="dialog_help_text">How to play this game: Click on the position CyanBat should fly to and it will follow your fingers.</string>
 
 
-    <string name="settings_username_title">Username</string>
-    <string name="settings_username_description">Insert your username here, it will be used as default for highscores.</string>
     <string name="settings_music_title">Music</string>
-    <string name="settings_music_dialog_message">Enable music in menues and game</string>
-    <string name="settings_music_dialog_title">Music</string>
-    <string name="settings_username_summary">Specify username that will be used as default username for highscores.</string>
-    <string name="settings_controlscheme_title">Control Scheme</string>
-    <string name="settings_controlscheme_summary">Specify control scheme to be used for the game.</string>
     <string name="settings_sound_title">Sounds</string>
-    <string name="controlscheme_classic">Classic</string>
-    <string name="controlscheme_modern">modern</string>
 
-
-    <string name="tap_to_continue">Tap on screen to continue</string>
 
     <!-- Credits -->
     <string name="button_credits">Credits</string>
@@ -42,6 +28,5 @@
     <string name="credit_gameframework_title">Game Framework</string>
     <string name="credit_gameframework_0">Based on Beginning Android Games by Mario Zechner and Robert Green</string>
     <string name="credit_gameframework_1">Implementation by Robert Grüneis</string>
-    <string name="game_title_image_description">CyanBat title image</string>
 
 </resources>

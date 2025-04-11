@@ -6,7 +6,7 @@ import java.io.OutputStream
 
 interface FileIO {
     @Throws(IOException::class)
-    fun readAsset(filename: String?): InputStream
+    fun readAsset(filename: String): InputStream
 
     @Throws(IOException::class)
     fun readFile(filename: String): InputStream

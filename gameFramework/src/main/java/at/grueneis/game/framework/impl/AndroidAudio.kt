@@ -5,16 +5,14 @@ import android.content.res.AssetManager
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
-import android.os.Build
-import androidx.annotation.RequiresApi
 import at.grueneis.game.framework.Audio
 import at.grueneis.game.framework.Music
 import at.grueneis.game.framework.Sound
 import java.io.IOException
 
 class AndroidAudio(activity: Activity) : Audio {
-    var assets: AssetManager
-    var soundPool: SoundPool
+    private var assets: AssetManager
+    private var soundPool: SoundPool
     override fun newMusic(filename: String): Music {
         return try {
             val afd = assets.openFd(filename)

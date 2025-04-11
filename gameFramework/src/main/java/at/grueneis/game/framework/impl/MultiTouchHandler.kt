@@ -3,7 +3,6 @@ package at.grueneis.game.framework.impl
 import android.view.MotionEvent
 import android.view.View
 import at.grueneis.game.framework.Input.TouchEvent
-import java.util.*
 
 class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler {
     private val isTouched = BooleanArray(20)
@@ -16,6 +15,7 @@ class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler
     private val scaleY: Float
     override var pointerCount = 0
         private set
+
 
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         synchronized(this) {
@@ -31,12 +31,12 @@ class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler
                     run {
                         touchX[pointerId] = (event
                                 .getX(pointerIndex) * scaleX).toInt()
-                        touchEvent!!.x = touchX[pointerId]
+                        touchEvent.x = touchX[pointerId]
                     }
                     run {
                         touchY[pointerId] = (event
                                 .getY(pointerIndex) * scaleY).toInt()
-                        touchEvent!!.y = touchY[pointerId]
+                        touchEvent.y = touchY[pointerId]
                     }
                     isTouched[pointerId] = true
                     touchEventsBuffer.add(touchEvent)
@@ -48,12 +48,12 @@ class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler
                     run {
                         touchX[pointerId] = (event
                                 .getX(pointerIndex) * scaleX).toInt()
-                        touchEvent!!.x = touchX[pointerId]
+                        touchEvent.x = touchX[pointerId]
                     }
                     run {
                         touchY[pointerId] = (event
                                 .getY(pointerIndex) * scaleY).toInt()
-                        touchEvent!!.y = touchY[pointerId]
+                        touchEvent.y = touchY[pointerId]
                     }
                     isTouched[pointerId] = false
                     touchEventsBuffer.add(touchEvent)

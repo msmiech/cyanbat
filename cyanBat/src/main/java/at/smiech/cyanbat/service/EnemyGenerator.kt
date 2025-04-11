@@ -1,78 +1,56 @@
 package at.smiech.cyanbat.service
 
-import java.util.Random
-import java.util.concurrent.atomic.AtomicBoolean
-
 import android.util.Log
+import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.cyanbat.gameobject.GameObject
+import at.smiech.cyanbat.gameobject.impl.Enemy
+import at.smiech.cyanbat.util.DEBUG
+import at.smiech.cyanbat.util.INITIAL_ENEMY_GENERATION_INTERVAL
+import at.smiech.cyanbat.util.MINIMUM_ENEMY_GENERATION_INTERVAL
+import at.smiech.cyanbat.util.TAG
+import kotlinx.coroutines.DelicateCoroutinesApi
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.random.Random
 
-import at.smiech.cyanbat.activities.CyanBatGameActivity
-import at.smiech.cyanbat.gameobjects.GameObject
-import at.smiech.cyanbat.gameobjects.impl.Enemy
-import at.smiech.cyanbat.screens.CyanBatBaseScreen
-
-class EnemyGenerator : Runnable {
-
+class EnemyGenerator(
+    private val xSpawnPosition: Int,
+    private val worldHeight: Int,
     private val gameObjects: MutableList<GameObject>
-    private val rnd = Random()
-    private val running = AtomicBoolean(false)
-    private val realEnemyHeight = CyanBatGameActivity.enemies.height
-    private var collisionDetection: CollisionDetection? = null
-    private var generationInterval = DEFAULT_GENERATION_INTERVAL
-    private val startTime = System.currentTimeMillis()
+) {
+    private val realEnemyHeight = CyanBatGameActivity.gameAssets.graphics.enemy.height
+    private var collisionDetector: CollisionDetector? = null
+    private var generationInterval = INITIAL_ENEMY_GENERATION_INTERVAL
 
+    private var waitJob: Job? = null
 
-    constructor(gameObjects: MutableList<GameObject>, interval: Int) {
-        this.gameObjects = gameObjects
-        this.generationInterval = interval
-    }
+    @OptIn(DelicateCoroutinesApi::class)
+    fun generateEnemy() {
+        if (waitJob?.isActive == true) {
+            return
+        }
+        waitJob = GlobalScope.launch {
+            delay(MINIMUM_ENEMY_GENERATION_INTERVAL + Random.nextLong(generationInterval))
+        }
+        generationInterval -= Random.nextLong(84L)
 
-    constructor(gameObjects: MutableList<GameObject>) {
-        this.gameObjects = gameObjects
-    }
-
-    override fun run() {
-        running.set(true)
-        try {
-            while (running.get()) {
-                val elapsedTime = System.currentTimeMillis() - startTime
-                val genSleepTime = Math.max(rnd.nextInt(generationInterval) * 10 - elapsedTime / 100, (generationInterval / 2).toLong())
-                Thread.sleep(genSleepTime) // gets more difficult over time, i.e. gen sleeps less
-                generateEnemy()
-            }
-        } catch (e: InterruptedException) {
-            this.running.set(false)
+        if (DEBUG) {
+            Log.d(TAG, "generateEnemy")
         }
 
+        val en = Enemy(
+            x = xSpawnPosition,
+            y = 100 + Random
+                .nextInt(worldHeight - 200), Enemy.realWidth, realEnemyHeight,
+            CyanBatGameActivity.gameAssets.graphics.enemy, Random.nextInt(3)
+        )
+        gameObjects.add(en)
+        collisionDetector?.addObjectToCheck(en)
     }
 
-    private fun generateEnemy() {
-        if (DEBUG)
-            Log.d(TAG, "generateObstacle")
-        synchronized(gameObjects) {
-            val en = Enemy(CyanBatBaseScreen.DISPLAY_HEIGHT, rnd
-                    .nextInt(200) + 100, Enemy.realWidth, realEnemyHeight,
-                    CyanBatGameActivity.enemies, rnd.nextInt(3))
-            gameObjects.add(en)
-            if (collisionDetection != null) {
-                collisionDetection!!.addObjectToCheck(en)
-            }
-        }
-    }
-
-    fun setCollisionDetection(collisionDetection: CollisionDetection) {
-        this.collisionDetection = collisionDetection
-    }
-
-    fun stop() {
-        if (!running.get()) {
-            Log.v(TAG, "Generator is not running!")
-        }
-        running.set(false)
-    }
-
-    companion object {
-        private val DEBUG = false
-        private val TAG = CyanBatGameActivity.TAG
-        private val DEFAULT_GENERATION_INTERVAL = 500 // in ms
+    fun setCollisionDetection(collisionDetector: CollisionDetector) {
+        this.collisionDetector = collisionDetector
     }
 }
