@@ -16,6 +16,7 @@ class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler
     override var pointerCount = 0
         private set
 
+
     override fun onTouch(v: View, event: MotionEvent): Boolean {
         synchronized(this) {
             val action = event.action and MotionEvent.ACTION_MASK
@@ -30,12 +31,12 @@ class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler
                     run {
                         touchX[pointerId] = (event
                                 .getX(pointerIndex) * scaleX).toInt()
-                        touchEvent!!.x = touchX[pointerId]
+                        touchEvent.x = touchX[pointerId]
                     }
                     run {
                         touchY[pointerId] = (event
                                 .getY(pointerIndex) * scaleY).toInt()
-                        touchEvent!!.y = touchY[pointerId]
+                        touchEvent.y = touchY[pointerId]
                     }
                     isTouched[pointerId] = true
                     touchEventsBuffer.add(touchEvent)
@@ -47,12 +48,12 @@ class MultiTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandler
                     run {
                         touchX[pointerId] = (event
                                 .getX(pointerIndex) * scaleX).toInt()
-                        touchEvent!!.x = touchX[pointerId]
+                        touchEvent.x = touchX[pointerId]
                     }
                     run {
                         touchY[pointerId] = (event
                                 .getY(pointerIndex) * scaleY).toInt()
-                        touchEvent!!.y = touchY[pointerId]
+                        touchEvent.y = touchY[pointerId]
                     }
                     isTouched[pointerId] = false
                     touchEventsBuffer.add(touchEvent)

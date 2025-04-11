@@ -13,7 +13,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
 
-class ObstacleGenerator(private val worldWidth: Int, private val worldHeight: Int, private val gameObjects: MutableList<GameObject>) {
+class ObstacleGenerator(
+    private val worldWidth: Int,
+    private val worldHeight: Int,
+    private val gameObjects: MutableList<GameObject>
+) {
     private var collisionDetector: CollisionDetector? = null
     private var generationInterval = OBSTACLE_GENERATION_INTERVAL
 

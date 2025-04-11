@@ -38,8 +38,10 @@ fun CreditsScreen() {
                     style = MaterialTheme.typography.headlineMedium
                 )
                 Spacer(modifier = Modifier.height(16.dp))
-                Text(text = stringResource(R.string.credit_music_title),
-                    style = MaterialTheme.typography.titleMedium)
+                Text(
+                    text = stringResource(R.string.credit_music_title),
+                    style = MaterialTheme.typography.titleMedium
+                )
                 Text(stringResource(R.string.credit_music_0))
                 Text(stringResource(R.string.credit_music_1))
                 Text(stringResource(R.string.credit_music_2))

@@ -1,6 +1,5 @@
 package at.smiech.cyanbat.activity
 
-import android.content.Context
 import android.os.Build
 import android.os.Vibrator
 import android.os.VibratorManager
@@ -84,7 +83,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
 
         val vib = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager =
-                getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
+                getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator
         } else {
             @Suppress("DEPRECATION")

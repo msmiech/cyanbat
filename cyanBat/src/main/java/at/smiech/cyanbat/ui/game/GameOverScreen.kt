@@ -26,7 +26,12 @@ class GameOverScreen(override val game: Game) : Screen {
 
     override fun update(deltaTime: Float) {
         if (game.input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true) {
-            CyanBatGameActivity.gameAssets.vib.vibrate(VibrationEffect.createOneShot(250, DEFAULT_AMPLITUDE))
+            CyanBatGameActivity.gameAssets.vib.vibrate(
+                VibrationEffect.createOneShot(
+                    250,
+                    DEFAULT_AMPLITUDE
+                )
+            )
             val mainMenuIntent = Intent(game.context, MainActivity::class.java)
             game.context.startActivity(mainMenuIntent)
         }

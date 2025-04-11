@@ -11,7 +11,8 @@ import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
 import java.util.Random
 
-class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) : PixmapGameObject(Rect(x, y, x + realWidth, y + height), pm), Collidable {
+class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) :
+    PixmapGameObject(Rect(x, y, x + realWidth, y + height), pm), Collidable {
 
     var type = 0
     private val ANIM_TICK_INTERVAL = 0.2f
@@ -49,17 +50,21 @@ class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) : Pi
                 0 -> srcX = 0
                 1 -> srcX = 32
             }
+
             1 -> when (animTick) {
                 0 -> srcX = 67
                 1 -> srcX = 102
             }
+
             2 -> when (animTick) {
                 0 -> srcX = 137
                 1 -> srcX = 173
             }
         }
-        g.drawPixmap(pixmap, rectangle.left, rectangle.top, srcX, 0, realWidth,
-                rectangle.height())
+        g.drawPixmap(
+            pixmap, rectangle.left, rectangle.top, srcX, 0, realWidth,
+            rectangle.height()
+        )
         super.draw(g)
     }
 

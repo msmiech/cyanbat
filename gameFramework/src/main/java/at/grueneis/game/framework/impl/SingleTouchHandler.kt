@@ -9,8 +9,8 @@ class SingleTouchHandler(view: View, scaleX: Float, scaleY: Float) : TouchHandle
     var touchX = 0
     var touchY = 0
     var touchEventPool: Pool<TouchEvent>
-    var touchEventBuffer: MutableList<TouchEvent> = ArrayList()
-    private val internalTouchEvents: MutableList<TouchEvent> = ArrayList()
+    var touchEventBuffer = mutableListOf<TouchEvent>()
+    private val internalTouchEvents = mutableListOf<TouchEvent>()
     var scaleX: Float
     var scaleY: Float
 

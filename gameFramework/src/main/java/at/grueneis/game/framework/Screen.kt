@@ -7,10 +7,8 @@ interface Screen {
     fun pause() {
         // empty default implementation
     }
+
     fun resume() {
-        // empty default implementation
-    }
-    fun dispose() {
         // empty default implementation
     }
 }

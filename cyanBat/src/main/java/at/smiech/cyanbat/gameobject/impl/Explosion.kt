@@ -41,8 +41,10 @@ class Explosion(rect: Rect, pixmap: Pixmap) : PixmapGameObject(rect, pixmap) {
     }
 
     override fun draw(g: Graphics) {
-        g.drawPixmap(pixmap, rectangle.left, rectangle.top, srcX, 0, realWidth,
-                rectangle.bottom)
+        g.drawPixmap(
+            pixmap, rectangle.left, rectangle.top, srcX, 0, realWidth,
+            rectangle.bottom
+        )
     }
 
     companion object {

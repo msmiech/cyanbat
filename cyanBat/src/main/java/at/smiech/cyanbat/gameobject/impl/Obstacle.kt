@@ -10,7 +10,8 @@ import at.smiech.cyanbat.gameobject.PixmapGameObject
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
 
-class Obstacle(x: Int, y: Int, pm: Pixmap) : PixmapGameObject(Rect(x, y, x + pm.width, y + pm.height), pm), Collidable {
+class Obstacle(x: Int, y: Int, pm: Pixmap) :
+    PixmapGameObject(Rect(x, y, x + pm.width, y + pm.height), pm), Collidable {
 
     init {
         velocity.x = -1f

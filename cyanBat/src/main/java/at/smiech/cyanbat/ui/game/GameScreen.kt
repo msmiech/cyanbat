@@ -194,8 +194,4 @@ class GameScreen(override val game: Game) : Screen {
         initStats()
         paused = false
     }
-
-    override fun dispose() {
-
-    }
 }

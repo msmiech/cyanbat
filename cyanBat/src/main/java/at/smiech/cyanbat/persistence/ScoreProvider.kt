@@ -7,6 +7,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteQueryBuilder
 import android.net.Uri
 import android.text.TextUtils
+import androidx.core.net.toUri
 
 /**
  * References:
@@ -79,7 +80,7 @@ class ScoreProvider : ContentProvider() {
         }
         context!!.contentResolver.notifyChange(uri, null)
 
-        return Uri.parse("$BASE_PATH/$id")
+        return "$BASE_PATH/$id".toUri()
     }
 
     override fun delete(uri: Uri, selection: String?, selectionArgs: Array<String>?): Int =

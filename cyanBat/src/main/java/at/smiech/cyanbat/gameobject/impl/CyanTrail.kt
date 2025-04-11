@@ -18,8 +18,10 @@ class CyanTrail(rect: Rect) : MovableGameObject(rect) {
             tickTime -= tick
             if (Color.alpha(color) <= 1)
                 removeMe = true
-            color = Color.argb(Color.alpha(color) - 1, Color.red(color),
-                    Color.green(color), Color.blue(color))
+            color = Color.argb(
+                Color.alpha(color) - 1, Color.red(color),
+                Color.green(color), Color.blue(color)
+            )
         }
         velocity.x = -2f
         super.update(deltaTime, touchEvents)

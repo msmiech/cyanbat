@@ -123,8 +123,7 @@ class CyanBat(
     }
 
     private fun move(touch: TouchEvent) {
-        if (DEBUG)
-        {
+        if (DEBUG) {
             Log.d(TAG, "moveBat")
         }
         if (touch.x > rectangle.centerX()) {
@@ -159,7 +158,12 @@ class CyanBat(
     }
 
     override fun hit() {
-        CyanBatGameActivity.gameAssets.vib.vibrate(VibrationEffect.createOneShot(250, DEFAULT_AMPLITUDE))
+        CyanBatGameActivity.gameAssets.vib.vibrate(
+            VibrationEffect.createOneShot(
+                250,
+                DEFAULT_AMPLITUDE
+            )
+        )
         if (hitCooldown <= 0.01f) {
             lives -= 1
             hitCooldown = MAX_HIT_COOLDOWN

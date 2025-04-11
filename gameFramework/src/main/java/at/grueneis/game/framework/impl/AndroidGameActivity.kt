@@ -21,6 +21,7 @@ import at.grueneis.game.framework.Game
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input
 import at.grueneis.game.framework.Screen
+import androidx.core.graphics.createBitmap
 
 /**
  * Android Game Framework implementation based on Beginning Android Games
@@ -50,10 +51,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                 Color.TRANSPARENT, Color.TRANSPARENT
             )
         )
-        val frameBuffer = Bitmap.createBitmap(
-            frameBufferWidth,
-            frameBufferHeight, Bitmap.Config.RGB_565
-        )
+        val frameBuffer = createBitmap(frameBufferWidth, frameBufferHeight, Bitmap.Config.RGB_565)
         val displaymetrics = DisplayMetrics()
         windowManager.defaultDisplay.getMetrics(displaymetrics)
         val displayWidth = displaymetrics.widthPixels
@@ -100,12 +98,10 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         if (useWakeLock) wakeLock?.release()
         renderView?.pause()
         currentScreen?.pause()
-        if (isFinishing) currentScreen?.dispose()
     }
 
     override fun setScreen(screen: Screen) {
         currentScreen?.pause()
-        currentScreen?.dispose()
         screen.resume()
         screen.update(0f)
         currentScreen = screen
