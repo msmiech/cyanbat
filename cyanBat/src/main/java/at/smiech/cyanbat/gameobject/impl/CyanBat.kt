@@ -37,8 +37,9 @@ class CyanBat(
     private var hitCooldown = MAX_HIT_COOLDOWN // cooldown grace period in seconds
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
-        if (DEBUG)
+        if (DEBUG) {
             Log.d(TAG, "updateBat")
+        }
         updateLogic(deltaTime, touchEvents)
         updateAnimation(deltaTime)
         updateTrails()
@@ -66,8 +67,6 @@ class CyanBat(
     }
 
     private fun shoot() {
-        if (Shot.count > 1)
-            return
         val shot = Shot(
             Rect(
                 rectangle.left,
