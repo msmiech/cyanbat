@@ -102,7 +102,7 @@ class GameScreen(override val game: Game) : Screen {
         tickTime += deltaTime
         while (tickTime > tick) {
             tickTime -= tick
-            updateGameObjects(deltaTime)
+            updateGameObjects(tick)
             score++
         }
     }
@@ -112,21 +112,26 @@ class GameScreen(override val game: Game) : Screen {
         if (DEBUG) Log.d(TAG, "updateGameObjects $deltaTime")
         Background.count = 0
         for (go in gameObjects) {
-            if (bat.alive) colChk.checkCollisions()
-
             touchEvents?.let { go.update(deltaTime, it) }
         }
+        
+        // Move collision check outside the loop for performance
+        if (bat.alive) colChk.checkCollisions()
+
         enmGen.generateEnemy()
         obsGen.generateObstacle()
 
-        // Check for removal
-        val toBeRemoved = gameObjects.filter { go -> go.isScheduledForRemoval() }
-        toBeRemoved.forEach { go ->
-            when (go) {
-                is Background -> Background.count -= 1
-                is Shot -> Shot.count -= 1
+        // Use removeIf for efficient removal from CopyOnWriteArrayList
+        gameObjects.removeIf { go ->
+            if (go.isScheduledForRemoval()) {
+                when (go) {
+                    is Background -> Background.count -= 1
+                    is Shot -> Shot.count -= 1
+                }
+                true
+            } else {
+                false
             }
-            gameObjects.remove(go)
         }
     }
 
