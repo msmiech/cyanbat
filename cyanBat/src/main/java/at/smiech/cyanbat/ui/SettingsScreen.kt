@@ -31,7 +31,7 @@ import at.smiech.cyanbat.R
 @Composable
 fun SettingsScreen(settingsViewModel: SettingsViewModel = viewModel()) {
     MaterialTheme {
-        val musicEnabled by settingsViewModel.isMusicEnabled().collectAsState(true)
+        val musicEnabled by settingsViewModel.isMusicEnabled.collectAsState()
         SettingsContent(musicEnabled, settingsViewModel::setMusicEnabled)
     }
 }

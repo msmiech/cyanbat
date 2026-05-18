@@ -48,8 +48,8 @@ fun MainMenuScreen(
     navController: NavHostController,
     viewModel: MainMenuViewModel = viewModel()
 ) {
-    val isMusicEnabled by viewModel.isMusicEnabled().collectAsState(true)
-    LaunchedEffect("music") {
+    val isMusicEnabled by viewModel.isMusicEnabled.collectAsState()
+    LaunchedEffect(isMusicEnabled) {
         Log.d(TAG, "MainMenuScreen#launchMusic: $isMusicEnabled")
         if (isMusicEnabled) {
             viewModel.startMusic()

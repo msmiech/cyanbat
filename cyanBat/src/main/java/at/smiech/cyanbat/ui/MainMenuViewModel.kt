@@ -3,45 +3,61 @@ package at.smiech.cyanbat.ui
 import android.app.Application
 import android.media.MediaPlayer
 import androidx.lifecycle.AndroidViewModel
-import at.smiech.cyanbat.PREFS_KEY_MUSIC
+import androidx.lifecycle.viewModelScope
 import at.smiech.cyanbat.R
-import at.smiech.cyanbat.dataStore
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import at.smiech.cyanbat.data.SettingsRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 
 class MainMenuViewModel(application: Application) : AndroidViewModel(application) {
+    private val settingsRepository = SettingsRepository(application)
     private var mediaPlayer: MediaPlayer? = null
-    private var isMediaPlayerReleased: Boolean = false
 
     /**
-     * Retrieves the user preference about music playback from the DataStore.
+     * StateFlow representing whether music is enabled.
+     * Observations are shared among subscribers and survive configuration changes.
      */
-    fun isMusicEnabled(): Flow<Boolean> =
-        getApplication<Application>().dataStore.data.map { it[PREFS_KEY_MUSIC] ?: true }
+    val isMusicEnabled: StateFlow<Boolean> = settingsRepository.isMusicEnabled
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
+        )
 
     /**
-     * Start music playback using MediaPlayer. Creates a new instance of the MediaPlayer if it was
-     * null or already released.
+     * Start music playback using MediaPlayer. 
+     * Handles the case where music is disabled or already playing.
      */
     fun startMusic() {
-        if (isMediaPlayerReleased || mediaPlayer == null) {
-            mediaPlayer = MediaPlayer.create(getApplication(), R.raw.menu_theme)
-            isMediaPlayerReleased = false
+        if (!isMusicEnabled.value) return
+
+        if (mediaPlayer == null) {
+            mediaPlayer = MediaPlayer.create(getApplication(), R.raw.menu_theme).apply {
+                isLooping = true
+            }
         }
-        mediaPlayer?.apply {
-            start()
-            isLooping = true
+        
+        if (mediaPlayer?.isPlaying == false) {
+            mediaPlayer?.start()
         }
     }
 
     /**
-     * Stops music if media player exists and has not been released already.
+     * Stops and releases music playback.
      */
     fun stopMusic() {
-        if (!isMediaPlayerReleased) mediaPlayer?.apply {
-            stop()
-            release()
-            isMediaPlayerReleased = true
+        mediaPlayer?.let {
+            if (it.isPlaying) {
+                it.stop()
+            }
+            it.release()
         }
+        mediaPlayer = null
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        stopMusic()
     }
 }

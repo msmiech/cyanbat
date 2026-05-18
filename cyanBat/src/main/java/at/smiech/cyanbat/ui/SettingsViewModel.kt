@@ -1,19 +1,25 @@
 package at.smiech.cyanbat.ui
 
 import android.app.Application
-import androidx.datastore.preferences.core.edit
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import at.smiech.cyanbat.PREFS_KEY_MUSIC
-import at.smiech.cyanbat.dataStore
-import kotlinx.coroutines.flow.map
+import at.smiech.cyanbat.data.SettingsRepository
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
-    fun isMusicEnabled() =
-        getApplication<Application>().dataStore.data.map { it[PREFS_KEY_MUSIC] }
+    private val settingsRepository = SettingsRepository(application)
+
+    val isMusicEnabled: StateFlow<Boolean> = settingsRepository.isMusicEnabled
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = true
+        )
 
     fun setMusicEnabled(enabled: Boolean) = viewModelScope.launch {
-        getApplication<Application>().dataStore.edit { it[PREFS_KEY_MUSIC] = enabled }
+        settingsRepository.setMusicEnabled(enabled)
     }
 }
