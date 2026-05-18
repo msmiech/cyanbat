@@ -1,13 +1,19 @@
+import com.android.build.api.dsl.LibraryExtension
+
 // Module-level build file with build configurations for the gameFramework module
 plugins {
-    id("com.android.library")
+    alias(libs.plugins.androidLibrary)
     alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.compose.compiler)
 }
 
-android {
+kotlin {
+    jvmToolchain(21)
+}
+
+extensions.configure<LibraryExtension> {
     namespace = "at.grueneis.game.framework"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         minSdk = 26
@@ -21,10 +27,7 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
-    }
+
     buildFeatures {
         compose = true
     }

@@ -1,3 +1,5 @@
+import com.android.build.api.dsl.ApplicationExtension
+
 // Module-level build file with build configurations for the cyanbat module
 plugins {
     alias(libs.plugins.androidApplication)
@@ -6,16 +8,20 @@ plugins {
     alias(libs.plugins.kotlinSerialization)
 }
 
-android {
+kotlin {
+    jvmToolchain(21)
+}
+
+extensions.configure<ApplicationExtension> {
     namespace = "at.smiech.cyanbat"
-    compileSdk = 36
+    compileSdk = 37
 
     defaultConfig {
         applicationId = "at.smiech.cyanbat"
         minSdk = 26
-        targetSdk = 36
-        versionCode = 14
-        versionName = "1.4"
+        targetSdk = 37
+        versionCode = 15
+        versionName = "1.5"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -25,13 +31,9 @@ android {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
+                "proguard-rules.pro",
             )
         }
-    }
-    compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_21
-        targetCompatibility = JavaVersion.VERSION_21
     }
 
     buildFeatures {
