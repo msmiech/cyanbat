@@ -1,29 +1,41 @@
 package at.smiech.cyanbat.ui
 
 import androidx.compose.runtime.Composable
-import androidx.navigation.NavHostController
-import androidx.navigation.compose.NavHost
-import androidx.navigation.compose.composable
+import androidx.navigation3.runtime.NavEntry
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
+import kotlinx.serialization.Serializable
 
-sealed class Screen(val route: String) {
-    data object Main : Screen("main")
+@Serializable
+sealed interface Screen : NavKey {
+    @Serializable
+    data object Main : Screen
 
-    data object Settings : Screen("settings")
+    @Serializable
+    data object Settings : Screen
 
-    data object Credits : Screen("credits")
+    @Serializable
+    data object Credits : Screen
 }
 
 @Composable
-fun MainNavGraph(navController: NavHostController) {
-    NavHost(navController = navController, startDestination = Screen.Main.route) {
-        composable(Screen.Main.route) {
-            MainMenuScreen(navController)
-        }
-        composable(Screen.Settings.route) {
-            SettingsScreen()
-        }
-        composable(Screen.Credits.route) {
-            CreditsScreen()
+fun MainNavGraph() {
+    val backStack = rememberNavBackStack(Screen.Main as Screen)
+
+    NavDisplay(
+        backStack = backStack,
+        onBack = { backStack.removeLastOrNull() }
+    ) { key ->
+        when (key as Screen) {
+            Screen.Main -> NavEntry(key) {
+                MainMenuScreen(
+                    onNavigateToSettings = { backStack.add(Screen.Settings) },
+                    onNavigateToCredits = { backStack.add(Screen.Credits) }
+                )
+            }
+            Screen.Settings -> NavEntry(key) { SettingsScreen() }
+            Screen.Credits -> NavEntry(key) { CreditsScreen() }
         }
     }
 }

@@ -38,14 +38,14 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.navigation.NavHostController
 import at.smiech.cyanbat.R
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.util.TAG
 
 @Composable
 fun MainMenuScreen(
-    navController: NavHostController,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToCredits: () -> Unit,
     viewModel: MainMenuViewModel = viewModel()
 ) {
     val isMusicEnabled by viewModel.isMusicEnabled.collectAsState()
@@ -69,12 +69,8 @@ fun MainMenuScreen(
         MainMenuContent(
             onStartGameClicked = { viewModel.stopMusic() },
             onHelpClicked = { showHelpDialog.value = true },
-            onSettingsClicked = {
-                navController.navigate(Screen.Settings.route)
-            },
-            onCreditsClicked = {
-                navController.navigate(Screen.Credits.route)
-            },
+            onSettingsClicked = onNavigateToSettings,
+            onCreditsClicked = onNavigateToCredits,
             onExit = viewModel::stopMusic
         )
     }

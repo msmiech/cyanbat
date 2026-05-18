@@ -9,7 +9,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import androidx.navigation.compose.rememberNavController
 import at.smiech.cyanbat.ui.MainNavGraph
 
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
@@ -25,7 +24,7 @@ internal val Context.dataStore by preferencesDataStore(name = "cyanbat")
  */
 class MainActivity : ComponentActivity() {
     /**
-     * Sets the contentView and initialises buttons.
+     * Sets the contentView and initializes buttons.
      *
      * @param savedInstanceState State of activity - not considered at the moment
      */
@@ -34,7 +33,7 @@ class MainActivity : ComponentActivity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         setContent {
             MaterialTheme {
-                MainNavGraph(navController = rememberNavController())
+                MainNavGraph()
             }
 
         }
