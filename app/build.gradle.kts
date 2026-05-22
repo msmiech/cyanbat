@@ -1,6 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
 
-// Module-level build file with build configurations for the cyanbat module
+// Module-level build file with build configurations for the app module
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.compose.compiler)
@@ -8,17 +8,17 @@ plugins {
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(libs.versions.jvmToolchain.get().toInt())
 }
 
 extensions.configure<ApplicationExtension> {
     namespace = "at.smiech.cyanbat"
-    compileSdk = 37
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
         applicationId = "at.smiech.cyanbat"
-        minSdk = 26
-        targetSdk = 37
+        minSdk = libs.versions.android.minSdk.get().toInt()
+        targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 15
         versionName = "1.5"
 
@@ -52,7 +52,7 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.kotlinx.serialization.json)
 
-    implementation(project(":gameFramework"))
+    implementation(project(":game-framework"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.datastore.preferences)

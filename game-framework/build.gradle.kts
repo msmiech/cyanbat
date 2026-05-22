@@ -1,21 +1,21 @@
 import com.android.build.api.dsl.LibraryExtension
 
-// Module-level build file with build configurations for the gameFramework module
+// Module-level build file with build configurations for the game-framework module
 plugins {
     alias(libs.plugins.androidLibrary)
     alias(libs.plugins.compose.compiler)
 }
 
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(libs.versions.jvmToolchain.get().toInt())
 }
 
 extensions.configure<LibraryExtension> {
     namespace = "at.grueneis.game.framework"
-    compileSdk = 37
+    compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
-        minSdk = 26
+        minSdk = libs.versions.android.minSdk.get().toInt()
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

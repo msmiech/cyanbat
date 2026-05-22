@@ -10,7 +10,7 @@ I hereby state, to the best of my knowledge and belief, that I have not programm
 
 The list of permissions required by the app can be found in the `AndroidManifest.xml` file:
 
-https://github.com/msmiech/cyanbat/blob/master/cyanBat/src/main/AndroidManifest.xml
+https://github.com/msmiech/cyanbat/blob/master/app/src/main/AndroidManifest.xml
 
 <br/>
 
