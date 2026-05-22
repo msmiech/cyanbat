@@ -3,7 +3,6 @@ import com.android.build.api.dsl.ApplicationExtension
 // Module-level build file with build configurations for the cyanbat module
 plugins {
     alias(libs.plugins.androidApplication)
-    alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.kotlinSerialization)
 }

@@ -3,7 +3,6 @@ import com.android.build.api.dsl.LibraryExtension
 // Module-level build file with build configurations for the gameFramework module
 plugins {
     alias(libs.plugins.androidLibrary)
-    alias(libs.plugins.jetbrainsKotlinAndroid)
     alias(libs.plugins.compose.compiler)
 }
 
