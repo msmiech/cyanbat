@@ -116,6 +116,11 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                             }
                         }
                 ) {
+                    // Read frameTrigger to register a dependency so Compose invalidates and redraws the Canvas
+                    // whenever frameTrigger changes (on every frame of the game loop).
+                    @Suppress("UNUSED_VARIABLE")
+                    val trigger = frameTrigger
+
                     drawImage(
                         image = imageBitmap,
                         dstSize = IntSize(size.width.toInt(), size.height.toInt())
