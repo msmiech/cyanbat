@@ -2,6 +2,8 @@ package at.grueneis.game.framework.impl
 
 import androidx.compose.ui.input.pointer.PointerEvent
 import at.grueneis.game.framework.Input.TouchEvent
+import at.grueneis.game.framework.TouchHandler
+import kotlin.math.abs
 
 class ComposeTouchHandler : TouchHandler {
     private val isTouched = BooleanArray(20)
@@ -31,7 +33,7 @@ class ComposeTouchHandler : TouchHandler {
             changes.forEach { change ->
                 // Map the Compose PointerId value to a simple bounded index in the range 0..19.
                 // We use standard hashing and absolute values to prevent negative indices.
-                val pointerId = (Math.abs(change.id.value) % 20).toInt()
+                val pointerId = (abs(change.id.value) % 20).toInt()
                 val x = (change.position.x * scaleX).toInt()
                 val y = (change.position.y * scaleY).toInt()
 
@@ -86,19 +88,19 @@ class ComposeTouchHandler : TouchHandler {
 
     override fun isTouchDown(pointer: Int): Boolean {
         synchronized(this) {
-            return if (pointer < 0 || pointer >= 20) false else isTouched[pointer]
+            return if (pointer !in 0..<20) false else isTouched[pointer]
         }
     }
 
     override fun getTouchX(pointer: Int): Int {
         synchronized(this) {
-            return if (pointer < 0 || pointer >= 20) 0 else touchX[pointer]
+            return if (pointer !in 0..<20) 0 else touchX[pointer]
         }
     }
 
     override fun getTouchY(pointer: Int): Int {
         synchronized(this) {
-            return if (pointer < 0 || pointer >= 20) 0 else touchY[pointer]
+            return if (pointer !in 0..<20) 0 else touchY[pointer]
         }
     }
 
