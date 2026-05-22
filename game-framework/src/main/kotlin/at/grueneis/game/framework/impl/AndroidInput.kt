@@ -1,13 +1,12 @@
 package at.grueneis.game.framework.impl
 
 import android.content.Context
-import android.view.View
 import at.grueneis.game.framework.Input
 import at.grueneis.game.framework.Input.TouchEvent
 
-class AndroidInput(context: Context, view: View, scaleX: Float, scaleY: Float) : Input {
+class AndroidInput(context: Context, val touchHandler: ComposeTouchHandler) : Input {
     var sensorHandler: SensorHandler = SensorHandler(context)
-    var touchHandler: TouchHandler = MultiTouchHandler(view, scaleX, scaleY)
+
     override fun isTouchDown(pointer: Int): Boolean {
         return touchHandler.isTouchDown(pointer)
     }
@@ -30,9 +29,4 @@ class AndroidInput(context: Context, view: View, scaleX: Float, scaleY: Float) :
         get() = touchHandler.touchEvents
     override val pointerCount: Int
         get() = touchHandler.pointerCount
-
-    init {
-        //keyHandler = new KeyboardHandler(view);
-        //touchHandler = new SingleTouchHandler(view, scaleX, scaleY);
-    }
 }
