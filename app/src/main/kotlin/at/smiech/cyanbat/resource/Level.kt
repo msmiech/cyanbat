@@ -5,6 +5,7 @@ import at.grueneis.game.framework.Pixmap
 
 data class Level(
     val id: Int,
+    val name: String,
     val background: Pixmap,
     val topObstacles: Array<Pixmap?>,
     val bottomObstacles: Array<Pixmap?>,

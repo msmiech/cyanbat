@@ -57,6 +57,7 @@ class GameScreen(override val game: Game) : Screen {
     ).apply { setCollisionDetection(colChk) }
     private lateinit var g: Graphics
     private var paused = false
+    private var levelNameDisplayTime = 3.0f
 
     init {
         if (DEBUG) {
@@ -100,6 +101,9 @@ class GameScreen(override val game: Game) : Screen {
 
     override fun update(deltaTime: Float) {
         if (DEBUG) Log.d(TAG, "update")
+        if (levelNameDisplayTime > 0) {
+            levelNameDisplayTime -= deltaTime
+        }
         touchEvents = game.input?.touchEvents
         tickTime += deltaTime
         while (tickTime > tick) {
@@ -157,6 +161,9 @@ class GameScreen(override val game: Game) : Screen {
         clearScreen()
         drawGameObjects()
         drawStats()
+        if (levelNameDisplayTime > 0) {
+            drawLevelName()
+        }
         if (!bat.alive) {
             g.drawPixmap(CyanBatGameActivity.gameAssets.graphics.death, 15, 15)
         }
@@ -169,7 +176,10 @@ class GameScreen(override val game: Game) : Screen {
             drawString("Highscore: $highscore", 5, 40, 15, Color.CYAN)
             drawString("Lives: " + bat.lives, 5, 60, 15, Color.CYAN)
         }
+    }
 
+    private fun drawLevelName() {
+        g.drawString(currentLevel.name, game.frameBufferWidth / 4, game.frameBufferHeight / 2, 30, Color.YELLOW)
     }
 
     private fun clearScreen() {
