@@ -5,7 +5,6 @@ import android.util.Log
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
-import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.gameobject.GameObject
 import at.smiech.cyanbat.gameobject.PixmapGameObject
 import at.smiech.cyanbat.util.DEBUG
@@ -35,7 +34,7 @@ class Background(
                     Background(
                         frameBufferWidth,
                         0,
-                        CyanBatGameActivity.gameAssets.graphics.background,
+                        pixmap,
                         frameBufferWidth,
                         gameObjects
                     )

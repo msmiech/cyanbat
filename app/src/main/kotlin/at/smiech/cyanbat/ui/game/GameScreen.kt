@@ -27,6 +27,7 @@ import kotlinx.coroutines.launch
 import java.util.concurrent.CopyOnWriteArrayList
 
 class GameScreen(override val game: Game) : Screen {
+    var currentLevel = CyanBatGameActivity.gameAssets.levels[0]
     val gameObjects = CopyOnWriteArrayList<GameObject>()
     private val bat = CyanBat(
         x = game.frameBufferWidth / 3,
@@ -51,7 +52,8 @@ class GameScreen(override val game: Game) : Screen {
     var obsGen = ObstacleGenerator(
         worldWidth = game.frameBufferWidth,
         worldHeight = game.frameBufferHeight,
-        gameObjects
+        gameObjects,
+        currentLevel
     ).apply { setCollisionDetection(colChk) }
     private lateinit var g: Graphics
     private var paused = false
@@ -67,7 +69,7 @@ class GameScreen(override val game: Game) : Screen {
             Background(
                 0,
                 0,
-                CyanBatGameActivity.gameAssets.graphics.background,
+                currentLevel.background,
                 game.frameBufferWidth,
                 gameObjects
             )
@@ -78,7 +80,7 @@ class GameScreen(override val game: Game) : Screen {
 
         Shot.count = 0
 
-        CyanBatGameActivity.gameAssets.audio.gameTrack.apply {
+        currentLevel.music.apply {
             play()
             isLooping = true
         }
@@ -185,7 +187,7 @@ class GameScreen(override val game: Game) : Screen {
         if (DEBUG) {
             Log.d(TAG, "pause")
         }
-        CyanBatGameActivity.gameAssets.audio.gameTrack.apply {
+        currentLevel.music.apply {
             stop()
             isLooping = false
         }

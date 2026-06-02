@@ -11,19 +11,6 @@ import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 
 class GameOverScreen(override val game: Game) : Screen {
-    init {
-        initSounds()
-    }
-
-    private fun initSounds() {
-        CyanBatGameActivity.gameAssets.audio.gameTrack.apply {
-            if (isPlaying) {
-                stop()
-                isLooping = false
-            }
-        }
-    }
-
     override fun update(deltaTime: Float) {
         if (game.input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true) {
             CyanBatGameActivity.gameAssets.vib.vibrate(

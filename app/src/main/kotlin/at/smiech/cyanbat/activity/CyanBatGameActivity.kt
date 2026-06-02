@@ -8,6 +8,7 @@ import at.grueneis.game.framework.Graphics.PixmapFormat
 import at.grueneis.game.framework.Screen
 import at.grueneis.game.framework.impl.AndroidGameActivity
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.Level
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
@@ -42,21 +43,6 @@ class CyanBatGameActivity : AndroidGameActivity() {
             GameAssets.Graphics(
                 bat = g.newPixmap("cyanBat.png", PixmapFormat.ARGB8888),
                 gameOver = g.newPixmap("gameover.png", PixmapFormat.ARGB8888),
-                background = g.newPixmap("background.jpg", PixmapFormat.ARGB8888),
-                topObstacles = arrayOf(
-                    g.newPixmap("topObstacle1.png", PixmapFormat.ARGB8888),
-                    g.newPixmap("topObstacle2.png", PixmapFormat.ARGB8888)
-                ),
-                bottomObstacles = arrayOf(
-                    g.newPixmap(
-                        "bottomObstacle1.png",
-                        PixmapFormat.ARGB8888
-                    ),
-                    g.newPixmap(
-                        "bottomObstacle2.png",
-                        PixmapFormat.ARGB8888
-                    )
-                ),
                 death = g.newPixmap(
                     "death.png", PixmapFormat.ARGB8888
                 ),
@@ -73,11 +59,36 @@ class CyanBatGameActivity : AndroidGameActivity() {
         // music setup
         val audioAssets = audio?.let {
             GameAssets.Audio(
-                gameTrack = it.newMusic("game_theme.mp3"),
                 gameOverMusic = it.newMusic("game_over.mp3"),
                 deathSound = it.newSound("deathSound.mp3")
             )
         } ?: throw IllegalStateException("Audio not initialized")
+
+        val levels = graphics?.let { g ->
+            audio?.let { a ->
+                listOf(
+                    Level(
+                        id = 1,
+                        background = g.newPixmap("background.jpg", PixmapFormat.ARGB8888),
+                        topObstacles = arrayOf(
+                            g.newPixmap("topObstacle1.png", PixmapFormat.ARGB8888),
+                            g.newPixmap("topObstacle2.png", PixmapFormat.ARGB8888)
+                        ),
+                        bottomObstacles = arrayOf(
+                            g.newPixmap(
+                                "bottomObstacle1.png",
+                                PixmapFormat.ARGB8888
+                            ),
+                            g.newPixmap(
+                                "bottomObstacle2.png",
+                                PixmapFormat.ARGB8888
+                            )
+                        ),
+                        music = a.newMusic("game_theme.mp3")
+                    )
+                )
+            }
+        } ?: emptyList()
 
         soundsEnabled = true
 
@@ -90,7 +101,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
             getSystemService(VIBRATOR_SERVICE) as Vibrator
         }
 
-        gameAssets = GameAssets(graphicsAssets, audioAssets, vib)
+        gameAssets = GameAssets(graphicsAssets, audioAssets, vib, levels)
     }
 
 

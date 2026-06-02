@@ -174,7 +174,7 @@ class CyanBat(
             }
             alive = false
             gameScreen.saveHighscore()
-            CyanBatGameActivity.gameAssets.audio.gameTrack.apply {
+            gameScreen.currentLevel.music.apply {
                 stop()
                 isLooping = false
             }
