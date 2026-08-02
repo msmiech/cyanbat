@@ -7,27 +7,32 @@ import at.grueneis.game.framework.Music
 import java.io.IOException
 
 class AndroidMusic(afd: AssetFileDescriptor) : Music, OnCompletionListener {
-    var mediaPlayer: MediaPlayer = MediaPlayer()
+    val mediaPlayer: MediaPlayer = MediaPlayer()
     var isPrepared = false
     override fun onCompletion(arg0: MediaPlayer) {
         synchronized(this) { isPrepared = false }
     }
 
     override fun play() {
-        if (mediaPlayer.isPlaying) return
-        try {
-            synchronized(this) {
-                if (!isPrepared) mediaPlayer.prepare()
+        synchronized(this) {
+            if (mediaPlayer.isPlaying) return
+            try {
+                if (!isPrepared) {
+                    mediaPlayer.prepare()
+                    isPrepared = true
+                }
                 mediaPlayer.start()
+            } catch (exc: Exception) {
+                exc.printStackTrace()
             }
-        } catch (exc: Exception) {
-            exc.printStackTrace()
         }
     }
 
     override fun stop() {
-        mediaPlayer.stop()
-        synchronized(this) { isPrepared = false }
+        synchronized(this) {
+            mediaPlayer.stop()
+            isPrepared = false
+        }
     }
 
     override fun pause() {
