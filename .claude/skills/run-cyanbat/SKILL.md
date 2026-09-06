@@ -1,0 +1,143 @@
+---
+name: run-cyanbat
+description: Build, install, launch, drive and screenshot the CyanBat Android game on an emulator. Use when asked to run, start, launch, play, or screenshot the app, to verify a gameplay or rendering change on a real device, or to test pause/resume and highscore persistence. Covers adb, uiautomator, and the emulator.
+---
+
+# Running CyanBat
+
+CyanBat is a landscape Android game: a Compose menu (`MainActivity`) that launches
+a custom-framebuffer game activity (`CyanBatGameActivity`). There is no test
+suite, so **running it on an emulator is the only way to verify anything**.
+
+Everything is driven by `.claude/skills/run-cyanbat/driver.sh`, which wraps adb.
+All paths below are relative to the repo root; run the driver from there.
+
+## Prerequisites
+
+Android SDK with `platform-tools` and `emulator`, plus one AVD. The driver finds
+the SDK via `$ANDROID_HOME`, `$ANDROID_SDK_ROOT`, or `%LOCALAPPDATA%\Android\Sdk`,
+and picks the first AVD from `emulator -list-avds` (override with `$CYANBAT_AVD`).
+
+Verified on Windows 11 + Git Bash against `Medium_Phone` (API 37, 1080x2400).
+JDK 21 comes from the Gradle toolchain; no separate install needed.
+
+```bash
+emulator -list-avds
+```
+
+## Run (agent path)
+
+One command does the whole loop — boot, install, launch, screenshot, pause/resume,
+read persisted state, check for crashes:
+
+```bash
+.claude/skills/run-cyanbat/driver.sh smoke
+```
+
+It exits non-zero on a crash or a failed launch, and drops artifacts in
+`.artifacts/run-cyanbat/` (gitignored). Expect ~30s warm; a cold boot added ~20s here.
+
+Individual commands, for iterating:
+
+```bash
+.claude/skills/run-cyanbat/driver.sh boot          # start emulator, wait for boot
+.claude/skills/run-cyanbat/driver.sh install       # ./gradlew :app:installDebug
+.claude/skills/run-cyanbat/driver.sh start         # menu -> tap "Start Game" -> in game
+.claude/skills/run-cyanbat/driver.sh shot g1       # full screenshot -> .artifacts/run-cyanbat/g1.png
+.claude/skills/run-cyanbat/driver.sh hud g1        # screenshot + cropped, readable HUD
+.claude/skills/run-cyanbat/driver.sh play 45       # drive the bat with swipes for 45s
+.claude/skills/run-cyanbat/driver.sh pause-resume  # real onPause/onResume, HUD before+after
+.claude/skills/run-cyanbat/driver.sh highscore     # decode the persisted DataStore value
+.claude/skills/run-cyanbat/driver.sh focus         # which activity is foreground
+.claude/skills/run-cyanbat/driver.sh logs          # crash buffer + runtime errors
+.claude/skills/run-cyanbat/driver.sh stop
+```
+
+**Always look at the screenshots.** `shot` only asserts the PNG is non-trivial in
+size; it cannot tell gameplay from a black frame.
+
+Use `hud` rather than `shot` whenever you need to read the score, highscore, or
+lives: the game renders into a 480x320 framebuffer that is stretched to the full
+window, so HUD text is blurry and small in a full-size capture.
+
+`tap` finds nodes by label through the accessibility tree, so it survives a
+different screen size — never hardcode coordinates:
+
+```bash
+.claude/skills/run-cyanbat/driver.sh tap "Settings"
+```
+
+## Run (human path)
+
+Open in Android Studio and hit Run, or:
+
+```bash
+./gradlew :app:installDebug
+adb shell am start -n at.smiech.cyanbat/.MainActivity
+```
+
+Then tap Start Game on the emulator window. Useless without a display.
+
+## Build / check
+
+```bash
+./gradlew build
+```
+
+Assembles debug + release and runs lint. There are **no unit or instrumentation
+tests in this repo** (no `test/` or `androidTest/` source set in either module),
+so a green build says nothing about behavior. Verify on the emulator.
+
+## Gotchas
+
+- **`CyanBatGameActivity` is not exported.** `am start -n at.smiech.cyanbat/.activity.CyanBatGameActivity`
+  fails with `SecurityException: Permission Denial ... not exported from uid`.
+  Tapping "Start Game" on the menu is the only way in — which is why `start`
+  goes through `uiautomator`.
+
+- **`monkey -c android.intent.category.LAUNCHER` destroys the game activity.**
+  The usual "bring the app back to front" trick delivers a launcher intent, which
+  resets the task to `MainActivity` and finishes the game activity. It looks like
+  the app crashed. `pause-resume` covers the game with the Settings window and
+  presses BACK instead, which keeps the same window ID — check that the driver
+  prints `same window`, otherwise you measured an activity recreation, not a resume.
+
+- **`adb shell cat` corrupts binary output.** It rewrites every `0x0a` as `0d 0a`,
+  so the DataStore protobuf decodes to a wrong number (a stored 1350 reads back as
+  1734). Use `adb exec-out` for anything binary, screenshots included.
+
+- **The game keeps simulating across a pause, in one burst.** The frame loop never
+  clamps `deltaTime`, so the first frame after a resume replays the entire pause
+  duration through the fixed-step loop. A ~7s pause jumped the score by ~440 and
+  cost a life. Any timing or lives assertion spanning a pause will be wrong.
+
+- **An unattended bat dies within seconds.** It only moves while `TOUCH_DRAGGED`
+  events arrive and takes hits standing still, scoring a few hundred before game
+  over. Capture what you need immediately after `start`, or use `play`.
+
+- **`play` finishes runs, it does not survive them.** Once the bat dies, the next
+  swipe's `TOUCH_UP` dismisses `GameOverScreen` back to the menu. That is the way
+  to exercise the highscore write path, not a way to reach late-game state.
+
+- **The highscore only persists on death.** `saveHighscore()` runs when the bat
+  loses its last life, so `highscore` reads stale until a run completes.
+
+- **Screenshots are 2400x1080** (landscape) even though `adb shell wm size` reports
+  `1080x2400`. The app is locked to landscape; `uiautomator` bounds are already in
+  the rotated frame, so they match `input tap` directly.
+
+- **Menu navigation does not change the foreground activity.** Settings and Credits
+  are Navigation3 destinations inside `MainActivity`, so `focus` still reports
+  `MainActivity` after `tap "Settings"`. Only `Start Game` crosses an activity
+  boundary. Assert on a screenshot, not on `focus`, for in-menu navigation.
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+|---|---|
+| `no UI node with text "Start Game"` | Not on the menu. Run `menu` first, or check `focus`. |
+| Successive screenshots are byte-identical | The game is not rendering — usually the app fell back to `MainActivity`. Check `focus`. |
+| `pause-resume` prints `WARNING: window changed` | Something reset the task (see the `monkey` gotcha). The resume was not measured. |
+| `highscore` says "no datastore file yet" | No run has ended. `play 45`, then re-check. |
+| `no AVD found` | `emulator -list-avds` is empty; create one in Android Studio or set `$CYANBAT_AVD`. |
+| Driver hangs at boot | Boot took ~20s here but varies by host. Emulator output is in `.artifacts/run-cyanbat/emulator.log`. |
