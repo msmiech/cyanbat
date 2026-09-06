@@ -1,10 +1,10 @@
+import javax.inject.Inject
 import com.android.build.api.dsl.ApplicationExtension
 
 // Module-level build file with build configurations for the app module
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.compose.compiler)
-    alias(libs.plugins.kotlinSerialization)
 }
 
 kotlin {
@@ -52,9 +52,6 @@ dependencies {
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.compose.material3)
-    implementation(libs.androidx.navigation3.ui)
-    implementation(libs.androidx.navigation3.runtime)
-    implementation(libs.kotlinx.serialization.json)
 
     implementation(project(":game"))
     implementation(libs.androidx.core.ktx)
@@ -63,4 +60,51 @@ dependencies {
 
     implementation(libs.androidx.compose.tooling.preview)
     debugImplementation(libs.androidx.compose.tooling)
+}
+
+/*
+ * Compose Multiplatform 1.12 does not wire its Android asset copy for modules using
+ * com.android.kotlin.multiplatform.library: it registers
+ * :game:copyAndroidMainComposeResourcesToAndroidAssets but never configures that task's
+ * outputDirectory, so the shared UI's images and strings never reach the APK and the app dies
+ * on the first painterResource with MissingResourceException.
+ *
+ * Build the layout the resource runtime expects - composeResources/<packageOfResClass>/... -
+ * and register it as a generated asset directory.
+ */
+abstract class StageComposeResources : DefaultTask() {
+    @get:InputDirectory abstract val sourceDir: DirectoryProperty
+
+    @get:Input abstract val resourcePackage: Property<String>
+
+    @get:OutputDirectory abstract val outputDir: DirectoryProperty
+
+    @get:Inject abstract val fs: FileSystemOperations
+
+    @TaskAction
+    fun stage() {
+        fs.sync {
+            from(sourceDir)
+            into(outputDir.dir("composeResources/${resourcePackage.get()}"))
+        }
+    }
+}
+
+val stageSharedComposeResources = tasks.register<StageComposeResources>("stageSharedComposeResources") {
+    dependsOn(":game:prepareComposeResourcesTaskForCommonMain")
+    sourceDir.set(
+        project(":game").layout.buildDirectory
+            .dir("generated/compose/resourceGenerator/preparedResources/commonMain/composeResources")
+    )
+    resourcePackage.set("at.smiech.cyanbat.resources")
+    outputDir.set(layout.buildDirectory.dir("generated/composeResourcesAssets"))
+}
+
+androidComponents {
+    onVariants { variant ->
+        variant.sources.assets?.addGeneratedSourceDirectory(
+            stageSharedComposeResources,
+            StageComposeResources::outputDir
+        )
+    }
 }

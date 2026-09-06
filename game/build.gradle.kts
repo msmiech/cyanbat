@@ -25,6 +25,9 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(compose.runtime)
                 implementation(compose.foundation)
+                implementation(compose.material3)
+                implementation(compose.components.resources)
+                implementation(libs.jetbrains.lifecycle.viewmodel.compose)
             }
         }
         commonTest {
@@ -33,4 +36,10 @@ kotlin {
             }
         }
     }
+}
+
+// Generated resource accessors (Res.string.*, Res.drawable.*) for the shared UI.
+compose.resources {
+    publicResClass = true
+    packageOfResClass = "at.smiech.cyanbat.resources"
 }

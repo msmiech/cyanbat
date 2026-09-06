@@ -5,6 +5,7 @@ kotlin = "2.4.10"
 coreKtx = "1.19.0"
 datastore = "1.2.1"
 lifecycleViewmodelCompose = "2.11.0"
+jetbrainsLifecycle = "2.11.0"
 composeMaterial3 = "1.4.0"
 compose = "1.12.0"
 composeMultiplatform = "1.12.0"
@@ -21,6 +22,7 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+jetbrains-lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "jetbrainsLifecycle" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "composeMaterial3" }
 androidx-compose-foundation = { module = "androidx.compose.foundation:foundation", version.ref = "compose" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }

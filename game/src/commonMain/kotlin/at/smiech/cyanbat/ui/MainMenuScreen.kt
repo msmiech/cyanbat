@@ -1,8 +1,5 @@
 package at.smiech.cyanbat.ui
 
-import android.app.Activity
-import android.content.Intent
-import android.util.Log
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -29,67 +26,69 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
-import at.smiech.cyanbat.R
-import at.smiech.cyanbat.activity.CyanBatGameActivity
-import at.smiech.cyanbat.util.TAG
+import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.button_credits
+import at.smiech.cyanbat.resources.button_exit
+import at.smiech.cyanbat.resources.button_help
+import at.smiech.cyanbat.resources.button_settings
+import at.smiech.cyanbat.resources.button_start_game
+import at.smiech.cyanbat.resources.dialog_help_text
+import at.smiech.cyanbat.resources.dialog_help_title
+import at.smiech.cyanbat.resources.menu_background
+import at.smiech.cyanbat.resources.title
+import org.jetbrains.compose.resources.painterResource
+import org.jetbrains.compose.resources.stringResource
 
 @Composable
 fun MainMenuScreen(
+    viewModel: MainMenuViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToCredits: () -> Unit,
-    viewModel: MainMenuViewModel = viewModel()
+    onStartGame: () -> Unit,
+    onExit: () -> Unit,
 ) {
     val isMusicEnabled by viewModel.isMusicEnabled.collectAsState()
     LaunchedEffect(isMusicEnabled) {
-        Log.d(TAG, "MainMenuScreen#launchMusic: $isMusicEnabled")
-        if (isMusicEnabled) {
-            viewModel.startMusic()
-        } else {
+        if (isMusicEnabled) viewModel.startMusic() else viewModel.stopMusic()
+    }
+
+    var showHelpDialog by remember { mutableStateOf(false) }
+    if (showHelpDialog) {
+        HelpDialog { showHelpDialog = false }
+    }
+
+    MainMenuContent(
+        onStartGameClicked = {
             viewModel.stopMusic()
-        }
-    }
-
-    val showHelpDialog = remember { mutableStateOf(false) }
-    MaterialTheme {
-        if (showHelpDialog.value) {
-            HelpDialog {
-                showHelpDialog.value = false
-            }
-        }
-
-        MainMenuContent(
-            onStartGameClicked = { viewModel.stopMusic() },
-            onHelpClicked = { showHelpDialog.value = true },
-            onSettingsClicked = onNavigateToSettings,
-            onCreditsClicked = onNavigateToCredits,
-            onExit = viewModel::stopMusic
-        )
-    }
+            onStartGame()
+        },
+        onHelpClicked = { showHelpDialog = true },
+        onSettingsClicked = onNavigateToSettings,
+        onCreditsClicked = onNavigateToCredits,
+        onExitClicked = {
+            viewModel.stopMusic()
+            onExit()
+        },
+    )
 }
 
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun HelpDialog(dismiss: () -> Unit = {}) {
+private fun HelpDialog(dismiss: () -> Unit) {
     BasicAlertDialog(onDismissRequest = dismiss) {
         Surface {
             Column(modifier = Modifier.padding(16.dp)) {
                 Text(
-                    text = stringResource(R.string.dialog_help_title),
+                    text = stringResource(Res.string.dialog_help_title),
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(Modifier.height(12.dp))
-                Text(
-                    text = stringResource(R.string.dialog_help_text)
-                )
+                Text(text = stringResource(Res.string.dialog_help_text))
                 Spacer(Modifier.height(12.dp))
                 TextButton(modifier = Modifier.align(Alignment.End), onClick = dismiss) {
                     Text("OK")
@@ -100,31 +99,26 @@ private fun HelpDialog(dismiss: () -> Unit = {}) {
 }
 
 @Composable
-fun MainMenuContent(
-    onStartGameClicked: () -> Unit = {},
-    onHelpClicked: () -> Unit = {},
-    onSettingsClicked: () -> Unit = {},
-    onCreditsClicked: () -> Unit = {},
-    onExit: () -> Unit = {}
+private fun MainMenuContent(
+    onStartGameClicked: () -> Unit,
+    onHelpClicked: () -> Unit,
+    onSettingsClicked: () -> Unit,
+    onCreditsClicked: () -> Unit,
+    onExitClicked: () -> Unit,
 ) {
-    val context = LocalContext.current
     Surface {
         Box(Modifier.fillMaxSize()) {
             Image(
                 modifier = Modifier.matchParentSize(),
                 contentScale = ContentScale.FillBounds,
-                painter = painterResource(id = R.drawable.menu_background),
+                painter = painterResource(Res.drawable.menu_background),
                 contentDescription = "Main menu background image"
             )
         }
-        Column(
-            Modifier
-                .padding(16.dp),
-            verticalArrangement = Arrangement.SpaceBetween
-        ) {
+        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Image(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
-                painter = painterResource(id = R.drawable.title),
+                painter = painterResource(Res.drawable.title),
                 contentDescription = "Game title image"
             )
             Spacer(Modifier.height(24.dp))
@@ -133,52 +127,28 @@ fun MainMenuContent(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(Modifier.width(IntrinsicSize.Max)) {
-                    Button(modifier = Modifier.fillMaxWidth(), onClick = {
-                        onStartGameClicked()
-                        context.startActivity(Intent(context, CyanBatGameActivity::class.java))
-                    }) {
-                        Text(stringResource(R.string.button_start_game))
+                    Button(modifier = Modifier.fillMaxWidth(), onClick = onStartGameClicked) {
+                        Text(stringResource(Res.string.button_start_game))
                     }
                     Button(modifier = Modifier.fillMaxWidth(), onClick = onSettingsClicked) {
-                        Text(stringResource(R.string.button_settings))
+                        Text(stringResource(Res.string.button_settings))
                     }
                     Button(modifier = Modifier.fillMaxWidth(), onClick = onHelpClicked) {
-                        Text(stringResource(R.string.button_help))
+                        Text(stringResource(Res.string.button_help))
                     }
                     Button(modifier = Modifier.fillMaxWidth(), onClick = onCreditsClicked) {
-                        Text(stringResource(R.string.button_credits))
+                        Text(stringResource(Res.string.button_credits))
                     }
                 }
                 Column(
                     modifier = Modifier.fillMaxHeight(),
                     verticalArrangement = Arrangement.Bottom
                 ) {
-                    Button(
-                        onClick = {
-                            onExit()
-                            (context as? Activity)?.finishAffinity()
-                        }
-                    ) {
-                        Text(stringResource(R.string.button_exit))
+                    Button(onClick = onExitClicked) {
+                        Text(stringResource(Res.string.button_exit))
                     }
                 }
             }
         }
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun MainMenuContentPreview() {
-    MaterialTheme {
-        MainMenuContent()
-    }
-}
-
-@Preview(showBackground = true)
-@Composable
-private fun HelpDialogPreview() {
-    MaterialTheme {
-        HelpDialog()
     }
 }
