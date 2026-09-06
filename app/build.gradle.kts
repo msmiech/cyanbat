@@ -52,7 +52,7 @@ dependencies {
     implementation(libs.androidx.navigation3.runtime)
     implementation(libs.kotlinx.serialization.json)
 
-    implementation(project(":game-framework"))
+    implementation(project(":engine"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.datastore.preferences)

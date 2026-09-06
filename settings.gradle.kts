@@ -23,5 +23,5 @@ dependencyResolutionManagement {
 }
 
 rootProject.name = "cyanbat"
-include(":game-framework")
+include(":engine")
 include(":app")

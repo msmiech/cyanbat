@@ -1,7 +1,7 @@
 package at.smiech.cyanbat.resource
 
-import at.grueneis.game.framework.Music
-import at.grueneis.game.framework.Pixmap
+import at.smiech.engine.Music
+import at.smiech.engine.Pixmap
 
 data class Level(
     val id: Int,

@@ -4,14 +4,14 @@ import android.os.Build
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.util.Log
-import at.grueneis.game.framework.Graphics.PixmapFormat
-import at.grueneis.game.framework.Screen
-import at.grueneis.game.framework.impl.AndroidGameActivity
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.Level
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
+import at.smiech.engine.Graphics.PixmapFormat
+import at.smiech.engine.Screen
+import at.smiech.game.framework.impl.AndroidGameActivity
 
 class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen

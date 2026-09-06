@@ -1,9 +1,9 @@
 package at.smiech.cyanbat.resource
 
 import android.os.Vibrator
-import at.grueneis.game.framework.Music
-import at.grueneis.game.framework.Pixmap
-import at.grueneis.game.framework.Sound
+import at.smiech.engine.Music
+import at.smiech.engine.Pixmap
+import at.smiech.engine.Sound
 
 data class GameAssets(
     var graphics: Graphics,

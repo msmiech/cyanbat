@@ -4,11 +4,11 @@ import android.content.Intent
 import android.graphics.Color
 import android.os.VibrationEffect
 import android.os.VibrationEffect.DEFAULT_AMPLITUDE
-import at.grueneis.game.framework.Game
-import at.grueneis.game.framework.Input.TouchEvent
-import at.grueneis.game.framework.Screen
 import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.engine.Game
+import at.smiech.engine.Input.TouchEvent
+import at.smiech.engine.Screen
 
 class GameOverScreen(override val game: Game) : Screen {
     override fun update(deltaTime: Float) {

@@ -1,8 +1,6 @@
 package at.smiech.cyanbat.service
 
 import android.util.Log
-import at.smiech.cyanbat.gameobject.GameObject
-import at.smiech.cyanbat.gameobject.impl.Obstacle
 import at.smiech.cyanbat.resource.Level
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
@@ -17,12 +15,10 @@ import kotlin.time.Duration.Companion.milliseconds
 class ObstacleGenerator(
     private val worldWidth: Int,
     private val worldHeight: Int,
-    private val gameObjects: MutableList<GameObject>,
+    private val factory: EntityFactory,
     var level: Level
 ) {
-    private var collisionDetector: CollisionDetector? = null
     private var generationInterval = OBSTACLE_GENERATION_INTERVAL
-
     private var waitJob: Job? = null
 
     @OptIn(DelicateCoroutinesApi::class)
@@ -39,32 +35,24 @@ class ObstacleGenerator(
             delay((Random.nextInt(generationInterval) + generationInterval).toLong().milliseconds)
         }
 
-        var y = 0
-        val obstaclePixmap = if (Random.nextBoolean())
-        // Top or not?
-        {
+        var y = 0f
+        val obstaclePixmap = if (Random.nextBoolean()) {
             level.topObstacles[Random.nextInt(level.topObstacles.size)]
-
         } else {
             level.bottomObstacles[Random.nextInt(level.bottomObstacles.size)]?.also {
-                y = worldHeight - it.height
+                y = worldHeight.toFloat() - it.height
             }
         }
 
         obstaclePixmap?.let {
-            Obstacle(
-                worldWidth,
-                y, it
-            ).also {
-                gameObjects.add(it)
-                collisionDetector?.addObjectToCheck(it)
-            }
+            factory.createObstacle(
+                worldWidth.toFloat(),
+                y,
+                it.width.toFloat(),
+                it.height.toFloat(),
+                it
+            )
         }
-    }
-
-
-    fun setCollisionDetection(collisionDetector: CollisionDetector) {
-        this.collisionDetector = collisionDetector
     }
 
     companion object {
