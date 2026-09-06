@@ -16,6 +16,16 @@ import kotlinx.coroutines.launch
 import kotlin.random.Random
 import kotlin.time.Duration.Companion.milliseconds
 
+/**
+ * Narrows the random spread between enemy spawns, so enemies arrive faster as a run goes on.
+ *
+ * The result is the bound handed to `Random.nextLong`, which throws for anything <= 0 - the spread
+ * used to decay without a floor and crashed the game after roughly 120 spawns. Clamping keeps the
+ * ramp bottoming out instead of running off the end.
+ */
+internal fun decayEnemySpread(current: Long, decay: Long): Long =
+    (current - decay).coerceAtLeast(MINIMUM_ENEMY_GENERATION_SPREAD)
+
 class EnemyGenerator(
     private val xSpawnPosition: Int,
     private val worldHeight: Int,
@@ -33,8 +43,10 @@ class EnemyGenerator(
         waitJob = GlobalScope.launch {
             delay((MINIMUM_ENEMY_GENERATION_INTERVAL + Random.nextLong(generationInterval)).milliseconds)
         }
-        generationInterval = (generationInterval - Random.nextLong(ENEMY_GENERATION_SPREAD_DECAY))
-            .coerceAtLeast(MINIMUM_ENEMY_GENERATION_SPREAD)
+        generationInterval = decayEnemySpread(
+            generationInterval,
+            Random.nextLong(ENEMY_GENERATION_SPREAD_DECAY)
+        )
 
         if (DEBUG) {
             Log.d(TAG, "generateEnemy")
