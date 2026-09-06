@@ -1,5 +1,6 @@
 package at.smiech.cyanbat
 
+import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.engine.Haptics
 
@@ -15,6 +16,6 @@ class CyanBatEnvironment(
     val highscores: HighscoreStore,
     /** Leave the game: back to the menu on Android, close the window on desktop. */
     val onExitToMenu: () -> Unit,
-    val musicEnabled: Boolean = true,
-    val soundsEnabled: Boolean = true,
+    /** Consulted each time a track or effect would start, so the settings actually apply. */
+    val audioSettings: AudioSettings = AudioSettings.AllEnabled,
 )

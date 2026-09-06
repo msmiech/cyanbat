@@ -5,6 +5,8 @@ import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
+import at.smiech.cyanbat.data.DataStoreSettingsRepository
+import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.Level
 import at.smiech.cyanbat.ui.game.GameScreen
@@ -12,6 +14,10 @@ import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Screen
 import at.smiech.engine.impl.AndroidGameActivity
 import at.smiech.engine.impl.AndroidHaptics
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 
 /**
  * Android host for the game. Its whole job is to build a [CyanBatEnvironment] out of platform
@@ -21,6 +27,9 @@ import at.smiech.engine.impl.AndroidHaptics
 class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen
         get() = GameScreen(this, buildEnvironment())
+
+    /** Feeds the live audio settings; cancelled with the activity. */
+    private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override val frameBufferWidth: Int get() = 480
     override val frameBufferHeight: Int get() = 320
@@ -33,7 +42,13 @@ class CyanBatGameActivity : AndroidGameActivity() {
             startActivity(Intent(this, MainActivity::class.java))
             finish()
         },
+        audioSettings = ObservedAudioSettings(DataStoreSettingsRepository(dataStore), activityScope),
     )
+
+    override fun onDestroy() {
+        super.onDestroy()
+        activityScope.cancel()
+    }
 
     private fun loadAssets(): GameAssets {
         val g = graphics ?: error("Graphics not initialized")

@@ -93,10 +93,7 @@ class GameScreen(
             pixmap = env.assets.graphics.bat
         )
 
-        currentLevel.music.apply {
-            play()
-            isLooping = true
-        }
+        startLevelMusic()
         initStats()
     }
 
@@ -129,14 +126,14 @@ class GameScreen(
                     saveHighscore()
                     
                     // Game Over Music logic
-                    if (env.soundsEnabled) {
+                    if (env.audioSettings.soundsEnabled) {
                         env.assets.audio.deathSound.play(100f)
                     }
                     currentLevel.music.apply {
                         stop()
                         isLooping = false
                     }
-                    if (env.musicEnabled) {
+                    if (env.audioSettings.musicEnabled) {
                         env.assets.audio.gameOverMusic.play()
                     }
                 }
@@ -219,6 +216,15 @@ class GameScreen(
         g.drawString(currentLevel.name, game.frameBufferWidth / 4, game.frameBufferHeight / 2, 30, EngineColors.YELLOW)
     }
 
+    /** Starts or resumes the level theme, if music is enabled. */
+    private fun startLevelMusic() {
+        if (!env.audioSettings.musicEnabled) return
+        currentLevel.music.apply {
+            isLooping = true
+            play()
+        }
+    }
+
     override fun pause() {
         // Pause rather than stop, so the track picks up where it left off. Guarded because the
         // music is already stopped once the bat dies.
@@ -232,7 +238,7 @@ class GameScreen(
         // game over music owns playback, so leave it alone.
         val health = world.getComponent(batId, HealthComponent::class)
         if (health?.alive == true) {
-            currentLevel.music.play()
+            startLevelMusic()
         }
     }
 

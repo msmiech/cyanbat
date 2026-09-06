@@ -7,6 +7,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.singleWindowApplication
 import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.Level
 import at.smiech.cyanbat.ui.CyanBatMenu
@@ -15,6 +16,7 @@ import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Haptics
 import at.smiech.engine.impl.DesktopAudio
+import androidx.compose.runtime.rememberCoroutineScope
 import kotlin.system.exitProcess
 
 private const val FRAME_BUFFER_WIDTH = 480
@@ -34,6 +36,8 @@ fun main() = singleWindowApplication(title = "CyanBat") {
 private fun CyanBatApp() {
     var playing by remember { mutableStateOf(false) }
     val settings = remember { PreferencesSettingsRepository() }
+    val scope = rememberCoroutineScope()
+    val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
     // The menu outlives any single game instance, so it owns its own Audio.
     val menuAudio = remember { DesktopAudio { name ->
         object {}.javaClass.getResourceAsStream("/$name") ?: error("Asset <$name> not found")
@@ -47,6 +51,7 @@ private fun CyanBatApp() {
                     haptics = Haptics.None,
                     highscores = PreferencesHighscoreStore(),
                     onExitToMenu = { playing = false },
+                    audioSettings = audioSettings,
                 )
                 game.setScreen(GameScreen(game, env))
             }
