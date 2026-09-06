@@ -1,9 +1,6 @@
 package at.smiech.cyanbat.service
 
-import android.util.Log
 import at.smiech.cyanbat.resource.Level
-import at.smiech.cyanbat.util.DEBUG
-import at.smiech.cyanbat.util.TAG
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
@@ -25,10 +22,6 @@ class ObstacleGenerator(
     fun generateObstacle() {
         if (waitJob?.isActive == true) {
             return
-        }
-
-        if (DEBUG) {
-            Log.d(TAG, "generateObstacle")
         }
 
         waitJob = GlobalScope.launch {

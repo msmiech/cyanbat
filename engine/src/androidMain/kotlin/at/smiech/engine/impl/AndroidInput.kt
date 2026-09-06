@@ -4,7 +4,7 @@ import android.content.Context
 import at.smiech.engine.Input
 import at.smiech.engine.Input.TouchEvent
 
-class AndroidInput(context: Context, val touchHandler: ComposeTouchHandler) : Input {
+class AndroidInput(context: Context, val touchHandler: PointerTouchHandler) : Input {
     var sensorHandler: SensorHandler = SensorHandler(context)
 
     override fun isTouchDown(pointer: Int): Boolean {

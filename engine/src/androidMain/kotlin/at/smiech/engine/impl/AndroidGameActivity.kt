@@ -1,6 +1,5 @@
 package at.smiech.engine.impl
 
-import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Color
 import android.os.Bundle
@@ -26,8 +25,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.createBitmap
 import at.smiech.engine.Audio
-import at.smiech.engine.FileIO
 import at.smiech.engine.Game
+import at.smiech.engine.GameLoop
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.Screen
@@ -43,9 +42,10 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
     override var graphics: Graphics? = null
     override var audio: Audio? = null
     override var input: Input? = null
-    override var fileIO: FileIO? = null
+
     override var currentScreen: Screen? = null
     private var wakeLock: WakeLock? = null
+    private val gameLoop = GameLoop(this)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -65,11 +65,11 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         )
 
         val frameBuffer = createBitmap(frameBufferWidth, frameBufferHeight, Bitmap.Config.RGB_565)
-        val touchHandler = ComposeTouchHandler()
+        val touchHandler = PointerTouchHandler()
 
         input = AndroidInput(this, touchHandler)
         graphics = AndroidGraphics(assets, frameBuffer)
-        fileIO = AndroidFileIO(assets)
+
         audio = AndroidAudio(this)
         currentScreen = startScreen
 
@@ -90,25 +90,13 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
 
                 var frameTrigger by remember { mutableIntStateOf(0) }
 
-                // High-performance game loop tied directly to the Compose frame callback
+                // Game loop tied directly to the Compose frame callback. The timing rules
+                // (including the delta clamp) live in the shared GameLoop so desktop behaves the
+                // same way.
                 LaunchedEffect(Unit) {
-                    var lastTime = System.nanoTime()
                     while (isActive) {
                         withFrameNanos { frameTimeNanos ->
-                            val elapsed = (frameTimeNanos - lastTime) / 1e9f
-                            lastTime = frameTimeNanos
-
-                            // A paused activity stops receiving frame callbacks, so the first
-                            // frame after a resume carries the whole pause in its delta - as does
-                            // the first frame after this effect starts. Screens step fixed-size
-                            // ticks in a while-loop, so an unclamped delta replays all of that in
-                            // a single frame: the player loses lives to a fast-forward they never
-                            // see. Time beyond the cap is dropped rather than simulated, which
-                            // briefly slows game time instead of teleporting the world.
-                            val deltaTime = elapsed.coerceIn(0f, MAX_FRAME_DELTA_SECONDS)
-
-                            currentScreen?.update(deltaTime)
-                            currentScreen?.present(deltaTime)
+                            gameLoop.frame(frameTimeNanos)
 
                             // Signal Compose that the framebuffer's pixels have been updated
                             frameTrigger++
@@ -125,7 +113,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                             awaitPointerEventScope {
                                 while (true) {
                                     val event = awaitPointerEvent()
-                                    touchHandler.onPointerEvent(event, scaleX, scaleY)
+                                    touchHandler.onComposePointerEvent(event, scaleX, scaleY)
                                 }
                             }
                         }
@@ -146,6 +134,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
 
     override fun onResume() {
         super.onResume()
+        gameLoop.reset()
         if (useWakeLock && wakeLock != null) {
             wakeLock?.acquire(WAKE_LOCK_TIMEOUT)
         }
@@ -174,18 +163,8 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         currentScreen = screen
     }
 
-    override val context: Context
-        get() = this
-
     companion object {
         private const val WAKE_LOCK_TIMEOUT = 512L
-
-        /**
-         * Upper bound on the delta handed to a screen, in seconds. Roughly three frames at 60Hz -
-         * loose enough to absorb ordinary frame jitter, tight enough that a resume costs a couple
-         * of ticks instead of the entire time the app spent in the background.
-         */
-        private const val MAX_FRAME_DELTA_SECONDS = 0.05f
 
         var useWakeLock = false
     }

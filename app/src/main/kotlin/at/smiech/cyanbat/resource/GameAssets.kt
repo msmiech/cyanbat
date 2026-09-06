@@ -1,6 +1,5 @@
 package at.smiech.cyanbat.resource
 
-import android.os.Vibrator
 import at.smiech.engine.Music
 import at.smiech.engine.Pixmap
 import at.smiech.engine.Sound
@@ -8,7 +7,6 @@ import at.smiech.engine.Sound
 data class GameAssets(
     var graphics: Graphics,
     var audio: Audio,
-    var vib: Vibrator,
     var levels: List<Level> = emptyList()
 ) {
     data class Graphics(

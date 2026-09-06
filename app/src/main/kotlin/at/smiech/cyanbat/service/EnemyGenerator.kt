@@ -1,13 +1,10 @@
 package at.smiech.cyanbat.service
 
-import android.util.Log
-import at.smiech.cyanbat.activity.CyanBatGameActivity
-import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.ENEMY_GENERATION_SPREAD_DECAY
+import at.smiech.engine.Pixmap
 import at.smiech.cyanbat.util.INITIAL_ENEMY_GENERATION_INTERVAL
 import at.smiech.cyanbat.util.MINIMUM_ENEMY_GENERATION_INTERVAL
 import at.smiech.cyanbat.util.MINIMUM_ENEMY_GENERATION_SPREAD
-import at.smiech.cyanbat.util.TAG
 import kotlinx.coroutines.DelicateCoroutinesApi
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.Job
@@ -29,9 +26,10 @@ internal fun decayEnemySpread(current: Long, decay: Long): Long =
 class EnemyGenerator(
     private val xSpawnPosition: Int,
     private val worldHeight: Int,
-    private val factory: EntityFactory
+    private val factory: EntityFactory,
+    private val enemyPixmap: Pixmap,
 ) {
-    private val realEnemyHeight = CyanBatGameActivity.gameAssets.graphics.enemy.height
+    private val realEnemyHeight = enemyPixmap.height
     private var generationInterval = INITIAL_ENEMY_GENERATION_INTERVAL
     private var waitJob: Job? = null
 
@@ -48,16 +46,12 @@ class EnemyGenerator(
             Random.nextLong(ENEMY_GENERATION_SPREAD_DECAY)
         )
 
-        if (DEBUG) {
-            Log.d(TAG, "generateEnemy")
-        }
-
         factory.createEnemy(
             x = xSpawnPosition.toFloat(),
             y = 100f + Random.nextInt(worldHeight - 200),
             width = 28f, // Enemy.realWidth
             height = realEnemyHeight.toFloat(),
-            pixmap = CyanBatGameActivity.gameAssets.graphics.enemy,
+            pixmap = enemyPixmap,
             type = Random.nextInt(3)
         )
     }

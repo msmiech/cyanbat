@@ -1,115 +1,73 @@
 package at.smiech.cyanbat.activity
 
-import android.os.Build
-import android.os.Vibrator
-import android.os.VibratorManager
-import android.util.Log
+import android.content.Intent
+import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.MainActivity
+import at.smiech.cyanbat.dataStore
+import at.smiech.cyanbat.data.DataStoreHighscoreStore
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.Level
 import at.smiech.cyanbat.ui.game.GameScreen
-import at.smiech.cyanbat.util.DEBUG
-import at.smiech.cyanbat.util.TAG
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Screen
 import at.smiech.engine.impl.AndroidGameActivity
+import at.smiech.engine.impl.AndroidHaptics
 
+/**
+ * Android host for the game. Its whole job is to build a [CyanBatEnvironment] out of platform
+ * pieces and hand it to the shared [GameScreen]; the desktop entry point does the same with its
+ * own pieces.
+ */
 class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen
-        get() {
-            if (DEBUG) {
-                Log.d(TAG, "getStartScreen")
-            }
-            initAssets()
-            return GameScreen(this)
-        }
-    override val frameBufferWidth: Int
-        get() = 480
-    override val frameBufferHeight: Int
-        get() = 320
+        get() = GameScreen(this, buildEnvironment())
 
-    companion object {
-        lateinit var gameAssets: GameAssets
-        var musicEnabled = true
-        var soundsEnabled = true
-    }
+    override val frameBufferWidth: Int get() = 480
+    override val frameBufferHeight: Int get() = 320
 
-    private fun initAssets() {
-        if (DEBUG) {
-            Log.d(TAG, "initAssets")
-        }
+    private fun buildEnvironment(): CyanBatEnvironment = CyanBatEnvironment(
+        assets = loadAssets(),
+        haptics = AndroidHaptics(this),
+        highscores = DataStoreHighscoreStore(dataStore),
+        onExitToMenu = {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+        },
+    )
 
-        // Loading image assets
-        val graphicsAssets = graphics?.let { g ->
-            GameAssets.Graphics(
+    private fun loadAssets(): GameAssets {
+        val g = graphics ?: error("Graphics not initialized")
+        val a = audio ?: error("Audio not initialized")
+
+        return GameAssets(
+            graphics = GameAssets.Graphics(
                 bat = g.newPixmap("cyanBat.png", PixmapFormat.ARGB8888),
                 gameOver = g.newPixmap("gameover.png", PixmapFormat.ARGB8888),
-                death = g.newPixmap(
-                    "death.png", PixmapFormat.ARGB8888
-                ),
-                enemy = g.newPixmap(
-                    "enemies.png", PixmapFormat.ARGB8888,
-                ),
+                death = g.newPixmap("death.png", PixmapFormat.ARGB8888),
+                enemy = g.newPixmap("enemies.png", PixmapFormat.ARGB8888),
                 explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888),
-                shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888)
-            )
-        } ?: throw IllegalStateException("Graphics not initialized")
-
-        musicEnabled = true
-
-        // music setup
-        val audioAssets = audio?.let {
-            GameAssets.Audio(
-                gameOverMusic = it.newMusic("game_over.mp3"),
-                deathSound = it.newSound("deathSound.mp3")
-            )
-        } ?: throw IllegalStateException("Audio not initialized")
-
-        val levels = graphics?.let { g ->
-            audio?.let { a ->
-                listOf(
-                    Level(
-                        id = 1,
-                        name = "Level 1: The Cave",
-                        background = g.newPixmap("background.jpg", PixmapFormat.ARGB8888),
-                        topObstacles = arrayOf(
-                            g.newPixmap("topObstacle1.png", PixmapFormat.ARGB8888),
-                            g.newPixmap("topObstacle2.png", PixmapFormat.ARGB8888)
-                        ),
-                        bottomObstacles = arrayOf(
-                            g.newPixmap(
-                                "bottomObstacle1.png",
-                                PixmapFormat.ARGB8888
-                            ),
-                            g.newPixmap(
-                                "bottomObstacle2.png",
-                                PixmapFormat.ARGB8888
-                            )
-                        ),
-                        music = a.newMusic("game_theme.mp3")
-                    )
-                )
-            }
-        } ?: emptyList()
-
-        soundsEnabled = true
-
-        val vib = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-            val vibratorManager =
-                getSystemService(VIBRATOR_MANAGER_SERVICE) as VibratorManager
-            vibratorManager.defaultVibrator
-        } else {
-            @Suppress("DEPRECATION")
-            getSystemService(VIBRATOR_SERVICE) as Vibrator
-        }
-
-        gameAssets = GameAssets(graphicsAssets, audioAssets, vib, levels)
-    }
-
-
-    override fun onResume() {
-        super.onResume()
-        // checking pref changes
-        musicEnabled = true
-        soundsEnabled = true
+                shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888),
+            ),
+            audio = GameAssets.Audio(
+                gameOverMusic = a.newMusic("game_over.mp3"),
+                deathSound = a.newSound("deathSound.mp3"),
+            ),
+            levels = listOf(
+                Level(
+                    id = 1,
+                    name = "Level 1: The Cave",
+                    background = g.newPixmap("background.jpg", PixmapFormat.ARGB8888),
+                    topObstacles = arrayOf(
+                        g.newPixmap("topObstacle1.png", PixmapFormat.ARGB8888),
+                        g.newPixmap("topObstacle2.png", PixmapFormat.ARGB8888),
+                    ),
+                    bottomObstacles = arrayOf(
+                        g.newPixmap("bottomObstacle1.png", PixmapFormat.ARGB8888),
+                        g.newPixmap("bottomObstacle2.png", PixmapFormat.ARGB8888),
+                    ),
+                    music = a.newMusic("game_theme.mp3"),
+                ),
+            ),
+        )
     }
 }

@@ -13,3 +13,6 @@ const val TICK_INITIAL = 0.019f // in ms
 
 // feature flags:
 const val SHOOTING_ENABLED = false
+
+// Length of the buzz when the bat takes a hit, in ms.
+const val HIT_VIBRATION_MILLIS = 250L

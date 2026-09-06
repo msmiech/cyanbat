@@ -5,6 +5,8 @@ plugins {
 }
 
 kotlin {
+    jvmToolchain(libs.versions.jvmToolchain.get().toInt())
+
     android {
         namespace = "at.smiech.engine"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
@@ -20,9 +22,8 @@ kotlin {
     sourceSets {
         commonMain {
             dependencies {
-                implementation(libs.androidx.core.ktx)
-                implementation(libs.androidx.activity.compose)
-                implementation(libs.androidx.compose.material3)
+                // Intentionally empty of platform libraries: this source set has to compile
+                // for every target. Android-only artifacts belong in androidMain.
             }
         }
         commonTest {
@@ -33,6 +34,9 @@ kotlin {
         androidMain {
             dependencies {
                 implementation(libs.androidx.activity.ktx)
+                implementation(libs.androidx.core.ktx)
+                implementation(libs.androidx.activity.compose)
+                implementation(libs.androidx.compose.foundation)
             }
         }
     }

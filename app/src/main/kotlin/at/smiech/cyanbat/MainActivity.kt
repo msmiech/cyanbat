@@ -10,21 +10,11 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import at.smiech.cyanbat.ui.MainNavGraph
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.SupervisorJob
 
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
 internal val PREFS_KEY_SOUNDS = booleanPreferencesKey("sounds_enabled")
 internal val PREFS_KEY_HIGH_SCORE = intPreferencesKey("highscore")
 internal val Context.dataStore by preferencesDataStore(name = "cyanbat")
-
-/**
- * Process-lifetime scope for fire-and-forget persistence that has to outlive the component that
- * triggered it - saving the highscore as the game screen is torn down, for instance. Anything that
- * should stop when its owner goes away belongs in that owner's own scope instead.
- */
-internal val appScope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
 
 /**
  * MainActivity represents the menu and is used to navigate to other activities.
