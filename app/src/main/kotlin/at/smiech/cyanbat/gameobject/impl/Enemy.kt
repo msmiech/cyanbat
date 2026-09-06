@@ -11,6 +11,7 @@ import at.smiech.cyanbat.gameobject.PixmapGameObject
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
 import java.util.Random
+import kotlin.math.sin
 
 class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) :
     PixmapGameObject(Rect.fromLTWH(x.toFloat(), y.toFloat(), realWidth.toFloat(), height.toFloat()), pm), Collidable {
@@ -21,17 +22,55 @@ class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) :
     private var srcX: Int = 0
     private var animTick: Int = 0
 
+    // Smooth movement state
+    private var elapsedTime = 0f
+    private val initialY = y.toFloat()
+    private var verticalDirection = 1f
+    private var nextDirectionChange = 0.5f + rnd.nextFloat()
+
     init {
         this.type = type
-        velocity = Vector2(x = -1f, y = 2f)
+        // Base horizontal speed depends on type
+        val speedX = when (type) {
+            0 -> -2.5f // Fast scout
+            1 -> -1.5f // Sine waver
+            2 -> -1.2f // Zig-zagger
+            else -> -1.0f
+        }
+        velocity = Vector2(x = speedX, y = 0f)
     }
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
+        elapsedTime += deltaTime
         updateAnimation(deltaTime)
-        if (rnd.nextBoolean()) {
-            velocity = velocity.copy(y = velocity.y * -1f)
-        }
+        updateMovement()
         super.update(deltaTime, touchEvents)
+    }
+
+    private fun updateMovement() {
+        when (type) {
+            0 -> {
+                // Type 0: Straight and fast, maybe a tiny bit of drift
+                velocity = velocity.copy(y = sin(elapsedTime * 2f) * 0.2f)
+            }
+            1 -> {
+                // Type 1: Sine wave oscillation
+                val amplitude = 80f
+                val frequency = 3f
+                val targetY = initialY + sin(elapsedTime * frequency) * amplitude
+                // Update velocity to steer towards targetY
+                val dy = (targetY - rectangle.top) * 0.1f
+                velocity = velocity.copy(y = dy)
+            }
+            2 -> {
+                // Type 2: Zig-Zag
+                if (elapsedTime > nextDirectionChange) {
+                    verticalDirection *= -1f
+                    nextDirectionChange = elapsedTime + 0.8f + rnd.nextFloat()
+                }
+                velocity = velocity.copy(y = verticalDirection * 2.5f)
+            }
+        }
     }
 
     private fun updateAnimation(deltaTime: Float) {
@@ -77,7 +116,7 @@ class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) :
 
     companion object {
         private val rnd = Random()
-        val realWidth = 28
+        const val realWidth = 28
     }
 
 }
