@@ -14,6 +14,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.random.Random
+import kotlin.time.Duration.Companion.milliseconds
 
 class EnemyGenerator(
     private val xSpawnPosition: Int,

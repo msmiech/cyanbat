@@ -95,8 +95,17 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                     var lastTime = System.nanoTime()
                     while (isActive) {
                         withFrameNanos { frameTimeNanos ->
-                            val deltaTime = (frameTimeNanos - lastTime) / 1e9f
+                            val elapsed = (frameTimeNanos - lastTime) / 1e9f
                             lastTime = frameTimeNanos
+
+                            // A paused activity stops receiving frame callbacks, so the first
+                            // frame after a resume carries the whole pause in its delta - as does
+                            // the first frame after this effect starts. Screens step fixed-size
+                            // ticks in a while-loop, so an unclamped delta replays all of that in
+                            // a single frame: the player loses lives to a fast-forward they never
+                            // see. Time beyond the cap is dropped rather than simulated, which
+                            // briefly slows game time instead of teleporting the world.
+                            val deltaTime = elapsed.coerceIn(0f, MAX_FRAME_DELTA_SECONDS)
 
                             currentScreen?.update(deltaTime)
                             currentScreen?.present(deltaTime)
@@ -170,6 +179,14 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
 
     companion object {
         private const val WAKE_LOCK_TIMEOUT = 512L
+
+        /**
+         * Upper bound on the delta handed to a screen, in seconds. Roughly three frames at 60Hz -
+         * loose enough to absorb ordinary frame jitter, tight enough that a resume costs a couple
+         * of ticks instead of the entire time the app spent in the background.
+         */
+        private const val MAX_FRAME_DELTA_SECONDS = 0.05f
+
         var useWakeLock = false
     }
 }
