@@ -9,6 +9,12 @@ kotlin {
         namespace = "at.smiech.engine"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
         minSdk = libs.versions.android.minSdk.get().toInt()
+
+        // JVM-hosted unit tests for the pure logic in commonMain (ECS, math).
+        // No device or emulator needed; wired into `check` via `build`.
+        withHostTestBuilder {}.configure {
+            isIncludeAndroidResources = false
+        }
     }
 
     sourceSets {
@@ -17,6 +23,11 @@ kotlin {
                 implementation(libs.androidx.core.ktx)
                 implementation(libs.androidx.activity.compose)
                 implementation(libs.androidx.compose.material3)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(libs.kotlin.test)
             }
         }
         androidMain {
