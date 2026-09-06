@@ -9,12 +9,13 @@ import at.smiech.cyanbat.gameobject.Collidable
 import at.smiech.cyanbat.gameobject.PixmapGameObject
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
+import at.smiech.cyanbat.util.Vector2D
 
 class Obstacle(x: Int, y: Int, pm: Pixmap) :
     PixmapGameObject(Rect(x, y, x + pm.width, y + pm.height), pm), Collidable {
 
     init {
-        velocity.x = -1f
+        velocity = Vector2D(x = -1f)
     }
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {

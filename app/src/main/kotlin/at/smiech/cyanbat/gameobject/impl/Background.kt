@@ -9,6 +9,7 @@ import at.smiech.cyanbat.gameobject.GameObject
 import at.smiech.cyanbat.gameobject.PixmapGameObject
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
+import at.smiech.cyanbat.util.Vector2D
 
 class Background(
     x: Int,
@@ -19,7 +20,7 @@ class Background(
 ) : PixmapGameObject(Rect(x, y, x + pixmap.width, y + pixmap.height), pixmap) {
 
     init {
-        velocity.x = -2f
+        velocity = Vector2D(x = -2f)
     }
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {

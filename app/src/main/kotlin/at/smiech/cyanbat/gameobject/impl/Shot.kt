@@ -7,6 +7,7 @@ import at.grueneis.game.framework.Pixmap
 import at.smiech.cyanbat.gameobject.Collidable
 import at.smiech.cyanbat.gameobject.GameObject
 import at.smiech.cyanbat.gameobject.PixmapGameObject
+import at.smiech.cyanbat.util.Vector2D
 
 /**
  * TODO implement shots to be fired at enemies
@@ -18,7 +19,7 @@ class Shot(
 ) : PixmapGameObject(rect, pixmap), Collidable {
     init {
         count += 1
-        velocity.x = 2f
+        velocity = Vector2D(x = 2f)
     }
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {

@@ -5,6 +5,7 @@ import android.graphics.Rect
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.smiech.cyanbat.gameobject.MovableGameObject
+import at.smiech.cyanbat.util.Vector2D
 
 class CyanTrail(rect: Rect) : MovableGameObject(rect) {
     private val TICK_INITIAL = 0.008f
@@ -23,7 +24,7 @@ class CyanTrail(rect: Rect) : MovableGameObject(rect) {
                 Color.green(color), Color.blue(color)
             )
         }
-        velocity.x = -2f
+        velocity = Vector2D(x = -2f)
         super.update(deltaTime, touchEvents)
     }
 

@@ -9,6 +9,7 @@ import at.smiech.cyanbat.gameobject.Collidable
 import at.smiech.cyanbat.gameobject.PixmapGameObject
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
+import at.smiech.cyanbat.util.Vector2D
 import java.util.Random
 
 class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) :
@@ -22,14 +23,13 @@ class Enemy(x: Int, y: Int, width: Int, height: Int, pm: Pixmap, type: Int) :
 
     init {
         this.type = type
-        velocity.x = -1f
-        velocity.y = 2f
+        velocity = Vector2D(x = -1f, y = 2f)
     }
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
         updateAnimation(deltaTime)
         if (rnd.nextBoolean()) {
-            velocity.y *= (-1).toFloat()
+            velocity = velocity.copy(y = velocity.y * -1f)
         }
         super.update(deltaTime, touchEvents)
     }

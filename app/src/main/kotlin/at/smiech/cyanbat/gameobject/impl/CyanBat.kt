@@ -14,6 +14,7 @@ import at.smiech.cyanbat.ui.game.GameOverScreen
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
+import at.smiech.cyanbat.util.Vector2D
 
 class CyanBat(
     x: Int,
@@ -96,8 +97,7 @@ class CyanBat(
             if (hitCooldown > 0f) {
                 hitCooldown -= deltaTime
             }
-            velocity.x = 0f
-            velocity.y = 0f
+            velocity = Vector2D(0f, 0f)
             if (touchEvents.isNotEmpty()) {
                 tickTime += deltaTime
                 while (tickTime > tick) {
@@ -111,8 +111,7 @@ class CyanBat(
                 }
             }
         } else {
-            velocity.x = 0f
-            velocity.y = 2f
+            velocity = Vector2D(0f, 2f)
             // check whether the bat animation has finished (i.e. bat is outside the screen)
             if (rectangle.top > frameBufferWidth) {
                 // switch to the GameOverScreen, if so
@@ -125,25 +124,27 @@ class CyanBat(
         if (DEBUG) {
             Log.d(TAG, "moveBat")
         }
+        var vx = 0f
+        var vy = 0f
         if (touch.x > rectangle.centerX()) {
             if (rectangle.right < frameBufferWidth) {
-                velocity.x = 3f
+                vx = 3f
             }
         } else {
             if (rectangle.left > 0) {
-                velocity.x = -3f
+                vx = -3f
             }
         }
         if (touch.y > rectangle.centerY()) {
             if (rectangle.bottom < frameBufferHeight) {
-                velocity.y = 3f
+                vy = 3f
             }
         } else {
             if (rectangle.top > 0) {
-                velocity.y = -3f
+                vy = -3f
             }
         }
-
+        velocity = Vector2D(vx, vy)
     }
 
     override fun draw(g: Graphics) {

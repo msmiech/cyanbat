@@ -5,6 +5,7 @@ import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
 import at.smiech.cyanbat.gameobject.PixmapGameObject
+import at.smiech.cyanbat.util.Vector2D
 
 class Explosion(rect: Rect, pixmap: Pixmap) : PixmapGameObject(rect, pixmap) {
 
@@ -14,7 +15,7 @@ class Explosion(rect: Rect, pixmap: Pixmap) : PixmapGameObject(rect, pixmap) {
     private var srcX: Int = 0
 
     init {
-        velocity.x = -1f
+        velocity = Vector2D(x = -1f)
     }
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
