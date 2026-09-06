@@ -26,10 +26,6 @@
             android:screenOrientation="landscape"
             tools:ignore="DiscouragedApi" />
 
-        <provider
-            android:name=".persistence.ScoreProvider"
-            android:authorities="at.smiech.cyanbat.persistence"
-            android:exported="false" />
     </application>
 
 </manifest>
