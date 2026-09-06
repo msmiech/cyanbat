@@ -11,8 +11,10 @@ const val MINIMUM_ENEMY_GENERATION_SPREAD = 500L // in ms
 const val ENEMY_GENERATION_SPREAD_DECAY = 84L // in ms, per spawn
 const val TICK_INITIAL = 0.019f // in ms
 
-// feature flags:
-const val SHOOTING_ENABLED = false
+// The bat fires automatically on this cadence.
+const val SHOT_INTERVAL_SECONDS = 1f
+// Shot travel per tick, in framebuffer pixels. Enemies close at 1.2-2.5, so this outruns them.
+const val SHOT_SPEED = 4f
 
 // Length of the buzz when the bat takes a hit, in ms.
 const val HIT_VIBRATION_MILLIS = 250L

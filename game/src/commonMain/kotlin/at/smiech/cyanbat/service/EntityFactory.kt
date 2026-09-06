@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.util.SHOT_SPEED
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.BackgroundComponent
@@ -14,6 +15,7 @@ import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.VelocityComponent
+import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.ecs.World
 import at.smiech.engine.ecs.ZIndexComponent
 import at.smiech.engine.math.Rect
@@ -21,7 +23,14 @@ import at.smiech.engine.math.Vector2
 
 class EntityFactory(private val world: World) {
 
-    fun createBat(x: Float, y: Float, width: Float, height: Float, pixmap: Pixmap): EntityId {
+    fun createBat(
+        x: Float,
+        y: Float,
+        width: Float,
+        height: Float,
+        pixmap: Pixmap,
+        shotIntervalSeconds: Float,
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
         world.addComponent(id, VelocityComponent(Vector2.Zero))
@@ -30,6 +39,7 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.PLAYER))
         world.addComponent(id, HealthComponent(3))
         world.addComponent(id, PlayerControlComponent())
+        world.addComponent(id, WeaponComponent(shotIntervalSeconds))
         world.addComponent(id, LifetimeComponent(false))
         world.addComponent(id, ZIndexComponent(20))
         return id
@@ -97,7 +107,7 @@ class EntityFactory(private val world: World) {
     fun createShot(x: Float, y: Float, width: Float, height: Float, pixmap: Pixmap, isPlayer: Boolean): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
-        world.addComponent(id, VelocityComponent(Vector2(if (isPlayer) 2f else -2f, 0f)))
+        world.addComponent(id, VelocityComponent(Vector2(if (isPlayer) SHOT_SPEED else -SHOT_SPEED, 0f)))
         world.addComponent(id, SpriteComponent(pixmap))
         world.addComponent(id, CollisionComponent(2f, if (isPlayer) CollisionGroup.PLAYER_PROJECTILE else CollisionGroup.ENEMY_PROJECTILE))
         world.addComponent(id, HealthComponent(1))

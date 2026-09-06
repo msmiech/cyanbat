@@ -66,3 +66,13 @@ data class TrailComponent(var color: Int) : Component
 data class BackgroundComponent(val isLooping: Boolean = true) : Component
 
 data class ZIndexComponent(val zIndex: Int = 0) : Component
+
+/**
+ * Fires on a fixed cadence, tracked by [WeaponSystem].
+ *
+ * @param interval seconds between shots.
+ */
+data class WeaponComponent(
+    val interval: Float,
+    var timeSinceLastShot: Float = 0f
+) : Component

@@ -113,6 +113,31 @@ class RenderSystem : GameSystem() {
 }
 
 /**
+ * Fires weapons whose cadence has come round.
+ *
+ * Spawning is delegated to [onFire] because what a projectile looks like is a game concern, not
+ * an engine one - the same split CollisionSystem uses for its handler.
+ */
+class WeaponSystem(private val onFire: (EntityId) -> Unit) : GameSystem() {
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.query(TransformComponent::class, WeaponComponent::class).forEach { id ->
+            // A dead entity keeps its weapon but stops using it.
+            val health = world.getComponent(id, HealthComponent::class)
+            if (health != null && !health.alive) return@forEach
+
+            val weapon = world.getComponent(id, WeaponComponent::class)!!
+            weapon.timeSinceLastShot += deltaTime
+            if (weapon.timeSinceLastShot >= weapon.interval) {
+                // Subtract rather than zero, so a long frame does not lose the remainder and
+                // drift the cadence.
+                weapon.timeSinceLastShot -= weapon.interval
+                onFire(id)
+            }
+        }
+    }
+}
+
+/**
  * System that removes entities when they are out of bounds or marked for removal.
  */
 class LifetimeSystem(private val worldWidth: Int) : GameSystem() {
@@ -121,7 +146,11 @@ class LifetimeSystem(private val worldWidth: Int) : GameSystem() {
             val transform = world.getComponent(id, TransformComponent::class)!!
             val lifetime = world.getComponent(id, LifetimeComponent::class)!!
             
-            if (lifetime.removeIfOutOfBounds && transform.rect.right < 0) {
+            // Both edges: scenery and enemies leave to the left, projectiles to the right.
+            // Culling only the left edge would leak every shot that misses.
+            val offLeft = transform.rect.right < 0
+            val offRight = transform.rect.left > worldWidth
+            if (lifetime.removeIfOutOfBounds && (offLeft || offRight)) {
                 world.removeEntity(id)
             }
         }

@@ -6,6 +6,7 @@ import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.ObstacleGenerator
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
+import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
@@ -22,6 +23,7 @@ import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.PlayerInputSystem
 import at.smiech.engine.ecs.RenderSystem
 import at.smiech.engine.ecs.TransformComponent
+import at.smiech.engine.ecs.WeaponSystem
 import at.smiech.engine.ecs.World
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -70,6 +72,7 @@ class GameScreen(
         // Setup Systems
         world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight))
         world.addSystem(MovementSystem())
+        world.addSystem(WeaponSystem { shooterId -> fireShot(shooterId) })
         world.addSystem(BackgroundScrollingSystem(game.frameBufferWidth, factory))
         world.addSystem(EnemyBehaviorSystem())
         world.addSystem(AnimationSystem())
@@ -90,11 +93,26 @@ class GameScreen(
             y = (game.frameBufferHeight / 2).toFloat(),
             width = 45f,
             height = env.assets.graphics.bat.height.toFloat(),
-            pixmap = env.assets.graphics.bat
+            pixmap = env.assets.graphics.bat,
+            shotIntervalSeconds = SHOT_INTERVAL_SECONDS,
         )
 
         startLevelMusic()
         initStats()
+    }
+
+    /** Spawns a shot at the shooter's leading edge, centred on it vertically. */
+    private fun fireShot(shooterId: EntityId) {
+        val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
+        val shot = env.assets.graphics.shot
+        factory.createShot(
+            x = transform.rect.right,
+            y = transform.rect.centerY - shot.height / 2f,
+            width = shot.width.toFloat(),
+            height = shot.height.toFloat(),
+            pixmap = shot,
+            isPlayer = true,
+        )
     }
 
     private fun handleCollision(id1: EntityId, id2: EntityId) {

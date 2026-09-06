@@ -139,4 +139,28 @@ class WorldTest {
         assertTrue(world.hasComponent(onscreen, TransformComponent::class))
         assertTrue(world.hasComponent(pinned, TransformComponent::class), "opted out of bounds culling")
     }
+
+    /**
+     * Regression: only the left edge was culled, which was fine while everything drifted
+     * leftwards. Player shots travel right, so a miss would have leaked its entity for the rest
+     * of the run.
+     */
+    @Test
+    fun `lifetime system reaps entities that leave the right edge`() {
+        val world = World()
+        world.addSystem(LifetimeSystem(worldWidth = 480))
+
+        val offRight = world.spawn(x = 500f)
+        world.addComponent(offRight, LifetimeComponent(removeIfOutOfBounds = true))
+        val atEdge = world.spawn(x = 475f)
+        world.addComponent(atEdge, LifetimeComponent(removeIfOutOfBounds = true))
+        val pinned = world.spawn(x = 500f)
+        world.addComponent(pinned, LifetimeComponent(removeIfOutOfBounds = false))
+
+        world.update(0.016f, null)
+
+        assertFalse(world.hasComponent(offRight, TransformComponent::class))
+        assertTrue(world.hasComponent(atEdge, TransformComponent::class), "still partly on screen")
+        assertTrue(world.hasComponent(pinned, TransformComponent::class), "opted out of bounds culling")
+    }
 }
