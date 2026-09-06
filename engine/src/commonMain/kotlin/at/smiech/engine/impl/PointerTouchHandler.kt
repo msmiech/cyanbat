@@ -16,7 +16,16 @@ import kotlin.math.abs
  * then have to live in a JVM-only source set, since `synchronized` is not available in common
  * code.
  */
-class PointerTouchHandler : TouchHandler {
+class PointerTouchHandler(
+    /**
+     * When true, pointer motion counts as a drag even with no button held.
+     *
+     * Touch screens only report a position while a finger is down, so the game steers on
+     * TOUCH_DRAGGED. A mouse reports motion continuously, and requiring a held button to fly is
+     * not the desktop idiom - so desktop hosts turn this on and the bat follows the cursor.
+     */
+    private val treatMotionAsDrag: Boolean = false,
+) : TouchHandler {
     private val isTouched = BooleanArray(MAX_POINTERS)
     private val touchX = IntArray(MAX_POINTERS)
     private val touchY = IntArray(MAX_POINTERS)
@@ -51,7 +60,8 @@ class PointerTouchHandler : TouchHandler {
         val type = when {
             pressed && !previouslyPressed -> Input.TouchEvent.TOUCH_DOWN
             !pressed && previouslyPressed -> Input.TouchEvent.TOUCH_UP
-            pressed && (touchX[pointer] != scaledX || touchY[pointer] != scaledY) ->
+            (pressed || treatMotionAsDrag) &&
+                (touchX[pointer] != scaledX || touchY[pointer] != scaledY) ->
                 Input.TouchEvent.TOUCH_DRAGGED
             else -> return
         }

@@ -13,6 +13,9 @@ kotlin {
 
 extensions.configure<ApplicationExtension> {
     namespace = "at.smiech.cyanbat"
+
+    // Assets live at the repo root so the desktop module can use the same copy.
+    sourceSets["main"].assets.srcDir(rootProject.file("assets"))
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
