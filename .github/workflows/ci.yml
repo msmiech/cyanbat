@@ -1,4 +1,4 @@
-name: Android CI
+name: CI
 
 on:
   push:
@@ -36,7 +36,8 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # `build` = assemble (debug + release) + check (unit tests + lint).
+      # `build` covers every module - :app, :engine, :game and :desktop - assembling each
+      # and running its unit tests and lint.
       - name: Build with Gradle
         run: ./gradlew build
 

@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
-# CyanBat run driver. Everything here goes through adb; run it from the repo root.
+# CyanBat run driver. Run it from the repo root.
+#
+# The Android commands go through adb; `desktop` runs the Compose Desktop build instead and
+# needs no emulator.
 #
 #   .claude/skills/run-cyanbat/driver.sh smoke
 #   .claude/skills/run-cyanbat/driver.sh start && ... driver.sh hud g1
@@ -20,6 +23,7 @@ PKG=at.smiech.cyanbat
 MENU_ACTIVITY="$PKG/.MainActivity"
 GAME_ACTIVITY_SUFFIX="activity.CyanBatGameActivity"
 OUT="${CYANBAT_OUT:-.artifacts/run-cyanbat}"
+SKILL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # --- sdk discovery ------------------------------------------------------------
 SDK="${ANDROID_HOME:-${ANDROID_SDK_ROOT:-}}"
@@ -29,7 +33,9 @@ fi
 [ -z "$SDK" ] && SDK="$HOME/Android/Sdk"
 export PATH="$PATH:$SDK/platform-tools:$SDK/emulator"
 
-command -v adb >/dev/null || { echo "adb not on PATH (looked in $SDK/platform-tools)" >&2; exit 1; }
+if ! command -v adb >/dev/null && [ "${1:-smoke}" != "desktop" ]; then
+  echo "adb not on PATH (looked in $SDK/platform-tools)" >&2; exit 1
+fi
 mkdir -p "$OUT"
 
 log() { printf '\033[36m[driver]\033[0m %s\n' "$*"; }
@@ -111,17 +117,10 @@ cmd_shot() {
 cmd_hud() {
   local name="${1:-hud}"
   cmd_shot "$name"
-  command -v powershell.exe >/dev/null || { log "no powershell.exe; skipping crop"; return 0; }
-  MSYS_NO_PATHCONV=1 powershell.exe -NoProfile -Command "
-    Add-Type -AssemblyName System.Drawing
-    \$src = [System.Drawing.Image]::FromFile((Resolve-Path '$OUT/$name.png'))
-    \$w = [int](\$src.Width * 0.26); \$h = [int](\$src.Height * 0.21)
-    \$c = New-Object System.Drawing.Bitmap \$w, \$h
-    \$g = [System.Drawing.Graphics]::FromImage(\$c)
-    \$g.DrawImage(\$src, (New-Object System.Drawing.Rectangle 0,0,\$w,\$h), (New-Object System.Drawing.Rectangle 0,10,\$w,\$h), [System.Drawing.GraphicsUnit]::Pixel)
-    \$g.Dispose(); \$src.Dispose()
-    \$c.Save((Join-Path (Resolve-Path '$OUT') 'hud_$name.png'), [System.Drawing.Imaging.ImageFormat]::Png); \$c.Dispose()
-  " >/dev/null 2>&1 && log "$OUT/hud_$name.png"
+  command -v uv >/dev/null || { log "no uv on PATH; skipping HUD crop"; return 0; }
+  uv run --quiet "$SKILL_DIR/crop_hud.py" "$OUT/$name.png" "$OUT/hud_$name.png" >/dev/null 2>&1 \
+    && log "$OUT/hud_$name.png" \
+    || log "HUD crop failed for $name"
 }
 
 # --- interaction --------------------------------------------------------------
@@ -199,6 +198,13 @@ cmd_logs() {
 
 cmd_stop() { adb shell am force-stop "$PKG"; log "force-stopped $PKG"; }
 
+# --- desktop ------------------------------------------------------------------
+# The same shared game, no emulator involved. Blocks until the window is closed.
+cmd_desktop() {
+  log "gradlew :desktop:run (close the window to return)"
+  ./gradlew :desktop:run --console=plain
+}
+
 # --- end to end ---------------------------------------------------------------
 cmd_smoke() {
   cmd_boot
@@ -232,6 +238,7 @@ case "${1:-smoke}" in
   focus)         cmd_focus ;;
   logs)          cmd_logs ;;
   stop)          cmd_stop ;;
+  desktop)       cmd_desktop ;;
   smoke)         cmd_smoke ;;
-  *) sed -n '2,14p' "$0"; exit 1 ;;
+  *) sed -n '2,19p' "$0"; exit 1 ;;
 esac

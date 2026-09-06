@@ -1,24 +1,32 @@
 ---
 name: run-cyanbat
-description: Build, install, launch, drive and screenshot the CyanBat Android game on an emulator. Use when asked to run, start, launch, play, or screenshot the app, to verify a gameplay or rendering change on a real device, or to test pause/resume and highscore persistence. Covers adb, uiautomator, and the emulator.
+description: Build, install, launch, drive and screenshot the CyanBat game - on an Android emulator, or as the Compose Desktop build with no emulator at all. Use when asked to run, start, launch, play, or screenshot the app, to verify a gameplay or rendering change on a real device, or to test pause/resume and highscore persistence. Covers adb, uiautomator, and the emulator.
 ---
 
 # Running CyanBat
 
-CyanBat is a landscape Android game: a Compose menu (`MainActivity`) that launches
-a custom-framebuffer game activity (`CyanBatGameActivity`). There is no test
-suite, so **running it on an emulator is the only way to verify anything**.
+CyanBat is a landscape game sharing one Kotlin Multiplatform codebase between Android and
+desktop. On Android a Compose menu (`MainActivity`) launches a custom-framebuffer game activity
+(`CyanBatGameActivity`); on desktop a single Compose window swaps between the two.
 
-Everything is driven by `.claude/skills/run-cyanbat/driver.sh`, which wraps adb.
-All paths below are relative to the repo root; run the driver from there.
+Unit tests cover the ECS, maths and spawn pacing, but nothing covers rendering, input or the
+activity lifecycle - for those, run it.
+
+Everything is driven by `.claude/skills/run-cyanbat/driver.sh`. All paths below are relative to
+the repo root; run the driver from there.
 
 ## Prerequisites
 
-Android SDK with `platform-tools` and `emulator`, plus one AVD. The driver finds
+Android SDK with `platform-tools` and `emulator`, plus one AVD, for the Android commands.
+`uv` is used for the HUD crop (it resolves Pillow itself); without it `hud` still takes the
+screenshot and just skips the crop. The `desktop` command needs neither.
+
+The driver finds
 the SDK via `$ANDROID_HOME`, `$ANDROID_SDK_ROOT`, or `%LOCALAPPDATA%\Android\Sdk`,
 and picks the first AVD from `emulator -list-avds` (override with `$CYANBAT_AVD`).
 
-Verified on Windows 11 + Git Bash against `Medium_Phone` (API 37, 1080x2400).
+Verified on Windows 11 + Git Bash against `Medium_Phone` (API 37, 1080x2400). Nothing in the
+driver is Windows-specific.
 JDK 21 comes from the Gradle toolchain; no separate install needed.
 
 ```bash
@@ -51,6 +59,7 @@ Individual commands, for iterating:
 .claude/skills/run-cyanbat/driver.sh focus         # which activity is foreground
 .claude/skills/run-cyanbat/driver.sh logs          # crash buffer + runtime errors
 .claude/skills/run-cyanbat/driver.sh stop
+.claude/skills/run-cyanbat/driver.sh desktop     # Compose Desktop build - no emulator
 ```
 
 **Always look at the screenshots.** `shot` only asserts the PNG is non-trivial in
