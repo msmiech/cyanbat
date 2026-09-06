@@ -24,4 +24,5 @@ dependencyResolutionManagement {
 
 rootProject.name = "cyanbat"
 include(":engine")
+include(":game")
 include(":app")
