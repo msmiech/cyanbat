@@ -14,6 +14,7 @@ import at.smiech.cyanbat.ui.MenuHost
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Haptics
+import at.smiech.engine.impl.DesktopAudio
 import kotlin.system.exitProcess
 
 private const val FRAME_BUFFER_WIDTH = 480
@@ -33,6 +34,10 @@ fun main() = singleWindowApplication(title = "CyanBat") {
 private fun CyanBatApp() {
     var playing by remember { mutableStateOf(false) }
     val settings = remember { PreferencesSettingsRepository() }
+    // The menu outlives any single game instance, so it owns its own Audio.
+    val menuAudio = remember { DesktopAudio { name ->
+        object {}.javaClass.getResourceAsStream("/$name") ?: error("Asset <$name> not found")
+    } }
 
     if (playing) {
         val game = remember {
@@ -51,8 +56,7 @@ private fun CyanBatApp() {
         CyanBatMenu(
             MenuHost(
                 settings = settings,
-                // Silent until MP3 decoding is wired up; the engine still returns a Music.
-                menuMusic = null,
+                menuMusic = remember { menuAudio.newMusic("menu_theme.mp3") },
                 onStartGame = { playing = true },
                 onExit = { exitProcess(0) },
             )

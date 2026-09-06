@@ -8,7 +8,7 @@ import at.smiech.engine.Screen
 import at.smiech.engine.impl.DesktopGraphics
 import at.smiech.engine.impl.DesktopInput
 import at.smiech.engine.impl.PointerTouchHandler
-import at.smiech.engine.impl.SilentAudio
+import at.smiech.engine.impl.DesktopAudio
 import java.awt.image.BufferedImage
 
 /**
@@ -25,17 +25,17 @@ class DesktopGame(
 
     val touchHandler = PointerTouchHandler(treatMotionAsDrag = true)
 
-    override val graphics: Graphics =
-        DesktopGraphics(frameBuffer) { name ->
-            javaClass.getResourceAsStream("/$name")
-                ?: error("Asset <$name> not found on the classpath")
-        }
+    override val graphics: Graphics = DesktopGraphics(frameBuffer, ::openAsset)
 
-    override val audio: Audio = SilentAudio
+    override val audio: Audio = DesktopAudio(::openAsset)
     override val input: Input = DesktopInput(touchHandler)
 
     override var currentScreen: Screen? = null
     override val startScreen: Screen? get() = currentScreen
+
+    /** Assets ride along as classpath resources; see the resources srcDir in build.gradle.kts. */
+    private fun openAsset(name: String): java.io.InputStream =
+        javaClass.getResourceAsStream("/$name") ?: error("Asset <$name> not found on the classpath")
 
     override fun setScreen(screen: Screen) {
         if (screen === currentScreen) return

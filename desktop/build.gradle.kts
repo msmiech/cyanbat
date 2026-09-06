@@ -17,6 +17,7 @@ sourceSets {
 
 dependencies {
     implementation(project(":game"))
+    testImplementation(libs.kotlin.test.junit)
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.core)
     // Provides Dispatchers.Main on the JVM, backed by the Swing event queue.

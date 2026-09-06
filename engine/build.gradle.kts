@@ -30,6 +30,15 @@ kotlin {
                 implementation(libs.kotlin.test)
             }
         }
+        jvmMain {
+            dependencies {
+                // Service providers that teach javax.sound.sampled to decode MP3. Pure Java, no
+                // natives, so the same jars work on all three desktop platforms.
+                implementation(libs.mp3spi)
+                implementation(libs.jlayer)
+                implementation(libs.tritonus.share)
+            }
+        }
         androidMain {
             dependencies {
                 implementation(libs.androidx.activity.ktx)
