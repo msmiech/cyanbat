@@ -35,7 +35,7 @@ import kotlinx.coroutines.isActive
 /**
  * Android Game Framework implementation based on Beginning Android Games.
  *
- * @author Robert Smiech
+ * @author Robert Grüneis
  * Modifications by msmiech
  */
 abstract class AndroidGameActivity : ComponentActivity(), Game {
