@@ -18,3 +18,13 @@ const val SHOT_SPEED = 4f
 
 // Length of the buzz when the bat takes a hit, in ms.
 const val HIT_VIBRATION_MILLIS = 250L
+
+// Scoring. Surviving pays 1 point per tick (~52/second), so a kill at the base rate is worth
+// about a second of survival and a maxed-out streak roughly eight.
+//
+// The step is 3 because that is what play actually supports: watching a run, a life tends to
+// yield two or three kills before the bat is clipped. At five the multiplier essentially never
+// appeared. Raise it to make combos rarer.
+const val POINTS_PER_HIT = 50
+const val HITS_PER_MULTIPLIER_STEP = 3
+const val MAX_SCORE_MULTIPLIER = 8
