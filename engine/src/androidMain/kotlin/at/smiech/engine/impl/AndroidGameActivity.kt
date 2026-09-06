@@ -151,11 +151,15 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
 
     override fun onDestroy() {
         super.onDestroy()
+        currentScreen?.dispose()
+        currentScreen = null
         audio?.dispose()
     }
 
     override fun setScreen(screen: Screen) {
+        if (screen === currentScreen) return
         currentScreen?.pause()
+        currentScreen?.dispose()
         screen.resume()
         screen.update(0f)
         currentScreen = screen

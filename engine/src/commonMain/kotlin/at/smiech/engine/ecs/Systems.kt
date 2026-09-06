@@ -78,7 +78,7 @@ class AnimationSystem : GameSystem() {
                 anim.currentTime -= anim.interval
             }
             
-            sprite.srcX = anim.currentFrame * anim.frameWidth
+            sprite.srcX = sprite.baseSrcX + anim.currentFrame * anim.frameWidth
         }
     }
 }

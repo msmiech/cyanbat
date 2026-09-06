@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.datastore.preferences.core.edit
 import at.smiech.cyanbat.PREFS_KEY_HIGH_SCORE
 import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.cyanbat.appScope
 import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.service.EnemyGenerator
@@ -29,9 +30,11 @@ import at.smiech.engine.ecs.PlayerInputSystem
 import at.smiech.engine.ecs.RenderSystem
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.World
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 class GameScreen(override val game: Game) : Screen {
@@ -39,6 +42,9 @@ class GameScreen(override val game: Game) : Screen {
     
     private val world = World()
     private val factory = EntityFactory(world)
+
+    /** Cancelled in [dispose], so nothing started here outlives the screen. */
+    private val screenScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     
     private val batId: EntityId
     
@@ -154,10 +160,11 @@ class GameScreen(override val game: Game) : Screen {
         readHighscore()
     }
 
-    private fun readHighscore() = GlobalScope.launch(Dispatchers.Main) {
-        game.context.dataStore.data.collectLatest {
-            highscore = it[PREFS_KEY_HIGH_SCORE] ?: 0
-        }
+    // A one-shot read: nothing outside this screen writes the highscore during a run, so there is
+    // nothing to keep observing. Stays on the main thread, which is the only thread that touches
+    // `highscore`.
+    private fun readHighscore() = screenScope.launch {
+        highscore = game.context.dataStore.data.first()[PREFS_KEY_HIGH_SCORE] ?: 0
     }
 
     override fun update(deltaTime: Float) {
@@ -189,9 +196,12 @@ class GameScreen(override val game: Game) : Screen {
             highscore = score
         }
 
-        GlobalScope.launch(Dispatchers.Main) {
+        // Deliberately not on screenScope: this runs as the bat dies, moments before the screen is
+        // swapped out and disposed, and the write has to survive that.
+        val value = highscore
+        appScope.launch {
             game.context.dataStore.edit {
-                it[PREFS_KEY_HIGH_SCORE] = highscore
+                it[PREFS_KEY_HIGH_SCORE] = value
             }
         }
     }
@@ -224,13 +234,23 @@ class GameScreen(override val game: Game) : Screen {
     }
 
     override fun pause() {
-        currentLevel.music.apply {
-            stop()
-            isLooping = false
+        // Pause rather than stop, so the track picks up where it left off. Guarded because the
+        // music is already stopped once the bat dies.
+        if (currentLevel.music.isPlaying) {
+            currentLevel.music.pause()
         }
     }
 
     override fun resume() {
-        initStats()
+        // The run survives the pause untouched - only playback needs restoring. After death the
+        // game over music owns playback, so leave it alone.
+        val health = world.getComponent(batId, HealthComponent::class)
+        if (health?.alive == true) {
+            currentLevel.music.play()
+        }
+    }
+
+    override fun dispose() {
+        screenScope.cancel()
     }
 }

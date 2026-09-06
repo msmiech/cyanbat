@@ -53,7 +53,7 @@ class EntityFactory(private val world: World) {
             2 -> 137
             else -> 0
         }
-        world.addComponent(id, SpriteComponent(pixmap, srcX = srcX, srcWidth = 32))
+        world.addComponent(id, SpriteComponent(pixmap, baseSrcX = srcX, srcWidth = 32))
         world.addComponent(id, AnimationComponent(32, height.toInt(), 2, 0.2f))
         
         val movementType = when (type) {

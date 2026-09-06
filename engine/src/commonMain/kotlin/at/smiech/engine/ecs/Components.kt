@@ -12,9 +12,14 @@ data class TransformComponent(var rect: Rect) : Component
 
 data class VelocityComponent(var velocity: Vector2) : Component
 
+/**
+ * @param baseSrcX x offset of the entity's frame strip within the sprite sheet. Animation frames
+ *   are addressed relative to it, so several strips can share one sheet.
+ */
 data class SpriteComponent(
     val pixmap: Pixmap,
-    var srcX: Int = 0,
+    val baseSrcX: Int = 0,
+    var srcX: Int = baseSrcX,
     var srcY: Int = 0,
     var srcWidth: Int = pixmap.width,
     var srcHeight: Int = pixmap.height
