@@ -1,4 +1,4 @@
-package at.smiech.game.framework.impl
+package at.smiech.engine.impl
 
 import android.media.SoundPool
 import at.smiech.engine.Sound

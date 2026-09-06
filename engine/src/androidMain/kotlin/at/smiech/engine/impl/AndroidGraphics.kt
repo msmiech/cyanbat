@@ -1,4 +1,4 @@
-package at.smiech.game.framework.impl
+package at.smiech.engine.impl
 
 import android.content.res.AssetManager
 import android.graphics.Bitmap

@@ -15,9 +15,9 @@ The project has been modernized (September 2026) to leverage contemporary Kotlin
 
 - `:app`: The Android-specific application layer, containing assets, UI screens, and platform-specific services.
 - `:engine`: The core game engine.
-  - `at.smiech.game.framework.ecs`: The ECS framework (World, Systems, Components).
-  - `at.smiech.game.framework.math`: Optimized math utilities (`Rect`, `Vector2`).
-  - `at.smiech.game.framework.impl`: Platform implementations and shared utilities.
+  - `at.smiech.engine.ecs`: The ECS framework (World, Systems, Components).
+  - `at.smiech.engine.math`: Optimized math utilities (`Rect`, `Vector2`).
+  - `at.smiech.engine.impl`: Platform implementations and shared utilities.
 
 ## 🛠 Tech Stack
 
@@ -28,7 +28,7 @@ The project has been modernized (September 2026) to leverage contemporary Kotlin
 
 ## 📜 History
 
-This project originated as an academic project in 2012, based on the principles from *Beginning Android Games* by Mario Zechner and Robert Green. The original framework was provided by DI Robert Smiech. In 2026, it was fully refactored to transition from legacy OOP to a data-driven ECS architecture.
+This project originated as an academic project in 2012, based on the principles from *Beginning Android Games* by Mario Zechner and Robert Green. The original framework was provided by DI Robert Grüneis. In 2026, it was fully refactored to transition from legacy OOP to a data-driven ECS architecture.
 
 ---
 *Developed with ❤️ using Kotlin.*

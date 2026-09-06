@@ -1,4 +1,4 @@
-package at.smiech.game.framework.impl
+package at.smiech.engine.impl
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -31,7 +31,6 @@ import at.smiech.engine.Game
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.Screen
-import at.smiech.engine.impl.ComposeTouchHandler
 import kotlinx.coroutines.isActive
 
 /**
@@ -50,6 +49,11 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        
+        // Dispose old components if this is a configuration change and we're reusing the Activity?
+        // Actually, onCreate is called on a NEW instance usually, but let's be safe if we manage state.
+        audio?.dispose()
+        
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(
@@ -143,6 +147,11 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         super.onPause()
         if (useWakeLock) wakeLock?.release()
         currentScreen?.pause()
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        audio?.dispose()
     }
 
     override fun setScreen(screen: Screen) {

@@ -1,4 +1,4 @@
-package at.smiech.game.framework.impl
+package at.smiech.engine.impl
 
 import android.app.Activity
 import android.content.res.AssetManager
@@ -13,12 +13,14 @@ import java.io.IOException
 class AndroidAudio(activity: Activity) : Audio {
     private var assets: AssetManager
     private var soundPool: SoundPool
+    private val musicInstances = mutableListOf<Music>()
+
     override fun newMusic(filename: String): Music {
         return try {
             val afd = assets.openFd(filename)
-            AndroidMusic(afd)
+            AndroidMusic(afd).also { musicInstances.add(it) }
         } catch (exc: IOException) {
-            throw RuntimeException("Music-file <$filename> not found!")
+            throw RuntimeException("Music-file <$filename> not found! $exc")
         }
     }
 
@@ -28,8 +30,14 @@ class AndroidAudio(activity: Activity) : Audio {
             val soundID = soundPool.load(afd, 0)
             AndroidSound(soundID, soundPool)
         } catch (exc: IOException) {
-            throw RuntimeException("Sound-file <$filename> not found!")
+            throw RuntimeException("Sound-file <$filename> not found! $exc")
         }
+    }
+
+    override fun dispose() {
+        musicInstances.forEach { it.dispose() }
+        musicInstances.clear()
+        soundPool.release()
     }
 
     init {
@@ -38,7 +46,10 @@ class AndroidAudio(activity: Activity) : Audio {
         SoundPool.Builder().apply {
             setMaxStreams(20)
             setAudioAttributes(
-                AudioAttributes.Builder().setLegacyStreamType(AudioManager.STREAM_MUSIC).build()
+                AudioAttributes.Builder()
+                    .setUsage(AudioAttributes.USAGE_GAME)
+                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                    .build()
             )
         }.build().also { this.soundPool = it }
     }

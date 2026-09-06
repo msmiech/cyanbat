@@ -1,4 +1,4 @@
-package at.smiech.game.framework.impl
+package at.smiech.engine.impl
 
 import android.graphics.Bitmap
 import at.smiech.engine.Graphics.PixmapFormat

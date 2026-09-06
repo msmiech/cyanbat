@@ -8,6 +8,7 @@ kotlin {
     android {
         namespace = "at.smiech.engine"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
+        minSdk = libs.versions.android.minSdk.get().toInt()
     }
 
     sourceSets {

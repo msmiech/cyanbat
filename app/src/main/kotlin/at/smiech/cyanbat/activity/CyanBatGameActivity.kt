@@ -11,7 +11,7 @@ import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Screen
-import at.smiech.game.framework.impl.AndroidGameActivity
+import at.smiech.engine.impl.AndroidGameActivity
 
 class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen

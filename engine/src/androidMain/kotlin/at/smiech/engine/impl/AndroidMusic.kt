@@ -1,4 +1,4 @@
-package at.smiech.game.framework.impl
+package at.smiech.engine.impl
 
 import android.content.res.AssetFileDescriptor
 import android.media.MediaPlayer
@@ -21,6 +21,9 @@ class AndroidMusic(afd: AssetFileDescriptor) : Music, OnCompletionListener {
                     mediaPlayer.prepare()
                     isPrepared = true
                 }
+
+                mediaPlayer.playbackParams = mediaPlayer.playbackParams.setSpeed(1.0f)
+                
                 mediaPlayer.start()
             } catch (exc: Exception) {
                 exc.printStackTrace()
@@ -61,11 +64,12 @@ class AndroidMusic(afd: AssetFileDescriptor) : Music, OnCompletionListener {
     init {
         try {
             mediaPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            afd.close()
             mediaPlayer.prepare()
             isPrepared = true
             mediaPlayer.setOnCompletionListener(this)
         } catch (exc: IOException) {
-            throw RuntimeException("Could not load music!")
+            throw RuntimeException("Could not load music! $exc")
         }
     }
 }

@@ -1,9 +1,8 @@
-package at.smiech.game.framework.impl
+package at.smiech.engine.impl
 
 import android.content.Context
 import at.smiech.engine.Input
 import at.smiech.engine.Input.TouchEvent
-import at.smiech.engine.impl.ComposeTouchHandler
 
 class AndroidInput(context: Context, val touchHandler: ComposeTouchHandler) : Input {
     var sensorHandler: SensorHandler = SensorHandler(context)
