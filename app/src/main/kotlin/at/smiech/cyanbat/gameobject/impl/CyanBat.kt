@@ -1,12 +1,13 @@
 package at.smiech.cyanbat.gameobject.impl
 
-import android.graphics.Rect
 import android.os.VibrationEffect
 import android.os.VibrationEffect.DEFAULT_AMPLITUDE
 import android.util.Log
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
+import at.grueneis.game.framework.math.Rect
+import at.grueneis.game.framework.math.Vector2
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.gameobject.Collidable
 import at.smiech.cyanbat.gameobject.PixmapGameObject
@@ -14,7 +15,6 @@ import at.smiech.cyanbat.ui.game.GameOverScreen
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
-import at.smiech.cyanbat.util.Vector2D
 
 class CyanBat(
     x: Int,
@@ -25,7 +25,7 @@ class CyanBat(
     private val frameBufferWidth: Int,
     private val frameBufferHeight: Int,
     private val gameScreen: GameScreen
-) : PixmapGameObject(Rect(x, y, x + width, y + height), pixmap), Collidable {
+) : PixmapGameObject(Rect.fromLTWH(x.toFloat(), y.toFloat(), width.toFloat(), height.toFloat()), pixmap), Collidable {
 
     private var animTickTime = 0f
     var alive = true
@@ -49,31 +49,31 @@ class CyanBat(
     }
 
     private fun updateTrails() {
-        val potentialRect = Rect(
+        val potentialRect = Rect.fromLTWH(
             rectangle.left,
-            rectangle.top + rectangle.height() / 2, rectangle.left + rectangle.width() / 4,
-            rectangle.bottom
+            rectangle.top + rectangle.height / 2f,
+            rectangle.width / 4f,
+            rectangle.height / 2f
         )
-        if (trails.any { Rect.intersects(it.rectangle, potentialRect) }) {
+        if (trails.any { it.rectangle.intersects(potentialRect) }) {
             return
         }
 
         trails.removeIf { curve -> curve.removeMe }
 
-        potentialRect.left -= 2
-        potentialRect.right -= 1
-        val go = CyanTrail(potentialRect)
+        val trailRect = potentialRect.offset(-2f, 0f)
+        val go = CyanTrail(trailRect)
         trails.add(go)
         gameScreen.gameObjects.add(go)
     }
 
     private fun shoot() {
         val shot = Shot(
-            Rect(
+            Rect.fromLTWH(
                 rectangle.left,
                 rectangle.top,
-                rectangle.left + CyanBatGameActivity.gameAssets.graphics.shot.width,
-                rectangle.top + CyanBatGameActivity.gameAssets.graphics.shot.height
+                CyanBatGameActivity.gameAssets.graphics.shot.width.toFloat(),
+                CyanBatGameActivity.gameAssets.graphics.shot.height.toFloat()
             ), CyanBatGameActivity.gameAssets.graphics.shot, this
         )
         gameScreen.gameObjects.add(shot)
@@ -97,7 +97,7 @@ class CyanBat(
             if (hitCooldown > 0f) {
                 hitCooldown -= deltaTime
             }
-            velocity = Vector2D(0f, 0f)
+            velocity = Vector2(0f, 0f)
             if (touchEvents.isNotEmpty()) {
                 tickTime += deltaTime
                 while (tickTime > tick) {
@@ -111,9 +111,9 @@ class CyanBat(
                 }
             }
         } else {
-            velocity = Vector2D(0f, 2f)
+            velocity = Vector2(0f, 2f)
             // check whether the bat animation has finished (i.e. bat is outside the screen)
-            if (rectangle.top > frameBufferWidth) {
+            if (rectangle.top > frameBufferHeight) {
                 // switch to the GameOverScreen, if so
                 gameScreen.game.setScreen(GameOverScreen(gameScreen.game))
             }
@@ -126,7 +126,7 @@ class CyanBat(
         }
         var vx = 0f
         var vy = 0f
-        if (touch.x > rectangle.centerX()) {
+        if (touch.x > rectangle.centerX) {
             if (rectangle.right < frameBufferWidth) {
                 vx = 3f
             }
@@ -135,7 +135,7 @@ class CyanBat(
                 vx = -3f
             }
         }
-        if (touch.y > rectangle.centerY()) {
+        if (touch.y > rectangle.centerY) {
             if (rectangle.bottom < frameBufferHeight) {
                 vy = 3f
             }
@@ -144,15 +144,18 @@ class CyanBat(
                 vy = -3f
             }
         }
-        velocity = Vector2D(vx, vy)
+        velocity = Vector2(vx, vy)
     }
 
     override fun draw(g: Graphics) {
         if (DEBUG)
             Log.d(TAG, "drawBat")
         g.drawPixmap(
-            pixmap, rectangle.left, rectangle.top, srcX, 0, DEFAULT_WIDTH,
-            rectangle.height()
+            pixmap,
+            rectangle.left.toInt(),
+            rectangle.top.toInt(),
+            srcX, 0, DEFAULT_WIDTH,
+            rectangle.height.toInt()
         )
         super.draw(g)
     }

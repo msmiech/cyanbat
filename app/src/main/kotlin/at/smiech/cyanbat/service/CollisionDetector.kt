@@ -1,7 +1,7 @@
 package at.smiech.cyanbat.service
 
-import android.graphics.Rect
 import android.util.Log
+import at.grueneis.game.framework.math.Rect
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.gameobject.Collidable
 import at.smiech.cyanbat.gameobject.GameObject
@@ -59,13 +59,8 @@ class CollisionDetector(private val gameObjects: MutableList<GameObject>) {
             return
         }
 
-        val tolRect = Rect(
-            mainRect.left + COLLISION_TOLERANCE,
-            mainRect.top + COLLISION_TOLERANCE,
-            mainRect.right - 2 * COLLISION_TOLERANCE,
-            mainRect.bottom - 2 * COLLISION_TOLERANCE
-        )
-        if (Rect.intersects(tolRect, otherRect)) {
+        val tolRect = mainRect.inflate(-COLLISION_TOLERANCE.toFloat())
+        if (tolRect.intersects(otherRect)) {
             if (other is Shot) {
                 if (main === other.firedBy) {
                     return
@@ -74,8 +69,13 @@ class CollisionDetector(private val gameObjects: MutableList<GameObject>) {
             val collidableMain = main as Collidable
             val collidableOther = other as Collidable
             collidableMain.hit()
-            val explosionRect = Rect(otherRect) // copy the rectangle
-            explosionRect.right = explosionRect.left + Explosion.realWidth
+            
+            val explosionRect = Rect.fromLTWH(
+                otherRect.left,
+                otherRect.top,
+                Explosion.realWidth.toFloat(),
+                otherRect.height
+            )
             collidableOther.hit()
             val explosionObject =
                 Explosion(explosionRect, CyanBatGameActivity.gameAssets.graphics.explosion)

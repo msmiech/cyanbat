@@ -1,11 +1,11 @@
 package at.smiech.cyanbat.gameobject.impl
 
-import android.graphics.Rect
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
+import at.grueneis.game.framework.math.Rect
+import at.grueneis.game.framework.math.Vector2
 import at.smiech.cyanbat.gameobject.PixmapGameObject
-import at.smiech.cyanbat.util.Vector2D
 
 class Explosion(rect: Rect, pixmap: Pixmap) : PixmapGameObject(rect, pixmap) {
 
@@ -15,7 +15,7 @@ class Explosion(rect: Rect, pixmap: Pixmap) : PixmapGameObject(rect, pixmap) {
     private var srcX: Int = 0
 
     init {
-        velocity = Vector2D(x = -1f)
+        velocity = Vector2(x = -1f)
     }
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
@@ -43,8 +43,11 @@ class Explosion(rect: Rect, pixmap: Pixmap) : PixmapGameObject(rect, pixmap) {
 
     override fun draw(g: Graphics) {
         g.drawPixmap(
-            pixmap, rectangle.left, rectangle.top, srcX, 0, realWidth,
-            rectangle.bottom
+            pixmap,
+            rectangle.left.toInt(),
+            rectangle.top.toInt(),
+            srcX, 0, realWidth,
+            rectangle.height.toInt()
         )
     }
 

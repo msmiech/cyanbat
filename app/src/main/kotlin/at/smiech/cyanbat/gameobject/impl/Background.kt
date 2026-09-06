@@ -1,15 +1,15 @@
 package at.smiech.cyanbat.gameobject.impl
 
-import android.graphics.Rect
 import android.util.Log
 import at.grueneis.game.framework.Graphics
 import at.grueneis.game.framework.Input.TouchEvent
 import at.grueneis.game.framework.Pixmap
+import at.grueneis.game.framework.math.Rect
+import at.grueneis.game.framework.math.Vector2
 import at.smiech.cyanbat.gameobject.GameObject
 import at.smiech.cyanbat.gameobject.PixmapGameObject
 import at.smiech.cyanbat.util.DEBUG
 import at.smiech.cyanbat.util.TAG
-import at.smiech.cyanbat.util.Vector2D
 
 class Background(
     x: Int,
@@ -17,10 +17,10 @@ class Background(
     pixmap: Pixmap,
     private val frameBufferWidth: Int,
     private val gameObjects: MutableList<GameObject>
-) : PixmapGameObject(Rect(x, y, x + pixmap.width, y + pixmap.height), pixmap) {
+) : PixmapGameObject(Rect.fromLTWH(x.toFloat(), y.toFloat(), pixmap.width.toFloat(), pixmap.height.toFloat()), pixmap) {
 
     init {
-        velocity = Vector2D(x = -2f)
+        velocity = Vector2(x = -2f)
     }
 
     override fun update(deltaTime: Float, touchEvents: List<TouchEvent>) {
@@ -48,7 +48,7 @@ class Background(
     override fun draw(g: Graphics) {
         if (DEBUG)
             Log.d(TAG, "drawBackground")
-        g.drawPixmap(pixmap, rectangle.left, rectangle.top)
+        g.drawPixmap(pixmap, rectangle.left.toInt(), rectangle.top.toInt())
     }
 
     companion object {
