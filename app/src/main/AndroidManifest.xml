@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    android:versionCode="12"
-    android:versionName="1.2">
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.VIBRATE" />
@@ -17,13 +15,9 @@
             android:screenOrientation="landscape"
             tools:ignore="DiscouragedApi">
             <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-
         </activity>
         <activity
             android:name=".activity.CyanBatGameActivity"
@@ -34,7 +28,7 @@
 
         <provider
             android:name=".persistence.ScoreProvider"
-            android:authorities="at.smiech.cyanbat"
+            android:authorities="at.smiech.cyanbat.persistence"
             android:exported="false" />
     </application>
 

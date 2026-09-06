@@ -6,7 +6,7 @@ plugins {
 
 kotlin {
     android {
-        namespace = "at.smiech.game.framework"
+        namespace = "at.smiech.engine"
         compileSdk = libs.versions.android.compileSdk.get().toInt()
     }
 

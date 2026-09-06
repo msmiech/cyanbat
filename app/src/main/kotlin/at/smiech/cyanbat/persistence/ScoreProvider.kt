@@ -69,7 +69,7 @@ class ScoreProvider : ContentProvider() {
         return null
     }
 
-    override fun insert(uri: Uri, values: ContentValues?): Uri? {
+    override fun insert(uri: Uri, values: ContentValues?): Uri {
         val uriType = URIMatcher.match(uri)
         val sqLiteDatabase = sqLiteHelper!!.writableDatabase
         val id: Long
@@ -147,7 +147,7 @@ class ScoreProvider : ContentProvider() {
         private const val SCORE = 10
         private const val SCORE_ID = 20
 
-        private const val AUTHORITY = "at.msmiech.cyanbat.persistence"
+        private const val AUTHORITY = "at.smiech.cyanbat.persistence"
 
         private val BASE_PATH = ScoreContract.ScoreEntry.TABLE_NAME
 
