@@ -21,13 +21,32 @@ kotlin {
  * `./gradlew build` working for a contributor who has no keystore; the workflow, not this file, is
  * what refuses to publish an unsigned APK.
  */
-val keystoreFile = providers.environmentVariable("ANDROID_KEYSTORE_FILE")
-    .map { file(it) }
-    .orNull
-    ?.takeIf { it.isFile }
-val keystorePassword = providers.environmentVariable("ANDROID_KEYSTORE_PASSWORD").orNull
-val keystoreKeyAlias = providers.environmentVariable("ANDROID_KEY_ALIAS").orNull
-val keystoreKeyPassword = providers.environmentVariable("ANDROID_KEY_PASSWORD").orNull
+// Blank counts as absent: GitHub Actions sets an env var to the empty string when the secret
+// behind it does not exist, so an unset secret would otherwise read as a real, empty password.
+fun signingEnv(name: String): String? =
+    providers.environmentVariable(name).orNull?.takeIf { it.isNotBlank() }
+
+val keystoreFile = signingEnv("ANDROID_KEYSTORE_FILE")?.let(::file)?.takeIf { it.isFile }
+val keystorePassword = signingEnv("ANDROID_KEYSTORE_PASSWORD")
+val keystoreKeyAlias = signingEnv("ANDROID_KEY_ALIAS")
+
+/*
+ * PKCS12 - what keytool produces by default, and what the README tells you to create - has no
+ * separate key password at all: keytool refuses to set one ("Different store and key passwords not
+ * supported for PKCS12 KeyStores") and the store password is what unlocks the key. So an absent key
+ * password means "the same as the store", not "none".
+ *
+ * It has to be resolved to something. AGP models keyPassword as a Gradle Property, and leaving it
+ * unset does not mean empty - reading it later fails the build with MissingValueException, from a
+ * task that never mentions passwords.
+ */
+val keystoreKeyPassword = signingEnv("ANDROID_KEY_PASSWORD") ?: keystorePassword
+
+// Half a configuration is a mistake worth naming, rather than one to discover through whichever
+// AGP task reads the property first.
+require(keystoreFile == null || (keystorePassword != null && keystoreKeyAlias != null)) {
+    "ANDROID_KEYSTORE_FILE is set, so ANDROID_KEYSTORE_PASSWORD and ANDROID_KEY_ALIAS must be set too"
+}
 
 extensions.configure<ApplicationExtension> {
     namespace = "at.smiech.cyanbat"

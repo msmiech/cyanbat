@@ -127,6 +127,8 @@ jobs:
           ANDROID_KEYSTORE_FILE: ${{ runner.temp }}/cyanbat.jks
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          # Optional: a missing secret arrives as the empty string, which the build reads as
+          # "same as the store password" - which is the only thing PKCS12 allows anyway.
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
         run: ./gradlew build "-Pcyanbat.version=${{ needs.version.outputs.version }}"
 
