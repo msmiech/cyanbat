@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.ui.game
 
 import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.ScoreTracker
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
@@ -13,6 +14,8 @@ import at.smiech.engine.Game
 import at.smiech.engine.Graphics
 import at.smiech.engine.Screen
 import at.smiech.engine.ecs.AnimationSystem
+import at.smiech.engine.ecs.CollisionComponent
+import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.CollisionSystem
 import at.smiech.engine.ecs.EnemyBehaviorSystem
 import at.smiech.engine.ecs.EntityId
@@ -45,7 +48,7 @@ class GameScreen(
     
     private val batId: EntityId
     
-    var score: Int = 0
+    private val scoring = ScoreTracker()
     var highscore: Int = 0
     var tick = TICK_INITIAL
     private var tickTime = 0f
@@ -116,6 +119,11 @@ class GameScreen(
     }
 
     private fun handleCollision(id1: EntityId, id2: EntityId) {
+        // Checked before the damage is applied, while both entities still have their components.
+        if (isEnemyShotDown(id1, id2)) {
+            scoring.registerEnemyDestroyed()
+        }
+
         processDamage(id1)
         processDamage(id2)
         
@@ -126,6 +134,20 @@ class GameScreen(
         }
     }
 
+    /**
+     * True when this pair is one of the player's shots meeting an enemy, in either order - the
+     * collision system reports pairs by entity id, not by role.
+     *
+     * Obstacles deliberately do not count: they are scenery a shot happens to clear, not a kill.
+     */
+    private fun isEnemyShotDown(id1: EntityId, id2: EntityId): Boolean {
+        val groups = setOf(collisionGroupOf(id1), collisionGroupOf(id2))
+        return groups == setOf(CollisionGroup.PLAYER_PROJECTILE, CollisionGroup.ENEMY)
+    }
+
+    private fun collisionGroupOf(id: EntityId): CollisionGroup? =
+        world.getComponent(id, CollisionComponent::class)?.group
+
     private fun processDamage(targetId: EntityId) {
         val health = world.getComponent(targetId, HealthComponent::class) ?: return
         
@@ -134,6 +156,7 @@ class GameScreen(
             if (control.hitCooldown <= 0f) {
                 health.lives--
                 control.hitCooldown = 0.5f // MAX_HIT_COOLDOWN
+                scoring.registerPlayerHit()
                 
                 // Vibrate on hit
                 env.haptics.vibrate(HIT_VIBRATION_MILLIS)
@@ -162,7 +185,7 @@ class GameScreen(
     }
 
     private fun initStats() {
-        score = 0
+        scoring.reset()
         readHighscore()
     }
 
@@ -182,7 +205,7 @@ class GameScreen(
         while (tickTime > tick) {
             tickTime -= tick
             world.update(tick, game.input)
-            score++
+            scoring.awardSurvivalTick()
             
             enmGen.generateEnemy()
             obsGen.generateObstacle()
@@ -198,8 +221,8 @@ class GameScreen(
     }
 
     fun saveHighscore() {
-        if (score > highscore) {
-            highscore = score
+        if (scoring.score > highscore) {
+            highscore = scoring.score
         }
 
         // Deliberately not on screenScope: this runs as the bat dies, moments before the screen is
@@ -224,9 +247,14 @@ class GameScreen(
     private fun drawStats() {
         val health = world.getComponent(batId, HealthComponent::class)!!
         g.apply {
-            drawString("Score: $score", 5, 20, 15, EngineColors.CYAN)
+            drawString("Score: ${scoring.score}", 5, 20, 15, EngineColors.CYAN)
             drawString("Highscore: $highscore", 5, 40, 15, EngineColors.CYAN)
             drawString("Lives: ${health.lives}", 5, 60, 15, EngineColors.CYAN)
+            // Always shown, even at x1: a multiplier the player only sees once they have
+            // earned it is a mechanic they never learn exists.
+            val multiplier = scoring.multiplier
+            val comboColor = if (multiplier > 1) EngineColors.YELLOW else EngineColors.CYAN
+            drawString("Combo: x$multiplier", 5, 80, 15, comboColor)
         }
     }
 
