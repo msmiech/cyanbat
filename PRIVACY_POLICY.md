@@ -2,7 +2,7 @@
 
 Welcome to the CyanBat mobile game for Android!
 
-This is an open source Android app developed by Martin Smiech. The source code is available on GitHub. The app is also available on the Google Play store.
+This is an open source game developed by Martin Smiech, playable on Android and on the desktop. The source code is available on GitHub, and builds are distributed as [GitHub releases](https://github.com/msmiech/cyanbat/releases). It is no longer published on the Google Play store.
 
 I hereby state, to the best of my knowledge and belief, that I have not programmed this app to collect any personally identifiable information. All user data (i.e. the app preferences used for the high score) is stored on your device only, and can be simply erased by clearing the app's data or uninstalling it.
 
@@ -10,7 +10,7 @@ I hereby state, to the best of my knowledge and belief, that I have not programm
 
 The list of permissions required by the app can be found in the `AndroidManifest.xml` file:
 
-https://github.com/msmiech/cyanbat/blob/master/app/src/main/AndroidManifest.xml
+https://github.com/msmiech/cyanbat/blob/main/app/src/main/AndroidManifest.xml
 
 <br/>
 
