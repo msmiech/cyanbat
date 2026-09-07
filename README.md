@@ -78,21 +78,34 @@ nothing.
 ### Signing secrets
 
 The APK is signed with a keystore supplied through repository secrets, so nothing sensitive lives
-in the repository. It must be **the same keystore earlier releases were signed with**: Android
-refuses to install an update signed by a different key, so a fresh keystore would strand everyone
-already running the game.
+in the repository.
+
+2.0 is signed with a **new** keystore. The one the 1.x releases used is gone, and Android identifies
+an app by its signature, so 2.0 is a fresh install rather than an update — anything still running a
+1.x build has to be uninstalled first. That break is a one-off; from 2.0 onwards the same keystore
+has to keep being used, because losing it again would force the same break on whoever is running
+2.x by then.
+
+Create it once, and back it up somewhere you will still have in a few years:
+
+```bash
+keytool -genkeypair -v -keystore cyanbat-release.jks -storetype PKCS12 \
+  -alias cyanbat -keyalg RSA -keysize 4096 -validity 10000
+```
+
+Then add four repository secrets, under **Settings → Secrets and variables → Actions**:
 
 | Secret | What it is |
 |---|---|
-| `ANDROID_KEYSTORE_BASE64` | The `.jks` file, base64-encoded |
+| `ANDROID_KEYSTORE_BASE64` | The keystore file, base64-encoded |
 | `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
-| `ANDROID_KEY_ALIAS` | Alias of the signing key inside the keystore |
+| `ANDROID_KEY_ALIAS` | Alias of the signing key inside the keystore — `cyanbat` above |
 | `ANDROID_KEY_PASSWORD` | Password for that key |
 
 Encode the keystore with:
 
 ```bash
-base64 -w0 cyanbat.jks
+base64 -w0 cyanbat-release.jks
 ```
 
 Without these the release job fails rather than publishing an APK nobody can install. Local builds

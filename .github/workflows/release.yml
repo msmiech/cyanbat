@@ -93,9 +93,10 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
 
-      # The keystore has to be the one 1.2 was signed with: Android refuses to install an update
-      # signed by a different key, so a fresh keystore would strand everyone already running the
-      # game. Absent on pull requests by design, where secrets are not exposed.
+      # 2.0 introduces a new keystore, the 1.x one having been lost. Android identifies an app by
+      # its signature, so that makes 2.0 a fresh install rather than an update - a one-off break
+      # taken deliberately. Every release from 2.0 on has to keep using the same keystore.
+      # Absent on pull requests by design, where secrets are not exposed.
       - name: Decode the signing keystore
         id: keystore
         env:
