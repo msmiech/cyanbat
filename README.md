@@ -100,7 +100,13 @@ Then add four repository secrets, under **Settings → Secrets and variables →
 | `ANDROID_KEYSTORE_BASE64` | The keystore file, base64-encoded |
 | `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
 | `ANDROID_KEY_ALIAS` | Alias of the signing key inside the keystore — `cyanbat` above |
-| `ANDROID_KEY_PASSWORD` | Password for that key |
+| `ANDROID_KEY_PASSWORD` | Password for the key. **Optional on PKCS12**, see below |
+
+A PKCS12 keystore has only one password. `keytool` refuses to give the key its own — *"Different
+store and key passwords not supported for PKCS12 KeyStores"* — and the store password is what
+unlocks the key. So a keystore whose key appears to have no password is normal, not broken: leave
+`ANDROID_KEY_PASSWORD` unset and the build uses the store password. Set it only for an older JKS
+keystore that genuinely carries a separate one.
 
 Encode the keystore with:
 
