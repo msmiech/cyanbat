@@ -30,7 +30,8 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "CyanBat"
-            packageVersion = "1.6.0"
+            // jpackage insists on major.minor.patch; see the root build.gradle.kts.
+            packageVersion = rootProject.extra["cyanbatPackageVersion"] as String
         }
     }
 }

@@ -57,6 +57,51 @@ build, install, launch, screenshot, and check persistence. See
 Assembles every module, runs lint, and runs the unit tests — ECS, maths, spawn pacing, and a
 check that the MP3 service provider desktop audio depends on is actually present.
 
+## 📦 Cutting a release
+
+Every artifact takes its version from `cyanbat.version` in `gradle.properties`. The release
+workflow overrides it with the tag being built, so tagging is what sets the version — the property
+is only what an untagged build stamps.
+
+Pushing a version tag builds and publishes everything:
+
+```bash
+git tag 2.0 && git push origin 2.0
+```
+
+That produces a signed Android APK plus Windows, macOS and Linux desktop installers, and attaches
+them to a GitHub release. Tags work with or without a leading `v`; a suffixed tag such as `2.1-rc1`
+publishes as a pre-release. To rehearse without spending a tag, run the **Release** workflow
+manually from the Actions tab — it builds and uploads the same artifacts to the run, and publishes
+nothing.
+
+### Signing secrets
+
+The APK is signed with a keystore supplied through repository secrets, so nothing sensitive lives
+in the repository. It must be **the same keystore earlier releases were signed with**: Android
+refuses to install an update signed by a different key, so a fresh keystore would strand everyone
+already running the game.
+
+| Secret | What it is |
+|---|---|
+| `ANDROID_KEYSTORE_BASE64` | The `.jks` file, base64-encoded |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
+| `ANDROID_KEY_ALIAS` | Alias of the signing key inside the keystore |
+| `ANDROID_KEY_PASSWORD` | Password for that key |
+
+Encode the keystore with:
+
+```bash
+base64 -w0 cyanbat.jks
+```
+
+Without these the release job fails rather than publishing an APK nobody can install. Local builds
+and pull requests need no keystore at all — `assembleRelease` simply produces an unsigned APK, as
+it always has.
+
+Desktop installers are unsigned, so Windows SmartScreen and macOS Gatekeeper will warn on first
+run. Fixing that needs a paid code-signing certificate and an Apple developer account.
+
 ## 🛠 Tech stack
 
 - **Language**: Kotlin 2.x, Kotlin Multiplatform
