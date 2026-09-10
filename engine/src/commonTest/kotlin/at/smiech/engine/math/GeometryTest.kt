@@ -40,6 +40,20 @@ class RectTest {
         assertEquals(a.intersects(b), b.intersects(a))
     }
 
+    /**
+     * Unlike [Rect.intersects], containment includes the border: a grab box is there to be
+     * generous, and a touch landing exactly on its edge should count.
+     */
+    @Test
+    fun `contains includes the edges and excludes points beyond them`() {
+        val r = Rect.fromLTRB(10f, 20f, 30f, 40f)
+        assertTrue(r.contains(20f, 30f))
+        assertTrue(r.contains(10f, 20f))
+        assertTrue(r.contains(30f, 40f))
+        assertFalse(r.contains(9.9f, 30f))
+        assertFalse(r.contains(20f, 40.1f))
+    }
+
     @Test
     fun `offset moves all edges and preserves size`() {
         val r = Rect.fromLTWH(10f, 20f, 30f, 40f).offset(-2.5f, 1.5f)

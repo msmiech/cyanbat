@@ -50,7 +50,36 @@ data class HealthComponent(var lives: Int = 1, var alive: Boolean = true) : Comp
 data class LifetimeComponent(val removeIfOutOfBounds: Boolean = true) : Component
 
 // Specialized components for behavior
-data class PlayerControlComponent(var hitCooldown: Float = 0f) : Component
+
+/**
+ * Marks an entity as steered by the player, and holds the drag [PlayerInputSystem] is in the
+ * middle of.
+ *
+ * The drag lives here rather than in the system so that each steered entity owns its own, and so
+ * that it dies with the entity instead of outliving it in a system that is reused across runs.
+ *
+ * @param activePointer pointer id currently steering this entity, or [NO_POINTER].
+ * @param dragging true once the entity is pinned to that pointer and follows it one to one; false
+ *   while it is still flying towards a touch that landed away from it.
+ * @param grabOffsetX/grabOffsetY where the entity's centre sits relative to the pointer, fixed at
+ *   the moment of the grab so the sprite does not jump under the fingertip.
+ * @param targetX/targetY last reported position of [activePointer], in framebuffer pixels. Held
+ *   across updates because touch events are consumed once per frame while the world may tick
+ *   several times.
+ */
+data class PlayerControlComponent(
+    var hitCooldown: Float = 0f,
+    var activePointer: Int = NO_POINTER,
+    var dragging: Boolean = false,
+    var grabOffsetX: Float = 0f,
+    var grabOffsetY: Float = 0f,
+    var targetX: Float = 0f,
+    var targetY: Float = 0f,
+) : Component {
+    companion object {
+        const val NO_POINTER = -1
+    }
+}
 
 enum class EnemyMovementType { SINE, ZIGZAG, SCOUT }
 data class EnemyBehaviorComponent(

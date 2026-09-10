@@ -120,9 +120,17 @@ so a green build says nothing about behavior. Verify on the emulator.
   duration through the fixed-step loop. A ~7s pause jumped the score by ~440 and
   cost a life. Any timing or lives assertion spanning a pause will be wrong.
 
-- **An unattended bat dies within seconds.** It only moves while `TOUCH_DRAGGED`
-  events arrive and takes hits standing still, scoring a few hundred before game
-  over. Capture what you need immediately after `start`, or use `play`.
+- **An unattended bat dies within seconds.** It holds position with no finger on
+  it and takes hits standing still, scoring a few hundred before game over.
+  Capture what you need immediately after `start`, or use `play`.
+
+- **The bat is dragged, so `input swipe` places it precisely.** It ends the swipe
+  centred on the release point when the swipe started away from it, or offset by
+  wherever on the sprite it was grabbed. A press and hold (`input swipe x y x y
+  1200`) also works: one `TOUCH_DOWN` is enough, and the bat flies over to it.
+  That makes screenshots of a chosen position repeatable - see
+  `PlayerInputSystem`. Screen pixels map to the 480x320 framebuffer at
+  x/5 and y*320/1080.
 
 - **`play` finishes runs, it does not survive them.** Once the bat dies, the next
   swipe's `TOUCH_UP` dismisses `GameOverScreen` back to the menu. That is the way
