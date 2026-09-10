@@ -22,4 +22,10 @@ interface Input {
     val accelZ: Float
     val touchEvents: List<TouchEvent>?
     val pointerCount: Int
+
+    /**
+     * Keyboard and game controller state. Defaults to [Controls.None], so a host that offers
+     * neither - and a test that only drives touch - needs no boilerplate.
+     */
+    val controls: Controls get() = Controls.None
 }

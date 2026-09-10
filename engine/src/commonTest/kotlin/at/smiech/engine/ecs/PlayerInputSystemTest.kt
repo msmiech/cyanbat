@@ -1,6 +1,9 @@
 package at.smiech.engine.ecs
 
+import at.smiech.engine.Controls
+import at.smiech.engine.Direction
 import at.smiech.engine.Input
+import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
 import kotlin.math.abs
@@ -21,7 +24,7 @@ class PlayerInputSystemTest {
     }
 
     /** Queues touch events and hands them over exactly once, as the real handler does. */
-    private class FakeInput : Input {
+    private class FakeInput(override val controls: Controls) : Input {
         private val queued = mutableListOf<Input.TouchEvent>()
 
         fun queue(type: Int, x: Int, y: Int, pointer: Int) {
@@ -46,7 +49,8 @@ class PlayerInputSystemTest {
     }
 
     private class Harness(batX: Float = 100f, batY: Float = 100f) {
-        val input = FakeInput()
+        val controls = ControlHandler()
+        val input = FakeInput(controls)
         val world = World().apply {
             addSystem(PlayerInputSystem(WIDTH, HEIGHT))
             addSystem(MovementSystem())
@@ -252,6 +256,109 @@ class PlayerInputSystemTest {
         assertEquals(before.left, h.rect.left)
         assertClose(before.top + 2f, h.rect.top)
         assertEquals(PlayerControlComponent.NO_POINTER, h.control.activePointer)
+    }
+
+    @Test
+    fun `a held direction moves the bat at the directional speed`() {
+        val h = Harness()
+        val startX = h.rect.centerX
+        h.controls.onDirection(Direction.RIGHT, true)
+
+        h.tick(times = 10)
+        assertClose(PlayerInputSystem.DIRECTIONAL_SPEED * TICK * 10, h.rect.centerX - startX, 0.5f)
+        assertClose(100f, h.rect.top, 0.01f)
+
+        // Letting go stops it, rather than coasting.
+        h.controls.onDirection(Direction.RIGHT, false)
+        val stoppedAt = h.rect
+        h.tick(times = 10)
+        assertEquals(stoppedAt, h.rect)
+    }
+
+    @Test
+    fun `a diagonal is no faster than a cardinal`() {
+        val straight = Harness()
+        straight.controls.onDirection(Direction.RIGHT, true)
+        straight.tick(times = 10)
+        val straightDistance = straight.rect.centerX - 122.5f
+
+        val diagonal = Harness()
+        diagonal.controls.onDirection(Direction.RIGHT, true)
+        diagonal.controls.onDirection(Direction.DOWN, true)
+        diagonal.tick(times = 10)
+        val travelled = sqrt(
+            (diagonal.rect.centerX - 122.5f) * (diagonal.rect.centerX - 122.5f) +
+                (diagonal.rect.centerY - 120f) * (diagonal.rect.centerY - 120f)
+        )
+
+        assertClose(straightDistance, travelled, 0.5f)
+    }
+
+    @Test
+    fun `a half-pushed stick moves at half speed`() {
+        val h = Harness()
+        // Past the dead zone by half of what is left, which is what the handler rescales to 0.5.
+        val halfway = ControlHandler.AXIS_DEAD_ZONE + (1f - ControlHandler.AXIS_DEAD_ZONE) / 2f
+        h.controls.onAxis(halfway, 0f)
+
+        h.tick(times = 10)
+        assertClose(
+            PlayerInputSystem.DIRECTIONAL_SPEED * TICK * 10 * 0.5f,
+            h.rect.centerX - 122.5f,
+            0.5f
+        )
+    }
+
+    @Test
+    fun `a held key takes the bat off the finger, and letting go hands it back`() {
+        val h = Harness()
+        h.down(110, 110)
+        h.tick()
+        assertTrue(h.control.dragging)
+
+        h.controls.onDirection(Direction.LEFT, true)
+        h.drag(300, 300)
+        h.tick()
+
+        // The pointer said "go down and right"; the key wins and the bat goes left.
+        assertTrue(h.rect.centerX < 122.5f, "the key should outrank the drag")
+        assertEquals(PlayerControlComponent.NO_POINTER, h.control.activePointer)
+
+        h.controls.onDirection(Direction.LEFT, false)
+        h.drag(300, 300)
+        h.tick(times = 200)
+        assertClose(300f, h.rect.centerX, 1f)
+        assertClose(300f, h.rect.centerY, 1f)
+    }
+
+    @Test
+    fun `a steered bat stays inside the framebuffer`() {
+        val h = Harness()
+        h.controls.onDirection(Direction.LEFT, true)
+        h.controls.onDirection(Direction.UP, true)
+        h.tick(times = 200)
+        assertClose(0f, h.rect.left)
+        assertClose(0f, h.rect.top)
+
+        h.controls.onDirection(Direction.LEFT, false)
+        h.controls.onDirection(Direction.UP, false)
+        h.controls.onDirection(Direction.RIGHT, true)
+        h.controls.onDirection(Direction.DOWN, true)
+        h.tick(times = 200)
+        assertClose(WIDTH.toFloat(), h.rect.right)
+        assertClose(HEIGHT.toFloat(), h.rect.bottom)
+    }
+
+    @Test
+    fun `a dead bat ignores the keyboard too`() {
+        val h = Harness()
+        h.kill()
+        h.controls.onDirection(Direction.RIGHT, true)
+
+        val before = h.rect
+        h.tick()
+        assertEquals(before.left, h.rect.left)
+        assertClose(before.top + 2f, h.rect.top)
     }
 
     @Test

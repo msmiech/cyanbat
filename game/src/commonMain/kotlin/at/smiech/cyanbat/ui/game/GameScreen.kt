@@ -7,11 +7,15 @@ import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.ObstacleGenerator
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
+import at.smiech.cyanbat.util.PAUSE_DIM
+import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
+import at.smiech.engine.GameButton
 import at.smiech.engine.Graphics
+import at.smiech.engine.Input.TouchEvent
 import at.smiech.engine.Screen
 import at.smiech.engine.ecs.AnimationSystem
 import at.smiech.engine.ecs.CollisionComponent
@@ -68,6 +72,18 @@ class GameScreen(
     
     private lateinit var g: Graphics
     private var levelNameDisplayTime = 3.0f
+
+    /** Set by the player, and by the host backgrounding the app. Cleared only by the player. */
+    private var paused = false
+
+    /**
+     * Time before a tap counts as "resume", in seconds.
+     *
+     * Android's back *gesture* is a swipe from the edge, so the pointer events that pause the
+     * game are followed by the finger lifting. Without this the game would unpause on the tail of
+     * the very gesture that paused it.
+     */
+    private var resumeArmingTime = 0f
 
     init {
         game.graphics?.let { g = it }
@@ -197,10 +213,12 @@ class GameScreen(
     }
 
     override fun update(deltaTime: Float) {
+        if (handlePauseControls(deltaTime)) return
+
         if (levelNameDisplayTime > 0) {
             levelNameDisplayTime -= deltaTime
         }
-        
+
         tickTime += deltaTime
         while (tickTime > tick) {
             tickTime -= tick
@@ -217,6 +235,65 @@ class GameScreen(
             if (transform.rect.top > game.frameBufferHeight) {
                 game.setScreen(GameOverScreen(game, env))
             }
+        }
+    }
+
+    /**
+     * Reads the pause controls and, while paused, holds the run still.
+     *
+     * @return true when the caller should skip this update entirely.
+     */
+    private fun handlePauseControls(deltaTime: Float): Boolean {
+        val input = game.input
+        val controls = input?.controls
+
+        // Back pauses a running game and leaves a paused one. That second meaning is what makes
+        // the Android back button safe to intercept: it still gets the player out, in two presses
+        // rather than one, without a button the touch UI does not have.
+        if (controls?.consumePress(GameButton.BACK) == true) {
+            if (paused) {
+                saveHighscore()
+                env.onExitToMenu()
+                return true
+            }
+            setPaused(true)
+        }
+        if (controls?.consumePress(GameButton.PAUSE) == true) {
+            setPaused(!paused)
+        }
+
+        if (!paused) return false
+
+        resumeArmingTime -= deltaTime
+        // Read even when it cannot resume: the buffer is drained by reading it, and a pause spent
+        // hoarding events would dump them all on the bat at once on the way back in.
+        val tapped = input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true
+        if (tapped && resumeArmingTime <= 0f) setPaused(false)
+        return true
+    }
+
+    private fun setPaused(value: Boolean) {
+        if (paused == value) return
+        paused = value
+        if (value) {
+            resumeArmingTime = RESUME_ARMING_SECONDS
+            if (currentLevel.music.isPlaying) currentLevel.music.pause()
+        } else {
+            // Only the level theme: once the bat is dead the game over track owns playback, and
+            // resuming would put two tracks on top of each other.
+            val health = world.getComponent(batId, HealthComponent::class)
+            if (health?.alive == true) startLevelMusic()
+        }
+    }
+
+    private fun drawPauseOverlay() {
+        g.apply {
+            drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
+            // No text measurement in the Graphics API, so these x offsets are eyeballed against
+            // the 480px framebuffer rather than centred properly.
+            drawString("PAUSED", 186, 140, 30, EngineColors.CYAN)
+            drawString("Tap or press Esc to resume", 155, 175, 15, EngineColors.WHITE)
+            drawString("Back or Q to quit", 185, 197, 15, EngineColors.WHITE)
         }
     }
 
@@ -242,6 +319,8 @@ class GameScreen(
         if (!health.alive) {
             g.drawPixmap(env.assets.graphics.death, 15, 15)
         }
+
+        if (paused) drawPauseOverlay()
     }
 
     private fun drawStats() {
@@ -271,17 +350,23 @@ class GameScreen(
         }
     }
 
+    /**
+     * The host going away pauses the run outright, not just its music. The player is not at the
+     * controls, and a game that carries on the moment the window comes back costs them a life
+     * before they have looked at it.
+     */
     override fun pause() {
-        // Pause rather than stop, so the track picks up where it left off. Guarded because the
-        // music is already stopped once the bat dies.
-        if (currentLevel.music.isPlaying) {
-            currentLevel.music.pause()
-        }
+        setPaused(true)
     }
 
+    /**
+     * Deliberately does not clear [paused]: coming back to the app should not drop the player
+     * straight into a dodge. They resume when they are ready.
+     */
     override fun resume() {
-        // The run survives the pause untouched - only playback needs restoring. After death the
-        // game over music owns playback, so leave it alone.
+        // The run survives untouched - only playback needs restoring, and only if the player had
+        // not paused by hand. After death the game over music owns playback, so leave it alone.
+        if (paused) return
         val health = world.getComponent(batId, HealthComponent::class)
         if (health?.alive == true) {
             startLevelMusic()

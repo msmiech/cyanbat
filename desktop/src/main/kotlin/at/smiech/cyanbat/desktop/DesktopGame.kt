@@ -5,6 +5,7 @@ import at.smiech.engine.Game
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.Screen
+import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopGraphics
 import at.smiech.engine.impl.DesktopInput
 import at.smiech.engine.impl.PointerTouchHandler
@@ -18,6 +19,11 @@ import java.awt.image.BufferedImage
 class DesktopGame(
     override val frameBufferWidth: Int,
     override val frameBufferHeight: Int,
+    /**
+     * Keyboard state. Passed in rather than created here because the window that receives the
+     * key events outlives any single game instance.
+     */
+    val controlHandler: ControlHandler = ControlHandler(),
 ) : Game {
 
     val frameBuffer: BufferedImage =
@@ -28,7 +34,7 @@ class DesktopGame(
     override val graphics: Graphics = DesktopGraphics(frameBuffer, ::openAsset)
 
     override val audio: Audio = DesktopAudio(::openAsset)
-    override val input: Input = DesktopInput(touchHandler)
+    override val input: Input = DesktopInput(touchHandler, controlHandler)
 
     override var currentScreen: Screen? = null
     override val startScreen: Screen? get() = currentScreen

@@ -115,10 +115,11 @@ so a green build says nothing about behavior. Verify on the emulator.
   so the DataStore protobuf decodes to a wrong number (a stored 1350 reads back as
   1734). Use `adb exec-out` for anything binary, screenshots included.
 
-- **The game keeps simulating across a pause, in one burst.** The frame loop never
-  clamps `deltaTime`, so the first frame after a resume replays the entire pause
-  duration through the fixed-step loop. A ~7s pause jumped the score by ~440 and
-  cost a life. Any timing or lives assertion spanning a pause will be wrong.
+- **The game comes back from a pause still paused.** `onPause` sets the run's own
+  pause flag, and `onResume` deliberately does not clear it, so `pause-resume`
+  leaves `pr_after` showing the PAUSED overlay with the score frozen where it was.
+  That is correct, not a hang: tap the screen (or press BACK twice to quit) to get
+  moving again. Score and lives do not advance across the pause any more.
 
 - **An unattended bat dies within seconds.** It holds position with no finger on
   it and takes hits standing still, scoring a few hundred before game over.
@@ -136,8 +137,15 @@ so a green build says nothing about behavior. Verify on the emulator.
   swipe's `TOUCH_UP` dismisses `GameOverScreen` back to the menu. That is the way
   to exercise the highscore write path, not a way to reach late-game state.
 
-- **The highscore only persists on death.** `saveHighscore()` runs when the bat
-  loses its last life, so `highscore` reads stale until a run completes.
+- **The highscore persists on death, or on quitting from the pause screen.**
+  `saveHighscore()` runs when the bat loses its last life and when BACK leaves a
+  paused run, so `highscore` reads stale until one of those happens.
+
+- **BACK no longer finishes the game activity; it pauses.** A second BACK on the
+  paused screen quits to the menu. So `input keyevent KEYCODE_BACK` once looks
+  like nothing happened to `focus` — assert on a screenshot. `adb shell input
+  keyevent 111` (ESCAPE) toggles pause too, and `input keyevent 51/29/47/32`
+  (W/A/S/D) steers the bat, which is a far cheaper way to move it than swiping.
 
 - **Screenshots are 2400x1080** (landscape) even though `adb shell wm size` reports
   `1080x2400`. The app is locked to landscape; `uiautomator` bounds are already in
@@ -150,11 +158,11 @@ so a green build says nothing about behavior. Verify on the emulator.
 
 ## Troubleshooting
 
-| Symptom | Cause / fix |
-|---|---|
-| `no UI node with text "Start Game"` | Not on the menu. Run `menu` first, or check `focus`. |
-| Successive screenshots are byte-identical | The game is not rendering — usually the app fell back to `MainActivity`. Check `focus`. |
-| `pause-resume` prints `WARNING: window changed` | Something reset the task (see the `monkey` gotcha). The resume was not measured. |
-| `highscore` says "no datastore file yet" | No run has ended. `play 45`, then re-check. |
-| `no AVD found` | `emulator -list-avds` is empty; create one in Android Studio or set `$CYANBAT_AVD`. |
-| Driver hangs at boot | Boot took ~20s here but varies by host. Emulator output is in `.artifacts/run-cyanbat/emulator.log`. |
+| Symptom                                         | Cause / fix                                                                                          |
+|-------------------------------------------------|------------------------------------------------------------------------------------------------------|
+| `no UI node with text "Start Game"`             | Not on the menu. Run `menu` first, or check `focus`.                                                 |
+| Successive screenshots are byte-identical       | The game is not rendering — usually the app fell back to `MainActivity`. Check `focus`.              |
+| `pause-resume` prints `WARNING: window changed` | Something reset the task (see the `monkey` gotcha). The resume was not measured.                     |
+| `highscore` says "no datastore file yet"        | No run has ended. `play 45`, then re-check.                                                          |
+| `no AVD found`                                  | `emulator -list-avds` is empty; create one in Android Studio or set `$CYANBAT_AVD`.                  |
+| Driver hangs at boot                            | Boot took ~20s here but varies by host. Emulator output is in `.artifacts/run-cyanbat/emulator.log`. |

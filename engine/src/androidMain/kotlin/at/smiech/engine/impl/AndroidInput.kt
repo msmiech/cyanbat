@@ -1,10 +1,15 @@
 package at.smiech.engine.impl
 
 import android.content.Context
+import at.smiech.engine.Controls
 import at.smiech.engine.Input
 import at.smiech.engine.Input.TouchEvent
 
-class AndroidInput(context: Context, val touchHandler: PointerTouchHandler) : Input {
+class AndroidInput(
+    context: Context,
+    val touchHandler: PointerTouchHandler,
+    override val controls: Controls = Controls.None,
+) : Input {
     var sensorHandler: SensorHandler = SensorHandler(context)
 
     override fun isTouchDown(pointer: Int): Boolean {
