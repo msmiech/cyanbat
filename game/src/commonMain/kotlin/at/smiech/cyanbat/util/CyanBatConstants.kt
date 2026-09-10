@@ -56,3 +56,22 @@ const val HEALTH_BAR_OFFSET_Y = 2f
 const val DAMAGE_TEXT_FONT_SIZE = 12
 const val DAMAGE_TEXT_DURATION_SECONDS = 0.7f
 const val DAMAGE_TEXT_RISE_PER_TICK = 0.6f
+
+// The cyan wake behind the bat. Segments drift at the scenery's own speed, so the wake hangs in
+// the world instead of being towed along behind the sprite. The cadence is set by how fast the bat
+// can move, not by how the wake looks standing still: at full tilt it covers about 12px between
+// segments, so they still touch and the streak does not break into beads.
+const val TRAIL_DRIFT_PER_TICK = -2f
+const val TRAIL_INTERVAL_SECONDS = 0.03f
+
+// Half a second of drift is roughly a bat-length of wake. The original trail faded over two
+// seconds and stretched almost half the screen behind the bat, which read as a smear.
+const val TRAIL_DURATION_SECONDS = 0.5f
+
+// What a segment is down to as it dies, so the wake tapers away instead of ending square.
+const val TRAIL_MIN_SCALE = 0.15f
+
+// A segment against the bat's own frame: a quarter of its width, and the height of the tail that
+// sheds it - the middle band of the sprite, not the whole of it.
+const val TRAIL_SEGMENT_WIDTH_FRACTION = 0.25f
+const val TRAIL_SEGMENT_HEIGHT_FRACTION = 0.25f

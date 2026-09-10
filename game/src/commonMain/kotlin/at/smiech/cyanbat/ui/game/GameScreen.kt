@@ -12,6 +12,8 @@ import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
+import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
+import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
@@ -32,6 +34,7 @@ import at.smiech.engine.ecs.MovementSystem
 import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.PlayerInputSystem
 import at.smiech.engine.ecs.RenderSystem
+import at.smiech.engine.ecs.TrailSystem
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.WeaponSystem
 import at.smiech.engine.ecs.World
@@ -101,7 +104,9 @@ class GameScreen(
         world.addSystem(CollisionSystem { id1, id2 -> handleCollision(id1, id2) })
         world.addSystem(LifetimeSystem(game.frameBufferWidth))
         world.addSystem(RenderSystem())
-        // After the sprites: both draw on top of the run rather than into it.
+        // After the sprites: these three draw on top of the run rather than into it. The wake goes
+        // first of them, so the bar and the damage numbers stay legible over it.
+        world.addSystem(TrailSystem { emitterId -> shedTrail(emitterId) })
         world.addSystem(HealthBarSystem(game.frameBufferHeight))
         world.addSystem(FloatingTextSystem())
 
@@ -137,6 +142,24 @@ class GameScreen(
             height = shot.height.toFloat(),
             pixmap = shot,
             isPlayer = true,
+        )
+    }
+
+    /**
+     * Sheds one segment of the bat's wake, just off the back of it.
+     *
+     * Centred on the sprite rather than sitting under it: the bat's tail is the middle band of
+     * the frame, and a wake off its belly would read as coming from the health bar instead.
+     */
+    private fun shedTrail(emitterId: EntityId) {
+        val rect = world.getComponent(emitterId, TransformComponent::class)?.rect ?: return
+        val width = rect.width * TRAIL_SEGMENT_WIDTH_FRACTION
+        val height = rect.height * TRAIL_SEGMENT_HEIGHT_FRACTION
+        factory.createTrail(
+            x = rect.left - width,
+            y = rect.centerY - height / 2f,
+            width = width,
+            height = height,
         )
     }
 

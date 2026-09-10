@@ -141,7 +141,34 @@ data class EnemyBehaviorComponent(
     var nextDirectionChange: Float = 0f
 ) : Component
 
-data class TrailComponent(var color: Int) : Component
+/**
+ * One segment of the wake an entity leaves behind it, drawn as a plain block that thins and fades
+ * as it ages. [TrailSystem] reaps it once its time is up.
+ *
+ * How far the wake reaches is [duration] against how fast the segment drifts, not a segment count:
+ * segments are shed on a cadence, so a longer life is a longer trail.
+ *
+ * @param color the segment at full strength. Its alpha is scaled down as the segment ages.
+ * @param duration how long the segment lives, in seconds.
+ * @param minScale the fraction of its size a segment is down to at the very end, as 0..1. It
+ *   shrinks about its own centre, so the wake tapers to a thread rather than stopping at full
+ *   width.
+ */
+data class TrailComponent(
+    var color: Int,
+    val duration: Float = 0.5f,
+    val minScale: Float = 0.15f,
+    var elapsed: Float = 0f,
+) : Component
+
+/**
+ * Sheds a trail segment every [interval] seconds for as long as the entity is alive, tracked by
+ * [TrailSystem].
+ */
+data class TrailEmitterComponent(
+    val interval: Float,
+    var timeSinceLastSegment: Float = 0f,
+) : Component
 
 data class BackgroundComponent(val isLooping: Boolean = true) : Component
 

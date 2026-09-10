@@ -349,3 +349,74 @@ class FloatingTextSystem : GameSystem() {
         }
     }
 }
+
+/**
+ * Sheds trail segments off [TrailEmitterComponent]s, then ages, draws and reaps them.
+ *
+ * What a segment looks like is left to [onEmit] - size and colour are a game's business, the same
+ * split [WeaponSystem] uses - and how it moves is left to [MovementSystem], so a segment is just a
+ * transform with a velocity. Emitting on a cadence rather than per frame is what keeps the wake the
+ * same length whatever the frame rate.
+ *
+ * Add it after [RenderSystem]: a trail drawn before the sprites would be painted over by the
+ * background, which is a sprite like any other.
+ */
+class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
+    private lateinit var transforms: ComponentMapper<TransformComponent>
+    private lateinit var trails: ComponentMapper<TrailComponent>
+    private lateinit var emitters: ComponentMapper<TrailEmitterComponent>
+    private lateinit var healths: ComponentMapper<HealthComponent>
+
+    override fun onAttach(world: World) {
+        transforms = world.mapper(TransformComponent::class)
+        trails = world.mapper(TrailComponent::class)
+        emitters = world.mapper(TrailEmitterComponent::class)
+        healths = world.mapper(HealthComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(transforms, emitters) { id ->
+            // A dead entity stops leaving a wake, the way a dead one stops shooting.
+            val health = healths[id]
+            if (health != null && !health.alive) return@forEach
+
+            val emitter = emitters.require(id)
+            emitter.timeSinceLastSegment += deltaTime
+            if (emitter.timeSinceLastSegment >= emitter.interval) {
+                // Subtract rather than zero, so a long frame does not lose the remainder and
+                // thin the wake out.
+                emitter.timeSinceLastSegment -= emitter.interval
+                onEmit(id)
+            }
+        }
+
+        world.forEach(trails) { id ->
+            val trail = trails.require(id)
+            trail.elapsed += deltaTime
+            if (trail.elapsed >= trail.duration) world.removeEntity(id)
+        }
+    }
+
+    override fun draw(world: World, graphics: Graphics) {
+        world.forEach(transforms, trails) { id ->
+            val trail = trails.require(id)
+            val rect = transforms.require(id).rect
+            val progress = (trail.elapsed / trail.duration).coerceIn(0f, 1f)
+
+            val scale = 1f - progress * (1f - trail.minScale)
+            val width = (rect.width * scale).roundToInt()
+            val height = (rect.height * scale).roundToInt()
+            if (width <= 0 || height <= 0) return@forEach
+
+            // About the centre: a segment that shrank from one corner would crawl away from the
+            // line the rest of the wake sits on.
+            graphics.drawRect(
+                (rect.centerX - width / 2f).roundToInt(),
+                (rect.centerY - height / 2f).roundToInt(),
+                width,
+                height,
+                EngineColors.withAlpha(trail.color, 1f - progress),
+            )
+        }
+    }
+}
