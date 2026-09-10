@@ -22,12 +22,22 @@ fun ControlHandler.onComposeKeyEvent(event: KeyEvent): Boolean {
         KeyEventType.KeyUp -> false
         else -> return false
     }
+    return applyKey(event.key, pressed)
+}
 
-    directionOf(event.key)?.let {
+/**
+ * The mapping itself, split out from the event so it can be tested.
+ *
+ * A Compose [KeyEvent] cannot be built by hand off-window - it is a value class over an internal
+ * type the toolkit fills in - so everything above this line is a shim that only unpacks the event,
+ * and everything below it is covered.
+ */
+internal fun ControlHandler.applyKey(key: Key, pressed: Boolean): Boolean {
+    directionOf(key)?.let {
         onDirection(it, pressed)
         return true
     }
-    buttonOf(event.key)?.let {
+    buttonOf(key)?.let {
         onButton(it, pressed)
         return true
     }
