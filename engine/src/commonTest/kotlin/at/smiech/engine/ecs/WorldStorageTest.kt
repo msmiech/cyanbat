@@ -76,9 +76,9 @@ class WorldStorageTest {
         val world = World()
         val ids = (0 until 200).map { world.spawn() }
         // HealthComponent is registered here, long after the entity arrays were resized.
-        ids.forEach { world.addComponent(it, HealthComponent(lives = 2)) }
+        ids.forEach { world.addComponent(it, HealthComponent(hitPoints = 2)) }
 
-        assertEquals(2, world.getComponent(ids.last(), HealthComponent::class)!!.lives)
+        assertEquals(2, world.getComponent(ids.last(), HealthComponent::class)!!.hitPoints)
         assertEquals(200, world.query(HealthComponent::class).size)
     }
 

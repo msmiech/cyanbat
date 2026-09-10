@@ -1,5 +1,12 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.util.DAMAGE_TEXT_DURATION_SECONDS
+import at.smiech.cyanbat.util.DAMAGE_TEXT_FONT_SIZE
+import at.smiech.cyanbat.util.DAMAGE_TEXT_RISE_PER_TICK
+import at.smiech.cyanbat.util.DESTRUCTIBLE_HIT_POINTS
+import at.smiech.cyanbat.util.HEALTH_BAR_HEIGHT
+import at.smiech.cyanbat.util.HEALTH_BAR_OFFSET_Y
+import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.SHOT_SPEED
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.AnimationComponent
@@ -8,7 +15,9 @@ import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.EnemyBehaviorComponent
 import at.smiech.engine.ecs.EnemyMovementType
+import at.smiech.engine.ecs.FloatingTextComponent
 import at.smiech.engine.ecs.EntityId
+import at.smiech.engine.ecs.HealthBarComponent
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LifetimeComponent
 import at.smiech.engine.ecs.PlayerControlComponent
@@ -37,7 +46,10 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, SpriteComponent(pixmap, srcWidth = 45)) // DEFAULT_WIDTH
         world.addComponent(id, AnimationComponent(45, height.toInt(), 2, 0.2f))
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.PLAYER))
-        world.addComponent(id, HealthComponent(3))
+        world.addComponent(id, HealthComponent(PLAYER_MAX_HIT_POINTS))
+        // The bat is the only entity that gets a bar: the player needs to see how much of their own
+        // health is left, and a bar over every passing enemy would bury the game behind them.
+        world.addComponent(id, HealthBarComponent(HEALTH_BAR_HEIGHT, HEALTH_BAR_OFFSET_Y))
         world.addComponent(id, PlayerControlComponent())
         world.addComponent(id, WeaponComponent(shotIntervalSeconds))
         world.addComponent(id, LifetimeComponent(false))
@@ -75,7 +87,7 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, EnemyBehaviorComponent(movementType, y))
         
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.ENEMY))
-        world.addComponent(id, HealthComponent(1))
+        world.addComponent(id, HealthComponent(DESTRUCTIBLE_HIT_POINTS))
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(10))
         return id
@@ -98,7 +110,7 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, VelocityComponent(Vector2(-1f, 0f)))
         world.addComponent(id, SpriteComponent(pixmap))
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.OBSTACLE))
-        world.addComponent(id, HealthComponent(1))
+        world.addComponent(id, HealthComponent(DESTRUCTIBLE_HIT_POINTS))
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(5))
         return id
@@ -110,9 +122,32 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, VelocityComponent(Vector2(if (isPlayer) SHOT_SPEED else -SHOT_SPEED, 0f)))
         world.addComponent(id, SpriteComponent(pixmap))
         world.addComponent(id, CollisionComponent(2f, if (isPlayer) CollisionGroup.PLAYER_PROJECTILE else CollisionGroup.ENEMY_PROJECTILE))
-        world.addComponent(id, HealthComponent(1))
+        world.addComponent(id, HealthComponent(DESTRUCTIBLE_HIT_POINTS))
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(15))
+        return id
+    }
+
+    /**
+     * A damage number that rises from ([x], [y]) and fades out. Drawn over the run rather than in
+     * it, so it is never lost behind the enemy it belongs to.
+     *
+     * Carries no collision or health of its own, so nothing in the run can touch it: it drifts on
+     * the shared [at.smiech.engine.ecs.MovementSystem] and is reaped by
+     * [at.smiech.engine.ecs.FloatingTextSystem] when its time is up.
+     */
+    fun createDamageText(x: Float, y: Float, damage: Int): EntityId {
+        val id = world.createEntity()
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, 0f, 0f)))
+        world.addComponent(id, VelocityComponent(Vector2(0f, -DAMAGE_TEXT_RISE_PER_TICK)))
+        world.addComponent(
+            id,
+            FloatingTextComponent(
+                text = damage.toString(),
+                fontSize = DAMAGE_TEXT_FONT_SIZE,
+                duration = DAMAGE_TEXT_DURATION_SECONDS,
+            )
+        )
         return id
     }
 

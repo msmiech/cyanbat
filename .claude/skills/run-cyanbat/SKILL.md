@@ -66,7 +66,7 @@ Individual commands, for iterating:
 size; it cannot tell gameplay from a black frame.
 
 Use `hud` rather than `shot` whenever you need to read the score, highscore, or
-lives: the game renders into a 480x320 framebuffer that is stretched to the full
+combo: the game renders into a 480x320 framebuffer that is stretched to the full
 window, so HUD text is blurry and small in a full-size capture.
 
 `tap` finds nodes by label through the accessibility tree, so it survives a
@@ -119,7 +119,7 @@ so a green build says nothing about behavior. Verify on the emulator.
   pause flag, and `onResume` deliberately does not clear it, so `pause-resume`
   leaves `pr_after` showing the PAUSED overlay with the score frozen where it was.
   That is correct, not a hang: tap the screen (or press BACK twice to quit) to get
-  moving again. Score and lives do not advance across the pause any more.
+  moving again. Score and health do not advance across the pause any more.
 
 - **An unattended bat dies within seconds.** It holds position with no finger on
   it and takes hits standing still, scoring a few hundred before game over.
@@ -138,7 +138,7 @@ so a green build says nothing about behavior. Verify on the emulator.
   to exercise the highscore write path, not a way to reach late-game state.
 
 - **The highscore persists on death, or on quitting from the pause screen.**
-  `saveHighscore()` runs when the bat loses its last life and when BACK leaves a
+  `saveHighscore()` runs when the bat runs out of health and when BACK leaves a
   paused run, so `highscore` reads stale until one of those happens.
 
 - **BACK no longer finishes the game activity; it pauses.** A second BACK on the
