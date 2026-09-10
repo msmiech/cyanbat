@@ -5,8 +5,11 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.PowerManager
 import android.os.PowerManager.WakeLock
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.Window
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
@@ -26,6 +29,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.createBitmap
 import at.smiech.engine.Audio
 import at.smiech.engine.Game
+import at.smiech.engine.GameButton
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
@@ -47,6 +51,12 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
     private var wakeLock: WakeLock? = null
     private val gameLoop = GameLoop(this)
 
+    /**
+     * Keyboard, game controller and back-gesture state. Owned by the activity rather than by a
+     * screen, because the events it is fed arrive at the window.
+     */
+    private val controlHandler = ControlHandler()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         
@@ -67,8 +77,15 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         val frameBuffer = createBitmap(frameBufferWidth, frameBufferHeight, Bitmap.Config.RGB_565)
         val touchHandler = PointerTouchHandler()
 
-        input = AndroidInput(this, touchHandler)
+        input = AndroidInput(this, touchHandler, controlHandler)
         graphics = AndroidGraphics(assets, frameBuffer)
+
+        // Back reaches the game as a button rather than finishing the activity, so a screen can
+        // give it a meaning - pausing, here. Taken from the dispatcher and not from KEYCODE_BACK
+        // because gesture navigation raises no key event at all.
+        onBackPressedDispatcher.addCallback(this) {
+            controlHandler.onButtonPress(GameButton.BACK)
+        }
 
         audio = AndroidAudio(this)
         currentScreen = startScreen
@@ -144,8 +161,24 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
     override fun onPause() {
         super.onPause()
         if (useWakeLock) wakeLock?.release()
+        // Whoever has focus now gets the key-up for anything still held, so drop it here rather
+        // than come back to a bat flying on a key nobody is pressing.
+        controlHandler.releaseAll()
         currentScreen?.pause()
     }
+
+    /**
+     * Keyboards and game controllers, both of which Android reports as key codes.
+     *
+     * Dispatch rather than `onKeyDown`: a controller's events are delivered to the window, and
+     * nothing in the Compose tree below holds focus to receive them.
+     */
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
+        controlHandler.onAndroidKeyEvent(event) || super.dispatchKeyEvent(event)
+
+    /** A controller's analog sticks, which arrive as motion rather than as keys. */
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean =
+        controlHandler.onAndroidMotionEvent(event) || super.onGenericMotionEvent(event)
 
     override fun onDestroy() {
         super.onDestroy()

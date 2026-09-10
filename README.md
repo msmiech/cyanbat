@@ -48,6 +48,27 @@ There is also a `/run-cyanbat` skill that drives the Android build end to end on
 build, install, launch, screenshot, and check persistence. See
 [.claude/skills/run-cyanbat/SKILL.md](.claude/skills/run-cyanbat/SKILL.md).
 
+## 🎮 Controls
+
+|            | Move                                   | Pause / resume  | Quit to menu |
+|------------|----------------------------------------|-----------------|--------------|
+| Touch      | Drag the bat, or tap where you want it | — (tap resumes) | Back, twice  |
+| Keyboard   | `WASD` or the arrow keys               | `Esc` (or `P`)  | `Q`          |
+| Controller | Left stick or d-pad                    | `Start`         | `B`          |
+
+Dragging pins the bat under your finger and keeps the offset you grabbed it by, so it never snaps
+out from under the fingertip; the hit box is padded well past the sprite so it is catchable
+without aiming. A touch landing away from the bat flies it over instead, which is how the game
+played before it was draggable. Holding a key or pushing a stick overrides a drag for as long as
+it lasts.
+
+Backgrounding the app — or, on desktop, the window losing focus — pauses the run, and it stays
+paused until you resume it rather than dropping you straight back into a dodge.
+
+Controller support is real on Android, where the platform reports pads as key codes and joystick
+axes. On desktop the JDK has no gamepad API, so nothing feeds those events yet: the mapping seam
+is `ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
+
 ## 🧪 Building and testing
 
 ```bash

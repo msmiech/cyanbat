@@ -1,13 +1,17 @@
 package at.smiech.engine.impl
 
+import at.smiech.engine.Controls
 import at.smiech.engine.Input
 
 /**
  * [Input] for desktop. Pointer state comes from the shared [PointerTouchHandler]; the
  * accelerometer axes report zero, since no desktop machine has one and nothing in the game
- * reads them.
+ * reads them. Keyboard state arrives through [controls].
  */
-class DesktopInput(val touchHandler: PointerTouchHandler) : Input {
+class DesktopInput(
+    val touchHandler: PointerTouchHandler,
+    override val controls: Controls = Controls.None,
+) : Input {
     override fun isTouchDown(pointer: Int) = touchHandler.isTouchDown(pointer)
     override fun getTouchX(pointer: Int) = touchHandler.getTouchX(pointer)
     override fun getTouchY(pointer: Int) = touchHandler.getTouchY(pointer)

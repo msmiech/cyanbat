@@ -19,6 +19,15 @@ const val SHOT_SPEED = 4f
 // Length of the buzz when the bat takes a hit, in ms.
 const val HIT_VIBRATION_MILLIS = 250L
 
+// Pause. The overlay dims rather than hides the run, so the player can still see the obstacle
+// they are about to fly back into.
+const val PAUSE_DIM = 0xB4000000.toInt()
+
+// How long the pause overlay ignores a tap. Long enough to outlast the finger lift at the end of
+// an Android back gesture, which is what paused the game in the first place, and short enough
+// that a player reaching to resume never notices it.
+const val RESUME_ARMING_SECONDS = 0.35f
+
 // Scoring. Surviving pays 1 point per tick (~52/second), so a kill at the base rate is worth
 // about a second of survival and a maxed-out streak roughly eight.
 //
