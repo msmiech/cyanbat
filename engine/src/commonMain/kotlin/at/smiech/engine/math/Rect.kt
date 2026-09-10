@@ -19,6 +19,10 @@ data class Rect(
                 top < other.bottom && bottom > other.top
     }
 
+    /** Edge-inclusive, so a point landing exactly on a hit box's border still counts as inside. */
+    fun contains(x: Float, y: Float): Boolean =
+        x >= left && x <= right && y >= top && y <= bottom
+
     fun offset(dx: Float, dy: Float): Rect = Rect(
         left + dx,
         top + dy,
