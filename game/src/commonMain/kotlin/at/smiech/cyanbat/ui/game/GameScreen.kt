@@ -5,25 +5,32 @@ import at.smiech.cyanbat.ScoreTracker
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
+import at.smiech.cyanbat.service.LevelProgression
 import at.smiech.cyanbat.service.ObstacleGenerator
+import at.smiech.cyanbat.util.BANNER_CHAR_WIDTH
+import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
+import at.smiech.cyanbat.util.LEVEL_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
+import at.smiech.cyanbat.util.WAVE_BANNER_SECONDS
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input.TouchEvent
 import at.smiech.engine.Screen
+import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.ecs.AnimationSystem
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.CollisionSystem
+import at.smiech.engine.ecs.DamageComponent
 import at.smiech.engine.ecs.EnemyBehaviorSystem
 import at.smiech.engine.ecs.EntityId
 import at.smiech.engine.ecs.FloatingTextSystem
@@ -63,11 +70,17 @@ class GameScreen(
     var tick = TICK_INITIAL
     private var tickTime = 0f
     
+    /** The difficulty curve of the level being played; see [LevelProgression]. */
+    private val progression = LevelProgression.forLevel(currentLevel.id)
+
     var enmGen = EnemyGenerator(
         xSpawnPosition = game.frameBufferWidth,
         worldHeight = game.frameBufferHeight,
         factory,
         env.assets.graphics.enemy,
+        progression = progression,
+        onWaveChanged = { wave -> announce("WAVE ${wave.index + 1}") },
+        onBossSpawned = { announce("FINAL BOSS") },
     )
     var obsGen = ObstacleGenerator(
         worldWidth = game.frameBufferWidth,
@@ -75,9 +88,22 @@ class GameScreen(
         factory,
         currentLevel
     )
-    
+
     private lateinit var g: Graphics
     private var levelNameDisplayTime = 3.0f
+
+    /** The wave or boss announcement currently on screen, and what is left of its time. */
+    private var bannerText: String? = null
+    private var bannerTime = 0f
+
+    /**
+     * Set when the level's boss goes down. The run is over, but won rather than lost, so the bat
+     * stays where it is and the player reads their score off a screen they earned.
+     */
+    private var levelComplete = false
+
+    /** Time before the victory overlay will accept a tap as "done"; see [handleLevelCompleteControls]. */
+    private var levelCompleteArmingTime = 0f
 
     /** Set by the player, and by the host backgrounding the app. Cleared only by the player. */
     private var paused = false
@@ -131,17 +157,26 @@ class GameScreen(
         initStats()
     }
 
-    /** Spawns a shot at the shooter's leading edge, centred on it vertically. */
+    /**
+     * Spawns a shot at the shooter's leading edge, centred on it vertically.
+     *
+     * Which edge leads depends on who is firing: the bat shoots to the right and the boss back to
+     * the left, so each shot leaves from the side it travels towards rather than through the
+     * sprite that fired it. A shot carries its shooter's damage, which is how the boss hits harder
+     * at range than anything else in the level does on contact.
+     */
     private fun fireShot(shooterId: EntityId) {
         val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
+        val isPlayer = world.hasComponent(shooterId, PlayerControlComponent::class)
         val shot = env.assets.graphics.shot
         factory.createShot(
-            x = transform.rect.right,
+            x = if (isPlayer) transform.rect.right else transform.rect.left - shot.width,
             y = transform.rect.centerY - shot.height / 2f,
             width = shot.width.toFloat(),
             height = shot.height.toFloat(),
             pixmap = shot,
-            isPlayer = true,
+            isPlayer = isPlayer,
+            damage = damageOf(shooterId),
         )
     }
 
@@ -164,18 +199,21 @@ class GameScreen(
     }
 
     private fun handleCollision(id1: EntityId, id2: EntityId) {
-        // Checked before the damage is applied, while both entities still have their components.
-        if (isEnemyShotDown(id1, id2)) {
-            scoring.registerEnemyDestroyed()
-        }
+        val group1 = collisionGroupOf(id1)
+        val group2 = collisionGroupOf(id2)
 
-        damage(id1)
-        damage(id2)
-        
-        // Spawn explosion (at id2)
-        val t2 = world.getComponent(id2, TransformComponent::class)
-        t2?.let {
-            factory.createExplosion(it.rect.left, it.rect.top, 25f, it.rect.height, env.assets.graphics.explosion)
+        // Both read before either side takes its hit: an entity that dies here still lands the
+        // blow it arrived with, and reading afterwards would give the survivor a free pass.
+        val damage1 = damageOf(id1)
+        val damage2 = damageOf(id2)
+        val died1 = damage(id1, damage2)
+        val died2 = damage(id2, damage1)
+
+        // A kill scores when the enemy actually dies rather than on every shot that lands: past
+        // the opening wave they take more than one.
+        if (isEnemyShotDown(group1, group2)) {
+            val enemyDied = if (group1 == CollisionGroup.ENEMY) died1 else died2
+            if (enemyDied) scoring.registerEnemyDestroyed()
         }
     }
 
@@ -185,35 +223,64 @@ class GameScreen(
      *
      * Obstacles deliberately do not count: they are scenery a shot happens to clear, not a kill.
      */
-    private fun isEnemyShotDown(id1: EntityId, id2: EntityId): Boolean {
-        val groups = setOf(collisionGroupOf(id1), collisionGroupOf(id2))
-        return groups == setOf(CollisionGroup.PLAYER_PROJECTILE, CollisionGroup.ENEMY)
-    }
+    private fun isEnemyShotDown(group1: CollisionGroup?, group2: CollisionGroup?): Boolean =
+        setOf(group1, group2) == setOf(CollisionGroup.PLAYER_PROJECTILE, CollisionGroup.ENEMY)
 
     private fun collisionGroupOf(id: EntityId): CollisionGroup? =
         world.getComponent(id, CollisionComponent::class)?.group
 
     /**
-     * Hurts [id], and shows what it cost over an enemy that took the hit.
+     * What [id] takes off whatever it runs into.
+     *
+     * Anything spawned by a wave carries its own [DamageComponent]; the fallback is for the
+     * entities whose damage never varies - the bat itself, and the obstacles bolted to the cave.
+     */
+    private fun damageOf(id: EntityId): Int =
+        world.getComponent(id, DamageComponent::class)?.amount ?: DAMAGE_PER_HIT
+
+    /**
+     * Hurts [id] for [amount], shows what it cost over an enemy that took the hit, and blows up
+     * whatever the hit destroyed.
      *
      * Only enemies get a number. An obstacle is scenery being cleared rather than a target, and
      * what the bat itself has lost is already there to read on its health bar.
+     *
+     * @return true if this hit is what killed it.
      */
-    private fun damage(id: EntityId) {
-        val dealt = applyDamage(id)
+    private fun damage(id: EntityId, amount: Int): Boolean {
+        val dealt = applyDamage(id, amount)
         if (dealt > 0 && collisionGroupOf(id) == CollisionGroup.ENEMY) {
             showDamageText(id, dealt)
         }
+
+        val died = dealt > 0 && world.getComponent(id, HealthComponent::class)?.alive == false
+        // Only for the things a player watches die. A blast on every shot that merely lands would
+        // bury a tough enemy behind its own hit effects.
+        if (died && collisionGroupOf(id) in EXPLODES_ON_DEATH) explode(id)
+        return died
+    }
+
+    /** A blast the size of whatever just died, so the boss goes out bigger than its escort. */
+    private fun explode(id: EntityId) {
+        val rect = world.getComponent(id, TransformComponent::class)?.rect ?: return
+        val explosion = env.assets.graphics.explosion
+        factory.createExplosion(
+            centerX = rect.centerX,
+            centerY = rect.centerY,
+            pixmap = explosion,
+            // Never smaller than the artwork was drawn: an ordinary enemy keeps the blast it
+            // always had, and only something bigger than one scales the blast up.
+            scale = (rect.height / explosion.height).coerceAtLeast(1f),
+        )
     }
 
     /**
-     * Takes one hit's [DAMAGE_PER_HIT] off [targetId]'s health and kills it at zero, returning what
-     * actually landed.
+     * Takes [amount] off [targetId]'s health and kills it at zero, returning what actually landed.
      *
      * Nothing lands on something with no health to lose, on something already dead, or on a player
      * still inside the cooldown that follows their last hit.
      */
-    private fun applyDamage(targetId: EntityId): Int {
+    private fun applyDamage(targetId: EntityId, amount: Int): Int {
         val health = world.getComponent(targetId, HealthComponent::class) ?: return 0
         if (!health.alive) return 0
 
@@ -230,14 +297,43 @@ class GameScreen(
         }
 
         // Capped at what is left, so an overkill reports the damage the target could actually take.
-        val dealt = minOf(DAMAGE_PER_HIT, health.hitPoints)
+        val dealt = minOf(amount, health.hitPoints)
         health.hitPoints -= dealt
         if (health.hitPoints <= 0) {
             health.hitPoints = 0
             health.alive = false
             if (control != null) endRun()
+            if (targetId == enmGen.bossId) completeLevel()
         }
         return dealt
+    }
+
+    /**
+     * The level's boss is down, so the level is over.
+     *
+     * The run stops here rather than rolling on into a sixth minute of enemies: a boss that could
+     * be beaten and then followed by more of the same would not be a boss. What is left on screen
+     * is left alone - anything still in flight flies out on its own - and the player reads their
+     * total off the overlay and taps out when they are ready.
+     */
+    private fun completeLevel() {
+        if (levelComplete) return
+        levelComplete = true
+        levelCompleteArmingTime = LEVEL_COMPLETE_ARMING_SECONDS
+        enmGen.clearBoss()
+        scoring.awardLevelCleared()
+        saveHighscore()
+
+        currentLevel.music.apply {
+            stop()
+            isLooping = false
+        }
+    }
+
+    /** Puts [text] up over the run for [WAVE_BANNER_SECONDS], replacing whatever was there. */
+    private fun announce(text: String) {
+        bannerText = text
+        bannerTime = WAVE_BANNER_SECONDS
     }
 
     /** Banks the score and hands playback over to the game over track. */
@@ -275,10 +371,19 @@ class GameScreen(
     }
 
     override fun update(deltaTime: Float) {
+        // Ahead of the pause controls, which would otherwise read the player's way out of a won
+        // level as a request to pause it.
+        if (levelComplete) {
+            handleLevelCompleteControls(deltaTime)
+            return
+        }
         if (handlePauseControls(deltaTime)) return
 
         if (levelNameDisplayTime > 0) {
             levelNameDisplayTime -= deltaTime
+        }
+        if (bannerTime > 0) {
+            bannerTime -= deltaTime
         }
 
         tickTime += deltaTime
@@ -286,11 +391,15 @@ class GameScreen(
             tickTime -= tick
             world.update(tick, game.input)
             scoring.awardSurvivalTick()
-            
-            enmGen.generateEnemy()
-            obsGen.generateObstacle()
+
+            // The level clock is the fixed tick, not the wall clock: a paused game is a paused
+            // level, and a slow frame costs the player no ground on the wave they are in.
+            enmGen.update(tick)
+            // Held back for the boss. The duel is fought in an open cave, because a boss pinning
+            // the player against scenery they cannot outrun is a death with nothing to read in it.
+            if (!enmGen.bossSpawned) obsGen.generateObstacle()
         }
-        
+
         val health = world.getComponent(batId, HealthComponent::class)!!
         if (!health.alive) {
             val transform = world.getComponent(batId, TransformComponent::class)!!
@@ -298,6 +407,25 @@ class GameScreen(
                 game.setScreen(GameOverScreen(game, env))
             }
         }
+    }
+
+    /**
+     * The level is won; a tap or a button press takes the player back out to the menu.
+     *
+     * Armed on a delay for the same reason the pause overlay is: the player was steering with a
+     * finger down as the boss died, and the lift that follows is not them asking to leave.
+     */
+    private fun handleLevelCompleteControls(deltaTime: Float) {
+        levelCompleteArmingTime -= deltaTime
+
+        val input = game.input
+        // Read whether or not it can act on them, so the buffer does not hoard events.
+        val tapped = input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true
+        val controls = input?.controls
+        val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
+        val backed = controls?.consumePress(GameButton.BACK) == true
+
+        if ((tapped || confirmed || backed) && levelCompleteArmingTime <= 0f) env.onExitToMenu()
     }
 
     /**
@@ -369,6 +497,39 @@ class GameScreen(
         env.highscores.saveAsync(highscore)
     }
 
+    /**
+     * The banner a new wave or the boss arrives on, held for [WAVE_BANNER_SECONDS].
+     *
+     * Outlined rather than plain, because it lands over whatever the run happens to be drawing,
+     * and centred by eye against the 480px framebuffer like the rest of the overlays here - the
+     * Graphics API has no way to measure a string.
+     */
+    private fun drawBanner(text: String) {
+        g.drawOutlinedString(
+            text,
+            game.frameBufferWidth / 2 - text.length * BANNER_CHAR_WIDTH / 2,
+            game.frameBufferHeight / 3,
+            BANNER_FONT_SIZE,
+            EngineColors.YELLOW,
+        )
+    }
+
+    /**
+     * What the player gets for clearing the level: the run's total, and the way out.
+     *
+     * Drawn over the level rather than on a screen of its own, so the last thing they see is the
+     * cave they beat with the wreckage of the boss still clearing off it.
+     */
+    private fun drawLevelCompleteOverlay() {
+        g.apply {
+            drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
+            drawString("LEVEL COMPLETE", 120, 130, 30, EngineColors.YELLOW)
+            drawString(currentLevel.name, 150, 160, 15, EngineColors.CYAN)
+            drawString("Score: ${scoring.score}", 175, 185, 20, EngineColors.WHITE)
+            drawString("Tap or press Enter to continue", 140, 215, 15, EngineColors.WHITE)
+        }
+    }
+
     override fun present(deltaTime: Float) {
         g.clear(EngineColors.BLACK)
         world.draw(g)
@@ -376,12 +537,14 @@ class GameScreen(
         if (levelNameDisplayTime > 0) {
             drawLevelName()
         }
-        
+        bannerText?.takeIf { bannerTime > 0 }?.let { drawBanner(it) }
+
         val health = world.getComponent(batId, HealthComponent::class)!!
         if (!health.alive) {
             g.drawPixmap(env.assets.graphics.death, 15, 15)
         }
 
+        if (levelComplete) drawLevelCompleteOverlay()
         if (paused) drawPauseOverlay()
     }
 
@@ -398,7 +561,20 @@ class GameScreen(
             val multiplier = scoring.multiplier
             val comboColor = if (multiplier > 1) EngineColors.YELLOW else EngineColors.CYAN
             drawString("Combo: x$multiplier", 5, 60, 15, comboColor)
+            // How far into the level the player is, which is the only reading they get on how
+            // much harder the next minute is about to be - and on how close the boss is.
+            drawString(waveLabel(), 5, 80, 15, EngineColors.CYAN)
         }
+    }
+
+    /**
+     * The wave readout: which minute the player is in, or that the boss is here.
+     *
+     * Waves are numbered from one for the player, where the code indexes them from zero.
+     */
+    private fun waveLabel(): String = when {
+        enmGen.bossSpawned -> "BOSS"
+        else -> "Wave: ${enmGen.currentWave.index + 1}/${progression.bossWave}"
     }
 
     private fun drawLevelName() {
@@ -439,5 +615,14 @@ class GameScreen(
 
     override fun dispose() {
         screenScope.cancel()
+    }
+
+    private companion object {
+        /**
+         * What leaves a blast behind when it dies. Shots are left off deliberately - one per
+         * bullet would put an explosion on the screen every second the bat is firing - and so is
+         * the bat, whose death already has its own artwork.
+         */
+        val EXPLODES_ON_DEATH = setOf(CollisionGroup.ENEMY, CollisionGroup.OBSTACLE)
     }
 }

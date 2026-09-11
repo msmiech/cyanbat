@@ -84,6 +84,26 @@ class DesktopGraphics(
         )
     }
 
+    /** Same `- 1` convention as the unscaled blit above, on both the source and the destination. */
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+    ) {
+        g2d.drawImage(
+            (pixmap as DesktopPixmap).image,
+            x, y, x + dstWidth - 1, y + dstHeight - 1,
+            srcX, srcY, srcX + srcWidth - 1, srcY + srcHeight - 1,
+            null
+        )
+    }
+
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) {
         g2d.drawImage((pixmap as DesktopPixmap).image, x, y, null)
     }

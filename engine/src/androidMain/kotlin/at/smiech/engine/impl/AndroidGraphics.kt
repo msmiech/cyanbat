@@ -80,6 +80,13 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
     override fun drawPixmap(
         pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int,
         srcWidth: Int, srcHeight: Int
+    ) = drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, srcWidth, srcHeight)
+
+    // The null Paint is what keeps a magnified sprite crisp: a default Canvas blit does not
+    // filter, so the stretch comes out nearest-neighbour.
+    override fun drawPixmap(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int,
+        srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int
     ) {
         srcRect.left = srcX
         srcRect.top = srcY
@@ -87,8 +94,8 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
         srcRect.bottom = srcY + srcHeight - 1
         dstRect.left = x
         dstRect.top = y
-        dstRect.right = x + srcWidth - 1
-        dstRect.bottom = y + srcHeight - 1
+        dstRect.right = x + dstWidth - 1
+        dstRect.bottom = y + dstHeight - 1
         canvas.drawBitmap(
             (pixmap as AndroidPixmap).bitmap!!, srcRect, dstRect,
             null

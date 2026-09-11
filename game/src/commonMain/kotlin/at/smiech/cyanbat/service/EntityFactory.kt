@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.DAMAGE_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.DAMAGE_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_TEXT_RISE_PER_TICK
@@ -7,6 +8,7 @@ import at.smiech.cyanbat.util.DESTRUCTIBLE_HIT_POINTS
 import at.smiech.cyanbat.util.HEALTH_BAR_HEIGHT
 import at.smiech.cyanbat.util.HEALTH_BAR_OFFSET_Y
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
+import at.smiech.cyanbat.util.SHOT_HIT_POINTS
 import at.smiech.cyanbat.util.SHOT_SPEED
 import at.smiech.cyanbat.util.TRAIL_DRIFT_PER_TICK
 import at.smiech.cyanbat.util.TRAIL_DURATION_SECONDS
@@ -18,6 +20,7 @@ import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.BackgroundComponent
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
+import at.smiech.engine.ecs.DamageComponent
 import at.smiech.engine.ecs.EnemyBehaviorComponent
 import at.smiech.engine.ecs.EnemyMovementType
 import at.smiech.engine.ecs.EntityId
@@ -54,8 +57,8 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, AnimationComponent(45, height.toInt(), 2, 0.2f))
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.PLAYER))
         world.addComponent(id, HealthComponent(PLAYER_MAX_HIT_POINTS))
-        // The bat is the only entity that gets a bar: the player needs to see how much of their own
-        // health is left, and a bar over every passing enemy would bury the game behind them.
+        // Bars are for the two things a fight is decided between - the bat and the level's boss.
+        // A bar over every passing enemy would bury the game behind them.
         world.addComponent(id, HealthBarComponent(HEALTH_BAR_HEIGHT, HEALTH_BAR_OFFSET_Y))
         world.addComponent(id, PlayerControlComponent())
         world.addComponent(id, WeaponComponent(shotIntervalSeconds))
@@ -65,27 +68,40 @@ class EntityFactory(private val world: World) {
         return id
     }
 
-    fun createEnemy(x: Float, y: Float, width: Float, height: Float, pixmap: Pixmap, type: Int): EntityId {
+    /**
+     * One of the three enemies from the sheet, at whatever strength the wave that ordered it
+     * calls for.
+     *
+     * [hitPoints], [damage] and [speedMultiplier] are arguments rather than constants because
+     * that is the whole of how a level ramps: the same three sprites, sent in tougher, angrier
+     * and faster as the minutes go by. They are fixed at spawn, so enemies already on screen keep
+     * the strength they arrived with when a wave turns over.
+     */
+    fun createEnemy(
+        x: Float,
+        y: Float,
+        width: Float,
+        height: Float,
+        pixmap: Pixmap,
+        type: Int,
+        hitPoints: Int = DESTRUCTIBLE_HIT_POINTS,
+        damage: Int = DAMAGE_PER_HIT,
+        speedMultiplier: Float = 1f,
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
-        
+
         val speedX = when (type) {
             0 -> -2.5f
             1 -> -1.5f
             2 -> -1.2f
             else -> -1.0f
         }
-        world.addComponent(id, VelocityComponent(Vector2(speedX, 0f)))
-        
-        val srcX = when (type) {
-            0 -> 0
-            1 -> 67
-            2 -> 137
-            else -> 0
-        }
-        world.addComponent(id, SpriteComponent(pixmap, baseSrcX = srcX, srcWidth = 32))
-        world.addComponent(id, AnimationComponent(32, height.toInt(), 2, 0.2f))
-        
+        world.addComponent(id, VelocityComponent(Vector2(speedX * speedMultiplier, 0f)))
+
+        world.addComponent(id, SpriteComponent(pixmap, baseSrcX = srcXOf(type), srcWidth = ENEMY_FRAME_WIDTH))
+        world.addComponent(id, AnimationComponent(ENEMY_FRAME_WIDTH, height.toInt(), 2, 0.2f))
+
         val movementType = when (type) {
             0 -> EnemyMovementType.SCOUT
             1 -> EnemyMovementType.SINE
@@ -93,11 +109,56 @@ class EntityFactory(private val world: World) {
             else -> EnemyMovementType.SCOUT
         }
         world.addComponent(id, EnemyBehaviorComponent(movementType, y))
-        
+
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.ENEMY))
-        world.addComponent(id, HealthComponent(DESTRUCTIBLE_HIT_POINTS))
+        world.addComponent(id, HealthComponent(hitPoints))
+        world.addComponent(id, DamageComponent(damage))
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(10))
+        return id
+    }
+
+    /**
+     * The level's boss: the sheet's last enemy drawn [scale] times over, with a health pool worth
+     * a fight and a gun of its own.
+     *
+     * It differs from [createEnemy] in three ways that matter, and each is deliberate. It is never
+     * culled for leaving the frame, because it enters from the edge and a boss that could drift
+     * out of the level is a boss the player can lose rather than beat. It carries a health bar,
+     * the only thing besides the bat that does, because a fight this long is unreadable without
+     * one. And it holds station instead of closing, which is what [EnemyMovementType.BOSS] is for.
+     */
+    fun createBoss(
+        x: Float,
+        y: Float,
+        holdX: Float,
+        pixmap: Pixmap,
+        scale: Float,
+        hitPoints: Int,
+        damage: Int,
+        shotIntervalSeconds: Float,
+    ): EntityId {
+        val width = ENEMY_FRAME_WIDTH * scale
+        val height = pixmap.height * scale
+
+        val id = world.createEntity()
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
+        world.addComponent(id, VelocityComponent(Vector2.Zero))
+        world.addComponent(
+            id,
+            SpriteComponent(pixmap, baseSrcX = srcXOf(BOSS_ENEMY_TYPE), srcWidth = ENEMY_FRAME_WIDTH, scale = scale)
+        )
+        world.addComponent(id, AnimationComponent(ENEMY_FRAME_WIDTH, pixmap.height, 2, 0.2f))
+        world.addComponent(id, EnemyBehaviorComponent(EnemyMovementType.BOSS, y, holdX = holdX))
+        // Tolerance scaled with the sprite, so the boss's box sits in from its edges by the same
+        // proportion an ordinary enemy's does.
+        world.addComponent(id, CollisionComponent(5f * scale, CollisionGroup.ENEMY))
+        world.addComponent(id, HealthComponent(hitPoints))
+        world.addComponent(id, DamageComponent(damage))
+        world.addComponent(id, HealthBarComponent(HEALTH_BAR_HEIGHT * scale, HEALTH_BAR_OFFSET_Y))
+        world.addComponent(id, WeaponComponent(shotIntervalSeconds))
+        world.addComponent(id, LifetimeComponent(false))
+        world.addComponent(id, ZIndexComponent(12))
         return id
     }
 
@@ -124,13 +185,22 @@ class EntityFactory(private val world: World) {
         return id
     }
 
-    fun createShot(x: Float, y: Float, width: Float, height: Float, pixmap: Pixmap, isPlayer: Boolean): EntityId {
+    fun createShot(
+        x: Float,
+        y: Float,
+        width: Float,
+        height: Float,
+        pixmap: Pixmap,
+        isPlayer: Boolean,
+        damage: Int = DAMAGE_PER_HIT,
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
         world.addComponent(id, VelocityComponent(Vector2(if (isPlayer) SHOT_SPEED else -SHOT_SPEED, 0f)))
         world.addComponent(id, SpriteComponent(pixmap))
         world.addComponent(id, CollisionComponent(2f, if (isPlayer) CollisionGroup.PLAYER_PROJECTILE else CollisionGroup.ENEMY_PROJECTILE))
-        world.addComponent(id, HealthComponent(DESTRUCTIBLE_HIT_POINTS))
+        world.addComponent(id, HealthComponent(SHOT_HIT_POINTS))
+        world.addComponent(id, DamageComponent(damage))
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(15))
         return id
@@ -178,14 +248,49 @@ class EntityFactory(private val world: World) {
         return id
     }
 
-    fun createExplosion(x: Float, y: Float, width: Float, height: Float, pixmap: Pixmap): EntityId {
+    /**
+     * A blast centred on ([centerX], [centerY]).
+     *
+     * Centred rather than placed by its corner because the caller knows what died, not how big an
+     * explosion frame happens to be - and [scale] changes that size. Blowing the blast up to match
+     * is what keeps a boss from going out in the same puff as one of its escorts.
+     */
+    fun createExplosion(
+        centerX: Float,
+        centerY: Float,
+        pixmap: Pixmap,
+        scale: Float = 1f,
+    ): EntityId {
+        val width = EXPLOSION_FRAME_WIDTH * scale
+        val height = pixmap.height * scale
+
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(centerX - width / 2f, centerY - height / 2f, width, height))
+        )
         world.addComponent(id, VelocityComponent(Vector2(-1f, 0f)))
-        world.addComponent(id, SpriteComponent(pixmap, srcWidth = 25))
-        world.addComponent(id, AnimationComponent(25, height.toInt(), 5, 0.3f, isLooping = false))
+        world.addComponent(id, SpriteComponent(pixmap, srcWidth = EXPLOSION_FRAME_WIDTH, scale = scale))
+        world.addComponent(id, AnimationComponent(EXPLOSION_FRAME_WIDTH, pixmap.height, 5, 0.3f, isLooping = false))
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(50))
         return id
+    }
+
+    private companion object {
+        /** Width of one enemy frame in the shared sheet; the strips are addressed by [srcXOf]. */
+        const val ENEMY_FRAME_WIDTH = 32
+        const val EXPLOSION_FRAME_WIDTH = 25
+
+        /** The sheet strip each enemy type animates from. */
+        fun srcXOf(type: Int): Int = when (type) {
+            0 -> 0
+            1 -> 67
+            2 -> 137
+            else -> 0
+        }
+
+        /** The boss wears the third enemy's colours, the same ones the final wave escorts it in. */
+        const val BOSS_ENEMY_TYPE = 2
     }
 }

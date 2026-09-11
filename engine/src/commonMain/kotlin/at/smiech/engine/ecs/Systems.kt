@@ -4,6 +4,7 @@ import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.drawOutlinedString
+import at.smiech.engine.math.Vector2
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -28,6 +29,17 @@ class MovementSystem : GameSystem() {
         }
     }
 }
+
+/** How a [EnemyMovementType.BOSS] enters and then holds its ground, in framebuffer pixels per tick. */
+private const val BOSS_APPROACH_SPEED = -1.1f
+
+/**
+ * Its weave once it is there: slow and wide enough that the player has to follow it, but never so
+ * fast that it cannot be tracked with a thumb.
+ */
+private const val BOSS_WEAVE_AMPLITUDE = 60f
+private const val BOSS_WEAVE_FREQUENCY = 0.9f
+private const val BOSS_WEAVE_TRACKING = 0.06f
 
 /**
  * System that handles enemy movement patterns.
@@ -68,6 +80,20 @@ class EnemyBehaviorSystem : GameSystem() {
                         behavior.nextDirectionChange = behavior.elapsedTime + 0.8f // simplified
                     }
                     velocity.velocity = velocity.velocity.copy(y = behavior.verticalDirection * 2.5f)
+                }
+                EnemyMovementType.BOSS -> {
+                    // Closes from the edge it entered on, then stops dead at its station. Its own
+                    // x velocity is overwritten here rather than decayed, so the entrance reads as
+                    // one deliberate move instead of a drift.
+                    val closing = transform.rect.left > behavior.holdX
+                    val targetY = behavior.initialY +
+                        sin(behavior.elapsedTime * BOSS_WEAVE_FREQUENCY) * BOSS_WEAVE_AMPLITUDE
+                    velocity.velocity = Vector2(
+                        x = if (closing) BOSS_APPROACH_SPEED else 0f,
+                        // Chased rather than set outright, so the boss eases into the turns at the
+                        // top and bottom of its weave instead of snapping between them.
+                        y = (targetY - transform.rect.top) * BOSS_WEAVE_TRACKING,
+                    )
                 }
             }
         }
@@ -162,15 +188,31 @@ class RenderSystem : GameSystem() {
             val transform = transforms.require(id)
             val sprite = sprites.require(id)
 
-            graphics.drawPixmap(
-                sprite.pixmap,
-                transform.rect.left.toInt(),
-                transform.rect.top.toInt(),
-                sprite.srcX,
-                sprite.srcY,
-                sprite.srcWidth,
-                sprite.srcHeight
-            )
+            // The unscaled call for everything that is drawn at its own size, so the common case
+            // stays on the path both backends are tuned for.
+            if (sprite.scale == 1f) {
+                graphics.drawPixmap(
+                    sprite.pixmap,
+                    transform.rect.left.toInt(),
+                    transform.rect.top.toInt(),
+                    sprite.srcX,
+                    sprite.srcY,
+                    sprite.srcWidth,
+                    sprite.srcHeight
+                )
+            } else {
+                graphics.drawPixmap(
+                    sprite.pixmap,
+                    transform.rect.left.toInt(),
+                    transform.rect.top.toInt(),
+                    sprite.srcX,
+                    sprite.srcY,
+                    sprite.srcWidth,
+                    sprite.srcHeight,
+                    (sprite.srcWidth * sprite.scale).roundToInt(),
+                    (sprite.srcHeight * sprite.scale).roundToInt(),
+                )
+            }
         }
     }
 }

@@ -16,6 +16,9 @@ data class VelocityComponent(var velocity: Vector2) : Component
 /**
  * @param baseSrcX x offset of the entity's frame strip within the sprite sheet. Animation frames
  *   are addressed relative to it, so several strips can share one sheet.
+ * @param scale how many framebuffer pixels one source pixel covers. The sheet holds exactly one
+ *   size of every sprite, so this is what lets a boss be that same artwork drawn large. Keep it in
+ *   step with the entity's [TransformComponent], which is what collisions are read from.
  */
 data class SpriteComponent(
     val pixmap: Pixmap,
@@ -23,7 +26,8 @@ data class SpriteComponent(
     var srcX: Int = baseSrcX,
     var srcY: Int = 0,
     var srcWidth: Int = pixmap.width,
-    var srcHeight: Int = pixmap.height
+    var srcHeight: Int = pixmap.height,
+    var scale: Float = 1f,
 ) : Component
 
 data class AnimationComponent(
@@ -63,6 +67,16 @@ data class HealthComponent(
     val fraction: Float
         get() = if (maxHitPoints <= 0) 0f else (hitPoints.toFloat() / maxHitPoints).coerceIn(0f, 1f)
 }
+
+/**
+ * What this entity takes off whatever it collides with.
+ *
+ * Damage rides on the entity dealing it rather than sitting in one global constant, because that
+ * is what lets a late wave hit harder than an early one without touching anything already in
+ * flight: the spawner decides how hard the enemies it makes hit, and the collision handler only
+ * has to read it off. An entity without one falls back to whatever default the game applies.
+ */
+data class DamageComponent(val amount: Int) : Component
 
 /**
  * Draws a bar of the entity's remaining [HealthComponent.fraction] just below it.
@@ -132,13 +146,20 @@ data class PlayerControlComponent(
     }
 }
 
-enum class EnemyMovementType { SINE, ZIGZAG, SCOUT }
+enum class EnemyMovementType { SINE, ZIGZAG, SCOUT, BOSS }
+
+/**
+ * @param holdX for [EnemyMovementType.BOSS]: the x it closes to and then holds at. A boss that
+ *   kept advancing would either pin the player against the left edge or sail off it, so it takes
+ *   up a station instead and weaves there.
+ */
 data class EnemyBehaviorComponent(
     val type: EnemyMovementType,
     val initialY: Float,
     var elapsedTime: Float = 0f,
     var verticalDirection: Float = 1f,
-    var nextDirectionChange: Float = 0f
+    var nextDirectionChange: Float = 0f,
+    val holdX: Float = 0f,
 ) : Component
 
 /**
