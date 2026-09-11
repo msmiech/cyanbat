@@ -57,5 +57,10 @@ private fun buttonOf(key: Key): GameButton? = when (key) {
     Key.Escape, Key.P -> GameButton.PAUSE
     Key.Q, Key.Backspace -> GameButton.BACK
     Key.Enter, Key.Spacebar -> GameButton.CONFIRM
+    // Both rows, because a choice is made in a hurry and the number pad is where a hand already
+    // resting on the arrow keys is closest to.
+    Key.One, Key.NumPad1 -> GameButton.CHOICE_1
+    Key.Two, Key.NumPad2 -> GameButton.CHOICE_2
+    Key.Three, Key.NumPad3 -> GameButton.CHOICE_3
     else -> null
 }

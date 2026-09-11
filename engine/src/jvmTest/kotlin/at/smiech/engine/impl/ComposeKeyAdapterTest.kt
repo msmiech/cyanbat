@@ -135,4 +135,41 @@ class ComposeKeyAdapterTest {
         assertTrue(handler.consumePress(GameButton.PAUSE))
         assertFalse(handler.consumePress(GameButton.PAUSE), "a held key is one press, not five")
     }
+
+    @Test
+    fun `the number keys pick one of three`() {
+        val handler = ControlHandler()
+
+        handler.applyKey(Key.One, pressed = true)
+        assertTrue(handler.consumePress(GameButton.CHOICE_1))
+        assertFalse(handler.consumePress(GameButton.CHOICE_2))
+
+        handler.applyKey(Key.Two, pressed = true)
+        handler.applyKey(Key.Three, pressed = true)
+        assertTrue(handler.consumePress(GameButton.CHOICE_2))
+        assertTrue(handler.consumePress(GameButton.CHOICE_3))
+    }
+
+    /** Both rows, so a hand already resting on the arrow keys is not sent across the keyboard. */
+    @Test
+    fun `the number pad picks the same three`() {
+        val handler = ControlHandler()
+
+        handler.applyKey(Key.NumPad1, pressed = true)
+        assertTrue(handler.consumePress(GameButton.CHOICE_1))
+
+        handler.applyKey(Key.NumPad3, pressed = true)
+        assertTrue(handler.consumePress(GameButton.CHOICE_3))
+    }
+
+    /** A held number must not take a card over and over as the dialog reads input each frame. */
+    @Test
+    fun `a held number key picks exactly once`() {
+        val handler = ControlHandler()
+
+        repeat(5) { handler.applyKey(Key.Two, pressed = true) }
+
+        assertTrue(handler.consumePress(GameButton.CHOICE_2))
+        assertFalse(handler.consumePress(GameButton.CHOICE_2))
+    }
 }

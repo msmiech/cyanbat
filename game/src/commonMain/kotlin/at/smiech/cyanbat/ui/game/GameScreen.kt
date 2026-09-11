@@ -3,6 +3,9 @@ package at.smiech.cyanbat.ui.game
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.ScoreTracker
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
+import at.smiech.cyanbat.progress.PlayerLoadout
+import at.smiech.cyanbat.progress.PlayerProgress
+import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.LevelProgression
@@ -13,12 +16,19 @@ import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.cyanbat.util.LEVEL_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
+import at.smiech.cyanbat.util.POWER_UP_ARMING_SECONDS
+import at.smiech.cyanbat.util.POWER_UP_CARD_GAP
+import at.smiech.cyanbat.util.POWER_UP_CARD_HEIGHT
+import at.smiech.cyanbat.util.POWER_UP_CARD_TOP
+import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
-import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
 import at.smiech.cyanbat.util.WAVE_BANNER_SECONDS
+import at.smiech.cyanbat.util.XP_BAR_HEIGHT
+import at.smiech.cyanbat.util.XP_PER_BOSS
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
@@ -43,6 +53,7 @@ import at.smiech.engine.ecs.PlayerInputSystem
 import at.smiech.engine.ecs.RenderSystem
 import at.smiech.engine.ecs.TrailSystem
 import at.smiech.engine.ecs.TransformComponent
+import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.ecs.WeaponSystem
 import at.smiech.engine.ecs.World
 import kotlinx.coroutines.CoroutineScope
@@ -50,6 +61,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlin.math.roundToInt
 
 class GameScreen(
     override val game: Game,
@@ -105,6 +117,26 @@ class GameScreen(
     /** Time before the victory overlay will accept a tap as "done"; see [handleLevelCompleteControls]. */
     private var levelCompleteArmingTime = 0f
 
+    /** Experience earned this run, and the levels it has bought. */
+    private val progress = PlayerProgress()
+
+    /** What the run's power-ups have made of the bat; see [PlayerLoadout]. */
+    private val loadout = PlayerLoadout()
+
+    /**
+     * Level ups owed but not yet spent.
+     *
+     * A count rather than a flag: one kill late in a run can cross two thresholds, and the player
+     * is owed a pick for each. They are handed out one dialog at a time.
+     */
+    private var pendingLevelUps = 0
+
+    /** The power-ups currently on offer, or empty when the run is not waiting on a choice. */
+    private var offer: List<PowerUp> = emptyList()
+
+    /** Time before the level up dialog will accept a tap; see [handlePowerUpChoice]. */
+    private var offerArmingTime = 0f
+
     /** Set by the player, and by the host backgrounding the app. Cleared only by the player. */
     private var paused = false
 
@@ -150,7 +182,9 @@ class GameScreen(
             width = 45f,
             height = env.assets.graphics.bat.height.toFloat(),
             pixmap = env.assets.graphics.bat,
-            shotIntervalSeconds = SHOT_INTERVAL_SECONDS,
+            // From the loadout rather than the constant, so the bat is built from the same stats
+            // the power-ups go on to change and the two can never start out disagreeing.
+            shotIntervalSeconds = loadout.shotIntervalSeconds,
         )
 
         startLevelMusic()
@@ -169,16 +203,41 @@ class GameScreen(
         val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
         val isPlayer = world.hasComponent(shooterId, PlayerControlComponent::class)
         val shot = env.assets.graphics.shot
-        factory.createShot(
-            x = if (isPlayer) transform.rect.right else transform.rect.left - shot.width,
-            y = transform.rect.centerY - shot.height / 2f,
-            width = shot.width.toFloat(),
-            height = shot.height.toFloat(),
-            pixmap = shot,
-            isPlayer = isPlayer,
-            damage = damageOf(shooterId),
-        )
+        val x = if (isPlayer) transform.rect.right else transform.rect.left - shot.width
+        val y = transform.rect.centerY - shot.height / 2f
+        // The bat's damage is a run stat the power-ups raise; everything else deals what it was
+        // spawned with.
+        val damage = if (isPlayer) loadout.shotDamage else damageOf(shooterId)
+
+        for (angle in spreadAngles(if (isPlayer) loadout.extraShots else 0)) {
+            factory.createShot(
+                x = x,
+                y = y,
+                width = shot.width.toFloat(),
+                height = shot.height.toFloat(),
+                pixmap = shot,
+                isPlayer = isPlayer,
+                damage = damage,
+                angleDegrees = angle,
+            )
+        }
     }
+
+    /**
+     * The headings of one volley: the straight shot, then [extraShots] fanned alternately below
+     * and above it, widening a step at a time.
+     *
+     * The straight shot is always there, so a spread widens the bat's fire rather than replacing
+     * it. Alternating sides rather than filling one first is what keeps the fan balanced: an even
+     * number of extras is symmetrical, and an odd one leans by a single shot instead of stacking
+     * every extra below the line.
+     */
+    private fun spreadAngles(extraShots: Int): List<Float> =
+        (0..extraShots).map { index ->
+            val step = (index + 1) / 2
+            val sign = if (index % 2 == 1) 1f else -1f
+            if (index == 0) 0f else sign * step * SPREAD_ANGLE_DEGREES
+        }
 
     /**
      * Sheds one segment of the bat's wake, just off the back of it.
@@ -201,6 +260,9 @@ class GameScreen(
     private fun handleCollision(id1: EntityId, id2: EntityId) {
         val group1 = collisionGroupOf(id1)
         val group2 = collisionGroupOf(id2)
+        // Read up front: killing the boss clears it from the generator, and this pass still has to
+        // know which of the two it was looking at.
+        val bossId = enmGen.bossId
 
         // Both read before either side takes its hit: an entity that dies here still lands the
         // blow it arrived with, and reading afterwards would give the survivor a free pass.
@@ -213,8 +275,26 @@ class GameScreen(
         // the opening wave they take more than one.
         if (isEnemyShotDown(group1, group2)) {
             val enemyDied = if (group1 == CollisionGroup.ENEMY) died1 else died2
-            if (enemyDied) scoring.registerEnemyDestroyed()
+            if (enemyDied) {
+                scoring.registerEnemyDestroyed()
+                // The boss is banked by completeLevel, which knows it was the boss. Everything
+                // else is worth what its wave is worth.
+                val enemyId = if (group1 == CollisionGroup.ENEMY) id1 else id2
+                if (enemyId != bossId) {
+                    awardExperience(PlayerProgress.experienceForKill(enmGen.currentWave.index))
+                }
+            }
         }
+    }
+
+    /**
+     * Banks [amount] of experience and queues a power-up pick for every level it bought.
+     *
+     * Queued rather than shown, because this runs from inside a world update: the dialog goes up
+     * on the next frame, once the tick that earned it has finished resolving.
+     */
+    private fun awardExperience(amount: Int) {
+        pendingLevelUps += progress.award(amount)
     }
 
     /**
@@ -284,20 +364,27 @@ class GameScreen(
         val health = world.getComponent(targetId, HealthComponent::class) ?: return 0
         if (!health.alive) return 0
 
+        var incoming = amount
+
         // The bat is the only entity with a cooldown: without one a single obstacle would strip the
-        // whole bar over the frames the two sprites spend overlapping.
+        // whole bar over the frames the two sprites spend overlapping. How long that cooldown runs
+        // and how much of the hit gets through are both run stats the power-ups raise.
         val control = world.getComponent(targetId, PlayerControlComponent::class)
         if (control != null) {
             if (control.hitCooldown > 0f) return 0
-            control.hitCooldown = 0.5f // MAX_HIT_COOLDOWN
+            control.hitCooldown = loadout.hitCooldownSeconds
             scoring.registerPlayerHit()
+
+            // Rounded up and floored at one, so armour can never make a hit free - that would turn
+            // a run into one the player cannot lose.
+            incoming = (incoming * loadout.damageTaken).roundToInt().coerceAtLeast(1)
 
             // Vibrate on hit
             env.haptics.vibrate(HIT_VIBRATION_MILLIS)
         }
 
         // Capped at what is left, so an overkill reports the damage the target could actually take.
-        val dealt = minOf(amount, health.hitPoints)
+        val dealt = minOf(incoming, health.hitPoints)
         health.hitPoints -= dealt
         if (health.hitPoints <= 0) {
             health.hitPoints = 0
@@ -322,6 +409,9 @@ class GameScreen(
         levelCompleteArmingTime = LEVEL_COMPLETE_ARMING_SECONDS
         enmGen.clearBoss()
         scoring.awardLevelCleared()
+        // Banked even though the run ends here: the total is what the victory screen reports, and
+        // a boss worth nothing would read as a boss that did not count.
+        awardExperience(XP_PER_BOSS)
         saveHighscore()
 
         currentLevel.music.apply {
@@ -379,6 +469,14 @@ class GameScreen(
         }
         if (handlePauseControls(deltaTime)) return
 
+        // A level up owed is a level up shown, before anything else moves: the pick is meant to
+        // change the fight the player is in, not the one after it.
+        if (offer.isEmpty() && pendingLevelUps > 0) openLevelUpOffer()
+        if (offer.isNotEmpty()) {
+            handlePowerUpChoice(deltaTime)
+            return
+        }
+
         if (levelNameDisplayTime > 0) {
             levelNameDisplayTime -= deltaTime
         }
@@ -407,6 +505,96 @@ class GameScreen(
                 game.setScreen(GameOverScreen(game, env))
             }
         }
+    }
+
+    /** Draws the next owed level up, freezing the run until the player has taken something. */
+    private fun openLevelUpOffer() {
+        pendingLevelUps--
+        offer = PowerUp.offer(loadout)
+        offerArmingTime = POWER_UP_ARMING_SECONDS
+
+        // A dialog with nothing to choose between would trap the run. Two of the power-ups scale
+        // without a ceiling so this cannot happen, but a future one that forgets to say so would
+        // otherwise lock the game rather than fail loudly.
+        if (offer.isEmpty()) return
+
+        if (currentLevel.music.isPlaying) currentLevel.music.pause()
+    }
+
+    /**
+     * Reads a pick off the level up dialog: a tap on a card, or its number key.
+     *
+     * Armed on a delay for the same reason the pause overlay is - the player was steering with a
+     * finger down when the level up landed, and the lift that follows is not a choice. There is no
+     * way to dismiss this without picking: the pick is the reward, and a dialog that could be
+     * waved away would just be a tax on the player who did not read it in time.
+     */
+    private fun handlePowerUpChoice(deltaTime: Float) {
+        offerArmingTime -= deltaTime
+
+        val input = game.input
+        val controls = input?.controls
+        // Consumed whether or not they can act yet, so the buffer does not hand the whole backlog
+        // to the run the moment the dialog closes.
+        val touches = input?.touchEvents.orEmpty().filter { it.type == TouchEvent.TOUCH_UP }
+        // CONFIRM picks the leftmost card: a game pad has no number keys, and its A button is the
+        // only thing on it a player will reach for first.
+        val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
+        val pressed = GameButton.CHOICES.map { controls?.consumePress(it) == true }
+
+        if (offerArmingTime > 0f) return
+
+        val byKey = pressed.indexOfFirst { it }.takeIf { it >= 0 }
+            ?: 0.takeIf { confirmed }
+        val chosen = byKey ?: touches.firstNotNullOfOrNull { cardIndexAt(it.x, it.y) }
+
+        if (chosen != null && chosen in offer.indices) choosePowerUp(offer[chosen])
+    }
+
+    /** Which card covers ([x], [y]) in framebuffer pixels, or null for a tap that missed. */
+    private fun cardIndexAt(x: Int, y: Int): Int? {
+        if (y < POWER_UP_CARD_TOP || y > POWER_UP_CARD_TOP + POWER_UP_CARD_HEIGHT) return null
+        return offer.indices.firstOrNull { index ->
+            val left = cardLeft(index)
+            x >= left && x <= left + POWER_UP_CARD_WIDTH
+        }
+    }
+
+    /** The left edge of card [index], with the row of them centred on the framebuffer. */
+    private fun cardLeft(index: Int): Int {
+        val stride = POWER_UP_CARD_WIDTH + POWER_UP_CARD_GAP
+        val rowWidth = offer.size * stride - POWER_UP_CARD_GAP
+        return (game.frameBufferWidth - rowWidth) / 2 + index * stride
+    }
+
+    /** Takes the pick, makes the bat match, and hands the run back. */
+    private fun choosePowerUp(powerUp: PowerUp) {
+        powerUp.applyTo(loadout)
+        applyLoadout()
+        offer = emptyList()
+        announce(powerUp.title)
+
+        // Only if the bat is still flying: a level up banked by the shot that also killed the
+        // player has no run left to go back to.
+        val health = world.getComponent(batId, HealthComponent::class)
+        if (health?.alive == true) startLevelMusic()
+    }
+
+    /**
+     * Pushes the run's earned stats onto the bat's components.
+     *
+     * One place rather than each power-up reaching into the world for itself: a power-up says what
+     * the bat is now, and this is what makes it so.
+     */
+    private fun applyLoadout() {
+        world.getComponent(batId, WeaponComponent::class)?.interval = loadout.shotIntervalSeconds
+
+        val health = world.getComponent(batId, HealthComponent::class) ?: return
+        health.maxHitPoints = loadout.maxHitPoints
+        // Capped at the bar rather than added blindly, so healing a nearly full bat is worth
+        // whatever room is actually left in it.
+        val heal = loadout.takePendingHeal()
+        if (heal > 0) health.hitPoints = (health.hitPoints + heal).coerceAtMost(health.maxHitPoints)
     }
 
     /**
@@ -530,10 +718,79 @@ class GameScreen(
         }
     }
 
+    /**
+     * The level up dialog: what the bat just reached, and the three things it can become.
+     *
+     * Cards are drawn rather than composed, because this screen owns a 480x320 framebuffer and has
+     * no text measurement to lay anything out with - every offset here is eyeballed against that
+     * frame, as the other overlays are. A card is its own tap target, and carries no number: what
+     * it does is the whole of what the player needs to read. The number keys still pick by
+     * position for anyone on a keyboard, which is a shortcut rather than the advertised way in.
+     */
+    private fun drawPowerUpOffer() {
+        g.apply {
+            drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
+            drawString("LEVEL ${progress.level}", 190, 70, 30, EngineColors.YELLOW)
+            drawString("Choose an upgrade", 168, 100, 15, EngineColors.WHITE)
+
+            offer.forEachIndexed { index, powerUp ->
+                drawPowerUpCard(index, powerUp)
+            }
+        }
+    }
+
+    private fun drawPowerUpCard(index: Int, powerUp: PowerUp) {
+        val left = cardLeft(index)
+        g.apply {
+            // A filled panel behind the text, then a cyan lip along the top, so a card reads as a
+            // thing to press rather than as words floating over the run.
+            drawRect(left, POWER_UP_CARD_TOP, POWER_UP_CARD_WIDTH, POWER_UP_CARD_HEIGHT, CARD_FILL)
+            drawRect(left, POWER_UP_CARD_TOP, POWER_UP_CARD_WIDTH, 2, EngineColors.CYAN)
+
+            drawString(powerUp.title, left + 8, POWER_UP_CARD_TOP + 26, 14, EngineColors.CYAN)
+            // Wrapped by hand for the same reason the layout is eyeballed: nothing here can
+            // measure a string, so the description is broken on whole words at a fixed width.
+            wrapped(powerUp.description, CARD_TEXT_CHARS).forEachIndexed { line, text ->
+                drawString(text, left + 8, POWER_UP_CARD_TOP + 48 + line * 14, 11, EngineColors.WHITE)
+            }
+        }
+    }
+
+    /** Greedy word wrap at [chars] per line, which is all the card layout needs. */
+    private fun wrapped(text: String, chars: Int): List<String> {
+        val lines = mutableListOf<String>()
+        var line = StringBuilder()
+        for (word in text.split(' ')) {
+            if (line.isNotEmpty() && line.length + 1 + word.length > chars) {
+                lines += line.toString()
+                line = StringBuilder()
+            }
+            if (line.isNotEmpty()) line.append(' ')
+            line.append(word)
+        }
+        if (line.isNotEmpty()) lines += line.toString()
+        return lines
+    }
+
+    /**
+     * The experience bar, across the very top edge.
+     *
+     * Up there because it is the one strip of the frame nothing else uses - the HUD text starts
+     * below it and the bat never reaches it - and because a bar the player reads out of the corner
+     * of their eye is the point: it says how close the next choice is without asking to be looked
+     * at.
+     */
+    private fun drawExperienceBar() {
+        val filled = (game.frameBufferWidth * progress.fraction).roundToInt()
+        g.drawRect(0, 0, game.frameBufferWidth, XP_BAR_HEIGHT, XP_BAR_EMPTY)
+        if (filled > 0) g.drawRect(0, 0, filled, XP_BAR_HEIGHT, EngineColors.CYAN)
+    }
+
     override fun present(deltaTime: Float) {
         g.clear(EngineColors.BLACK)
         world.draw(g)
         drawStats()
+        drawExperienceBar()
         if (levelNameDisplayTime > 0) {
             drawLevelName()
         }
@@ -544,6 +801,7 @@ class GameScreen(
             g.drawPixmap(env.assets.graphics.death, 15, 15)
         }
 
+        if (offer.isNotEmpty()) drawPowerUpOffer()
         if (levelComplete) drawLevelCompleteOverlay()
         if (paused) drawPauseOverlay()
     }
@@ -564,6 +822,9 @@ class GameScreen(
             // How far into the level the player is, which is the only reading they get on how
             // much harder the next minute is about to be - and on how close the boss is.
             drawString(waveLabel(), 5, 80, 15, EngineColors.CYAN)
+            // The other half of that race: how much stronger the bat has got while the cave was
+            // getting harder. The bar across the top edge is the fine detail; this is the count.
+            drawString("Level: ${progress.level}", 5, 100, 15, EngineColors.YELLOW)
         }
     }
 
@@ -624,5 +885,14 @@ class GameScreen(
          * the bat, whose death already has its own artwork.
          */
         val EXPLODES_ON_DEATH = setOf(CollisionGroup.ENEMY, CollisionGroup.OBSTACLE)
+
+        /** A power-up card's panel: dark enough to read white text on, over a dimmed run. */
+        const val CARD_FILL = 0xE6101820.toInt()
+
+        /** Roughly what fits on a card at 11px, counted rather than measured; see [wrapped]. */
+        const val CARD_TEXT_CHARS = 22
+
+        /** The unfilled part of the experience bar. */
+        const val XP_BAR_EMPTY = 0x80000000.toInt()
     }
 }

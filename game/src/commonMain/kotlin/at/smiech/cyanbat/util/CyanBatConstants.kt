@@ -157,3 +157,66 @@ const val BANNER_CHAR_WIDTH = 15
 // watching.
 const val LEVEL_COMPLETE_ARMING_SECONDS = 1.2f
 
+
+// --- Experience and power-ups ------------------------------------------------------------------
+//
+// A second curve running against the level's own: the cave gets harder on a clock, the bat gets
+// stronger on kills, and a run is the race between them. Experience is per-run and is never
+// persisted - a level already bought would make the next run start halfway through this one.
+
+// What a kill is worth, scaled by the wave it came from so that pressing on beats farming the
+// opening minute, where enemies die to a single shot.
+const val XP_PER_KILL = 10
+const val XP_PER_KILL_PER_WAVE = 5
+
+// Killing the level's boss, which is worth roughly a late level on its own.
+const val XP_PER_BOSS = 250
+
+// What the first level up costs, and what each one after it adds. Against level 1's roughly 100
+// reachable kills this lands somewhere near ten level ups across a full run - often enough that a
+// pick matters, rare enough that the dialog is an event rather than an interruption.
+const val XP_FIRST_LEVEL = 50
+const val XP_LEVEL_STEP = 35
+
+// How many power-ups are offered per level up.
+const val POWER_UP_CHOICES = 3
+
+// Rapid Fire, as a multiplier on the gap between shots. The floor is a little over three shots a
+// second: past that the bat is a wall of bullets and dodging stops being the game.
+const val RAPID_FIRE_FACTOR = 0.82f
+const val MIN_SHOT_INTERVAL_SECONDS = 0.3f
+
+// Spread Shot. Each pick adds one more shot to the fan, alternating above and below the straight
+// one; the cap is what keeps the spread readable and the frame from filling with shots.
+const val MAX_EXTRA_SHOTS = 4
+const val SPREAD_ANGLE_DEGREES = 9f
+
+// Vitality and Heavy Rounds, the two that scale without a ceiling. They are what guarantees a
+// level up always has three things to offer.
+const val VITALITY_HIT_POINTS = 25
+const val HEAVY_ROUNDS_DAMAGE = 12
+
+// Armour Plating, as a multiplier on incoming damage. Floored well above zero: a bat that cannot
+// be hurt has no run left to play.
+const val ARMOUR_FACTOR = 0.85f
+const val ARMOUR_FLOOR = 0.4f
+
+// Mercy invulnerability after a hit. Without one a single obstacle would strip the whole bar over
+// the frames the two sprites spend overlapping; Second Wind buys more of it, up to the cap.
+const val PLAYER_HIT_COOLDOWN_SECONDS = 0.5f
+const val SECOND_WIND_SECONDS = 0.3f
+const val MAX_HIT_COOLDOWN_SECONDS = 1.5f
+
+// The level up dialog, laid out against the 480x320 framebuffer. Three cards in a row with a gutter
+// between them, centred horizontally and sitting just below the middle of the screen.
+const val POWER_UP_CARD_WIDTH = 140
+const val POWER_UP_CARD_HEIGHT = 96
+const val POWER_UP_CARD_GAP = 10
+const val POWER_UP_CARD_TOP = 130
+
+// How long the dialog ignores input. The player was steering with a finger down when the level up
+// landed, and the lift that follows is not them choosing a card.
+const val POWER_UP_ARMING_SECONDS = 0.35f
+
+// The experience bar, drawn across the very top edge where nothing else is.
+const val XP_BAR_HEIGHT = 3

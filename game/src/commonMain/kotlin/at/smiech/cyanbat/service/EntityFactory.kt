@@ -39,6 +39,8 @@ import at.smiech.engine.ecs.World
 import at.smiech.engine.ecs.ZIndexComponent
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
+import kotlin.math.cos
+import kotlin.math.sin
 
 class EntityFactory(private val world: World) {
 
@@ -185,6 +187,11 @@ class EntityFactory(private val world: World) {
         return id
     }
 
+    /**
+     * @param angleDegrees how far off straight the shot flies, positive downwards. A fanned shot
+     *   keeps the full [SHOT_SPEED] along its own heading rather than along x, so the outer shots
+     *   of a spread do not lag behind the middle one.
+     */
     fun createShot(
         x: Float,
         y: Float,
@@ -193,10 +200,17 @@ class EntityFactory(private val world: World) {
         pixmap: Pixmap,
         isPlayer: Boolean,
         damage: Int = DAMAGE_PER_HIT,
+        angleDegrees: Float = 0f,
     ): EntityId {
+        val radians = angleDegrees * PI_OVER_180
+        val forward = if (isPlayer) SHOT_SPEED else -SHOT_SPEED
+
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
-        world.addComponent(id, VelocityComponent(Vector2(if (isPlayer) SHOT_SPEED else -SHOT_SPEED, 0f)))
+        world.addComponent(
+            id,
+            VelocityComponent(Vector2(forward * cos(radians), SHOT_SPEED * sin(radians)))
+        )
         world.addComponent(id, SpriteComponent(pixmap))
         world.addComponent(id, CollisionComponent(2f, if (isPlayer) CollisionGroup.PLAYER_PROJECTILE else CollisionGroup.ENEMY_PROJECTILE))
         world.addComponent(id, HealthComponent(SHOT_HIT_POINTS))
@@ -292,5 +306,8 @@ class EntityFactory(private val world: World) {
 
         /** The boss wears the third enemy's colours, the same ones the final wave escorts it in. */
         const val BOSS_ENEMY_TYPE = 2
+
+        /** Degrees to radians, for the spread on a fanned shot. */
+        const val PI_OVER_180 = 0.017453292f
     }
 }

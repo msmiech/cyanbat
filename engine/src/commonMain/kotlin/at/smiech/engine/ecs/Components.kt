@@ -55,12 +55,13 @@ enum class CollisionGroup {
  *
  * @param hitPoints what remains. Reaching zero is what clears [alive]; the caller applying the
  *   damage owns that step, because what dying means differs from entity to entity.
- * @param maxHitPoints what it started with, kept so a [HealthBarComponent] can draw a fraction
- *   rather than an absolute count.
+ * @param maxHitPoints the size of the bar, kept so a [HealthBarComponent] can draw a fraction
+ *   rather than an absolute count. Mutable because an entity can be made hardier mid-run - the
+ *   player picking up more health is exactly that - and the bar has to grow with it.
  */
 data class HealthComponent(
     var hitPoints: Int = 1,
-    val maxHitPoints: Int = hitPoints,
+    var maxHitPoints: Int = hitPoints,
     var alive: Boolean = true,
 ) : Component {
     /** Health left, as 0..1. */
@@ -198,9 +199,11 @@ data class ZIndexComponent(val zIndex: Int = 0) : Component
 /**
  * Fires on a fixed cadence, tracked by [WeaponSystem].
  *
- * @param interval seconds between shots.
+ * @param interval seconds between shots. Mutable so a weapon can be made faster mid-run; the
+ *   elapsed time is kept across the change, so a shortened interval can fire immediately rather
+ *   than making the player wait out the old one first.
  */
 data class WeaponComponent(
-    val interval: Float,
+    var interval: Float,
     var timeSinceLastShot: Float = 0f
 ) : Component
