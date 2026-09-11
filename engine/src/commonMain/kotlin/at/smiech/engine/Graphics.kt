@@ -13,6 +13,25 @@ interface Graphics {
     fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int)
     fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int)
     fun drawPixmap(pixmap: Pixmap, x: Int, y: Int)
+
+    /**
+     * The same blit stretched into a [dstWidth] by [dstHeight] box, nearest-neighbour on both
+     * platforms so a magnified sprite stays pixel art instead of turning to mush.
+     *
+     * Both backends already blit through a destination rectangle, so this costs a scaled sprite
+     * nothing over an unscaled one.
+     */
+    fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+    )
     fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
     val width: Int
     val height: Int

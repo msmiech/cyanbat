@@ -14,11 +14,22 @@ private class TaggedPixmap(val tag: String) : Pixmap {
     override fun dispose() = Unit
 }
 
+/** One blit, as the system asked for it: which sprite, and how big it came out on screen. */
+private data class DrawnSprite(val tag: String, val dstWidth: Int, val dstHeight: Int)
+
 private class RecordingGraphics : Graphics {
-    val drawn = mutableListOf<String>()
+    val sprites = mutableListOf<DrawnSprite>()
+    val drawn: List<String> get() = sprites.map { it.tag }
 
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int) {
-        drawn += (pixmap as TaggedPixmap).tag
+        sprites += DrawnSprite((pixmap as TaggedPixmap).tag, srcWidth, srcHeight)
+    }
+
+    override fun drawPixmap(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
+        dstWidth: Int, dstHeight: Int
+    ) {
+        sprites += DrawnSprite((pixmap as TaggedPixmap).tag, dstWidth, dstHeight)
     }
 
     override fun newPixmap(filename: String, format: Graphics.PixmapFormat) = TaggedPixmap(filename)
@@ -46,6 +57,9 @@ class RenderSystemTest {
     }
 
     private fun drawnOrder(): List<String> = RecordingGraphics().also { world.draw(it) }.drawn
+
+    private fun drawnSprites(): List<DrawnSprite> =
+        RecordingGraphics().also { world.draw(it) }.sprites
 
     /** Backgrounds sit at -100 and explosions at 50, so negative layers have to sort correctly. */
     @Test
@@ -89,6 +103,25 @@ class RenderSystemTest {
         spawn("latecomer", zIndex = 10)
 
         assertContentEquals(listOf("survivor", "latecomer"), drawnOrder())
+    }
+
+    /**
+     * The sheet holds one size of every sprite, so a boss is that artwork blown up. Scaling is
+     * the renderer's job, not the sheet's: the source rect stays the frame it always was.
+     */
+    @Test
+    fun `a scaled sprite is blitted into a scaled destination`() {
+        val id = spawn("boss")
+        world.getComponent(id, SpriteComponent::class)!!.scale = 3f
+
+        assertContentEquals(listOf(DrawnSprite("boss", 30, 30)), drawnSprites())
+    }
+
+    @Test
+    fun `an unscaled sprite is blitted at its source size`() {
+        spawn("enemy")
+
+        assertContentEquals(listOf(DrawnSprite("enemy", 10, 10)), drawnSprites())
     }
 
     /** The draw buffer is reused across frames; a quieter frame must not redraw the busy one. */
