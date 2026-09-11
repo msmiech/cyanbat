@@ -253,6 +253,81 @@ class WeaponSystem(private val onFire: (EntityId) -> Unit) : GameSystem() {
 }
 
 /**
+ * Reflects [BounceComponent] entities off the edges of the frame, spending a bounce each time.
+ *
+ * Placed between [MovementSystem] and [LifetimeSystem], and it has to be: movement is what carries
+ * an entity into an edge, and culling is what would remove it there. Run it earlier and it
+ * reflects things that have not reached the edge yet; run it later and there is nothing left to
+ * reflect.
+ *
+ * Only the leading edge counts. An entity is reflected off a wall it is actually travelling into,
+ * never off one it is already moving away from - without that, something that ends a frame still
+ * overlapping an edge would flip back and forth and burn every bounce it has in a few frames.
+ *
+ * @param worldWidth/worldHeight the framebuffer, which is what the edges are.
+ */
+class BounceSystem(
+    private val worldWidth: Int,
+    private val worldHeight: Int,
+) : GameSystem() {
+    private lateinit var transforms: ComponentMapper<TransformComponent>
+    private lateinit var velocities: ComponentMapper<VelocityComponent>
+    private lateinit var bounces: ComponentMapper<BounceComponent>
+
+    override fun onAttach(world: World) {
+        transforms = world.mapper(TransformComponent::class)
+        velocities = world.mapper(VelocityComponent::class)
+        bounces = world.mapper(BounceComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(transforms, velocities, bounces) { id ->
+            val bounce = bounces.require(id)
+            if (bounce.remaining <= 0) return@forEach
+
+            val transform = transforms.require(id)
+            val rect = transform.rect
+            val velocity = velocities.require(id).velocity
+
+            // At most one reflection per entity per frame: a corner is two walls, and taking both
+            // at once would send the entity back the way it came for the price of two bounces.
+            when {
+                rect.top < 0f && velocity.y < 0f ->
+                    reflect(id, transform, velocity.copy(y = -velocity.y), dy = -rect.top)
+
+                rect.bottom > worldHeight && velocity.y > 0f ->
+                    reflect(id, transform, velocity.copy(y = -velocity.y), dy = worldHeight - rect.bottom)
+
+                rect.right > worldWidth && velocity.x > 0f ->
+                    reflect(id, transform, velocity.copy(x = -velocity.x), dx = worldWidth - rect.right)
+
+                rect.left < 0f && velocity.x > 0f -> Unit // travelling away from it already
+
+                else -> return@forEach
+            }
+            bounce.remaining--
+        }
+    }
+
+    /**
+     * Turns the entity around and nudges it back inside.
+     *
+     * The nudge is what stops the same wall being hit again on the next frame, which would spend
+     * every bounce in a row and leave the entity stuck to the edge.
+     */
+    private fun reflect(
+        id: EntityId,
+        transform: TransformComponent,
+        velocity: Vector2,
+        dx: Float = 0f,
+        dy: Float = 0f,
+    ) {
+        transform.rect = transform.rect.offset(dx, dy)
+        velocities.require(id).velocity = velocity
+    }
+}
+
+/**
  * System that removes entities when they are out of bounds or marked for removal.
  */
 class LifetimeSystem(private val worldWidth: Int) : GameSystem() {

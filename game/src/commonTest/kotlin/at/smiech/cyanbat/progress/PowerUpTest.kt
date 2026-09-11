@@ -1,16 +1,37 @@
 package at.smiech.cyanbat.progress
 
 import at.smiech.cyanbat.util.ARMOUR_FLOOR
+import at.smiech.cyanbat.util.COUNTERWEIGHT_REDUCTION
 import at.smiech.cyanbat.util.HEAVY_ROUNDS_DAMAGE
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
+import at.smiech.cyanbat.util.MAX_FLAT_DAMAGE_REDUCTION
+import at.smiech.cyanbat.util.MAX_HEALTH_REGEN_PER_SECOND
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
+import at.smiech.cyanbat.util.MAX_REVIVES
+import at.smiech.cyanbat.util.MAX_SHOT_BOUNCE
+import at.smiech.cyanbat.util.MAX_SHOT_PIERCE
 import at.smiech.cyanbat.util.MIN_SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.POWER_UP_CHOICES
+import at.smiech.cyanbat.util.REGEN_PER_SECOND
+import at.smiech.cyanbat.util.SCORE_BONUS
 import at.smiech.cyanbat.util.VITALITY_HIT_POINTS
+import at.smiech.cyanbat.util.XP_BONUS
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
+
+/**
+ * The power-ups that scale without a ceiling, and so are still on offer however deep a run has
+ * already invested in them. Enough of them is what guarantees a level up always has three things
+ * to show; see `an offer can always be filled`.
+ */
+private val UNCAPPED = setOf(
+    PowerUp.VITALITY,
+    PowerUp.HEAVY_ROUNDS,
+    PowerUp.FAST_LEARNER,
+    PowerUp.BOUNTY_HUNTER,
+)
 
 class PowerUpTest {
 
@@ -73,6 +94,78 @@ class PowerUpTest {
         assertTrue(loadout.hitCooldownSeconds > before)
     }
 
+    @Test
+    fun `regeneration heals over time`() {
+        take(PowerUp.REGENERATION)
+        assertEquals(REGEN_PER_SECOND.toFloat(), loadout.healthRegenPerSecond)
+
+        take(PowerUp.REGENERATION)
+        assertEquals(2f * REGEN_PER_SECOND, loadout.healthRegenPerSecond)
+    }
+
+    @Test
+    fun `fast learner raises experience earned`() {
+        take(PowerUp.FAST_LEARNER)
+
+        assertEquals(1f + XP_BONUS, loadout.experienceMultiplier)
+    }
+
+    @Test
+    fun `bounty hunter raises score earned`() {
+        take(PowerUp.BOUNTY_HUNTER)
+
+        assertEquals(1f + SCORE_BONUS, loadout.scoreMultiplier)
+    }
+
+    @Test
+    fun `second life banks a death the bat can walk away from`() {
+        take(PowerUp.SECOND_LIFE)
+        assertEquals(1, loadout.revives)
+
+        assertTrue(loadout.useRevive())
+        assertEquals(0, loadout.revives)
+        assertTrue(!loadout.useRevive(), "a spent revive must not come back")
+    }
+
+    /** The pair is the point: it is the pick for a player who means to stand and trade. */
+    @Test
+    fun `counterweight blunts incoming damage and sharpens outgoing`() {
+        val damageBefore = loadout.shotDamage
+
+        take(PowerUp.COUNTERWEIGHT)
+
+        assertEquals(COUNTERWEIGHT_REDUCTION, loadout.flatDamageReduction)
+        assertTrue(loadout.shotDamage > damageBefore, "outgoing damage did not rise")
+    }
+
+    /** Rounded up, so the smallest raise is worth a point rather than nothing at all. */
+    @Test
+    fun `counterweight always raises damage by at least a point`() {
+        repeat(5) {
+            val before = loadout.shotDamage
+            take(PowerUp.COUNTERWEIGHT)
+            assertTrue(loadout.shotDamage >= before + 1, "a pick added nothing: $before")
+        }
+    }
+
+    @Test
+    fun `piercing shot lets a shot through one more enemy`() {
+        take(PowerUp.PIERCING_SHOT)
+        assertEquals(1, loadout.shotPierce)
+
+        take(PowerUp.PIERCING_SHOT)
+        assertEquals(2, loadout.shotPierce)
+    }
+
+    @Test
+    fun `ricochet buys a shot one more reflection`() {
+        take(PowerUp.RICOCHET)
+        assertEquals(1, loadout.shotBounce)
+
+        take(PowerUp.RICOCHET)
+        assertEquals(2, loadout.shotBounce)
+    }
+
     // endregion
 
     // region clamps
@@ -83,16 +176,21 @@ class PowerUpTest {
      */
     @Test
     fun `stacking a power-up never runs off the end`() {
-        take(PowerUp.RAPID_FIRE, times = 50)
-        take(PowerUp.SPREAD_SHOT, times = 50)
-        take(PowerUp.ARMOUR_PLATING, times = 50)
-        take(PowerUp.SECOND_WIND, times = 50)
+        maxOutEveryCappedPowerUp()
 
         assertEquals(MIN_SHOT_INTERVAL_SECONDS, loadout.shotIntervalSeconds)
         assertEquals(MAX_EXTRA_SHOTS, loadout.extraShots)
         assertEquals(ARMOUR_FLOOR, loadout.damageTaken)
         assertEquals(MAX_HIT_COOLDOWN_SECONDS, loadout.hitCooldownSeconds)
+        assertEquals(MAX_HEALTH_REGEN_PER_SECOND, loadout.healthRegenPerSecond)
+        assertEquals(MAX_REVIVES, loadout.revives)
+        assertEquals(MAX_FLAT_DAMAGE_REDUCTION, loadout.flatDamageReduction)
+        assertEquals(MAX_SHOT_PIERCE, loadout.shotPierce)
+        assertEquals(MAX_SHOT_BOUNCE, loadout.shotBounce)
     }
+
+    private fun maxOutEveryCappedPowerUp() =
+        PowerUp.entries.forEach { take(it, times = 60) }
 
     @Test
     fun `a power-up already at its clamp stops being offered`() {
@@ -102,14 +200,12 @@ class PowerUpTest {
         assertTrue(PowerUp.offer(loadout, Random(1)).none { it == PowerUp.SPREAD_SHOT })
     }
 
-    /** These two scale without a ceiling, which is what keeps an offer fillable forever. */
+    /** These scale without a ceiling, which is what keeps an offer fillable forever. */
     @Test
     fun `the uncapped power-ups are always available`() {
-        take(PowerUp.VITALITY, times = 100)
-        take(PowerUp.HEAVY_ROUNDS, times = 100)
+        maxOutEveryCappedPowerUp()
 
-        assertTrue(PowerUp.VITALITY.isAvailable(loadout))
-        assertTrue(PowerUp.HEAVY_ROUNDS.isAvailable(loadout))
+        assertEquals(UNCAPPED, PowerUp.entries.filter { it.isAvailable(loadout) }.toSet())
     }
 
     // endregion
@@ -134,19 +230,28 @@ class PowerUpTest {
 
     /**
      * A dialog with nothing on it would freeze the run, since there is no way to dismiss it
-     * without picking. Max everything that can be maxed and check the offer still fills.
+     * without picking. Max everything that can be maxed and check a full offer still fills.
      */
     @Test
     fun `an offer can always be filled, however maxed out the run is`() {
-        take(PowerUp.RAPID_FIRE, times = 50)
-        take(PowerUp.SPREAD_SHOT, times = 50)
-        take(PowerUp.ARMOUR_PLATING, times = 50)
-        take(PowerUp.SECOND_WIND, times = 50)
+        maxOutEveryCappedPowerUp()
 
         val offer = PowerUp.offer(loadout, Random(3))
 
-        assertEquals(listOf(PowerUp.VITALITY, PowerUp.HEAVY_ROUNDS).sortedBy { it.name }, offer.sortedBy { it.name })
-        assertTrue(offer.isNotEmpty())
+        assertEquals(POWER_UP_CHOICES, offer.size)
+        assertTrue(UNCAPPED.containsAll(offer), "a maxed-out run was offered something capped: $offer")
+    }
+
+    /**
+     * The guarantee above only holds while enough power-ups refuse to cap. Pinning the count means
+     * a future one that forgets to say so cannot quietly shrink the pool below a full offer.
+     */
+    @Test
+    fun `enough power-ups are uncapped to fill an offer on their own`() {
+        assertTrue(
+            UNCAPPED.size >= POWER_UP_CHOICES,
+            "only ${UNCAPPED.size} power-ups are uncapped, which cannot fill an offer of $POWER_UP_CHOICES"
+        )
     }
 
     @Test

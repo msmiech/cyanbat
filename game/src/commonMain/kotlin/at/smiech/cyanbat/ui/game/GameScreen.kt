@@ -22,6 +22,7 @@ import at.smiech.cyanbat.util.POWER_UP_CARD_HEIGHT
 import at.smiech.cyanbat.util.POWER_UP_CARD_TOP
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
+import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
 import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
@@ -37,6 +38,7 @@ import at.smiech.engine.Input.TouchEvent
 import at.smiech.engine.Screen
 import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.ecs.AnimationSystem
+import at.smiech.engine.ecs.BounceSystem
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.CollisionSystem
@@ -48,6 +50,7 @@ import at.smiech.engine.ecs.HealthBarSystem
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LifetimeSystem
 import at.smiech.engine.ecs.MovementSystem
+import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.PlayerInputSystem
 import at.smiech.engine.ecs.RenderSystem
@@ -137,6 +140,9 @@ class GameScreen(
     /** Time before the level up dialog will accept a tap; see [handlePowerUpChoice]. */
     private var offerArmingTime = 0f
 
+    /** Fractional health owed by Regeneration, carried between ticks; see [regenerate]. */
+    private var regenCarry = 0f
+
     /** Set by the player, and by the host backgrounding the app. Cleared only by the player. */
     private var paused = false
 
@@ -155,6 +161,9 @@ class GameScreen(
         // Setup Systems
         world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight))
         world.addSystem(MovementSystem())
+        // Straight after the movement that carries a shot into an edge, and well before the
+        // culling that would remove it there.
+        world.addSystem(BounceSystem(game.frameBufferWidth, game.frameBufferHeight))
         world.addSystem(WeaponSystem { shooterId -> fireShot(shooterId) })
         world.addSystem(BackgroundScrollingSystem(game.frameBufferWidth, factory))
         world.addSystem(EnemyBehaviorSystem())
@@ -219,6 +228,10 @@ class GameScreen(
                 isPlayer = isPlayer,
                 damage = damage,
                 angleDegrees = angle,
+                // Piercing and ricochet are the bat's alone. An enemy shot that came back off a
+                // wall would be a hazard the player has no way to read or answer.
+                pierce = if (isPlayer) loadout.shotPierce else 0,
+                bounce = if (isPlayer) loadout.shotBounce else 0,
             )
         }
     }
@@ -264,12 +277,18 @@ class GameScreen(
         // know which of the two it was looking at.
         val bossId = enmGen.bossId
 
+        // Resolved before anything is hurt: a piercing shot that has already gone through this
+        // enemy is not colliding with it any more, however many frames the two spend overlapping.
+        // Without this the pair would re-hit every frame, spending the pierce and killing the
+        // enemy several times over.
+        if (hasAlreadyPierced(id1, id2) || hasAlreadyPierced(id2, id1)) return
+
         // Both read before either side takes its hit: an entity that dies here still lands the
         // blow it arrived with, and reading afterwards would give the survivor a free pass.
         val damage1 = damageOf(id1)
         val damage2 = damageOf(id2)
-        val died1 = damage(id1, damage2)
-        val died2 = damage(id2, damage1)
+        val died1 = damage(id1, damage2, dealtBy = id2)
+        val died2 = damage(id2, damage1, dealtBy = id1)
 
         // A kill scores when the enemy actually dies rather than on every shot that lands: past
         // the opening wave they take more than one.
@@ -294,7 +313,7 @@ class GameScreen(
      * on the next frame, once the tick that earned it has finished resolving.
      */
     private fun awardExperience(amount: Int) {
-        pendingLevelUps += progress.award(amount)
+        pendingLevelUps += progress.award((amount * loadout.experienceMultiplier).roundToInt())
     }
 
     /**
@@ -319,15 +338,34 @@ class GameScreen(
         world.getComponent(id, DamageComponent::class)?.amount ?: DAMAGE_PER_HIT
 
     /**
+     * True when [shotId] is a piercing shot that has already passed through [targetId], and false
+     * for everything else - including the first frame of a pierce, which it records on the way.
+     */
+    private fun hasAlreadyPierced(shotId: EntityId, targetId: EntityId): Boolean {
+        val pierce = world.getComponent(shotId, PierceComponent::class) ?: return false
+        if (collisionGroupOf(targetId) != CollisionGroup.ENEMY) return false
+        return pierce.meet(targetId)
+    }
+
+    /**
      * Hurts [id] for [amount], shows what it cost over an enemy that took the hit, and blows up
      * whatever the hit destroyed.
      *
      * Only enemies get a number. An obstacle is scenery being cleared rather than a target, and
      * what the bat itself has lost is already there to read on its health bar.
      *
+     * @param dealtBy the entity on the other side of the collision, which is what decides whether
+     *   a piercing shot spends a pierce here or is spent itself.
      * @return true if this hit is what killed it.
      */
-    private fun damage(id: EntityId, amount: Int): Boolean {
+    private fun damage(id: EntityId, amount: Int, dealtBy: EntityId): Boolean {
+        // A shot with pierce left goes through rather than being stopped. Only enemies count:
+        // scenery is what a shot is stopped by however sharp it has been made.
+        val pierce = world.getComponent(id, PierceComponent::class)
+        if (pierce != null && collisionGroupOf(dealtBy) == CollisionGroup.ENEMY && pierce.spend()) {
+            return false
+        }
+
         val dealt = applyDamage(id, amount)
         if (dealt > 0 && collisionGroupOf(id) == CollisionGroup.ENEMY) {
             showDamageText(id, dealt)
@@ -375,9 +413,13 @@ class GameScreen(
             control.hitCooldown = loadout.hitCooldownSeconds
             scoring.registerPlayerHit()
 
-            // Rounded up and floored at one, so armour can never make a hit free - that would turn
-            // a run into one the player cannot lose.
-            incoming = (incoming * loadout.damageTaken).roundToInt().coerceAtLeast(1)
+            // The flat cut comes off first and the armour scales what survives it, so the two
+            // stack the way a player would expect rather than one swallowing the other. Rounded up
+            // and floored at one: no amount of either can make a hit free, which would leave a run
+            // the player cannot lose.
+            incoming = ((incoming - loadout.flatDamageReduction) * loadout.damageTaken)
+                .roundToInt()
+                .coerceAtLeast(1)
 
             // Vibrate on hit
             env.haptics.vibrate(HIT_VIBRATION_MILLIS)
@@ -387,12 +429,32 @@ class GameScreen(
         val dealt = minOf(incoming, health.hitPoints)
         health.hitPoints -= dealt
         if (health.hitPoints <= 0) {
+            // The damage still landed and is still reported: a revive is the bat surviving a blow
+            // that would have killed it, not the blow never happening.
+            if (control != null && revive(health)) return dealt
+
             health.hitPoints = 0
             health.alive = false
             if (control != null) endRun()
             if (targetId == enmGen.bossId) completeLevel()
         }
         return dealt
+    }
+
+    /**
+     * Spends a Second Life, if the run has one, putting the bat back on its feet at half a bar.
+     *
+     * Half rather than full because a free death should keep a run alive, not undo the damage that
+     * ended it - and the mercy window is reset alongside, or the same enemy would take the new
+     * health off before the player's hand had moved.
+     */
+    private fun revive(health: HealthComponent): Boolean {
+        if (!loadout.useRevive()) return false
+
+        health.hitPoints = (health.maxHitPoints * REVIVE_HEALTH_FRACTION).roundToInt().coerceAtLeast(1)
+        world.getComponent(batId, PlayerControlComponent::class)?.hitCooldown = loadout.hitCooldownSeconds
+        announce("SECOND LIFE")
+        return true
     }
 
     /**
@@ -489,6 +551,7 @@ class GameScreen(
             tickTime -= tick
             world.update(tick, game.input)
             scoring.awardSurvivalTick()
+            regenerate(tick)
 
             // The level clock is the fixed tick, not the wall clock: a paused game is a paused
             // level, and a slow frame costs the player no ground on the wave they are in.
@@ -588,6 +651,7 @@ class GameScreen(
      */
     private fun applyLoadout() {
         world.getComponent(batId, WeaponComponent::class)?.interval = loadout.shotIntervalSeconds
+        scoring.bonusMultiplier = loadout.scoreMultiplier
 
         val health = world.getComponent(batId, HealthComponent::class) ?: return
         health.maxHitPoints = loadout.maxHitPoints
@@ -595,6 +659,30 @@ class GameScreen(
         // whatever room is actually left in it.
         val heal = loadout.takePendingHeal()
         if (heal > 0) health.hitPoints = (health.hitPoints + heal).coerceAtMost(health.maxHitPoints)
+    }
+
+    /**
+     * Puts back whatever Regeneration is owed this tick.
+     *
+     * Fractional health is carried rather than rounded, for the same reason the score bonus carries
+     * its remainder: two health a second is well under a point per tick, and rounding each tick
+     * would heal nothing at all. Only a living bat regenerates, and only up to its own bar.
+     */
+    private fun regenerate(deltaTime: Float) {
+        if (loadout.healthRegenPerSecond <= 0f) return
+        val health = world.getComponent(batId, HealthComponent::class) ?: return
+        if (!health.alive || health.hitPoints >= health.maxHitPoints) {
+            // Dropped rather than banked: health owed while the bar is already full would
+            // otherwise pour out in one lump the instant the bat took its next hit.
+            regenCarry = 0f
+            return
+        }
+
+        regenCarry += loadout.healthRegenPerSecond * deltaTime
+        val whole = regenCarry.toInt()
+        if (whole <= 0) return
+        regenCarry -= whole
+        health.hitPoints = (health.hitPoints + whole).coerceAtMost(health.maxHitPoints)
     }
 
     /**

@@ -220,3 +220,36 @@ const val POWER_UP_ARMING_SECONDS = 0.35f
 
 // The experience bar, drawn across the very top edge where nothing else is.
 const val XP_BAR_HEIGHT = 3
+
+// The second batch of power-ups. Where the first six sharpen what the bat already does, these
+// change what it can do at all - regenerate, cheat death, shoot through things, come off the walls.
+
+// Regeneration, in health a second. An Int so the card can print it without a decimal point, and
+// small against the 12-36 damage of a single hit: it is what lets a careful run recover between
+// waves, never what carries one through a wave it is losing.
+const val REGEN_PER_SECOND = 2
+const val MAX_HEALTH_REGEN_PER_SECOND = 10f
+
+// Fast Learner and Bounty Hunter, as fractions added to their multipliers. Both uncapped, and both
+// deliberately small: they pay off over a whole run rather than in the wave they were picked, which
+// is what makes taking one over an immediate upgrade a real decision.
+const val XP_BONUS = 0.05f
+const val SCORE_BONUS = 0.10f
+
+// Second Life. The bat comes back at half a bar rather than a full one - a free death should keep a
+// run alive, not undo the damage that ended it - and stacks only so far.
+const val REVIVE_HEALTH_FRACTION = 0.5f
+const val MAX_REVIVES = 3
+
+// Counterweight: a flat cut off every hit, paid for with a share more damage dealt. Flat rather
+// than proportional, so it is worth most against the swarms of weak enemies that armour barely
+// notices. Incoming damage still floors at 1, so stacking this can blunt a hit but never void it.
+const val COUNTERWEIGHT_REDUCTION = 1
+const val COUNTERWEIGHT_BONUS = 0.10f
+const val MAX_FLAT_DAMAGE_REDUCTION = 20
+
+// Piercing Shot and Ricochet, in targets and reflections per shot. Both capped: a shot that passed
+// through everything would clear the frame from one corner, and one that never left it would fill
+// the frame with strays the player cannot read.
+const val MAX_SHOT_PIERCE = 4
+const val MAX_SHOT_BOUNCE = 3

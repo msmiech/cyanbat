@@ -113,6 +113,48 @@ data class FloatingTextComponent(
     var elapsed: Float = 0f,
 ) : Component
 
+/**
+ * Lets a projectile survive the things it hits instead of being spent by the first one.
+ *
+ * @param remaining how many more targets it can pass through. At zero the next hit spends it.
+ * @param hitIds what it has already gone through, so an overlap lasting several frames costs one
+ *   pierce and lands one hit rather than one of each per frame. Ids are recycled, so in principle
+ *   a long-lived projectile could mistake a new entity for one it has already passed; a shot
+ *   crosses the screen in well under a second, and the cost of the mistake is a miss.
+ */
+data class PierceComponent(
+    var remaining: Int,
+    val hitIds: MutableSet<EntityId> = mutableSetOf(),
+) : Component {
+    /**
+     * Records a meeting with [targetId] and reports whether it had already happened.
+     *
+     * The two halves are one call on purpose: every caller that asks is also meeting the target,
+     * and a check that did not record would let the same pair count again on the next frame -
+     * which is the whole failure this component exists to prevent.
+     */
+    fun meet(targetId: EntityId): Boolean = !hitIds.add(targetId)
+
+    /**
+     * Spends one pierce, if there is one.
+     *
+     * @return true when the projectile goes through, false when it has been stopped.
+     */
+    fun spend(): Boolean {
+        if (remaining <= 0) return false
+        remaining--
+        return true
+    }
+}
+
+/**
+ * Reflects an entity off the edges of the frame instead of letting it leave, [remaining] times.
+ *
+ * Tracked by [BounceSystem], which has to run after the movement that carries the entity into the
+ * edge and before the culling that would otherwise remove it there.
+ */
+data class BounceComponent(var remaining: Int) : Component
+
 data class LifetimeComponent(val removeIfOutOfBounds: Boolean = true) : Component
 
 // Specialized components for behavior
