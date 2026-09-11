@@ -32,6 +32,11 @@ private class RectRecordingGraphics : Graphics {
         dstWidth: Int, dstHeight: Int
     ) = Unit
 
+    override fun drawPixmap(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
+        dstWidth: Int, dstHeight: Int, rotationDegrees: Float
+    ) = Unit
+
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) = Unit
     override fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int) = Unit
     override val width = WORLD_WIDTH

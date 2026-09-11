@@ -25,6 +25,7 @@ import at.smiech.engine.ecs.DamageComponent
 import at.smiech.engine.ecs.EnemyBehaviorComponent
 import at.smiech.engine.ecs.EnemyMovementType
 import at.smiech.engine.ecs.EntityId
+import at.smiech.engine.ecs.FacesVelocityComponent
 import at.smiech.engine.ecs.FloatingTextComponent
 import at.smiech.engine.ecs.HealthBarComponent
 import at.smiech.engine.ecs.HealthComponent
@@ -215,6 +216,11 @@ class EntityFactory(private val world: World) {
             id,
             VelocityComponent(Vector2(forward * cos(radians), SHOT_SPEED * sin(radians)))
         )
+        // The artwork is a bullet with a point on it, so where it is going is the only thing its
+        // shape means. Every shot gets this, the enemy's included: theirs travels left, and drawing
+        // it pointing right was always wrong - it just had nothing to be compared against until
+        // the bat's shots started coming back off walls.
+        world.addComponent(id, FacesVelocityComponent())
         // Added only when the run has earned them, so an ordinary shot carries no bookkeeping it
         // will never use - and so the collision handler can tell a piercing shot by its component.
         if (pierce > 0) world.addComponent(id, PierceComponent(pierce))

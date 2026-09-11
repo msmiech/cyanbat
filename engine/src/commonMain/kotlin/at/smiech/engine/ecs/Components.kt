@@ -19,6 +19,10 @@ data class VelocityComponent(var velocity: Vector2) : Component
  * @param scale how many framebuffer pixels one source pixel covers. The sheet holds exactly one
  *   size of every sprite, so this is what lets a boss be that same artwork drawn large. Keep it in
  *   step with the entity's [TransformComponent], which is what collisions are read from.
+ * @param rotationDegrees how far the artwork is turned when it is drawn, clockwise, about the
+ *   sprite's own centre. Purely cosmetic: the entity's [TransformComponent] stays the upright box
+ *   collisions are read from, because a rotated hitbox would make a near miss depend on an angle
+ *   the player cannot measure. [FacingSystem] keeps it pointing where an entity is going.
  */
 data class SpriteComponent(
     val pixmap: Pixmap,
@@ -28,7 +32,18 @@ data class SpriteComponent(
     var srcWidth: Int = pixmap.width,
     var srcHeight: Int = pixmap.height,
     var scale: Float = 1f,
+    var rotationDegrees: Float = 0f,
 ) : Component
+
+/**
+ * Turns an entity's sprite to point wherever it is travelling, every frame.
+ *
+ * A marker: the angle itself lives on the [SpriteComponent] and the work is [FacingSystem]'s. It
+ * is opt-in because most things should not do this - the bat and the enemies are drawn from
+ * artwork that has an up, and spinning them to match a dodge would read as a glitch. What wants it
+ * is anything whose direction of travel is the only thing its shape means, which is projectiles.
+ */
+class FacesVelocityComponent : Component
 
 data class AnimationComponent(
     val frameWidth: Int,

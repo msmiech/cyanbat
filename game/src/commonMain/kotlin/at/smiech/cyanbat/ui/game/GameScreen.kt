@@ -45,6 +45,7 @@ import at.smiech.engine.ecs.CollisionSystem
 import at.smiech.engine.ecs.DamageComponent
 import at.smiech.engine.ecs.EnemyBehaviorSystem
 import at.smiech.engine.ecs.EntityId
+import at.smiech.engine.ecs.FacingSystem
 import at.smiech.engine.ecs.FloatingTextSystem
 import at.smiech.engine.ecs.HealthBarSystem
 import at.smiech.engine.ecs.HealthComponent
@@ -167,6 +168,10 @@ class GameScreen(
         world.addSystem(WeaponSystem { shooterId -> fireShot(shooterId) })
         world.addSystem(BackgroundScrollingSystem(game.frameBufferWidth, factory))
         world.addSystem(EnemyBehaviorSystem())
+        // After everything that can set a velocity - the steering, the movement, the bounce, the
+        // enemy patterns - so a shot is drawn pointing the way it is travelling on this frame
+        // rather than the way it was travelling on the last one.
+        world.addSystem(FacingSystem())
         world.addSystem(AnimationSystem())
         world.addSystem(CollisionSystem { id1, id2 -> handleCollision(id1, id2) })
         world.addSystem(LifetimeSystem(game.frameBufferWidth))

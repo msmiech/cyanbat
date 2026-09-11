@@ -104,6 +104,33 @@ class DesktopGraphics(
         )
     }
 
+    /**
+     * Rotation is applied to the canvas rather than to the image, so the blit underneath is the
+     * same one the unrotated path takes - including its `- 1` edges, which keeps a turned sprite
+     * the same size as an unturned one.
+     */
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        rotationDegrees: Float,
+    ) {
+        val saved = g2d.transform
+        g2d.rotate(
+            Math.toRadians(rotationDegrees.toDouble()),
+            x + dstWidth / 2.0,
+            y + dstHeight / 2.0,
+        )
+        drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight)
+        g2d.transform = saved
+    }
+
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) {
         g2d.drawImage((pixmap as DesktopPixmap).image, x, y, null)
     }

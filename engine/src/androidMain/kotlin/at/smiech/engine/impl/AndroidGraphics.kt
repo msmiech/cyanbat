@@ -102,6 +102,21 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
         )
     }
 
+    /**
+     * Rotation is applied to the canvas rather than to the bitmap, so the blit underneath is the
+     * same one the unrotated path takes - including its `- 1` edges, which keeps a turned sprite
+     * the same size as an unturned one.
+     */
+    override fun drawPixmap(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int,
+        srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int, rotationDegrees: Float
+    ) {
+        val saved = canvas.save()
+        canvas.rotate(rotationDegrees, x + dstWidth / 2f, y + dstHeight / 2f)
+        drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight)
+        canvas.restoreToCount(saved)
+    }
+
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) {
         canvas.drawBitmap((pixmap as AndroidPixmap).bitmap!!, x.toFloat(), y.toFloat(), null)
     }

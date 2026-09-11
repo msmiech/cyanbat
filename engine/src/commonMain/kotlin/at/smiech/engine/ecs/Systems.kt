@@ -5,6 +5,7 @@ import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.math.Vector2
+import kotlin.math.atan2
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -101,6 +102,43 @@ class EnemyBehaviorSystem : GameSystem() {
 }
 
 /**
+ * Turns the sprite of every [FacesVelocityComponent] entity to point where it is going.
+ *
+ * Run it after everything that can change a velocity - the movement, the bounce, the steering - so
+ * the angle a frame is drawn at is the direction that frame is actually travelling. A shot coming
+ * off a wall then turns on the same frame it reverses, rather than a frame late.
+ *
+ * The artwork is assumed to point right at zero degrees, which is the axis the game's sprites are
+ * drawn along.
+ */
+class FacingSystem : GameSystem() {
+    private lateinit var sprites: ComponentMapper<SpriteComponent>
+    private lateinit var velocities: ComponentMapper<VelocityComponent>
+    private lateinit var facings: ComponentMapper<FacesVelocityComponent>
+
+    override fun onAttach(world: World) {
+        sprites = world.mapper(SpriteComponent::class)
+        velocities = world.mapper(VelocityComponent::class)
+        facings = world.mapper(FacesVelocityComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(sprites, velocities, facings) { id ->
+            val velocity = velocities.require(id).velocity
+            // Something at a standstill has no direction to face, so it keeps the last one it had
+            // rather than snapping to zero - which for a bullet shape would be a visible flick.
+            if (velocity.x == 0f && velocity.y == 0f) return@forEach
+
+            sprites.require(id).rotationDegrees = atan2(velocity.y, velocity.x) * DEGREES_PER_RADIAN
+        }
+    }
+
+    private companion object {
+        const val DEGREES_PER_RADIAN = 57.29578f
+    }
+}
+
+/**
  * System that handles animations by updating Sprite source rectangles.
  */
 class AnimationSystem : GameSystem() {
@@ -188,29 +226,29 @@ class RenderSystem : GameSystem() {
             val transform = transforms.require(id)
             val sprite = sprites.require(id)
 
-            // The unscaled call for everything that is drawn at its own size, so the common case
-            // stays on the path both backends are tuned for.
-            if (sprite.scale == 1f) {
-                graphics.drawPixmap(
-                    sprite.pixmap,
-                    transform.rect.left.toInt(),
-                    transform.rect.top.toInt(),
-                    sprite.srcX,
-                    sprite.srcY,
-                    sprite.srcWidth,
-                    sprite.srcHeight
+            val left = transform.rect.left.toInt()
+            val top = transform.rect.top.toInt()
+            val dstWidth = (sprite.srcWidth * sprite.scale).roundToInt()
+            val dstHeight = (sprite.srcHeight * sprite.scale).roundToInt()
+
+            // Three paths, narrowest first. Everything but the projectiles is drawn upright at its
+            // own size, and that case must not pay for a canvas transform it does not use.
+            when {
+                sprite.rotationDegrees != 0f -> graphics.drawPixmap(
+                    sprite.pixmap, left, top,
+                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                    dstWidth, dstHeight, sprite.rotationDegrees,
                 )
-            } else {
-                graphics.drawPixmap(
-                    sprite.pixmap,
-                    transform.rect.left.toInt(),
-                    transform.rect.top.toInt(),
-                    sprite.srcX,
-                    sprite.srcY,
-                    sprite.srcWidth,
-                    sprite.srcHeight,
-                    (sprite.srcWidth * sprite.scale).roundToInt(),
-                    (sprite.srcHeight * sprite.scale).roundToInt(),
+
+                sprite.scale != 1f -> graphics.drawPixmap(
+                    sprite.pixmap, left, top,
+                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                    dstWidth, dstHeight,
+                )
+
+                else -> graphics.drawPixmap(
+                    sprite.pixmap, left, top,
+                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
                 )
             }
         }

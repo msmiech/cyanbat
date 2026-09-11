@@ -34,6 +34,11 @@ private class StringRecordingGraphics : Graphics {
         dstWidth: Int, dstHeight: Int
     ) = Unit
 
+    override fun drawPixmap(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
+        dstWidth: Int, dstHeight: Int, rotationDegrees: Float
+    ) = Unit
+
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) = Unit
     override val width = 480
     override val height = 320
