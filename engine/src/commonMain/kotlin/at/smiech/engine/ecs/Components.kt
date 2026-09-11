@@ -1,5 +1,6 @@
 package at.smiech.engine.ecs
 
+import at.smiech.engine.EngineColors
 import at.smiech.engine.Pixmap
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
@@ -45,7 +46,57 @@ enum class CollisionGroup {
     PLAYER, ENEMY, PLAYER_PROJECTILE, ENEMY_PROJECTILE, OBSTACLE, OTHER
 }
 
-data class HealthComponent(var lives: Int = 1, var alive: Boolean = true) : Component
+/**
+ * How much damage an entity has left in it.
+ *
+ * @param hitPoints what remains. Reaching zero is what clears [alive]; the caller applying the
+ *   damage owns that step, because what dying means differs from entity to entity.
+ * @param maxHitPoints what it started with, kept so a [HealthBarComponent] can draw a fraction
+ *   rather than an absolute count.
+ */
+data class HealthComponent(
+    var hitPoints: Int = 1,
+    val maxHitPoints: Int = hitPoints,
+    var alive: Boolean = true,
+) : Component {
+    /** Health left, as 0..1. */
+    val fraction: Float
+        get() = if (maxHitPoints <= 0) 0f else (hitPoints.toFloat() / maxHitPoints).coerceIn(0f, 1f)
+}
+
+/**
+ * Draws a bar of the entity's remaining [HealthComponent.fraction] just below it.
+ *
+ * Opt-in per entity rather than automatic: that is what keeps a screen full of enemies bare while
+ * the player still gets to see their own health.
+ *
+ * @param height bar thickness, in framebuffer pixels.
+ * @param offsetY gap between the bottom of the entity and the top of the bar.
+ * @param fullColor the filled part, drawn from the left edge rightwards.
+ * @param emptyColor the spent part, and so the whole bar once health runs out.
+ */
+data class HealthBarComponent(
+    val height: Float = 3f,
+    val offsetY: Float = 2f,
+    val fullColor: Int = EngineColors.RED,
+    val emptyColor: Int = EngineColors.BLACK,
+) : Component
+
+/**
+ * A short-lived piece of text that drifts along its [VelocityComponent] and fades as it goes -
+ * damage numbers, and anything else that has to be read off the spot where it happened.
+ *
+ * @param duration how long it lives, in seconds. Alpha runs from full to nothing across it.
+ * @param elapsed time already spent, advanced by [FloatingTextSystem].
+ */
+data class FloatingTextComponent(
+    val text: String,
+    val fontSize: Int = 12,
+    val color: Int = EngineColors.WHITE,
+    val outlineColor: Int = EngineColors.BLACK,
+    val duration: Float = 0.6f,
+    var elapsed: Float = 0f,
+) : Component
 
 data class LifetimeComponent(val removeIfOutOfBounds: Boolean = true) : Component
 
@@ -90,7 +141,34 @@ data class EnemyBehaviorComponent(
     var nextDirectionChange: Float = 0f
 ) : Component
 
-data class TrailComponent(var color: Int) : Component
+/**
+ * One segment of the wake an entity leaves behind it, drawn as a plain block that thins and fades
+ * as it ages. [TrailSystem] reaps it once its time is up.
+ *
+ * How far the wake reaches is [duration] against how fast the segment drifts, not a segment count:
+ * segments are shed on a cadence, so a longer life is a longer trail.
+ *
+ * @param color the segment at full strength. Its alpha is scaled down as the segment ages.
+ * @param duration how long the segment lives, in seconds.
+ * @param minScale the fraction of its size a segment is down to at the very end, as 0..1. It
+ *   shrinks about its own centre, so the wake tapers to a thread rather than stopping at full
+ *   width.
+ */
+data class TrailComponent(
+    var color: Int,
+    val duration: Float = 0.5f,
+    val minScale: Float = 0.15f,
+    var elapsed: Float = 0f,
+) : Component
+
+/**
+ * Sheds a trail segment every [interval] seconds for as long as the entity is alive, tracked by
+ * [TrailSystem].
+ */
+data class TrailEmitterComponent(
+    val interval: Float,
+    var timeSinceLastSegment: Float = 0f,
+) : Component
 
 data class BackgroundComponent(val isLooping: Boolean = true) : Component
 

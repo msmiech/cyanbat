@@ -6,11 +6,14 @@ import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.ObstacleGenerator
+import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
+import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
+import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
@@ -23,12 +26,15 @@ import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.CollisionSystem
 import at.smiech.engine.ecs.EnemyBehaviorSystem
 import at.smiech.engine.ecs.EntityId
+import at.smiech.engine.ecs.FloatingTextSystem
+import at.smiech.engine.ecs.HealthBarSystem
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LifetimeSystem
 import at.smiech.engine.ecs.MovementSystem
 import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.PlayerInputSystem
 import at.smiech.engine.ecs.RenderSystem
+import at.smiech.engine.ecs.TrailSystem
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.WeaponSystem
 import at.smiech.engine.ecs.World
@@ -98,6 +104,11 @@ class GameScreen(
         world.addSystem(CollisionSystem { id1, id2 -> handleCollision(id1, id2) })
         world.addSystem(LifetimeSystem(game.frameBufferWidth))
         world.addSystem(RenderSystem())
+        // After the sprites: these three draw on top of the run rather than into it. The wake goes
+        // first of them, so the bar and the damage numbers stay legible over it.
+        world.addSystem(TrailSystem { emitterId -> shedTrail(emitterId) })
+        world.addSystem(HealthBarSystem(game.frameBufferHeight))
+        world.addSystem(FloatingTextSystem())
 
         // Add the primary background
         factory.createBackground(
@@ -134,14 +145,32 @@ class GameScreen(
         )
     }
 
+    /**
+     * Sheds one segment of the bat's wake, just off the back of it.
+     *
+     * Centred on the sprite rather than sitting under it: the bat's tail is the middle band of
+     * the frame, and a wake off its belly would read as coming from the health bar instead.
+     */
+    private fun shedTrail(emitterId: EntityId) {
+        val rect = world.getComponent(emitterId, TransformComponent::class)?.rect ?: return
+        val width = rect.width * TRAIL_SEGMENT_WIDTH_FRACTION
+        val height = rect.height * TRAIL_SEGMENT_HEIGHT_FRACTION
+        factory.createTrail(
+            x = rect.left - width,
+            y = rect.centerY - height / 2f,
+            width = width,
+            height = height,
+        )
+    }
+
     private fun handleCollision(id1: EntityId, id2: EntityId) {
         // Checked before the damage is applied, while both entities still have their components.
         if (isEnemyShotDown(id1, id2)) {
             scoring.registerEnemyDestroyed()
         }
 
-        processDamage(id1)
-        processDamage(id2)
+        damage(id1)
+        damage(id2)
         
         // Spawn explosion (at id2)
         val t2 = world.getComponent(id2, TransformComponent::class)
@@ -164,40 +193,73 @@ class GameScreen(
     private fun collisionGroupOf(id: EntityId): CollisionGroup? =
         world.getComponent(id, CollisionComponent::class)?.group
 
-    private fun processDamage(targetId: EntityId) {
-        val health = world.getComponent(targetId, HealthComponent::class) ?: return
-        
-        if (world.hasComponent(targetId, PlayerControlComponent::class)) {
-            val control = world.getComponent(targetId, PlayerControlComponent::class)!!
-            if (control.hitCooldown <= 0f) {
-                health.lives--
-                control.hitCooldown = 0.5f // MAX_HIT_COOLDOWN
-                scoring.registerPlayerHit()
-                
-                // Vibrate on hit
-                env.haptics.vibrate(HIT_VIBRATION_MILLIS)
-                
-                if (health.lives <= 0) {
-                    health.lives = 0
-                    health.alive = false
-                    saveHighscore()
-                    
-                    // Game Over Music logic
-                    if (env.audioSettings.soundsEnabled) {
-                        env.assets.audio.deathSound.play(100f)
-                    }
-                    currentLevel.music.apply {
-                        stop()
-                        isLooping = false
-                    }
-                    if (env.audioSettings.musicEnabled) {
-                        env.assets.audio.gameOverMusic.play()
-                    }
-                }
-            }
-        } else {
-            health.alive = false
+    /**
+     * Hurts [id], and shows what it cost over an enemy that took the hit.
+     *
+     * Only enemies get a number. An obstacle is scenery being cleared rather than a target, and
+     * what the bat itself has lost is already there to read on its health bar.
+     */
+    private fun damage(id: EntityId) {
+        val dealt = applyDamage(id)
+        if (dealt > 0 && collisionGroupOf(id) == CollisionGroup.ENEMY) {
+            showDamageText(id, dealt)
         }
+    }
+
+    /**
+     * Takes one hit's [DAMAGE_PER_HIT] off [targetId]'s health and kills it at zero, returning what
+     * actually landed.
+     *
+     * Nothing lands on something with no health to lose, on something already dead, or on a player
+     * still inside the cooldown that follows their last hit.
+     */
+    private fun applyDamage(targetId: EntityId): Int {
+        val health = world.getComponent(targetId, HealthComponent::class) ?: return 0
+        if (!health.alive) return 0
+
+        // The bat is the only entity with a cooldown: without one a single obstacle would strip the
+        // whole bar over the frames the two sprites spend overlapping.
+        val control = world.getComponent(targetId, PlayerControlComponent::class)
+        if (control != null) {
+            if (control.hitCooldown > 0f) return 0
+            control.hitCooldown = 0.5f // MAX_HIT_COOLDOWN
+            scoring.registerPlayerHit()
+
+            // Vibrate on hit
+            env.haptics.vibrate(HIT_VIBRATION_MILLIS)
+        }
+
+        // Capped at what is left, so an overkill reports the damage the target could actually take.
+        val dealt = minOf(DAMAGE_PER_HIT, health.hitPoints)
+        health.hitPoints -= dealt
+        if (health.hitPoints <= 0) {
+            health.hitPoints = 0
+            health.alive = false
+            if (control != null) endRun()
+        }
+        return dealt
+    }
+
+    /** Banks the score and hands playback over to the game over track. */
+    private fun endRun() {
+        saveHighscore()
+
+        if (env.audioSettings.soundsEnabled) {
+            env.assets.audio.deathSound.play(100f)
+        }
+        currentLevel.music.apply {
+            stop()
+            isLooping = false
+        }
+        if (env.audioSettings.musicEnabled) {
+            env.assets.audio.gameOverMusic.play()
+        }
+    }
+
+    /** Puts the number at the enemy's leading edge, which is the side the bat's shots arrive from. */
+    private fun showDamageText(enemyId: EntityId, damage: Int) {
+        val rect = world.getComponent(enemyId, TransformComponent::class)?.rect ?: return
+        factory.createDamageText(rect.left, rect.centerY, damage)
     }
 
     private fun initStats() {
@@ -323,17 +385,19 @@ class GameScreen(
         if (paused) drawPauseOverlay()
     }
 
+    /**
+     * The text HUD. Health is deliberately not part of it: it rides under the bat, where the
+     * player is already looking.
+     */
     private fun drawStats() {
-        val health = world.getComponent(batId, HealthComponent::class)!!
         g.apply {
             drawString("Score: ${scoring.score}", 5, 20, 15, EngineColors.CYAN)
             drawString("Highscore: $highscore", 5, 40, 15, EngineColors.CYAN)
-            drawString("Lives: ${health.lives}", 5, 60, 15, EngineColors.CYAN)
             // Always shown, even at x1: a multiplier the player only sees once they have
             // earned it is a mechanic they never learn exists.
             val multiplier = scoring.multiplier
             val comboColor = if (multiplier > 1) EngineColors.YELLOW else EngineColors.CYAN
-            drawString("Combo: x$multiplier", 5, 80, 15, comboColor)
+            drawString("Combo: x$multiplier", 5, 60, 15, comboColor)
         }
     }
 

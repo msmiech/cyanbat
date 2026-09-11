@@ -17,3 +17,33 @@ interface Graphics {
     val width: Int
     val height: Int
 }
+
+/**
+ * Draws [s] ringed by a one-pixel outline in [outlineColor], so it stays readable over whatever
+ * the game happens to be drawing behind it.
+ *
+ * Neither platform's text API outlines, so the outline is the same string stamped around the fill.
+ * Eight offsets rather than four: a four-way ring leaves the diagonals of a glyph bare.
+ */
+fun Graphics.drawOutlinedString(
+    s: String,
+    x: Int,
+    y: Int,
+    fontSize: Int,
+    color: Int,
+    outlineColor: Int = EngineColors.BLACK,
+) {
+    var i = 0
+    while (i < OUTLINE_OFFSETS.size) {
+        drawString(s, x + OUTLINE_OFFSETS[i], y + OUTLINE_OFFSETS[i + 1], fontSize, outlineColor)
+        i += 2
+    }
+    drawString(s, x, y, fontSize, color)
+}
+
+/** The eight neighbours of the origin, as x/y pairs. */
+private val OUTLINE_OFFSETS = intArrayOf(
+    -1, -1, 0, -1, 1, -1,
+    -1, 0, 1, 0,
+    -1, 1, 0, 1, 1, 1,
+)

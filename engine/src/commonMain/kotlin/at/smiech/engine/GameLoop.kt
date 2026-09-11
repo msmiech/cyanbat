@@ -24,7 +24,7 @@ class GameLoop(
 
         // A paused host stops delivering frame callbacks, so the first frame after a resume
         // carries the whole pause in its delta. Screens step fixed-size ticks in a while-loop, so
-        // an unclamped delta replays all of that in a single frame: the player loses lives to a
+        // an unclamped delta replays all of that in a single frame: the player loses health to a
         // fast-forward they never see. Time beyond the cap is dropped rather than simulated,
         // which briefly slows game time instead of teleporting the world.
         val deltaTime = elapsed.coerceIn(0f, maxDeltaSeconds)

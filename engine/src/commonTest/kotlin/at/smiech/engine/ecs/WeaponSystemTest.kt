@@ -13,7 +13,7 @@ class WeaponSystemTest {
         val shooter: EntityId = world.createEntity().also { id ->
             world.addComponent(id, TransformComponent(Rect.fromLTWH(0f, 0f, 10f, 10f)))
             world.addComponent(id, WeaponComponent(interval))
-            if (alive != null) world.addComponent(id, HealthComponent(lives = 1, alive = alive))
+            if (alive != null) world.addComponent(id, HealthComponent(hitPoints = 1, alive = alive))
         }
 
         /** Advances in the game's own tick size, as the real loop does. */

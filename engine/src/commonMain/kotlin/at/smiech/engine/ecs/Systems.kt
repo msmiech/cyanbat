@@ -1,7 +1,10 @@
 package at.smiech.engine.ecs
 
+import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
+import at.smiech.engine.drawOutlinedString
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -255,6 +258,165 @@ class LifetimeSystem(private val worldWidth: Int) : GameSystem() {
             if (anim.isFinished && !anim.isLooping) {
                 world.removeEntity(id)
             }
+        }
+    }
+}
+
+/**
+ * Draws a health bar under every entity carrying a [HealthBarComponent], and nothing under the
+ * ones that do not.
+ *
+ * The bar spans the entity's own width, so it reads as belonging to that sprite: black underneath
+ * for the whole width, then the remaining health filled in from the left edge. A full bar is
+ * therefore solid [HealthBarComponent.fullColor] and an empty one solid black.
+ *
+ * Add it after [RenderSystem], or the sprites of the same frame will be drawn over the bars.
+ *
+ * @param worldHeight framebuffer height, used to keep the bar on screen when the entity is pressed
+ *   right against the bottom edge - which the player, who is clamped to the frame, routinely is.
+ */
+class HealthBarSystem(private val worldHeight: Int) : GameSystem() {
+    private lateinit var transforms: ComponentMapper<TransformComponent>
+    private lateinit var healths: ComponentMapper<HealthComponent>
+    private lateinit var bars: ComponentMapper<HealthBarComponent>
+
+    override fun onAttach(world: World) {
+        transforms = world.mapper(TransformComponent::class)
+        healths = world.mapper(HealthComponent::class)
+        bars = world.mapper(HealthBarComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        // Nothing to advance: a bar only ever reflects the health it is drawn from.
+    }
+
+    override fun draw(world: World, graphics: Graphics) {
+        world.forEach(transforms, healths, bars) { id ->
+            val bar = bars.require(id)
+            val rect = transforms.require(id).rect
+            val height = bar.height.toInt()
+            val width = rect.width.toInt()
+            if (width <= 0 || height <= 0) return@forEach
+
+            val x = rect.left.toInt()
+            val y = (rect.bottom + bar.offsetY).toInt().coerceAtMost(worldHeight - height)
+
+            graphics.drawRect(x, y, width, height, bar.emptyColor)
+            val filled = (width * healths.require(id).fraction).roundToInt()
+            if (filled > 0) graphics.drawRect(x, y, filled, height, bar.fullColor)
+        }
+    }
+}
+
+/**
+ * Ages [FloatingTextComponent]s, draws them fading, and reaps them once their time is up.
+ *
+ * Movement is left to [MovementSystem] - a floating text is just a transform with a velocity, so
+ * there is nothing here worth duplicating.
+ */
+class FloatingTextSystem : GameSystem() {
+    private lateinit var transforms: ComponentMapper<TransformComponent>
+    private lateinit var texts: ComponentMapper<FloatingTextComponent>
+
+    override fun onAttach(world: World) {
+        transforms = world.mapper(TransformComponent::class)
+        texts = world.mapper(FloatingTextComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(texts) { id ->
+            val text = texts.require(id)
+            text.elapsed += deltaTime
+            if (text.elapsed >= text.duration) world.removeEntity(id)
+        }
+    }
+
+    override fun draw(world: World, graphics: Graphics) {
+        world.forEach(transforms, texts) { id ->
+            val text = texts.require(id)
+            val rect = transforms.require(id).rect
+            // Linear, and deliberately: a damage number is read in the first instant, so a fade
+            // that lingers near full alpha would just leave the number sitting on the screen.
+            val alpha = 1f - (text.elapsed / text.duration).coerceIn(0f, 1f)
+            graphics.drawOutlinedString(
+                text.text,
+                rect.left.toInt(),
+                rect.top.toInt(),
+                text.fontSize,
+                EngineColors.withAlpha(text.color, alpha),
+                EngineColors.withAlpha(text.outlineColor, alpha),
+            )
+        }
+    }
+}
+
+/**
+ * Sheds trail segments off [TrailEmitterComponent]s, then ages, draws and reaps them.
+ *
+ * What a segment looks like is left to [onEmit] - size and colour are a game's business, the same
+ * split [WeaponSystem] uses - and how it moves is left to [MovementSystem], so a segment is just a
+ * transform with a velocity. Emitting on a cadence rather than per frame is what keeps the wake the
+ * same length whatever the frame rate.
+ *
+ * Add it after [RenderSystem]: a trail drawn before the sprites would be painted over by the
+ * background, which is a sprite like any other.
+ */
+class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
+    private lateinit var transforms: ComponentMapper<TransformComponent>
+    private lateinit var trails: ComponentMapper<TrailComponent>
+    private lateinit var emitters: ComponentMapper<TrailEmitterComponent>
+    private lateinit var healths: ComponentMapper<HealthComponent>
+
+    override fun onAttach(world: World) {
+        transforms = world.mapper(TransformComponent::class)
+        trails = world.mapper(TrailComponent::class)
+        emitters = world.mapper(TrailEmitterComponent::class)
+        healths = world.mapper(HealthComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(transforms, emitters) { id ->
+            // A dead entity stops leaving a wake, the way a dead one stops shooting.
+            val health = healths[id]
+            if (health != null && !health.alive) return@forEach
+
+            val emitter = emitters.require(id)
+            emitter.timeSinceLastSegment += deltaTime
+            if (emitter.timeSinceLastSegment >= emitter.interval) {
+                // Subtract rather than zero, so a long frame does not lose the remainder and
+                // thin the wake out.
+                emitter.timeSinceLastSegment -= emitter.interval
+                onEmit(id)
+            }
+        }
+
+        world.forEach(trails) { id ->
+            val trail = trails.require(id)
+            trail.elapsed += deltaTime
+            if (trail.elapsed >= trail.duration) world.removeEntity(id)
+        }
+    }
+
+    override fun draw(world: World, graphics: Graphics) {
+        world.forEach(transforms, trails) { id ->
+            val trail = trails.require(id)
+            val rect = transforms.require(id).rect
+            val progress = (trail.elapsed / trail.duration).coerceIn(0f, 1f)
+
+            val scale = 1f - progress * (1f - trail.minScale)
+            val width = (rect.width * scale).roundToInt()
+            val height = (rect.height * scale).roundToInt()
+            if (width <= 0 || height <= 0) return@forEach
+
+            // About the centre: a segment that shrank from one corner would crawl away from the
+            // line the rest of the wake sits on.
+            graphics.drawRect(
+                (rect.centerX - width / 2f).roundToInt(),
+                (rect.centerY - height / 2f).roundToInt(),
+                width,
+                height,
+                EngineColors.withAlpha(trail.color, 1f - progress),
+            )
         }
     }
 }

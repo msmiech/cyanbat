@@ -61,7 +61,7 @@ class PlayerInputSystemTest {
                 TransformComponent(Rect.fromLTWH(batX, batY, BAT_WIDTH, BAT_HEIGHT))
             )
             world.addComponent(id, VelocityComponent(Vector2.Zero))
-            world.addComponent(id, HealthComponent(lives = 3))
+            world.addComponent(id, HealthComponent(hitPoints = 3))
             world.addComponent(id, PlayerControlComponent())
         }
 
