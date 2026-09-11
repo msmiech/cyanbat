@@ -81,5 +81,11 @@ private fun buttonOf(keyCode: Int): GameButton? = when (keyCode) {
         GameButton.BACK
     KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_DPAD_CENTER,
     KeyEvent.KEYCODE_BUTTON_A -> GameButton.CONFIRM
+    // Both number rows from a keyboard. A pad has no numbers, so its shoulders take the second and
+    // third choice; the first is reachable on a pad as CONFIRM, which screens showing a choice
+    // read as picking the leftmost of them.
+    KeyEvent.KEYCODE_1, KeyEvent.KEYCODE_NUMPAD_1 -> GameButton.CHOICE_1
+    KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_NUMPAD_2, KeyEvent.KEYCODE_BUTTON_L1 -> GameButton.CHOICE_2
+    KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_NUMPAD_3, KeyEvent.KEYCODE_BUTTON_R1 -> GameButton.CHOICE_3
     else -> null
 }

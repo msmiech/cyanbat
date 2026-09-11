@@ -32,15 +32,30 @@ class ScoreTracker(
     val multiplier: Int
         get() = (1 + hitStreak / hitsPerMultiplierStep).coerceAtMost(maxMultiplier)
 
+    /**
+     * Everything scored is multiplied by this, for the power-ups that pay in points. Set by the
+     * screen from the run's loadout; 1 is unmodified.
+     */
+    var bonusMultiplier: Float = 1f
+
+    /**
+     * Points earned but too small to bank yet.
+     *
+     * Surviving pays a single point a tick, so a ten percent bonus on it is a tenth of a point:
+     * rounded per award it would vanish every time and the power-up would do nothing at all on the
+     * largest source of score in the game. Carrying the remainder is what makes it pay.
+     */
+    private var remainder: Float = 0f
+
     /** Surviving is worth something on its own; this is the original score. */
     fun awardSurvivalTick() {
-        score += 1
+        award(1)
     }
 
     /** Extends the streak first, so a kill scores at the multiplier it just earned. */
     fun registerEnemyDestroyed() {
         hitStreak++
-        score += pointsPerHit * multiplier
+        award(pointsPerHit * multiplier)
     }
 
     /** The bat took damage. Points already banked stay; the streak does not. */
@@ -53,11 +68,20 @@ class ScoreTracker(
      * pushing on to the boss beats farming the early waves for survival ticks.
      */
     fun awardLevelCleared() {
-        score += levelCompleteBonus
+        award(levelCompleteBonus)
+    }
+
+    /** Banks [points] at the run's [bonusMultiplier], keeping what is left over for next time. */
+    private fun award(points: Int) {
+        val earned = points * bonusMultiplier + remainder
+        val banked = earned.toInt()
+        score += banked
+        remainder = earned - banked
     }
 
     fun reset() {
         score = 0
         hitStreak = 0
+        remainder = 0f
     }
 }

@@ -14,8 +14,16 @@ private class TaggedPixmap(val tag: String) : Pixmap {
     override fun dispose() = Unit
 }
 
-/** One blit, as the system asked for it: which sprite, and how big it came out on screen. */
-private data class DrawnSprite(val tag: String, val dstWidth: Int, val dstHeight: Int)
+/**
+ * One blit, as the system asked for it: which sprite, how big it came out on screen, and which way
+ * round it was turned.
+ */
+private data class DrawnSprite(
+    val tag: String,
+    val dstWidth: Int,
+    val dstHeight: Int,
+    val rotationDegrees: Float = 0f,
+)
 
 private class RecordingGraphics : Graphics {
     val sprites = mutableListOf<DrawnSprite>()
@@ -30,6 +38,13 @@ private class RecordingGraphics : Graphics {
         dstWidth: Int, dstHeight: Int
     ) {
         sprites += DrawnSprite((pixmap as TaggedPixmap).tag, dstWidth, dstHeight)
+    }
+
+    override fun drawPixmap(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
+        dstWidth: Int, dstHeight: Int, rotationDegrees: Float
+    ) {
+        sprites += DrawnSprite((pixmap as TaggedPixmap).tag, dstWidth, dstHeight, rotationDegrees)
     }
 
     override fun newPixmap(filename: String, format: Graphics.PixmapFormat) = TaggedPixmap(filename)
@@ -122,6 +137,29 @@ class RenderSystemTest {
         spawn("enemy")
 
         assertContentEquals(listOf(DrawnSprite("enemy", 10, 10)), drawnSprites())
+    }
+
+    /**
+     * A turned sprite keeps its box: rotation changes which way the artwork points, not how much
+     * of the screen it covers.
+     */
+    @Test
+    fun `a rotated sprite is blitted turned, at the same size`() {
+        val id = spawn("shot")
+        world.getComponent(id, SpriteComponent::class)!!.rotationDegrees = 180f
+
+        assertContentEquals(listOf(DrawnSprite("shot", 10, 10, 180f)), drawnSprites())
+    }
+
+    @Test
+    fun `rotation and scale travel together`() {
+        val id = spawn("shot")
+        world.getComponent(id, SpriteComponent::class)!!.apply {
+            rotationDegrees = 90f
+            scale = 2f
+        }
+
+        assertContentEquals(listOf(DrawnSprite("shot", 20, 20, 90f)), drawnSprites())
     }
 
     /** The draw buffer is reused across frames; a quieter frame must not redraw the busy one. */

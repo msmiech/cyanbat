@@ -18,16 +18,19 @@ import at.smiech.engine.EngineColors
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.BackgroundComponent
+import at.smiech.engine.ecs.BounceComponent
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.DamageComponent
 import at.smiech.engine.ecs.EnemyBehaviorComponent
 import at.smiech.engine.ecs.EnemyMovementType
 import at.smiech.engine.ecs.EntityId
+import at.smiech.engine.ecs.FacesVelocityComponent
 import at.smiech.engine.ecs.FloatingTextComponent
 import at.smiech.engine.ecs.HealthBarComponent
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LifetimeComponent
+import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TrailComponent
@@ -39,6 +42,8 @@ import at.smiech.engine.ecs.World
 import at.smiech.engine.ecs.ZIndexComponent
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
+import kotlin.math.cos
+import kotlin.math.sin
 
 class EntityFactory(private val world: World) {
 
@@ -185,6 +190,11 @@ class EntityFactory(private val world: World) {
         return id
     }
 
+    /**
+     * @param angleDegrees how far off straight the shot flies, positive downwards. A fanned shot
+     *   keeps the full [SHOT_SPEED] along its own heading rather than along x, so the outer shots
+     *   of a spread do not lag behind the middle one.
+     */
     fun createShot(
         x: Float,
         y: Float,
@@ -193,10 +203,28 @@ class EntityFactory(private val world: World) {
         pixmap: Pixmap,
         isPlayer: Boolean,
         damage: Int = DAMAGE_PER_HIT,
+        angleDegrees: Float = 0f,
+        pierce: Int = 0,
+        bounce: Int = 0,
     ): EntityId {
+        val radians = angleDegrees * PI_OVER_180
+        val forward = if (isPlayer) SHOT_SPEED else -SHOT_SPEED
+
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
-        world.addComponent(id, VelocityComponent(Vector2(if (isPlayer) SHOT_SPEED else -SHOT_SPEED, 0f)))
+        world.addComponent(
+            id,
+            VelocityComponent(Vector2(forward * cos(radians), SHOT_SPEED * sin(radians)))
+        )
+        // The artwork is a bullet with a point on it, so where it is going is the only thing its
+        // shape means. Every shot gets this, the enemy's included: theirs travels left, and drawing
+        // it pointing right was always wrong - it just had nothing to be compared against until
+        // the bat's shots started coming back off walls.
+        world.addComponent(id, FacesVelocityComponent())
+        // Added only when the run has earned them, so an ordinary shot carries no bookkeeping it
+        // will never use - and so the collision handler can tell a piercing shot by its component.
+        if (pierce > 0) world.addComponent(id, PierceComponent(pierce))
+        if (bounce > 0) world.addComponent(id, BounceComponent(bounce))
         world.addComponent(id, SpriteComponent(pixmap))
         world.addComponent(id, CollisionComponent(2f, if (isPlayer) CollisionGroup.PLAYER_PROJECTILE else CollisionGroup.ENEMY_PROJECTILE))
         world.addComponent(id, HealthComponent(SHOT_HIT_POINTS))
@@ -292,5 +320,8 @@ class EntityFactory(private val world: World) {
 
         /** The boss wears the third enemy's colours, the same ones the final wave escorts it in. */
         const val BOSS_ENEMY_TYPE = 2
+
+        /** Degrees to radians, for the spread on a fanned shot. */
+        const val PI_OVER_180 = 0.017453292f
     }
 }

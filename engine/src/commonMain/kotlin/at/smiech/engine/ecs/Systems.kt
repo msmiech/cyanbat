@@ -5,6 +5,7 @@ import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.math.Vector2
+import kotlin.math.atan2
 import kotlin.math.roundToInt
 import kotlin.math.sin
 
@@ -101,6 +102,43 @@ class EnemyBehaviorSystem : GameSystem() {
 }
 
 /**
+ * Turns the sprite of every [FacesVelocityComponent] entity to point where it is going.
+ *
+ * Run it after everything that can change a velocity - the movement, the bounce, the steering - so
+ * the angle a frame is drawn at is the direction that frame is actually travelling. A shot coming
+ * off a wall then turns on the same frame it reverses, rather than a frame late.
+ *
+ * The artwork is assumed to point right at zero degrees, which is the axis the game's sprites are
+ * drawn along.
+ */
+class FacingSystem : GameSystem() {
+    private lateinit var sprites: ComponentMapper<SpriteComponent>
+    private lateinit var velocities: ComponentMapper<VelocityComponent>
+    private lateinit var facings: ComponentMapper<FacesVelocityComponent>
+
+    override fun onAttach(world: World) {
+        sprites = world.mapper(SpriteComponent::class)
+        velocities = world.mapper(VelocityComponent::class)
+        facings = world.mapper(FacesVelocityComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(sprites, velocities, facings) { id ->
+            val velocity = velocities.require(id).velocity
+            // Something at a standstill has no direction to face, so it keeps the last one it had
+            // rather than snapping to zero - which for a bullet shape would be a visible flick.
+            if (velocity.x == 0f && velocity.y == 0f) return@forEach
+
+            sprites.require(id).rotationDegrees = atan2(velocity.y, velocity.x) * DEGREES_PER_RADIAN
+        }
+    }
+
+    private companion object {
+        const val DEGREES_PER_RADIAN = 57.29578f
+    }
+}
+
+/**
  * System that handles animations by updating Sprite source rectangles.
  */
 class AnimationSystem : GameSystem() {
@@ -188,29 +226,29 @@ class RenderSystem : GameSystem() {
             val transform = transforms.require(id)
             val sprite = sprites.require(id)
 
-            // The unscaled call for everything that is drawn at its own size, so the common case
-            // stays on the path both backends are tuned for.
-            if (sprite.scale == 1f) {
-                graphics.drawPixmap(
-                    sprite.pixmap,
-                    transform.rect.left.toInt(),
-                    transform.rect.top.toInt(),
-                    sprite.srcX,
-                    sprite.srcY,
-                    sprite.srcWidth,
-                    sprite.srcHeight
+            val left = transform.rect.left.toInt()
+            val top = transform.rect.top.toInt()
+            val dstWidth = (sprite.srcWidth * sprite.scale).roundToInt()
+            val dstHeight = (sprite.srcHeight * sprite.scale).roundToInt()
+
+            // Three paths, narrowest first. Everything but the projectiles is drawn upright at its
+            // own size, and that case must not pay for a canvas transform it does not use.
+            when {
+                sprite.rotationDegrees != 0f -> graphics.drawPixmap(
+                    sprite.pixmap, left, top,
+                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                    dstWidth, dstHeight, sprite.rotationDegrees,
                 )
-            } else {
-                graphics.drawPixmap(
-                    sprite.pixmap,
-                    transform.rect.left.toInt(),
-                    transform.rect.top.toInt(),
-                    sprite.srcX,
-                    sprite.srcY,
-                    sprite.srcWidth,
-                    sprite.srcHeight,
-                    (sprite.srcWidth * sprite.scale).roundToInt(),
-                    (sprite.srcHeight * sprite.scale).roundToInt(),
+
+                sprite.scale != 1f -> graphics.drawPixmap(
+                    sprite.pixmap, left, top,
+                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                    dstWidth, dstHeight,
+                )
+
+                else -> graphics.drawPixmap(
+                    sprite.pixmap, left, top,
+                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
                 )
             }
         }
@@ -249,6 +287,81 @@ class WeaponSystem(private val onFire: (EntityId) -> Unit) : GameSystem() {
                 }
             }
         }
+    }
+}
+
+/**
+ * Reflects [BounceComponent] entities off the edges of the frame, spending a bounce each time.
+ *
+ * Placed between [MovementSystem] and [LifetimeSystem], and it has to be: movement is what carries
+ * an entity into an edge, and culling is what would remove it there. Run it earlier and it
+ * reflects things that have not reached the edge yet; run it later and there is nothing left to
+ * reflect.
+ *
+ * Only the leading edge counts. An entity is reflected off a wall it is actually travelling into,
+ * never off one it is already moving away from - without that, something that ends a frame still
+ * overlapping an edge would flip back and forth and burn every bounce it has in a few frames.
+ *
+ * @param worldWidth/worldHeight the framebuffer, which is what the edges are.
+ */
+class BounceSystem(
+    private val worldWidth: Int,
+    private val worldHeight: Int,
+) : GameSystem() {
+    private lateinit var transforms: ComponentMapper<TransformComponent>
+    private lateinit var velocities: ComponentMapper<VelocityComponent>
+    private lateinit var bounces: ComponentMapper<BounceComponent>
+
+    override fun onAttach(world: World) {
+        transforms = world.mapper(TransformComponent::class)
+        velocities = world.mapper(VelocityComponent::class)
+        bounces = world.mapper(BounceComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(transforms, velocities, bounces) { id ->
+            val bounce = bounces.require(id)
+            if (bounce.remaining <= 0) return@forEach
+
+            val transform = transforms.require(id)
+            val rect = transform.rect
+            val velocity = velocities.require(id).velocity
+
+            // At most one reflection per entity per frame: a corner is two walls, and taking both
+            // at once would send the entity back the way it came for the price of two bounces.
+            when {
+                rect.top < 0f && velocity.y < 0f ->
+                    reflect(id, transform, velocity.copy(y = -velocity.y), dy = -rect.top)
+
+                rect.bottom > worldHeight && velocity.y > 0f ->
+                    reflect(id, transform, velocity.copy(y = -velocity.y), dy = worldHeight - rect.bottom)
+
+                rect.right > worldWidth && velocity.x > 0f ->
+                    reflect(id, transform, velocity.copy(x = -velocity.x), dx = worldWidth - rect.right)
+
+                rect.left < 0f && velocity.x > 0f -> Unit // travelling away from it already
+
+                else -> return@forEach
+            }
+            bounce.remaining--
+        }
+    }
+
+    /**
+     * Turns the entity around and nudges it back inside.
+     *
+     * The nudge is what stops the same wall being hit again on the next frame, which would spend
+     * every bounce in a row and leave the entity stuck to the edge.
+     */
+    private fun reflect(
+        id: EntityId,
+        transform: TransformComponent,
+        velocity: Vector2,
+        dx: Float = 0f,
+        dy: Float = 0f,
+    ) {
+        transform.rect = transform.rect.offset(dx, dy)
+        velocities.require(id).velocity = velocity
     }
 }
 

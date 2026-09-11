@@ -120,4 +120,56 @@ class ScoreTrackerTest {
         repeat(100) { scoring.registerEnemyDestroyed() }
         assertEquals(8, scoring.multiplier, "and it should cap at eight")
     }
+
+    // region the Bounty Hunter bonus
+
+    @Test
+    fun `the bonus multiplier scales what a kill is worth`() {
+        val plain = ScoreTracker().apply { registerEnemyDestroyed() }.score
+        val boosted = ScoreTracker().apply {
+            bonusMultiplier = 2f
+            registerEnemyDestroyed()
+        }.score
+
+        assertEquals(plain * 2, boosted)
+    }
+
+    /**
+     * The one that would be easy to get wrong. Surviving pays a single point a tick, so a ten
+     * percent bonus on it is a tenth of a point: rounded per award it would vanish every time and
+     * the power-up would do nothing at all on the largest source of score in the game.
+     */
+    @Test
+    fun `a bonus smaller than a point still pays over time`() {
+        val scoring = ScoreTracker()
+        scoring.bonusMultiplier = 1.1f
+
+        repeat(1_000) { scoring.awardSurvivalTick() }
+
+        assertEquals(1_100, scoring.score)
+    }
+
+    @Test
+    fun `no bonus leaves the score exactly as it was`() {
+        val scoring = ScoreTracker()
+
+        repeat(1_000) { scoring.awardSurvivalTick() }
+
+        assertEquals(1_000, scoring.score, "an unmodified run must score what it always did")
+    }
+
+    @Test
+    fun `reset drops the part-earned point along with the score`() {
+        val scoring = ScoreTracker()
+        scoring.bonusMultiplier = 1.5f
+        scoring.awardSurvivalTick()
+
+        scoring.reset()
+        scoring.bonusMultiplier = 1f
+        scoring.awardSurvivalTick()
+
+        assertEquals(1, scoring.score, "a carried remainder survived the reset")
+    }
+
+    // endregion
 }

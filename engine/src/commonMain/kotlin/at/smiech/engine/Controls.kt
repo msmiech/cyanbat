@@ -16,6 +16,24 @@ enum class GameButton {
 
     /** Accept whatever is on screen. Enter or Space, A on a pad. */
     CONFIRM,
+
+    /**
+     * Pick the first, second or third of whatever the screen is offering. The number keys, and a
+     * pad's face buttons.
+     *
+     * Numbered rather than named because the meaning belongs to the screen showing the choice, not
+     * to the key: the same three buttons pick a power-up here and would pick anything else
+     * elsewhere. [CONFIRM] cannot stand in - it says yes to one thing, and a choice needs three.
+     */
+    CHOICE_1,
+    CHOICE_2,
+    CHOICE_3,
+    ;
+
+    companion object {
+        /** The choice buttons in order, so a screen can index them by the card it is drawing. */
+        val CHOICES = listOf(CHOICE_1, CHOICE_2, CHOICE_3)
+    }
 }
 
 /** A digital direction, as a key or a d-pad reports it. Sticks report [Controls.moveX] directly. */

@@ -32,6 +32,28 @@ interface Graphics {
         dstWidth: Int,
         dstHeight: Int,
     )
+
+    /**
+     * The same blit again, turned [rotationDegrees] clockwise about the centre of its destination
+     * box. The box itself does not move or grow: a rotated sprite occupies the same place on
+     * screen, pointing a different way.
+     *
+     * Kept as its own method rather than a parameter on the others because the unrotated blit is
+     * every sprite in the game bar the projectiles, and both backends draw it without having to
+     * touch the canvas transform at all.
+     */
+    fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        rotationDegrees: Float,
+    )
     fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
     val width: Int
     val height: Int

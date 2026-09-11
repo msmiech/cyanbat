@@ -19,6 +19,10 @@ data class VelocityComponent(var velocity: Vector2) : Component
  * @param scale how many framebuffer pixels one source pixel covers. The sheet holds exactly one
  *   size of every sprite, so this is what lets a boss be that same artwork drawn large. Keep it in
  *   step with the entity's [TransformComponent], which is what collisions are read from.
+ * @param rotationDegrees how far the artwork is turned when it is drawn, clockwise, about the
+ *   sprite's own centre. Purely cosmetic: the entity's [TransformComponent] stays the upright box
+ *   collisions are read from, because a rotated hitbox would make a near miss depend on an angle
+ *   the player cannot measure. [FacingSystem] keeps it pointing where an entity is going.
  */
 data class SpriteComponent(
     val pixmap: Pixmap,
@@ -28,7 +32,18 @@ data class SpriteComponent(
     var srcWidth: Int = pixmap.width,
     var srcHeight: Int = pixmap.height,
     var scale: Float = 1f,
+    var rotationDegrees: Float = 0f,
 ) : Component
+
+/**
+ * Turns an entity's sprite to point wherever it is travelling, every frame.
+ *
+ * A marker: the angle itself lives on the [SpriteComponent] and the work is [FacingSystem]'s. It
+ * is opt-in because most things should not do this - the bat and the enemies are drawn from
+ * artwork that has an up, and spinning them to match a dodge would read as a glitch. What wants it
+ * is anything whose direction of travel is the only thing its shape means, which is projectiles.
+ */
+class FacesVelocityComponent : Component
 
 data class AnimationComponent(
     val frameWidth: Int,
@@ -55,12 +70,13 @@ enum class CollisionGroup {
  *
  * @param hitPoints what remains. Reaching zero is what clears [alive]; the caller applying the
  *   damage owns that step, because what dying means differs from entity to entity.
- * @param maxHitPoints what it started with, kept so a [HealthBarComponent] can draw a fraction
- *   rather than an absolute count.
+ * @param maxHitPoints the size of the bar, kept so a [HealthBarComponent] can draw a fraction
+ *   rather than an absolute count. Mutable because an entity can be made hardier mid-run - the
+ *   player picking up more health is exactly that - and the bar has to grow with it.
  */
 data class HealthComponent(
     var hitPoints: Int = 1,
-    val maxHitPoints: Int = hitPoints,
+    var maxHitPoints: Int = hitPoints,
     var alive: Boolean = true,
 ) : Component {
     /** Health left, as 0..1. */
@@ -111,6 +127,48 @@ data class FloatingTextComponent(
     val duration: Float = 0.6f,
     var elapsed: Float = 0f,
 ) : Component
+
+/**
+ * Lets a projectile survive the things it hits instead of being spent by the first one.
+ *
+ * @param remaining how many more targets it can pass through. At zero the next hit spends it.
+ * @param hitIds what it has already gone through, so an overlap lasting several frames costs one
+ *   pierce and lands one hit rather than one of each per frame. Ids are recycled, so in principle
+ *   a long-lived projectile could mistake a new entity for one it has already passed; a shot
+ *   crosses the screen in well under a second, and the cost of the mistake is a miss.
+ */
+data class PierceComponent(
+    var remaining: Int,
+    val hitIds: MutableSet<EntityId> = mutableSetOf(),
+) : Component {
+    /**
+     * Records a meeting with [targetId] and reports whether it had already happened.
+     *
+     * The two halves are one call on purpose: every caller that asks is also meeting the target,
+     * and a check that did not record would let the same pair count again on the next frame -
+     * which is the whole failure this component exists to prevent.
+     */
+    fun meet(targetId: EntityId): Boolean = !hitIds.add(targetId)
+
+    /**
+     * Spends one pierce, if there is one.
+     *
+     * @return true when the projectile goes through, false when it has been stopped.
+     */
+    fun spend(): Boolean {
+        if (remaining <= 0) return false
+        remaining--
+        return true
+    }
+}
+
+/**
+ * Reflects an entity off the edges of the frame instead of letting it leave, [remaining] times.
+ *
+ * Tracked by [BounceSystem], which has to run after the movement that carries the entity into the
+ * edge and before the culling that would otherwise remove it there.
+ */
+data class BounceComponent(var remaining: Int) : Component
 
 data class LifetimeComponent(val removeIfOutOfBounds: Boolean = true) : Component
 
@@ -198,9 +256,11 @@ data class ZIndexComponent(val zIndex: Int = 0) : Component
 /**
  * Fires on a fixed cadence, tracked by [WeaponSystem].
  *
- * @param interval seconds between shots.
+ * @param interval seconds between shots. Mutable so a weapon can be made faster mid-run; the
+ *   elapsed time is kept across the change, so a shortened interval can fire immediately rather
+ *   than making the player wait out the old one first.
  */
 data class WeaponComponent(
-    val interval: Float,
+    var interval: Float,
     var timeSinceLastShot: Float = 0f
 ) : Component
