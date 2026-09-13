@@ -1,5 +1,7 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.util.CRITICAL_TEXT_DURATION_SECONDS
+import at.smiech.cyanbat.util.CRITICAL_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.DAMAGE_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.DAMAGE_TEXT_FONT_SIZE
@@ -213,6 +215,7 @@ class EntityFactory(private val world: World) {
         angleDegrees: Float = 0f,
         pierce: Int = 0,
         bounce: Int = 0,
+        critical: Boolean = false,
     ): EntityId {
         val radians = angleDegrees * PI_OVER_180
         val forward = if (isPlayer) SHOT_SPEED else -SHOT_SPEED
@@ -235,7 +238,7 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, SpriteComponent(pixmap))
         world.addComponent(id, CollisionComponent(2f, if (isPlayer) CollisionGroup.PLAYER_PROJECTILE else CollisionGroup.ENEMY_PROJECTILE))
         world.addComponent(id, HealthComponent(SHOT_HIT_POINTS))
-        world.addComponent(id, DamageComponent(damage))
+        world.addComponent(id, DamageComponent(damage, isCritical = critical))
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(15))
         return id
@@ -268,7 +271,7 @@ class EntityFactory(private val world: World) {
      * the shared [at.smiech.engine.ecs.MovementSystem] and is reaped by
      * [at.smiech.engine.ecs.FloatingTextSystem] when its time is up.
      */
-    fun createDamageText(x: Float, y: Float, damage: Int): EntityId {
+    fun createDamageText(x: Float, y: Float, damage: Int, critical: Boolean = false): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, 0f, 0f)))
         world.addComponent(id, VelocityComponent(Vector2(0f, -DAMAGE_TEXT_RISE_PER_TICK)))
@@ -276,8 +279,12 @@ class EntityFactory(private val world: World) {
             id,
             FloatingTextComponent(
                 text = damage.toString(),
-                fontSize = DAMAGE_TEXT_FONT_SIZE,
-                duration = DAMAGE_TEXT_DURATION_SECONDS,
+                // A crit is read rather than glanced at, so it is bigger, red, and stays up
+                // longer. Three changes rather than one because a number that is only larger
+                // still gets lost in a screen of white numbers going up at the same time.
+                fontSize = if (critical) CRITICAL_TEXT_FONT_SIZE else DAMAGE_TEXT_FONT_SIZE,
+                color = if (critical) EngineColors.RED else EngineColors.WHITE,
+                duration = if (critical) CRITICAL_TEXT_DURATION_SECONDS else DAMAGE_TEXT_DURATION_SECONDS,
             )
         )
         return id

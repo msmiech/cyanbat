@@ -293,3 +293,28 @@ const val HIT_FLASH_COLOR = 0xE6FFFFFF.toInt()
 // cadence this plays once a second for a whole run, and with Rapid Fire stacked more than three
 // times a second.
 const val SHOT_VOLUME = 0.18f
+
+
+// --- Critical hits -----------------------------------------------------------------------------
+//
+// A rare, loud payoff on an otherwise even stream of shots. The two numbers below are a pair and
+// have to be read as one: at a one in a hundred chance, a modest multiplier would be a bonus the
+// player never notices happening, so the rarity is what buys the size.
+
+// How often a shot leaves the gun critical, as 0..1. Rolled per projectile, so a spread build gets
+// more rolls per volley - which is the fan doing what a fan is supposed to do, not a bug.
+const val CRITICAL_CHANCE = 0.01f
+
+// What a critical is worth, as a multiplier on the shot damage the run has earned. Multiplied
+// rather than fixed so that Heavy Rounds keeps paying into it: a crit is the bat's own gun landing
+// well, and a flat number would quietly become the worse outcome late in a run.
+//
+// Four is chosen against what it kills. A base shot is 34 against enemies that run 34-119, so a
+// crit at 136 removes anything short of the final waves in one hit, which is what makes it read as
+// an event rather than as a slightly bigger number.
+const val CRITICAL_DAMAGE_MULTIPLIER = 4f
+
+// The damage number a crit puts up: bigger than the ordinary 12, and held a little longer, because
+// it is the one number in the game worth actually reading.
+const val CRITICAL_TEXT_FONT_SIZE = 22
+const val CRITICAL_TEXT_DURATION_SECONDS = 1.0f

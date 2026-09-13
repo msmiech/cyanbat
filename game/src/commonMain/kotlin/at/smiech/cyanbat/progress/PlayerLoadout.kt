@@ -6,6 +6,8 @@ import at.smiech.cyanbat.util.MAX_HEALTH_REGEN_PER_SECOND
 import at.smiech.cyanbat.util.MAX_REVIVES
 import at.smiech.cyanbat.util.MAX_SHOT_BOUNCE
 import at.smiech.cyanbat.util.MAX_SHOT_PIERCE
+import at.smiech.cyanbat.util.CRITICAL_CHANCE
+import at.smiech.cyanbat.util.CRITICAL_DAMAGE_MULTIPLIER
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
@@ -14,6 +16,7 @@ import at.smiech.cyanbat.util.PLAYER_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 /**
  * Everything a power-up can change about the bat, in one place.
@@ -39,6 +42,25 @@ class PlayerLoadout {
     /** What one of the bat's shots takes off what it hits. */
     var shotDamage: Int = DAMAGE_PER_HIT
         private set
+
+    /** How often one of the bat's shots leaves the gun critical, as 0..1. */
+    var criticalChance: Float = CRITICAL_CHANCE
+        private set
+
+    /** What a critical is worth against an ordinary shot; see [criticalDamage]. */
+    var criticalMultiplier: Float = CRITICAL_DAMAGE_MULTIPLIER
+        private set
+
+    /**
+     * What one of the bat's *critical* shots takes off what it hits - a number of its own, read
+     * alongside [shotDamage] rather than folded into it.
+     *
+     * Derived rather than stored, so it cannot drift out of step with the shot damage a run has
+     * earned: Heavy Rounds raises [shotDamage], and a crit is the same gun landing well, so it has
+     * to follow. Rounded because damage is whole points everywhere else in the game.
+     */
+    val criticalDamage: Int
+        get() = (shotDamage * criticalMultiplier).roundToInt()
 
     /** The size of the bat's health bar. Raising it heals by the same amount; see [gainMaxHealth]. */
     var maxHitPoints: Int = PLAYER_MAX_HIT_POINTS
