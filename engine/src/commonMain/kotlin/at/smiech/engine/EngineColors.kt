@@ -23,6 +23,18 @@ object EngineColors {
     }
 
     /**
+     * [color] with its own alpha scaled by [factor], where [factor] runs 0..1.
+     *
+     * Distinct from [withAlpha], which replaces the alpha outright. This one keeps whatever
+     * opacity a color was authored at and fades from there, so a fill that was never meant to be
+     * solid does not become solid the moment something fades it in.
+     */
+    fun scaleAlpha(color: Int, factor: Float): Int {
+        val scaled = ((color ushr 24) * factor.coerceIn(0f, 1f)).roundToInt().coerceIn(0, 255)
+        return (color and 0x00FFFFFF) or (scaled shl 24)
+    }
+
+    /**
      * [from] blended toward [to], where [t] runs 0..1.
      *
      * Channel by channel in sRGB, which is not physically correct but is what a palette ramp

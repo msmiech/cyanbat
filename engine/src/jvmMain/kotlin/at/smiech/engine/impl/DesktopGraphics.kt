@@ -3,6 +3,7 @@ package at.smiech.engine.impl
 import at.smiech.engine.Graphics
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Pixmap
+import java.awt.AlphaComposite
 import java.awt.Color
 import java.awt.Font
 import java.awt.RenderingHints
@@ -131,6 +132,57 @@ class DesktopGraphics(
         g2d.transform = saved
     }
 
+    /**
+     * Java2D has no equivalent of Android's SRC_IN color filter, so the silhouette is built once
+     * and then blitted like any other image, with an [AlphaComposite] carrying the strength.
+     *
+     * That makes the two backends agree on pixels: Android recolors the frame through a filter at
+     * draw time, this draws a pre-recolored copy, and both land the frame's alpha filled flat with
+     * the color at the same opacity. Caching is what makes it affordable - a flash holds one color
+     * for its whole life, so the map ends up with one entry per sheet and is never touched again.
+     */
+    override fun drawPixmapSilhouette(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        color: Int,
+    ) {
+        val alpha = (color ushr 24) / 255f
+        if (alpha <= 0f) return
+
+        val silhouette = silhouettes.getOrPut(SilhouetteKey(pixmap, color or ALPHA_MASK)) {
+            recolor((pixmap as DesktopPixmap).image, color or ALPHA_MASK)
+        }
+
+        val restore = g2d.composite
+        g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha)
+        g2d.drawImage(
+            silhouette,
+            x, y, x + dstWidth - 1, y + dstHeight - 1,
+            srcX, srcY, srcX + srcWidth - 1, srcY + srcHeight - 1,
+            null
+        )
+        g2d.composite = restore
+    }
+
+    /** Every pixel of [source] set to [rgb], keeping the alpha that gave the sprite its shape. */
+    private fun recolor(source: BufferedImage, rgb: Int): BufferedImage {
+        val out = BufferedImage(source.width, source.height, BufferedImage.TYPE_INT_ARGB)
+        val tint = rgb and 0x00FFFFFF
+        for (y in 0 until source.height) {
+            for (x in 0 until source.width) {
+                out.setRGB(x, y, (source.getRGB(x, y) and ALPHA_MASK) or tint)
+            }
+        }
+        return out
+    }
+
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) {
         g2d.drawImage((pixmap as DesktopPixmap).image, x, y, null)
     }
@@ -145,4 +197,13 @@ class DesktopGraphics(
 
     override val width: Int get() = frameBuffer.width
     override val height: Int get() = frameBuffer.height
+
+    /** Identifies a cached silhouette: one sheet recolored one way. */
+    private data class SilhouetteKey(val pixmap: Pixmap, val rgb: Int)
+
+    private val silhouettes = HashMap<SilhouetteKey, BufferedImage>()
+
+    private companion object {
+        const val ALPHA_MASK = 0xFF000000.toInt()
+    }
 }

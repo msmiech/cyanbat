@@ -54,6 +54,31 @@ interface Graphics {
         dstHeight: Int,
         rotationDegrees: Float,
     )
+    /**
+     * The sprite's own shape, filled flat with [color], drawn over whatever is already there.
+     *
+     * The pixmap supplies the silhouette and nothing else: its alpha is the mask, and [color]'s
+     * alpha is how strongly the fill shows through. Painted over a normal blit of the same frame
+     * at the same place, this lights the sprite up without touching its outline - which is what a
+     * hit needs to read as the thing that was hit flashing, rather than as a rectangle over it.
+     *
+     * Its own method rather than a tint parameter on the blits above, because every sprite in the
+     * game is drawn by those and none of them should pay a paint setup for something that happens
+     * to one enemy for a tenth of a second.
+     */
+    fun drawPixmapSilhouette(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        color: Int,
+    )
+
     fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
     val width: Int
     val height: Int

@@ -67,6 +67,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
                 gameOverMusic = a.newMusic("game_over.mp3"),
                 deathSound = a.newSound("deathSound.mp3"),
                 auraSurgeSound = a.newSound("auraSurge.wav"),
+                shotSound = a.newSound("shotFire.wav"),
             ),
             levels = listOf(
                 Level(
