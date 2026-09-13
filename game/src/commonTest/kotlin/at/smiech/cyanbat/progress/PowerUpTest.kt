@@ -2,7 +2,10 @@ package at.smiech.cyanbat.progress
 
 import at.smiech.cyanbat.util.ARMOR_FLOOR
 import at.smiech.cyanbat.util.COUNTERWEIGHT_REDUCTION
+import at.smiech.cyanbat.util.CRITICAL_CHANCE
+import at.smiech.cyanbat.util.CRITICAL_CHANCE_BONUS
 import at.smiech.cyanbat.util.HEAVY_ROUNDS_DAMAGE
+import at.smiech.cyanbat.util.MAX_CRITICAL_CHANCE
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
 import at.smiech.cyanbat.util.MAX_FLAT_DAMAGE_REDUCTION
 import at.smiech.cyanbat.util.MAX_HEALTH_REGEN_PER_SECOND
@@ -16,9 +19,11 @@ import at.smiech.cyanbat.util.REGEN_PER_SECOND
 import at.smiech.cyanbat.util.SCORE_BONUS
 import at.smiech.cyanbat.util.VITALITY_HIT_POINTS
 import at.smiech.cyanbat.util.XP_BONUS
+import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
 /**
@@ -76,6 +81,49 @@ class PowerUpTest {
         take(PowerUp.HEAVY_ROUNDS)
 
         assertEquals(before + HEAVY_ROUNDS_DAMAGE, loadout.shotDamage)
+    }
+
+    @Test
+    fun `sharpshooter raises the critical hit chance`() {
+        val before = loadout.criticalChance
+
+        take(PowerUp.SHARPSHOOTER)
+
+        assertEquals(before + CRITICAL_CHANCE_BONUS, loadout.criticalChance)
+    }
+
+    /**
+     * Added rather than multiplied, which is the whole reason the card is worth taking: scaling a
+     * 1% chance by any sane factor lands back near 1%, so a multiplied version would read as an
+     * upgrade and play as nothing.
+     */
+    @Test
+    fun `sharpshooter stacks by a flat amount each time`() {
+        take(PowerUp.SHARPSHOOTER, times = 3)
+
+        assertEquals(CRITICAL_CHANCE + 3 * CRITICAL_CHANCE_BONUS, loadout.criticalChance, 1e-6f)
+    }
+
+    @Test
+    fun `sharpshooter stops at the cap rather than running past it`() {
+        take(PowerUp.SHARPSHOOTER, times = 100)
+
+        assertEquals(MAX_CRITICAL_CHANCE, loadout.criticalChance)
+        assertFalse(PowerUp.SHARPSHOOTER.isAvailable(loadout))
+    }
+
+    /**
+     * The card and the code have to agree. `percent` exists so they cannot drift, and this is what
+     * proves it for the one card whose number a player will actually do arithmetic with.
+     */
+    @Test
+    fun `sharpshooter advertises the chance it actually adds`() {
+        val advertised = "${(CRITICAL_CHANCE_BONUS * 100).roundToInt()}%"
+
+        assertTrue(
+            PowerUp.SHARPSHOOTER.description.contains(advertised),
+            "the card reads '${PowerUp.SHARPSHOOTER.description}' but adds $advertised",
+        )
     }
 
     @Test

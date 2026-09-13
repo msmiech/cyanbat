@@ -9,6 +9,7 @@ import at.smiech.cyanbat.util.MAX_SHOT_PIERCE
 import at.smiech.cyanbat.util.CRITICAL_CHANCE
 import at.smiech.cyanbat.util.CRITICAL_DAMAGE_MULTIPLIER
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
+import at.smiech.cyanbat.util.MAX_CRITICAL_CHANCE
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.MIN_SHOT_INTERVAL_SECONDS
@@ -118,6 +119,11 @@ class PlayerLoadout {
         shotDamage += amount
     }
 
+    /** Raises how often a shot leaves the gun critical, up to [MAX_CRITICAL_CHANCE]. */
+    fun addCriticalChance(fraction: Float) {
+        criticalChance = (criticalChance + fraction).coerceAtMost(MAX_CRITICAL_CHANCE)
+    }
+
     /**
      * Widens the health bar and fills the new room with health.
      *
@@ -187,6 +193,7 @@ class PlayerLoadout {
 
     val canQuickenShots: Boolean get() = shotIntervalSeconds > MIN_SHOT_INTERVAL_SECONDS
     val canAddShot: Boolean get() = extraShots < MAX_EXTRA_SHOTS
+    val canAddCriticalChance: Boolean get() = criticalChance < MAX_CRITICAL_CHANCE
     val canLengthenHitCooldown: Boolean get() = hitCooldownSeconds < MAX_HIT_COOLDOWN_SECONDS
     val canReduceDamageTaken: Boolean get() = damageTaken > ARMOR_FLOOR
     val canAddHealthRegen: Boolean get() = healthRegenPerSecond < MAX_HEALTH_REGEN_PER_SECOND

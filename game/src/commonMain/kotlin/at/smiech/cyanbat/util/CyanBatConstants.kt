@@ -318,3 +318,18 @@ const val CRITICAL_DAMAGE_MULTIPLIER = 4f
 // it is the one number in the game worth actually reading.
 const val CRITICAL_TEXT_FONT_SIZE = 22
 const val CRITICAL_TEXT_DURATION_SECONDS = 1.0f
+
+// Sharpshooter, in chance added per pick. Added rather than multiplied, and that is the whole
+// decision: scaling 1% by any sane factor lands back near 1%, so a multiplied version would be a
+// card that reads as an upgrade and plays as nothing.
+//
+// Four points is set against Heavy Rounds, which is what it competes with. At a 4x crit, expected
+// damage runs 1 + 3p of an ordinary shot, so each pick here is worth about 12% more damage - a
+// third of what the first Heavy Rounds gives, but it does not thin out as damage stacks the way
+// a flat +12 does, and it compounds with every point of shot damage the run has already bought.
+const val CRITICAL_CHANCE_BONUS = 0.04f
+
+// Where it stops. Half is reachable only by a run that spends nearly every pick on it, which is
+// what a build is supposed to cost - and it is a ceiling rather than no ceiling because a critical
+// that lands more often than not has stopped being a critical and is just the damage number.
+const val MAX_CRITICAL_CHANCE = 0.5f
