@@ -17,6 +17,7 @@ import at.smiech.cyanbat.util.TRAIL_MIN_SCALE
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.AnimationComponent
+import at.smiech.engine.ecs.AuraComponent
 import at.smiech.engine.ecs.BackgroundComponent
 import at.smiech.engine.ecs.BounceComponent
 import at.smiech.engine.ecs.CollisionComponent
@@ -58,8 +59,11 @@ class EntityFactory(private val world: World) {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
         world.addComponent(id, VelocityComponent(Vector2.Zero))
-        world.addComponent(id, SpriteComponent(pixmap, srcWidth = 45)) // DEFAULT_WIDTH
-        world.addComponent(id, AnimationComponent(45, height.toInt(), 2, 0.2f))
+        world.addComponent(id, SpriteComponent(pixmap, srcWidth = BAT_FRAME_WIDTH))
+        world.addComponent(
+            id,
+            AnimationComponent(BAT_FRAME_WIDTH, height.toInt(), BAT_FRAME_COUNT, BAT_FRAME_SECONDS)
+        )
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.PLAYER))
         world.addComponent(id, HealthComponent(PLAYER_MAX_HIT_POINTS))
         // Bars are for the two things a fight is decided between - the bat and the level's boss.
@@ -68,6 +72,9 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, PlayerControlComponent())
         world.addComponent(id, WeaponComponent(shotIntervalSeconds))
         world.addComponent(id, TrailEmitterComponent(TRAIL_INTERVAL_SECONDS))
+        // Dormant at level 1, which is where every run starts: an aura the player has not earned
+        // yet draws nothing at all. GameScreen.syncAura is what wakes it up.
+        world.addComponent(id, AuraComponent())
         world.addComponent(id, LifetimeComponent(false))
         world.addComponent(id, ZIndexComponent(20))
         return id
@@ -306,6 +313,18 @@ class EntityFactory(private val world: World) {
     }
 
     private companion object {
+        /**
+         * The bat's sheet: six frames of one wing-beat, laid out left to right.
+         *
+         * Six rather than the two it had, because two frames of a flap is a sprite blinking
+         * between poses; a beat needs a downstroke and a fold to read as one. The interval is set
+         * so the whole cycle still takes about the 0.4s the old pair did - the bat beats its wings
+         * at the same rate, it just has the frames to show it now.
+         */
+        const val BAT_FRAME_WIDTH = 45
+        const val BAT_FRAME_COUNT = 6
+        const val BAT_FRAME_SECONDS = 0.07f
+
         /** Width of one enemy frame in the shared sheet; the strips are addressed by [srcXOf]. */
         const val ENEMY_FRAME_WIDTH = 32
         const val EXPLOSION_FRAME_WIDTH = 25

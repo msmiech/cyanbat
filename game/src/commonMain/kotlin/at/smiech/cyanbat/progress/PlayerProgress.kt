@@ -1,5 +1,7 @@
 package at.smiech.cyanbat.progress
 
+import at.smiech.cyanbat.util.AURA_FULL_INTENSITY_LEVEL
+import at.smiech.cyanbat.util.AURA_LEVELS_PER_TIER
 import at.smiech.cyanbat.util.XP_FIRST_LEVEL
 import at.smiech.cyanbat.util.XP_LEVEL_STEP
 import at.smiech.cyanbat.util.XP_PER_KILL
@@ -42,6 +44,28 @@ class PlayerProgress(
     /** Progress towards the next level, as 0..1, for a bar to be drawn from. */
     val fraction: Float
         get() = (experience.toFloat() / experienceForNextLevel).coerceIn(0f, 1f)
+
+    /**
+     * How hard the bat is glowing, as 0..1, for an `AuraComponent` to be set from.
+     *
+     * Nothing at level 1 and full at [AURA_FULL_INTENSITY_LEVEL], climbing evenly in between. It
+     * lives here rather than in the screen that draws it because it is a reading of the level and
+     * nothing else: the halo *is* how far the run has come, which is the same thing this class
+     * exists to count.
+     */
+    val auraIntensity: Float
+        get() = ((level - 1f) / (AURA_FULL_INTENSITY_LEVEL - 1f)).coerceIn(0f, 1f)
+
+    /**
+     * Which band of the aura the level has reached - the sparks and the lightning, which arrive a
+     * step at a time rather than growing.
+     *
+     * Zero until the first whole [AURA_LEVELS_PER_TIER] levels are in, so the opening of a run has
+     * a glow and nothing else. Uncapped: the effect's own ceilings are the system's business, not
+     * this one's, and a run that gets to level 60 has earned whatever it can be given.
+     */
+    val auraTier: Int
+        get() = level / AURA_LEVELS_PER_TIER
 
     /**
      * Banks [amount] and reports how many levels it bought.

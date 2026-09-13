@@ -126,11 +126,11 @@ val WAVE_ENEMY_TYPES: List<List<Int>> = listOf(
     listOf(1, 2),       // minute 5: the two that are hardest to lead, as the boss escort
 )
 
-// The boss. Its health is a fight length: at one 34-damage shot a second, 850 points is roughly
+// The boss. Its health is a fight length: at one 34-damage shot a second, 1920 points is roughly
 // 25 seconds of landed hits, which leaves room to be driven off and come back without the fight
 // resetting. Its contact damage is deliberately worse than anything else in the level.
-const val BOSS_HIT_POINTS_PER_LEVEL = 850
-const val BOSS_DAMAGE_PER_LEVEL = 40
+const val BOSS_HIT_POINTS_PER_LEVEL = 1920
+const val BOSS_DAMAGE_PER_LEVEL = 50
 
 // How much bigger the boss is drawn than the sprite sheet's enemies. Its collision box grows with
 // it, which is most of what makes it dangerous to sit next to.
@@ -253,3 +253,24 @@ const val MAX_FLAT_DAMAGE_REDUCTION = 20
 // the frame with strays the player cannot read.
 const val MAX_SHOT_PIERCE = 4
 const val MAX_SHOT_BOUNCE = 3
+
+
+// --- The aura ----------------------------------------------------------------------------------
+//
+// What the bat's own levels look like from the outside. The experience bar says how close the next
+// power-up is; this says how far the run has already come, and it says it on the bat itself rather
+// than in a corner of the HUD.
+
+// The level at which the glow is as bright as it gets. Set against a full run, which lands
+// somewhere near ten level ups: the halo is still visibly growing for the whole of an ordinary
+// run, and only an exceptional one tops it out.
+const val AURA_FULL_INTENSITY_LEVEL = 24
+
+// Levels per tier. Every tenth level adds a spark cluster and one more arc of lightning, which is
+// the step the sound is played on. Ten because it is the number a player counts in - "level 20"
+// is a thing they will notice reaching, "level 7" is not.
+const val AURA_LEVELS_PER_TIER = 10
+
+// How loud the surge is played, against the 0..1 the engine takes. Deliberately low: it lands on
+// the same beat as the level up banner and the power-up dialog, over music that is still playing.
+const val AURA_SURGE_VOLUME = 0.35f
