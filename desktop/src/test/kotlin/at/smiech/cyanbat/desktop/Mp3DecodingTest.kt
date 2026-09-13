@@ -26,9 +26,18 @@ class Mp3DecodingTest {
         "menu_theme.mp3",
     )
 
+    /**
+     * The aura surge is the one asset here the JDK can decode on its own, and it is WAV precisely
+     * so that it can be: Android's `AssetManager.openFd` needs an uncompressed asset to hand
+     * SoundPool a file descriptor, and AGP leaves `.wav` uncompressed while it would repack an
+     * MP3. It still has to be on the classpath and still has to decode, so it is checked alongside
+     * the rest - just without the service provider being the thing under test.
+     */
+    private val pcmAssets = listOf("auraSurge.wav")
+
     @Test
     fun `audio assets are on the classpath`() {
-        for (name in audioAssets) {
+        for (name in audioAssets + pcmAssets) {
             assertNotNull(
                 javaClass.getResourceAsStream("/$name"),
                 "$name is missing - check the assets/ resources srcDir in build.gradle.kts"
@@ -63,6 +72,23 @@ class Mp3DecodingTest {
                             "$name produced no PCM - the MP3 service provider is not decoding"
                         )
                     }
+                }
+            }
+        }
+    }
+
+    @Test
+    fun `the aura surge decodes without a service provider`() {
+        for (name in pcmAssets) {
+            val resource = javaClass.getResourceAsStream("/$name")
+                ?: error("$name is missing from the classpath")
+
+            resource.buffered().use { raw ->
+                AudioSystem.getAudioInputStream(raw).use { stream ->
+                    assertTrue(
+                        stream.readNBytes(DECODE_PROBE_BYTES).isNotEmpty(),
+                        "$name produced no PCM"
+                    )
                 }
             }
         }

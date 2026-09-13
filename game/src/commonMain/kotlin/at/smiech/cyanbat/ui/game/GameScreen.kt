@@ -10,6 +10,7 @@ import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.LevelProgression
 import at.smiech.cyanbat.service.ObstacleGenerator
+import at.smiech.cyanbat.util.AURA_SURGE_VOLUME
 import at.smiech.cyanbat.util.BANNER_CHAR_WIDTH
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
@@ -38,6 +39,8 @@ import at.smiech.engine.Input.TouchEvent
 import at.smiech.engine.Screen
 import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.ecs.AnimationSystem
+import at.smiech.engine.ecs.AuraComponent
+import at.smiech.engine.ecs.AuraSystem
 import at.smiech.engine.ecs.BounceSystem
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
@@ -175,10 +178,16 @@ class GameScreen(
         world.addSystem(AnimationSystem())
         world.addSystem(CollisionSystem { id1, id2 -> handleCollision(id1, id2) })
         world.addSystem(LifetimeSystem(game.frameBufferWidth))
+        // Before the sprites, so the halo is light coming off the bat rather than a wash over it.
+        // This is also the pass that advances the aura's clock; see [AuraSystem.Layer].
+        world.addSystem(AuraSystem(AuraSystem.Layer.HALO))
         world.addSystem(RenderSystem())
-        // After the sprites: these three draw on top of the run rather than into it. The wake goes
-        // first of them, so the bar and the damage numbers stay legible over it.
+        // After the sprites: these four draw on top of the run rather than into it. The wake goes
+        // first of them, so the bar and the damage numbers stay legible over it. The arcs go over
+        // the wake and under the bar, which is the one thing that must never be lost behind an
+        // effect - a player who cannot read their own health cannot play the fight.
         world.addSystem(TrailSystem { emitterId -> shedTrail(emitterId) })
+        world.addSystem(AuraSystem(AuraSystem.Layer.ARCS))
         world.addSystem(HealthBarSystem(game.frameBufferHeight))
         world.addSystem(FloatingTextSystem())
 
@@ -319,6 +328,32 @@ class GameScreen(
      */
     private fun awardExperience(amount: Int) {
         pendingLevelUps += progress.award((amount * loadout.experienceMultiplier).roundToInt())
+        syncAura()
+    }
+
+    /**
+     * Puts the bat's aura where its level says it should be.
+     *
+     * Called on every award rather than only on a level up, because the two dials it sets move on
+     * different schedules and only one of them is a level: the glow is read straight off
+     * [PlayerProgress.level] and the tier off the same number divided down. Setting both in one
+     * place is what keeps them from ever disagreeing.
+     *
+     * Crossing a tier is the moment the effect is built around - more sparks, another arc - so it
+     * gets a flare and a sound. Compared rather than counted, so nothing is owed if two tiers are
+     * crossed at once by a single late kill.
+     */
+    private fun syncAura() {
+        val aura = world.getComponent(batId, AuraComponent::class) ?: return
+        aura.intensity = progress.auraIntensity
+
+        val tier = progress.auraTier
+        if (tier <= aura.tier) return
+        aura.tier = tier
+        aura.surge = 1f
+        if (env.audioSettings.soundsEnabled) {
+            env.assets.audio.auraSurgeSound.play(AURA_SURGE_VOLUME)
+        }
     }
 
     /**

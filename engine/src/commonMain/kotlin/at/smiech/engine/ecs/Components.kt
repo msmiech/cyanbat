@@ -264,3 +264,24 @@ data class WeaponComponent(
     var interval: Float,
     var timeSinceLastShot: Float = 0f
 ) : Component
+
+/**
+ * The charge an entity is carrying, drawn around it as a halo with sparks and lightning in it.
+ *
+ * Two dials rather than one, because the two things it says are different things. [intensity] is
+ * continuous and rises smoothly, so the halo swells under the player without ever announcing
+ * itself. [tier] is a whole number that changes rarely, and each step adds sparks and arcs - a
+ * threshold crossed is meant to land as an event, the way a wave turning over does.
+ *
+ * [phase] is the only mutable state, advanced by [AuraSystem]. Everything the effect draws is a
+ * pure function of it, so a halo costs one float of storage rather than a particle pool - and two
+ * systems can draw the same aura, in front of the entity and behind it, from the same clock.
+ *
+ * @param surge set to 1 when a tier is crossed and decayed back to 0, for the flare that marks it.
+ */
+data class AuraComponent(
+    var intensity: Float = 0f,
+    var tier: Int = 0,
+    var phase: Float = 0f,
+    var surge: Float = 0f,
+) : Component

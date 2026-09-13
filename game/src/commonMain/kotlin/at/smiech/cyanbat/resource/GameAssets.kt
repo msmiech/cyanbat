@@ -20,6 +20,8 @@ data class GameAssets(
 
     data class Audio(
         var gameOverMusic: Music,
-        var deathSound: Sound
+        var deathSound: Sound,
+        /** The swell the bat's aura lets out each time it crosses a tier; see `AuraComponent`. */
+        var auraSurgeSound: Sound,
     )
 }

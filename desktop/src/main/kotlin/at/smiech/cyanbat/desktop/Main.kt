@@ -108,6 +108,7 @@ private fun loadAssets(game: DesktopGame): GameAssets {
         audio = GameAssets.Audio(
             gameOverMusic = a.newMusic("game_over.mp3"),
             deathSound = a.newSound("deathSound.mp3"),
+            auraSurgeSound = a.newSound("auraSurge.wav"),
         ),
         levels = listOf(
             Level(
