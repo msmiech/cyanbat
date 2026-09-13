@@ -274,3 +274,22 @@ const val AURA_LEVELS_PER_TIER = 10
 // How loud the surge is played, against the 0..1 the engine takes. Deliberately low: it lands on
 // the same beat as the level up banner and the power-up dialog, over music that is still playing.
 const val AURA_SURGE_VOLUME = 0.35f
+
+
+// --- Hit feedback ------------------------------------------------------------------------------
+
+// How long an enemy stays lit after a hit lands. Two frames' worth at the fixed tick: long enough
+// to register as a flash, short enough that a tough enemy under rapid fire reads as being hit
+// repeatedly rather than as glowing continuously.
+const val HIT_FLASH_SECONDS = 0.08f
+
+// What it is lit up with. Near-white rather than the cyan of the shot that caused it: the flash
+// has to say "this was hit" against a cave and a bat that are already cyan, and white is the one
+// value that reads instantly against every sprite in the game. The alpha is the flash at full
+// strength - short of solid, so the enemy underneath is still recognisable while it burns.
+const val HIT_FLASH_COLOR = 0xE6FFFFFF.toInt()
+
+// How loud the gun is, against the 0..1 the engine takes. Low, and it has to be: at the base
+// cadence this plays once a second for a whole run, and with Rapid Fire stacked more than three
+// times a second.
+const val SHOT_VOLUME = 0.18f

@@ -14,6 +14,8 @@ import at.smiech.cyanbat.util.AURA_SURGE_VOLUME
 import at.smiech.cyanbat.util.BANNER_CHAR_WIDTH
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
+import at.smiech.cyanbat.util.HIT_FLASH_COLOR
+import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.cyanbat.util.LEVEL_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
@@ -24,6 +26,7 @@ import at.smiech.cyanbat.util.POWER_UP_CARD_TOP
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
+import at.smiech.cyanbat.util.SHOT_VOLUME
 import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
@@ -52,6 +55,8 @@ import at.smiech.engine.ecs.FacingSystem
 import at.smiech.engine.ecs.FloatingTextSystem
 import at.smiech.engine.ecs.HealthBarSystem
 import at.smiech.engine.ecs.HealthComponent
+import at.smiech.engine.ecs.HitFlashComponent
+import at.smiech.engine.ecs.HitFlashSystem
 import at.smiech.engine.ecs.LifetimeSystem
 import at.smiech.engine.ecs.MovementSystem
 import at.smiech.engine.ecs.PierceComponent
@@ -176,6 +181,9 @@ class GameScreen(
         // rather than the way it was travelling on the last one.
         world.addSystem(FacingSystem())
         world.addSystem(AnimationSystem())
+        // Before the collisions that arm a flash, so a hit landing this tick gets a full frame lit
+        // rather than being aged down on the very tick it happened.
+        world.addSystem(HitFlashSystem())
         world.addSystem(CollisionSystem { id1, id2 -> handleCollision(id1, id2) })
         world.addSystem(LifetimeSystem(game.frameBufferWidth))
         // Before the sprites, so the halo is light coming off the bat rather than a wash over it.
@@ -247,6 +255,16 @@ class GameScreen(
                 pierce = if (isPlayer) loadout.shotPierce else 0,
                 bounce = if (isPlayer) loadout.shotBounce else 0,
             )
+        }
+
+        // Once per volley, not once per shot: a spread is one pull of the trigger, and playing it
+        // per projectile would make a five-way fan five times as loud as a single shot.
+        //
+        // The bat only. The boss fires too, but its shots are already announced by being on
+        // screen and coming at the player, and a second gun in the mix at this cadence would
+        // bury the one the player is actually operating.
+        if (isPlayer && env.audioSettings.soundsEnabled) {
+            env.assets.audio.shotSound.play(SHOT_VOLUME)
         }
     }
 
@@ -409,6 +427,7 @@ class GameScreen(
         val dealt = applyDamage(id, amount)
         if (dealt > 0 && collisionGroupOf(id) == CollisionGroup.ENEMY) {
             showDamageText(id, dealt)
+            lightUp(id)
         }
 
         val died = dealt > 0 && world.getComponent(id, HealthComponent::class)?.alive == false
@@ -542,6 +561,28 @@ class GameScreen(
         if (env.audioSettings.musicEnabled) {
             env.assets.audio.gameOverMusic.play()
         }
+    }
+
+    /**
+     * Lights [enemyId] up for [HIT_FLASH_SECONDS], so a hit that lands is visible on the thing it
+     * landed on rather than only in the number floating off it.
+     *
+     * Re-armed rather than added twice when the enemy is already lit: a second hit landing mid
+     * flash restarts it, which is what makes sustained fire read as a burst of separate impacts
+     * instead of one continuous glow.
+     *
+     * Fires on any damage an enemy takes, not only on damage from a shot. The alternative was to
+     * light up only for projectiles, which would leave the bat ramming an enemy showing a damage
+     * number and no flash - the two are one piece of feedback, and having them disagree about
+     * whether a hit happened would read as a bug.
+     */
+    private fun lightUp(enemyId: EntityId) {
+        val existing = world.getComponent(enemyId, HitFlashComponent::class)
+        if (existing != null) {
+            existing.remaining = existing.duration
+            return
+        }
+        world.addComponent(enemyId, HitFlashComponent(HIT_FLASH_SECONDS, HIT_FLASH_COLOR))
     }
 
     /** Puts the number at the enemy's leading edge, which is the side the bat's shots arrive from. */

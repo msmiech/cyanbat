@@ -23,5 +23,7 @@ data class GameAssets(
         var deathSound: Sound,
         /** The swell the bat's aura lets out each time it crosses a tier; see `AuraComponent`. */
         var auraSurgeSound: Sound,
+        /** The bat's gun. Short and quiet by design: it plays on every volley. */
+        var shotSound: Sound,
     )
 }

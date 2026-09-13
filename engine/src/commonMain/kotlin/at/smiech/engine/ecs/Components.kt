@@ -285,3 +285,29 @@ data class AuraComponent(
     var phase: Float = 0f,
     var surge: Float = 0f,
 ) : Component
+
+/**
+ * A brief bloom of light over an entity that has just been hit, aged by [HitFlashSystem] and
+ * drawn by [RenderSystem].
+ *
+ * Added when the hit lands, then burned down to nothing by [HitFlashSystem] and left there. It is
+ * not taken off again: see that system for why a spent flash is clamped rather than removed.
+ *
+ * @param duration how long the flash lasts, in seconds. Short - it has to read as the moment of
+ *   impact, and a flash that outlives the shot that caused it reads as damage being taken
+ *   continuously.
+ * @param color what the entity is lit up with. Its alpha is the flash at full strength, faded out
+ *   across [duration].
+ * @param remaining what is left, counted down. Re-arming this rather than adding a second
+ *   component is what makes rapid fire on one target look like repeated hits instead of one long
+ *   glow.
+ */
+data class HitFlashComponent(
+    val duration: Float,
+    val color: Int,
+    var remaining: Float = duration,
+) : Component {
+    /** The flash at this instant, as 0..1. Full on the frame it lands, nothing when it is spent. */
+    val strength: Float
+        get() = if (duration <= 0f) 0f else (remaining / duration).coerceIn(0f, 1f)
+}

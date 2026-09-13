@@ -5,6 +5,8 @@ import at.smiech.engine.Pixmap
 import at.smiech.engine.math.Rect
 import kotlin.test.Test
 import kotlin.test.assertContentEquals
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 /** Each sprite gets its own pixmap, so a recorded draw call identifies the entity that made it. */
 private class TaggedPixmap(val tag: String) : Pixmap {
@@ -25,9 +27,27 @@ private data class DrawnSprite(
     val rotationDegrees: Float = 0f,
 )
 
+/** One hit flash: whose silhouette was filled, and with what. */
+private data class DrawnFlash(val tag: String, val color: Int)
+
 private class RecordingGraphics : Graphics {
     val sprites = mutableListOf<DrawnSprite>()
+    val flashes = mutableListOf<DrawnFlash>()
     val drawn: List<String> get() = sprites.map { it.tag }
+
+    /**
+     * Recorded into the sprite list as well as its own, so a test can see *where in the order* a
+     * flash landed. That placement is the entire reason RenderSystem draws flashes rather than a
+     * system of its own, so it is the thing worth pinning down.
+     */
+    override fun drawPixmapSilhouette(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
+        dstWidth: Int, dstHeight: Int, color: Int
+    ) {
+        val tag = (pixmap as TaggedPixmap).tag
+        flashes += DrawnFlash(tag, color)
+        sprites += DrawnSprite("$tag:flash", dstWidth, dstHeight)
+    }
 
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int) {
         sprites += DrawnSprite((pixmap as TaggedPixmap).tag, srcWidth, srcHeight)
@@ -172,5 +192,56 @@ class RenderSystemTest {
         world.update(0.016f, null)
 
         assertContentEquals(listOf("sprite0", "sprite1"), drawnOrder())
+    }
+
+    // --- hit flash -------------------------------------------------------------------
+
+    @Test
+    fun `a sprite without a flash draws once`() {
+        spawn("enemy")
+
+        assertContentEquals(listOf("enemy"), drawnOrder())
+    }
+
+    @Test
+    fun `a flash is drawn straight over its own sprite, not over the whole scene`() {
+        val lit = spawn("behind", zIndex = 10)
+        world.addComponent(lit, HitFlashComponent(duration = 0.1f, color = FLASH))
+        spawn("in front", zIndex = 20)
+
+        // The flash belongs between the sprite it lights and the one layered above it.
+        // Drawn by a system of its own it would land last and glow through "in front".
+        assertContentEquals(listOf("behind", "behind:flash", "in front"), drawnOrder())
+    }
+
+    @Test
+    fun `a flash fades with what is left of it`() {
+        val lit = spawn("enemy")
+        val flash = HitFlashComponent(duration = 0.1f, color = FLASH)
+        world.addComponent(lit, flash)
+
+        val full = RecordingGraphics().also { world.draw(it) }.flashes.single().color
+        flash.remaining = 0.025f
+        val dying = RecordingGraphics().also { world.draw(it) }.flashes.single().color
+
+        assertEquals(0xE6, full ushr 24, "a fresh flash should be at the color's own alpha")
+        assertTrue(
+            (dying ushr 24) in 1 until (full ushr 24),
+            "a quarter-spent flash should be dimmer but still visible: ${dying ushr 24}"
+        )
+        assertEquals(full and 0xFFFFFF, dying and 0xFFFFFF, "the hue should not drift as it fades")
+    }
+
+    /** Spent is spent: RenderSystem must not keep painting a flash HitFlashSystem finished. */
+    @Test
+    fun `a spent flash draws nothing`() {
+        val lit = spawn("enemy")
+        world.addComponent(lit, HitFlashComponent(duration = 0.1f, color = FLASH, remaining = 0f))
+
+        assertContentEquals(listOf("enemy"), drawnOrder())
+    }
+
+    private companion object {
+        const val FLASH = 0xE6FFFFFF.toInt()
     }
 }

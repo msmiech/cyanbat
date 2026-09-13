@@ -183,6 +183,7 @@ class RenderSystem : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var sprites: ComponentMapper<SpriteComponent>
     private lateinit var zIndices: ComponentMapper<ZIndexComponent>
+    private lateinit var flashes: ComponentMapper<HitFlashComponent>
 
     /**
      * Draw order, rebuilt every frame into the same buffer.
@@ -199,6 +200,7 @@ class RenderSystem : GameSystem() {
         transforms = world.mapper(TransformComponent::class)
         sprites = world.mapper(SpriteComponent::class)
         zIndices = world.mapper(ZIndexComponent::class)
+        flashes = world.mapper(HitFlashComponent::class)
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
@@ -251,6 +253,24 @@ class RenderSystem : GameSystem() {
                     sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
                 )
             }
+
+            // Straight over the frame just drawn, while this sprite is still the top of the
+            // picture. That is the whole reason the flash is drawn here rather than in a system of
+            // its own - see HitFlashSystem.
+            //
+            // Drawn upright even when the sprite above it was turned: the only thing in the game
+            // that rotates is a projectile, and a projectile is spent by what it hits rather than
+            // hurt by it, so nothing that flashes also has an angle. Give something rotating a
+            // flash and this is the line that will need a rotated blit behind it.
+            val flash = flashes[id] ?: continue
+            val strength = flash.strength
+            if (strength <= 0f) continue
+            graphics.drawPixmapSilhouette(
+                sprite.pixmap, left, top,
+                sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                dstWidth, dstHeight,
+                EngineColors.scaleAlpha(flash.color, strength),
+            )
         }
     }
 }
@@ -572,6 +592,37 @@ class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
                 height,
                 EngineColors.withAlpha(trail.color, 1f - progress),
             )
+        }
+    }
+}
+
+/**
+ * Burns down every [HitFlashComponent], so a flash fades instead of hanging on the entity.
+ *
+ * Update only: the drawing is [RenderSystem]'s, and deliberately, because a flash has to land
+ * between its own sprite and the next one in the draw order. A system of its own drawing after the
+ * sprites would put every flash above every sprite, so an enemy lighting up behind another would
+ * glow through the one in front of it. [RenderSystem] is the only thing that knows where in the
+ * order a given sprite sat.
+ *
+ * A spent flash is clamped at zero rather than taken off the entity. Removing a component would
+ * change the signature a query is in the middle of iterating, and the component is a few bytes on
+ * an enemy that is about to die or leave the frame anyway - where a mid-iteration structural
+ * change is a class of bug that only shows up on the frame two things happen at once.
+ */
+class HitFlashSystem : GameSystem() {
+    private lateinit var flashes: ComponentMapper<HitFlashComponent>
+
+    override fun onAttach(world: World) {
+        flashes = world.mapper(HitFlashComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(flashes) { id ->
+            val flash = flashes.require(id)
+            if (flash.remaining > 0f) {
+                flash.remaining = (flash.remaining - deltaTime).coerceAtLeast(0f)
+            }
         }
     }
 }

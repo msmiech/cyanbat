@@ -33,7 +33,7 @@ class Mp3DecodingTest {
      * MP3. It still has to be on the classpath and still has to decode, so it is checked alongside
      * the rest - just without the service provider being the thing under test.
      */
-    private val pcmAssets = listOf("auraSurge.wav")
+    private val pcmAssets = listOf("auraSurge.wav", "shotFire.wav")
 
     @Test
     fun `audio assets are on the classpath`() {
