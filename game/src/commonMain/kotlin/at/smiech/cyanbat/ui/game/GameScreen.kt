@@ -81,20 +81,20 @@ class GameScreen(
     private val env: CyanBatEnvironment,
 ) : Screen {
     var currentLevel = env.assets.levels[0]
-    
+
     private val world = World()
     private val factory = EntityFactory(world)
 
     /** Canceled in [dispose], so nothing started here outlives the screen. */
     private val screenScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
-    
+
     private val batId: EntityId
-    
+
     private val scoring = ScoreTracker()
     var highscore: Int = 0
     var tick = TICK_INITIAL
     private var tickTime = 0f
-    
+
     /** The difficulty curve of the level being played; see [LevelProgression]. */
     private val progression = LevelProgression.forLevel(currentLevel.id)
 
@@ -205,9 +205,9 @@ class GameScreen(
 
         // Add the primary background
         factory.createBackground(
-            0f, 0f, 
-            game.frameBufferWidth.toFloat(), 
-            game.frameBufferHeight.toFloat(), 
+            0f, 0f,
+            game.frameBufferWidth.toFloat(),
+            game.frameBufferHeight.toFloat(),
             currentLevel.background
         )
 
@@ -297,8 +297,8 @@ class GameScreen(
     /**
      * Sheds one segment of the bat's wake, just off the back of it.
      *
-     * Centered on the sprite rather than sitting under it: the bat's tail is the middle band of
-     * the frame, and a wake off its belly would read as coming from the health bar instead.
+     * Centered on the lower half of the sprite rather than sitting under it: the bat's tail is the
+     * lower band of the frame, and a wake off its belly would read as coming from the health bar instead.
      */
     private fun shedTrail(emitterId: EntityId) {
         val rect = world.getComponent(emitterId, TransformComponent::class)?.rect ?: return
@@ -306,7 +306,7 @@ class GameScreen(
         val height = rect.height * TRAIL_SEGMENT_HEIGHT_FRACTION
         factory.createTrail(
             x = rect.left - width,
-            y = rect.centerY - height / 2f,
+            y = rect.centerY + height / 2f,
             width = width,
             height = height,
         )
@@ -532,8 +532,10 @@ class GameScreen(
     private fun revive(health: HealthComponent): Boolean {
         if (!loadout.useRevive()) return false
 
-        health.hitPoints = (health.maxHitPoints * REVIVE_HEALTH_FRACTION).roundToInt().coerceAtLeast(1)
-        world.getComponent(batId, PlayerControlComponent::class)?.hitCooldown = loadout.hitCooldownSeconds
+        health.hitPoints =
+            (health.maxHitPoints * REVIVE_HEALTH_FRACTION).roundToInt().coerceAtLeast(1)
+        world.getComponent(batId, PlayerControlComponent::class)?.hitCooldown =
+            loadout.hitCooldownSeconds
         announce("SECOND LIFE")
         return true
     }
@@ -942,7 +944,13 @@ class GameScreen(
             // Wrapped by hand for the same reason the layout is eyeballed: nothing here can
             // measure a string, so the description is broken on whole words at a fixed width.
             wrapped(powerUp.description, CARD_TEXT_CHARS).forEachIndexed { line, text ->
-                drawString(text, left + 8, POWER_UP_CARD_TOP + 48 + line * 14, 11, EngineColors.WHITE)
+                drawString(
+                    text,
+                    left + 8,
+                    POWER_UP_CARD_TOP + 48 + line * 14,
+                    11,
+                    EngineColors.WHITE
+                )
             }
         }
     }
@@ -1030,7 +1038,13 @@ class GameScreen(
     }
 
     private fun drawLevelName() {
-        g.drawString(currentLevel.name, game.frameBufferWidth / 4, game.frameBufferHeight / 2, 30, EngineColors.YELLOW)
+        g.drawString(
+            currentLevel.name,
+            game.frameBufferWidth / 4,
+            game.frameBufferHeight / 2,
+            30,
+            EngineColors.YELLOW
+        )
     }
 
     /** Starts or resumes the level theme, if music is enabled. */
