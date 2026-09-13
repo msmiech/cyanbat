@@ -318,3 +318,16 @@ data class HitFlashComponent(
     val strength: Float
         get() = if (duration <= 0f) 0f else (remaining / duration).coerceIn(0f, 1f)
 }
+
+/**
+ * Which colorway of the shared projectile sheet this entity's shots are drawn from.
+ *
+ * Carried by the *shooter*, not by the shot, and read when the shot is spawned. That is the only
+ * place it can live: a projectile outlives the frame it was fired on and routinely outlives the
+ * thing that fired it, so a shot that had to ask its parent what color to be would be asking a
+ * recycled id by the time it mattered.
+ *
+ * An entity without one falls back to whatever default the game spawns with, which keeps this
+ * opt-in - most things in a world never fire at all.
+ */
+data class ProjectileStyleComponent(val variant: Int) : Component

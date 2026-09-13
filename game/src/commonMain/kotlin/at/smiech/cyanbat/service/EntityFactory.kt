@@ -9,7 +9,10 @@ import at.smiech.cyanbat.util.DAMAGE_TEXT_RISE_PER_TICK
 import at.smiech.cyanbat.util.DESTRUCTIBLE_HIT_POINTS
 import at.smiech.cyanbat.util.HEALTH_BAR_HEIGHT
 import at.smiech.cyanbat.util.HEALTH_BAR_OFFSET_Y
+import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
+import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
+import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.SHOT_HIT_POINTS
 import at.smiech.cyanbat.util.SHOT_SPEED
 import at.smiech.cyanbat.util.TRAIL_DRIFT_PER_TICK
@@ -35,6 +38,7 @@ import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LifetimeComponent
 import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
+import at.smiech.engine.ecs.ProjectileStyleComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TrailComponent
 import at.smiech.engine.ecs.TrailEmitterComponent
@@ -114,7 +118,10 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, VelocityComponent(Vector2(speedX * speedMultiplier, 0f)))
 
         world.addComponent(id, SpriteComponent(pixmap, baseSrcX = srcXOf(type), srcWidth = ENEMY_FRAME_WIDTH))
-        world.addComponent(id, AnimationComponent(ENEMY_FRAME_WIDTH, height.toInt(), 2, 0.2f))
+        world.addComponent(
+            id,
+            AnimationComponent(ENEMY_FRAME_WIDTH, height.toInt(), ENEMY_FRAME_COUNT, ENEMY_FRAME_SECONDS)
+        )
 
         val movementType = when (type) {
             0 -> EnemyMovementType.SCOUT
@@ -123,6 +130,9 @@ class EntityFactory(private val world: World) {
             else -> EnemyMovementType.SCOUT
         }
         world.addComponent(id, EnemyBehaviorComponent(movementType, y))
+        // So that anything which is given a gun later fires in its own color rather than the
+        // player's; ordinary enemies carry no weapon today, and this costs them one component.
+        world.addComponent(id, ProjectileStyleComponent(type + ENEMY_SHOT_VARIANT_OFFSET))
 
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.ENEMY))
         world.addComponent(id, HealthComponent(hitPoints))
@@ -162,8 +172,15 @@ class EntityFactory(private val world: World) {
             id,
             SpriteComponent(pixmap, baseSrcX = srcXOf(BOSS_ENEMY_TYPE), srcWidth = ENEMY_FRAME_WIDTH, scale = scale)
         )
-        world.addComponent(id, AnimationComponent(ENEMY_FRAME_WIDTH, pixmap.height, 2, 0.2f))
+        world.addComponent(
+            id,
+            AnimationComponent(ENEMY_FRAME_WIDTH, pixmap.height, ENEMY_FRAME_COUNT, ENEMY_FRAME_SECONDS)
+        )
         world.addComponent(id, EnemyBehaviorComponent(EnemyMovementType.BOSS, y, holdX = holdX))
+        world.addComponent(
+            id,
+            ProjectileStyleComponent(BOSS_ENEMY_TYPE + ENEMY_SHOT_VARIANT_OFFSET)
+        )
         // Tolerance scaled with the sprite, so the boss's box sits in from its edges by the same
         // proportion an ordinary enemy's does.
         world.addComponent(id, CollisionComponent(5f * scale, CollisionGroup.ENEMY))
@@ -176,9 +193,22 @@ class EntityFactory(private val world: World) {
         return id
     }
 
-    fun createBackground(x: Float, y: Float, width: Float, height: Float, pixmap: Pixmap): EntityId {
+    /**
+     * One tile of the scrolling cave, with its left edge at [x].
+     *
+     * The size is taken from the pixmap rather than passed in, and that is a fix rather than a
+     * tidy-up. It used to be handed the framebuffer's size while `RenderSystem` drew the sprite at
+     * the pixmap's - 480 against 838 - so the box the world moved and culled was not the picture
+     * anybody saw. Tiles were spaced 480 apart while being drawn 838 wide, which put a hard
+     * vertical seam through the cave every 240 ticks, sweeping across the screen as the join
+     * between one copy's column 0 and the next one's column 480.
+     */
+    fun createBackground(x: Float, pixmap: Pixmap): EntityId {
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(x, 0f, pixmap.width.toFloat(), pixmap.height.toFloat()))
+        )
         world.addComponent(id, VelocityComponent(Vector2(-2f, 0f)))
         world.addComponent(id, SpriteComponent(pixmap))
         world.addComponent(id, LifetimeComponent(true))
@@ -216,6 +246,7 @@ class EntityFactory(private val world: World) {
         pierce: Int = 0,
         bounce: Int = 0,
         critical: Boolean = false,
+        variant: Int = PLAYER_SHOT_VARIANT,
     ): EntityId {
         val radians = angleDegrees * PI_OVER_180
         val forward = if (isPlayer) SHOT_SPEED else -SHOT_SPEED
@@ -235,7 +266,14 @@ class EntityFactory(private val world: World) {
         // will never use - and so the collision handler can tell a piercing shot by its component.
         if (pierce > 0) world.addComponent(id, PierceComponent(pierce))
         if (bounce > 0) world.addComponent(id, BounceComponent(bounce))
-        world.addComponent(id, SpriteComponent(pixmap))
+        world.addComponent(
+            id,
+            SpriteComponent(
+                pixmap,
+                baseSrcX = variant * SHOT_FRAME_WIDTH,
+                srcWidth = SHOT_FRAME_WIDTH,
+            )
+        )
         world.addComponent(id, CollisionComponent(2f, if (isPlayer) CollisionGroup.PLAYER_PROJECTILE else CollisionGroup.ENEMY_PROJECTILE))
         world.addComponent(id, HealthComponent(SHOT_HIT_POINTS))
         world.addComponent(id, DamageComponent(damage, isCritical = critical))
@@ -313,7 +351,16 @@ class EntityFactory(private val world: World) {
         )
         world.addComponent(id, VelocityComponent(Vector2(-1f, 0f)))
         world.addComponent(id, SpriteComponent(pixmap, srcWidth = EXPLOSION_FRAME_WIDTH, scale = scale))
-        world.addComponent(id, AnimationComponent(EXPLOSION_FRAME_WIDTH, pixmap.height, 5, 0.3f, isLooping = false))
+        world.addComponent(
+            id,
+            AnimationComponent(
+                EXPLOSION_FRAME_WIDTH,
+                pixmap.height,
+                EXPLOSION_FRAME_COUNT,
+                EXPLOSION_FRAME_SECONDS,
+                isLooping = false,
+            )
+        )
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(50))
         return id
@@ -332,17 +379,39 @@ class EntityFactory(private val world: World) {
         const val BAT_FRAME_COUNT = 6
         const val BAT_FRAME_SECONDS = 0.07f
 
-        /** Width of one enemy frame in the shared sheet; the strips are addressed by [srcXOf]. */
+        /**
+         * The enemy sheet: three types, four frames of wingbeat each, laid out type by type.
+         *
+         * Four rather than the two it had, for the same reason the bat got six - and at an
+         * interval that puts the cycle at the same ~0.4s, so the hostiles and the player beat
+         * their wings at one rate instead of the enemies looking slowed down beside him.
+         */
         const val ENEMY_FRAME_WIDTH = 32
-        const val EXPLOSION_FRAME_WIDTH = 25
+        const val ENEMY_FRAME_COUNT = 4
+        const val ENEMY_FRAME_SECONDS = 0.1f
 
-        /** The sheet strip each enemy type animates from. */
-        fun srcXOf(type: Int): Int = when (type) {
-            0 -> 0
-            1 -> 67
-            2 -> 137
-            else -> 0
-        }
+        /**
+         * The blast: eight frames of one fireball, square so it can expand in every direction.
+         *
+         * The sheet it replaced was five unrelated pictures at offsets measured off some larger
+         * sheet, walked on a 25 pixel stride that landed on two empty slots - so a death played as
+         * blob, nothing, star, nothing, rocks. The interval is a fifth of what it was, because the
+         * old five frames took a second and a half: a blast that outlives the thing it killed reads
+         * as a decal, not as an explosion.
+         */
+        const val EXPLOSION_FRAME_WIDTH = 32
+        const val EXPLOSION_FRAME_COUNT = 8
+        const val EXPLOSION_FRAME_SECONDS = 0.055f
+
+        /**
+         * The sheet strip each enemy type animates from.
+         *
+         * Computed rather than tabulated. The old sheet had its strips at 0, 67 and 137 - offsets
+         * that were measured off the artwork rather than chosen - so the table and the image could
+         * disagree and nothing would say so. The regenerated sheet is laid out on an exact stride,
+         * which makes this arithmetic and the two impossible to drift apart.
+         */
+        fun srcXOf(type: Int): Int = type.coerceAtLeast(0) * ENEMY_FRAME_WIDTH * ENEMY_FRAME_COUNT
 
         /** The boss wears the third enemy's colors, the same ones the final wave escorts it in. */
         const val BOSS_ENEMY_TYPE = 2

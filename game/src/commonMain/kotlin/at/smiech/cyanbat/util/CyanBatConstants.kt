@@ -333,3 +333,20 @@ const val CRITICAL_CHANCE_BONUS = 0.04f
 // what a build is supposed to cost - and it is a ceiling rather than no ceiling because a critical
 // that lands more often than not has stopped being a critical and is just the damage number.
 const val MAX_CRITICAL_CHANCE = 0.5f
+
+
+// --- Shot colorways ----------------------------------------------------------------------------
+//
+// `shot.png` is one bolt drawn four times over: the player's cyan, then the three enemy palettes in
+// the order the enemy sheet lays them out. A shot is the color of whatever fired it, so a screen
+// holding the bat's fire and the boss's at the same time says which is which by color rather than
+// by which way a bolt happens to be travelling.
+
+// Width of one bolt in the sheet. The sprite is addressed by frame like the enemy sheet, so this
+// is what positions a shot rather than the pixmap's own width - which is now the whole strip.
+const val SHOT_FRAME_WIDTH = 24
+
+// The player's colorway, and the offset from an enemy's type to its own. The enemy strips are
+// indexed 0..2 and sit behind the player's, so a type-2 boss fires the fourth bolt.
+const val PLAYER_SHOT_VARIANT = 0
+const val ENEMY_SHOT_VARIANT_OFFSET = 1

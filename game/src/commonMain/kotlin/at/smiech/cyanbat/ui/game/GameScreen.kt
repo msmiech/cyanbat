@@ -24,8 +24,10 @@ import at.smiech.cyanbat.util.POWER_UP_CARD_GAP
 import at.smiech.cyanbat.util.POWER_UP_CARD_HEIGHT
 import at.smiech.cyanbat.util.POWER_UP_CARD_TOP
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
+import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
+import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.SHOT_VOLUME
 import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
 import at.smiech.cyanbat.util.TICK_INITIAL
@@ -62,6 +64,7 @@ import at.smiech.engine.ecs.MovementSystem
 import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.PlayerInputSystem
+import at.smiech.engine.ecs.ProjectileStyleComponent
 import at.smiech.engine.ecs.RenderSystem
 import at.smiech.engine.ecs.TrailSystem
 import at.smiech.engine.ecs.TransformComponent
@@ -204,12 +207,7 @@ class GameScreen(
         world.addSystem(FloatingTextSystem())
 
         // Add the primary background
-        factory.createBackground(
-            0f, 0f,
-            game.frameBufferWidth.toFloat(),
-            game.frameBufferHeight.toFloat(),
-            currentLevel.background
-        )
+        factory.createBackground(0f, currentLevel.background)
 
         batId = factory.createBat(
             x = (game.frameBufferWidth / 3).toFloat(),
@@ -238,8 +236,14 @@ class GameScreen(
         val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
         val isPlayer = world.hasComponent(shooterId, PlayerControlComponent::class)
         val shot = env.assets.graphics.shot
-        val x = if (isPlayer) transform.rect.right else transform.rect.left - shot.width
+        // The sheet's own width is every colorway laid side by side, so a shot is positioned and
+        // sized by one frame of it rather than by the pixmap.
+        val x = if (isPlayer) transform.rect.right else transform.rect.left - SHOT_FRAME_WIDTH
         val y = transform.rect.centerY - shot.height / 2f
+        // Read off the shooter, so a bolt is the color of whatever fired it. The bat has no such
+        // component and falls through to its own cyan.
+        val variant = world.getComponent(shooterId, ProjectileStyleComponent::class)?.variant
+            ?: PLAYER_SHOT_VARIANT
         // The bat's damage is a run stat the power-ups raise; everything else deals what it was
         // spawned with.
         val damage = if (isPlayer) loadout.shotDamage else damageOf(shooterId)
@@ -253,12 +257,13 @@ class GameScreen(
             factory.createShot(
                 x = x,
                 y = y,
-                width = shot.width.toFloat(),
+                width = SHOT_FRAME_WIDTH.toFloat(),
                 height = shot.height.toFloat(),
                 pixmap = shot,
                 isPlayer = isPlayer,
                 damage = if (critical) loadout.criticalDamage else damage,
                 critical = critical,
+                variant = variant,
                 angleDegrees = angle,
                 // Piercing and ricochet are the bat's alone. An enemy shot that came back off a
                 // wall would be a hazard the player has no way to read or answer.

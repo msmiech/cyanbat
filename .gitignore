@@ -11,3 +11,6 @@
 /**/build
 .artifacts
 .kotlin
+
+# Byte-cache from the sprite generators importing tools/pixelart.py
+__pycache__/

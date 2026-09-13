@@ -16,15 +16,17 @@ private class FakePixmap(
 }
 
 /**
- * `enemies.png` packs three enemy strips side by side, each two frames wide, at
- * the offsets [EntityFactory][at.smiech.engine.ecs] uses: 0, 67 and 137.
+ * `enemies.png` packs three enemy strips side by side, each four frames wide, on an exact stride -
+ * so the offsets `EntityFactory.srcXOf` walks are 0, 128 and 256.
  */
-private const val SHEET_WIDTH = 201
 private const val FRAME_WIDTH = 32
+private const val STRIP_FRAMES = 4
+private const val SHEET_WIDTH = FRAME_WIDTH * STRIP_FRAMES * 3
+private val STRIP_OFFSETS = listOf(0, 128, 256)
 
 class AnimationSystemTest {
 
-    private fun world(baseSrcX: Int, frameCount: Int = 2, looping: Boolean = true): Pair<World, EntityId> {
+    private fun world(baseSrcX: Int, frameCount: Int = STRIP_FRAMES, looping: Boolean = true): Pair<World, EntityId> {
         val world = World()
         world.addSystem(AnimationSystem())
         val id = world.createEntity()
@@ -48,7 +50,7 @@ class AnimationSystemTest {
      */
     @Test
     fun `advancing a frame keeps the strip offset`() {
-        for (baseSrcX in listOf(0, 67, 137)) {
+        for (baseSrcX in STRIP_OFFSETS) {
             val (world, id) = world(baseSrcX)
             world.update(0.25f, null)
             assertEquals(baseSrcX + FRAME_WIDTH, srcX(world, id), "strip at $baseSrcX advanced to the wrong frame")
@@ -57,7 +59,7 @@ class AnimationSystemTest {
 
     @Test
     fun `every frame of every strip stays inside the sheet`() {
-        for (baseSrcX in listOf(0, 67, 137)) {
+        for (baseSrcX in STRIP_OFFSETS) {
             val (world, id) = world(baseSrcX)
             repeat(6) {
                 world.update(0.25f, null)
@@ -70,11 +72,17 @@ class AnimationSystemTest {
 
     @Test
     fun `looping animation wraps back to the strip start`() {
-        val (world, id) = world(baseSrcX = 67)
+        // Read off the constants rather than written out: this used to assert 67 and 99, which
+        // were the old sheet's second strip, and it broke the moment the strips moved. What it is
+        // actually claiming is that a strip cycles back to its own start, whatever the layout.
+        val baseSrcX = STRIP_OFFSETS[1]
+        val (world, id) = world(baseSrcX)
+
         world.update(0.25f, null)
-        assertEquals(99, srcX(world, id))
-        world.update(0.25f, null)
-        assertEquals(67, srcX(world, id))
+        assertEquals(baseSrcX + FRAME_WIDTH, srcX(world, id))
+
+        repeat(STRIP_FRAMES - 1) { world.update(0.25f, null) }
+        assertEquals(baseSrcX, srcX(world, id))
     }
 
     @Test
