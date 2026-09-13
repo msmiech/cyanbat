@@ -3,6 +3,7 @@ package at.smiech.cyanbat.progress
 import at.smiech.cyanbat.util.ARMOR_FACTOR
 import at.smiech.cyanbat.util.COUNTERWEIGHT_BONUS
 import at.smiech.cyanbat.util.COUNTERWEIGHT_REDUCTION
+import at.smiech.cyanbat.util.CRITICAL_CHANCE_BONUS
 import at.smiech.cyanbat.util.HEAVY_ROUNDS_DAMAGE
 import at.smiech.cyanbat.util.POWER_UP_CHOICES
 import at.smiech.cyanbat.util.RAPID_FIRE_FACTOR
@@ -48,6 +49,11 @@ enum class PowerUp(val title: String, val description: String) {
 
     HEAVY_ROUNDS("Heavy Rounds", "+$HEAVY_ROUNDS_DAMAGE damage per shot") {
         override fun applyTo(loadout: PlayerLoadout) = loadout.addShotDamage(HEAVY_ROUNDS_DAMAGE)
+    },
+
+    SHARPSHOOTER("Sharpshooter", "+${percent(CRITICAL_CHANCE_BONUS)} critical chance") {
+        override fun applyTo(loadout: PlayerLoadout) = loadout.addCriticalChance(CRITICAL_CHANCE_BONUS)
+        override fun isAvailable(loadout: PlayerLoadout) = loadout.canAddCriticalChance
     },
 
     ARMOR_PLATING("Armor Plating", "Take less damage") {
