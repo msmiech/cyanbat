@@ -74,6 +74,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
+import kotlin.random.Random
 
 class GameScreen(
     override val game: Game,
@@ -134,6 +135,9 @@ class GameScreen(
 
     /** What the run's power-ups have made of the bat; see [PlayerLoadout]. */
     private val loadout = PlayerLoadout()
+
+    /** Rolls the bat's critical hits. Its own, so nothing else in the run shifts the sequence. */
+    private val random = Random.Default
 
     /**
      * Level ups owed but not yet spent.
@@ -241,6 +245,11 @@ class GameScreen(
         val damage = if (isPlayer) loadout.shotDamage else damageOf(shooterId)
 
         for (angle in spreadAngles(if (isPlayer) loadout.extraShots else 0)) {
+            // Rolled per projectile rather than per volley, so a wider fan really is more chances
+            // at one. The bat only: a critical is a reward, and one landing on the player from
+            // off screen would just be a death they cannot account for.
+            val critical = isPlayer && random.nextFloat() < loadout.criticalChance
+
             factory.createShot(
                 x = x,
                 y = y,
@@ -248,7 +257,8 @@ class GameScreen(
                 height = shot.height.toFloat(),
                 pixmap = shot,
                 isPlayer = isPlayer,
-                damage = damage,
+                damage = if (critical) loadout.criticalDamage else damage,
+                critical = critical,
                 angleDegrees = angle,
                 // Piercing and ricochet are the bat's alone. An enemy shot that came back off a
                 // wall would be a hazard the player has no way to read or answer.
@@ -396,6 +406,15 @@ class GameScreen(
         world.getComponent(id, DamageComponent::class)?.amount ?: DAMAGE_PER_HIT
 
     /**
+     * True when [id] is carrying a critical blow.
+     *
+     * Anything without a [DamageComponent] - the bat itself, an obstacle - is never critical, so
+     * ramming an enemy stays an ordinary hit however hard the run has made the bat.
+     */
+    private fun isCritical(id: EntityId): Boolean =
+        world.getComponent(id, DamageComponent::class)?.isCritical == true
+
+    /**
      * True when [shotId] is a piercing shot that has already passed through [targetId], and false
      * for everything else - including the first frame of a pierce, which it records on the way.
      */
@@ -426,7 +445,10 @@ class GameScreen(
 
         val dealt = applyDamage(id, amount)
         if (dealt > 0 && collisionGroupOf(id) == CollisionGroup.ENEMY) {
-            showDamageText(id, dealt)
+            // Read off whatever landed the blow, not off the amount: a crit is a property of the
+            // shot, and comparing the number against some threshold would call a heavily upgraded
+            // ordinary shot critical.
+            showDamageText(id, dealt, critical = isCritical(dealtBy))
             lightUp(id)
         }
 
@@ -586,9 +608,9 @@ class GameScreen(
     }
 
     /** Puts the number at the enemy's leading edge, which is the side the bat's shots arrive from. */
-    private fun showDamageText(enemyId: EntityId, damage: Int) {
+    private fun showDamageText(enemyId: EntityId, damage: Int, critical: Boolean) {
         val rect = world.getComponent(enemyId, TransformComponent::class)?.rect ?: return
-        factory.createDamageText(rect.left, rect.centerY, damage)
+        factory.createDamageText(rect.left, rect.centerY, damage, critical)
     }
 
     private fun initStats() {

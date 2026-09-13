@@ -92,7 +92,14 @@ data class HealthComponent(
  * flight: the spawner decides how hard the enemies it makes hit, and the collision handler only
  * has to read it off. An entity without one falls back to whatever default the game applies.
  */
-data class DamageComponent(val amount: Int) : Component
+/**
+ * @param isCritical whether this damage is a critical one. It rides with the amount rather than
+ *   sitting in a component of its own because the two are one fact: [amount] is already the raised
+ *   number by the time anything reads it, and this is what lets whatever reports the hit say *why*
+ *   it was that big. A projectile carrying it crits everything it goes on to hit, which is what
+ *   "the shot is critical" has to mean once shots can pierce.
+ */
+data class DamageComponent(val amount: Int, val isCritical: Boolean = false) : Component
 
 /**
  * Draws a bar of the entity's remaining [HealthComponent.fraction] just below it.
