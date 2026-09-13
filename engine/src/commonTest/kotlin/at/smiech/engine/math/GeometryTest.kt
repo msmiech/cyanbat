@@ -17,7 +17,7 @@ class RectTest {
     }
 
     @Test
-    fun `centre is the midpoint`() {
+    fun `center is the midpoint`() {
         val r = Rect.fromLTRB(10f, 20f, 30f, 60f)
         assertEquals(20f, r.centerX)
         assertEquals(40f, r.centerY)

@@ -508,7 +508,7 @@ class FloatingTextSystem : GameSystem() {
 /**
  * Sheds trail segments off [TrailEmitterComponent]s, then ages, draws and reaps them.
  *
- * What a segment looks like is left to [onEmit] - size and colour are a game's business, the same
+ * What a segment looks like is left to [onEmit] - size and color are a game's business, the same
  * split [WeaponSystem] uses - and how it moves is left to [MovementSystem], so a segment is just a
  * transform with a velocity. Emitting on a cadence rather than per frame is what keeps the wake the
  * same length whatever the frame rate.
@@ -563,7 +563,7 @@ class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
             val height = (rect.height * scale).roundToInt()
             if (width <= 0 || height <= 0) return@forEach
 
-            // About the centre: a segment that shrank from one corner would crawl away from the
+            // About the center: a segment that shrank from one corner would crawl away from the
             // line the rest of the wake sits on.
             graphics.drawRect(
                 (rect.centerX - width / 2f).roundToInt(),

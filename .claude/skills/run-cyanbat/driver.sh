@@ -68,7 +68,7 @@ cmd_focus() {
 
 in_game() { cmd_focus | grep -q "$GAME_ACTIVITY_SUFFIX"; }
 
-# Dump the view hierarchy and print "x y" for the centre of the node whose text
+# Dump the view hierarchy and print "x y" for the center of the node whose text
 # matches $1. Compose exports its semantics to the accessibility tree, so the
 # menu buttons are findable by label - never hardcode tap coordinates, the
 # emulator's screen size decides them.

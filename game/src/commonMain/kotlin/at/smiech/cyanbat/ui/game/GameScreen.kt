@@ -79,7 +79,7 @@ class GameScreen(
     private val world = World()
     private val factory = EntityFactory(world)
 
-    /** Cancelled in [dispose], so nothing started here outlives the screen. */
+    /** Canceled in [dispose], so nothing started here outlives the screen. */
     private val screenScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
     
     private val batId: EntityId
@@ -215,10 +215,10 @@ class GameScreen(
     }
 
     /**
-     * Spawns a shot at the shooter's leading edge, centred on it vertically.
+     * Spawns a shot at the shooter's leading edge, centered on it vertically.
      *
      * Which edge leads depends on who is firing: the bat shoots to the right and the boss back to
-     * the left, so each shot leaves from the side it travels towards rather than through the
+     * the left, so each shot leaves from the side it travels toward rather than through the
      * sprite that fired it. A shot carries its shooter's damage, which is how the boss hits harder
      * at range than anything else in the level does on contact.
      */
@@ -269,7 +269,7 @@ class GameScreen(
     /**
      * Sheds one segment of the bat's wake, just off the back of it.
      *
-     * Centred on the sprite rather than sitting under it: the bat's tail is the middle band of
+     * Centered on the sprite rather than sitting under it: the bat's tail is the middle band of
      * the frame, and a wake off its belly would read as coming from the health bar instead.
      */
     private fun shedTrail(emitterId: EntityId) {
@@ -453,7 +453,7 @@ class GameScreen(
             control.hitCooldown = loadout.hitCooldownSeconds
             scoring.registerPlayerHit()
 
-            // The flat cut comes off first and the armour scales what survives it, so the two
+            // The flat cut comes off first and the armor scales what survives it, so the two
             // stack the way a player would expect rather than one swallowing the other. Rounded up
             // and floored at one: no amount of either can make a hit free, which would leave a run
             // the player cannot lose.
@@ -663,7 +663,7 @@ class GameScreen(
         }
     }
 
-    /** The left edge of card [index], with the row of them centred on the framebuffer. */
+    /** The left edge of card [index], with the row of them centered on the framebuffer. */
     private fun cardLeft(index: Int): Int {
         val stride = POWER_UP_CARD_WIDTH + POWER_UP_CARD_GAP
         val rowWidth = offer.size * stride - POWER_UP_CARD_GAP
@@ -796,7 +796,7 @@ class GameScreen(
         g.apply {
             drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
             // No text measurement in the Graphics API, so these x offsets are eyeballed against
-            // the 480px framebuffer rather than centred properly.
+            // the 480px framebuffer rather than centered properly.
             drawString("PAUSED", 186, 140, 30, EngineColors.CYAN)
             drawString("Tap or press Esc to resume", 155, 175, 15, EngineColors.WHITE)
             drawString("Back or Q to quit", 185, 197, 15, EngineColors.WHITE)
@@ -817,7 +817,7 @@ class GameScreen(
      * The banner a new wave or the boss arrives on, held for [WAVE_BANNER_SECONDS].
      *
      * Outlined rather than plain, because it lands over whatever the run happens to be drawing,
-     * and centred by eye against the 480px framebuffer like the rest of the overlays here - the
+     * and centered by eye against the 480px framebuffer like the rest of the overlays here - the
      * Graphics API has no way to measure a string.
      */
     private fun drawBanner(text: String) {

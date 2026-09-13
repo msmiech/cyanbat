@@ -13,7 +13,7 @@ import kotlin.math.abs
  * via a Compose adapter on desktop and an `android.view` one on Android. Adding a device means
  * writing another adapter, not touching this class or any screen.
  *
- * Threading: NOT synchronised, for the same reason [PointerTouchHandler] is not. Key and motion
+ * Threading: NOT synchronized, for the same reason [PointerTouchHandler] is not. Key and motion
  * callbacks arrive on the host's UI thread, which is the thread the game loop runs on.
  */
 class ControlHandler : Controls {
@@ -28,7 +28,7 @@ class ControlHandler : Controls {
     private var axisY = 0f
 
     // A key beats the stick it shares an axis with. They are rarely both live, and when they are
-    // the deliberate press is the better guess at intent than a stick resting off centre.
+    // the deliberate press is the better guess at intent than a stick resting off center.
     override val moveX: Float
         get() = digital(Direction.LEFT, Direction.RIGHT) ?: axisX
 

@@ -5,7 +5,7 @@
 
     uv run tools/generate_aura_sound.py
 
-Synthesised rather than sampled, and kept in the repository as the script that made it, for the
+Synthesized rather than sampled, and kept in the repository as the script that made it, for the
 same reason the sprites are: a sound nobody can regenerate is a sound nobody can adjust. It needs
 no third-party package - a WAV is a header and some samples.
 

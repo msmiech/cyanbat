@@ -1,6 +1,6 @@
 package at.smiech.cyanbat.progress
 
-import at.smiech.cyanbat.util.ARMOUR_FACTOR
+import at.smiech.cyanbat.util.ARMOR_FACTOR
 import at.smiech.cyanbat.util.COUNTERWEIGHT_BONUS
 import at.smiech.cyanbat.util.COUNTERWEIGHT_REDUCTION
 import at.smiech.cyanbat.util.HEAVY_ROUNDS_DAMAGE
@@ -50,8 +50,8 @@ enum class PowerUp(val title: String, val description: String) {
         override fun applyTo(loadout: PlayerLoadout) = loadout.addShotDamage(HEAVY_ROUNDS_DAMAGE)
     },
 
-    ARMOUR_PLATING("Armour Plating", "Take less damage") {
-        override fun applyTo(loadout: PlayerLoadout) = loadout.reduceDamageTaken(ARMOUR_FACTOR)
+    ARMOR_PLATING("Armor Plating", "Take less damage") {
+        override fun applyTo(loadout: PlayerLoadout) = loadout.reduceDamageTaken(ARMOR_FACTOR)
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canReduceDamageTaken
     },
 

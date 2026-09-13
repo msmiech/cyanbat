@@ -33,7 +33,7 @@ interface AudioSettings {
  * Both fields default to enabled until the first value arrives, matching the repository's own
  * defaults, so a run started before the store responds is not silently muted.
  *
- * @param scope cancelled by the host when the game goes away.
+ * @param scope canceled by the host when the game goes away.
  */
 class ObservedAudioSettings(
     repository: SettingsRepository,

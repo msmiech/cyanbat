@@ -96,7 +96,7 @@ const val OPENING_SPAWN_INTERVAL_SECONDS = 2.6f
 const val MINIMUM_SPAWN_INTERVAL_SECONDS = 0.9f
 
 // How far either side of the interval a spawn may land, as a fraction of it. Without it the
-// spawns fall into a metronome and the level reads as a pattern to memorise.
+// spawns fall into a metronome and the level reads as a pattern to memorize.
 const val SPAWN_INTERVAL_JITTER = 0.3f
 
 // Enemy toughness per wave. Health is in units of the bat's 34-damage shot, so the opening wave
@@ -147,7 +147,7 @@ const val LEVEL_COMPLETE_BONUS = 10_000
 const val WAVE_BANNER_SECONDS = 2.2f
 
 // Wave and boss announcements, sized against the 480px framebuffer. The character width is what
-// the banner is centred by: the Graphics API cannot measure a string, so a nominal advance for
+// the banner is centered by: the Graphics API cannot measure a string, so a nominal advance for
 // the sans-serif face both platforms use is the closest thing available.
 const val BANNER_FONT_SIZE = 26
 const val BANNER_CHAR_WIDTH = 15
@@ -196,10 +196,10 @@ const val SPREAD_ANGLE_DEGREES = 9f
 const val VITALITY_HIT_POINTS = 25
 const val HEAVY_ROUNDS_DAMAGE = 12
 
-// Armour Plating, as a multiplier on incoming damage. Floored well above zero: a bat that cannot
+// Armor Plating, as a multiplier on incoming damage. Floored well above zero: a bat that cannot
 // be hurt has no run left to play.
-const val ARMOUR_FACTOR = 0.85f
-const val ARMOUR_FLOOR = 0.4f
+const val ARMOR_FACTOR = 0.85f
+const val ARMOR_FLOOR = 0.4f
 
 // Mercy invulnerability after a hit. Without one a single obstacle would strip the whole bar over
 // the frames the two sprites spend overlapping; Second Wind buys more of it, up to the cap.
@@ -208,7 +208,7 @@ const val SECOND_WIND_SECONDS = 0.3f
 const val MAX_HIT_COOLDOWN_SECONDS = 1.5f
 
 // The level up dialog, laid out against the 480x320 framebuffer. Three cards in a row with a gutter
-// between them, centred horizontally and sitting just below the middle of the screen.
+// between them, centered horizontally and sitting just below the middle of the screen.
 const val POWER_UP_CARD_WIDTH = 140
 const val POWER_UP_CARD_HEIGHT = 96
 const val POWER_UP_CARD_GAP = 10
@@ -242,7 +242,7 @@ const val REVIVE_HEALTH_FRACTION = 0.5f
 const val MAX_REVIVES = 3
 
 // Counterweight: a flat cut off every hit, paid for with a share more damage dealt. Flat rather
-// than proportional, so it is worth most against the swarms of weak enemies that armour barely
+// than proportional, so it is worth most against the swarms of weak enemies that armor barely
 // notices. Incoming damage still floors at 1, so stacking this can blunt a hit but never void it.
 const val COUNTERWEIGHT_REDUCTION = 1
 const val COUNTERWEIGHT_BONUS = 0.10f

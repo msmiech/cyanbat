@@ -12,7 +12,7 @@ interface Component
 /**
  * A unique identifier for an entity.
  *
- * Ids are recycled once a removal is finalised, which only ever happens at the end of
+ * Ids are recycled once a removal is finalized, which only ever happens at the end of
  * [World.update]. Holding an id across frames after removing the entity is therefore unsafe: it
  * may by then name a different entity. Within a single update an id is stable.
  */

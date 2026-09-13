@@ -31,7 +31,7 @@ class DesktopGraphics(
         val decoded = assetStream(filename).use { ImageIO.read(it) }
             ?: throw RuntimeException("Asset-Bitmap <$filename> not found!")
 
-        // Redraw into a known type so downstream blits do not hit a surprising colour model.
+        // Redraw into a known type so downstream blits do not hit a surprising color model.
         val type = if (format == PixmapFormat.RGB565) BufferedImage.TYPE_INT_RGB else BufferedImage.TYPE_INT_ARGB
         val image = BufferedImage(decoded.width, decoded.height, type)
         image.createGraphics().apply {

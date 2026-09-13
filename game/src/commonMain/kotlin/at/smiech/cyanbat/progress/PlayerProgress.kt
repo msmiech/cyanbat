@@ -29,7 +29,7 @@ class PlayerProgress(
     var level: Int = 1
         private set
 
-    /** Experience banked towards the *next* level, not since the start of the run. */
+    /** Experience banked toward the *next* level, not since the start of the run. */
     var experience: Int = 0
         private set
 
@@ -41,7 +41,7 @@ class PlayerProgress(
     val experienceForNextLevel: Int
         get() = costOfLevel(level)
 
-    /** Progress towards the next level, as 0..1, for a bar to be drawn from. */
+    /** Progress toward the next level, as 0..1, for a bar to be drawn from. */
     val fraction: Float
         get() = (experience.toFloat() / experienceForNextLevel).coerceIn(0f, 1f)
 

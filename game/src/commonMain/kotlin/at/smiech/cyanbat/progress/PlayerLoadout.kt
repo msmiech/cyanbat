@@ -1,6 +1,6 @@
 package at.smiech.cyanbat.progress
 
-import at.smiech.cyanbat.util.ARMOUR_FLOOR
+import at.smiech.cyanbat.util.ARMOR_FLOOR
 import at.smiech.cyanbat.util.MAX_FLAT_DAMAGE_REDUCTION
 import at.smiech.cyanbat.util.MAX_HEALTH_REGEN_PER_SECOND
 import at.smiech.cyanbat.util.MAX_REVIVES
@@ -48,7 +48,7 @@ class PlayerLoadout {
     var hitCooldownSeconds: Float = PLAYER_HIT_COOLDOWN_SECONDS
         private set
 
-    /** Incoming damage is multiplied by this. 1 is unarmoured; floored so it never reaches zero. */
+    /** Incoming damage is multiplied by this. 1 is unarmored; floored so it never reaches zero. */
     var damageTaken: Float = 1f
         private set
 
@@ -112,7 +112,7 @@ class PlayerLoadout {
     }
 
     fun reduceDamageTaken(factor: Float) {
-        damageTaken = (damageTaken * factor).coerceAtLeast(ARMOUR_FLOOR)
+        damageTaken = (damageTaken * factor).coerceAtLeast(ARMOR_FLOOR)
     }
 
     fun addHealthRegen(perSecond: Float) {
@@ -166,7 +166,7 @@ class PlayerLoadout {
     val canQuickenShots: Boolean get() = shotIntervalSeconds > MIN_SHOT_INTERVAL_SECONDS
     val canAddShot: Boolean get() = extraShots < MAX_EXTRA_SHOTS
     val canLengthenHitCooldown: Boolean get() = hitCooldownSeconds < MAX_HIT_COOLDOWN_SECONDS
-    val canReduceDamageTaken: Boolean get() = damageTaken > ARMOUR_FLOOR
+    val canReduceDamageTaken: Boolean get() = damageTaken > ARMOR_FLOOR
     val canAddHealthRegen: Boolean get() = healthRegenPerSecond < MAX_HEALTH_REGEN_PER_SECOND
     val canAddRevive: Boolean get() = revives < MAX_REVIVES
     val canCounterweight: Boolean get() = flatDamageReduction < MAX_FLAT_DAMAGE_REDUCTION

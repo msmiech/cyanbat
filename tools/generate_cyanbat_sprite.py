@@ -13,8 +13,8 @@ the only thing which changes between frames. Redrawing a wing by hand six times 
 up not quite matching each other.
 
 Rendering is deliberately hard-edged. Shapes are sampled at 3x3 per pixel and thresholded, so the
-result is flat pixel art with no anti-aliased fringe - the old sheet had 2169 distinct colours in
-97x40 pixels, most of them ghosts of a resize, and this has as many colours as the palette below.
+result is flat pixel art with no anti-aliased fringe - the old sheet had 2169 distinct colors in
+97x40 pixels, most of them ghosts of a resize, and this has as many colors as the palette below.
 
 The sheet is 6 frames of 45x40, laid out left to right, which is what `EntityFactory.createBat`
 addresses through `SpriteComponent.srcX`.
@@ -59,7 +59,7 @@ PALETTE = {
 # whole reason six frames beat two: a bat drives down with the wing open and recovers with it
 # folded, so no two frames here are the same pose mirrored.
 #
-# `bob` is the body riding its own downstroke, one pixel either side of centre.
+# `bob` is the body riding its own downstroke, one pixel either side of center.
 FLAP = (
     # angle  extension  bob
     (84.0, 0.84, 1),   # top of the stroke, opening out
@@ -180,7 +180,7 @@ def wing(shoulder, hip, angle_degrees, extension, scale=1.0):
 
     bones = [(shoulder, elbow), (elbow, wrist)] + [(wrist, tip) for tip in fingers]
 
-    # Leading edge out along the arm, then back along a trailing edge bowed towards the wrist.
+    # Leading edge out along the arm, then back along a trailing edge bowed toward the wrist.
     outline = [shoulder, elbow, wrist, fingers[0]]
     for start, end in zip(fingers, fingers[1:] + [hip]):
         middle = ((start[0] + end[0]) / 2, (start[1] + end[1]) / 2)
@@ -204,7 +204,7 @@ def near_wing_layers(angle_degrees, extension, dy):
     bone_shapes += [capsule(p, q, 1.0, 0.4) for p, q in bones[2:]]
 
     # A panel is membrane far enough from every bone to read as stretched skin rather than as
-    # ridge. Quantised, not shaded: two flat tones is what the rest of the sheet uses.
+    # ridge. Quantized, not shaded: two flat tones is what the rest of the sheet uses.
     def lit(x, y):
         return membrane(x, y) and distance_to_segments((x, y), bones) > 3.0
 
@@ -271,10 +271,10 @@ def body_regions(dy):
     ]
 
 
-# --- rasterising ---------------------------------------------------------------------------------
+# --- rasterizing ---------------------------------------------------------------------------------
 
 
-def rasterise(shape):
+def rasterize(shape):
     """A shape sampled onto the frame grid, hard-edged."""
     filled = set()
     weight = 1.0 / (SUBSAMPLES * SUBSAMPLES)
@@ -292,18 +292,18 @@ def rasterise(shape):
     return filled
 
 
-def neighbours(x, y):
+def neighbors(x, y):
     for dy in (-1, 0, 1):
         for dx in (-1, 0, 1):
             if dx or dy:
                 yield x + dx, y + dy
 
 
-def outline_against(grid, subject, others, colour="o"):
+def outline_against(grid, subject, others, color="o"):
     """Darkens every [subject] pixel that touches one of [others], so the two read apart."""
-    edge = {p for p in subject if any(n in others for n in neighbours(*p))}
+    edge = {p for p in subject if any(n in others for n in neighbors(*p))}
     for x, y in edge:
-        grid[y][x] = colour
+        grid[y][x] = color
     return edge
 
 
@@ -350,14 +350,14 @@ def render_frame(index):
 
     far = set()
     for shape, material in far_wing_layers(angle, extension, bob):
-        pixels = rasterise(shape)
+        pixels = rasterize(shape)
         far |= pixels
         for x, y in pixels:
             grid[y][x] = material
 
     near = set()
     for shape, material in near_wing_layers(angle, extension, bob):
-        pixels = rasterise(shape)
+        pixels = rasterize(shape)
         near |= pixels
         for x, y in pixels:
             grid[y][x] = material
@@ -365,7 +365,7 @@ def render_frame(index):
     body = set()
     owned = {}
     for name, shape in body_regions(bob):
-        extent = rasterise(shape)
+        extent = rasterize(shape)
         pixels = extent - body
         body |= extent
         owned[name] = pixels
@@ -383,11 +383,11 @@ def render_frame(index):
     # continuous gradient and the animal reads as a fish - which is exactly what it did read as
     # until this line existed.
     for x, y in owned["body"]:
-        if any(n in owned["head"] for n in neighbours(x, y)):
+        if any(n in owned["head"] for n in neighbors(x, y)):
             grid[y][x] = DARKER[grid[y][x]]
 
     # The inner ear, which is the detail that says "bat" rather than "horn".
-    for x, y in rasterise(polygon([(33.6, 21.0 + bob), (32.2, 15.4 + bob), (36.4, 20.0 + bob)])):
+    for x, y in rasterize(polygon([(33.6, 21.0 + bob), (32.2, 15.4 + bob), (36.4, 20.0 + bob)])):
         if (x, y) in owned["near_ear"]:
             grid[y][x] = "d"
 
@@ -400,7 +400,7 @@ def render_frame(index):
         grid[30 + bob][43] = "w"
 
     # The warm dot the old artwork carried on the tail fin, kept because it is the one spot of
-    # colour on the sprite that is not cyan and it is what the eye lands on at the back end.
+    # color on the sprite that is not cyan and it is what the eye lands on at the back end.
     for x, y in ((6, 30 + bob), (7, 30 + bob), (6, 31 + bob)):
         if (x, y) in owned["fin"]:
             grid[y][x] = "g"
@@ -418,9 +418,9 @@ def render_frame(index):
     outline_against(grid, far, near | body)
 
     # Eyes last, over the shading, so they stay the crispest thing on the sprite.
-    for x, y in rasterise(ellipse(39.9, 24.0 + bob, 2.7, 2.3)):
+    for x, y in rasterize(ellipse(39.9, 24.0 + bob, 2.7, 2.3)):
         grid[y][x] = "e"
-    for x, y in rasterise(ellipse(40.8, 24.2 + bob, 1.3, 1.5)):
+    for x, y in rasterize(ellipse(40.8, 24.2 + bob, 1.3, 1.5)):
         grid[y][x] = "p"
 
     # The outer outline goes on afterwards and outwards, into pixels nothing else claimed, so the
@@ -428,7 +428,7 @@ def render_frame(index):
     filled = {(x, y) for y in range(FRAME_HEIGHT) for x in range(FRAME_WIDTH) if grid[y][x] != "."}
     for y in range(FRAME_HEIGHT):
         for x in range(FRAME_WIDTH):
-            if grid[y][x] == "." and any(n in filled for n in neighbours(x, y)):
+            if grid[y][x] == "." and any(n in filled for n in neighbors(x, y)):
                 grid[y][x] = "o"
 
     return grid

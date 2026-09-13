@@ -11,9 +11,9 @@ and Linux) from a single shared codebase.
   haptics and persistence.
 - **Compose Multiplatform**: one set of menu, settings and credits screens renders on both
   Android and desktop, from shared string and drawable resources.
-- **Entity Component System**: `:engine`'s ECS decouples game logic from data, so behaviour is
+- **Entity Component System**: `:engine`'s ECS decouples game logic from data, so behavior is
   composed from components rather than an inheritance hierarchy.
-- **Value class optimisation**: `Vector2` is a bit-packed value class, so movement maths
+- **Value class optimization**: `Vector2` is a bit-packed value class, so movement math
   allocates nothing in the game loop.
 - **Sub-pixel precision**: geometry is float-based, and the frame loop clamps its delta so a
   resume cannot fast-forward the simulation.
@@ -22,7 +22,7 @@ and Linux) from a single shared codebase.
 
 | Module | What it is |
 | --- | --- |
-| `:engine` | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), maths (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain` and `jvmMain` hold the platform implementations. |
+| `:engine` | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), math (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain` and `jvmMain` hold the platform implementations. |
 | `:game` | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI. Android + JVM. |
 | `:app` | Android application — activities, DataStore, and Android asset wiring. |
 | `:desktop` | Compose Desktop application — window, JVM asset wiring, and preferences-backed storage. |
@@ -75,7 +75,7 @@ is `ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
 ./gradlew build
 ```
 
-Assembles every module, runs lint, and runs the unit tests — ECS, maths, spawn pacing, and a
+Assembles every module, runs lint, and runs the unit tests — ECS, math, spawn pacing, and a
 check that the MP3 service provider desktop audio depends on is actually present.
 
 ## 📦 Cutting a release

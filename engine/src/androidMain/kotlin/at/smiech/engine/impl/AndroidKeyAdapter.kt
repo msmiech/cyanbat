@@ -46,7 +46,7 @@ fun ControlHandler.onAndroidMotionEvent(event: MotionEvent): Boolean {
     if (event.action != MotionEvent.ACTION_MOVE) return false
 
     // A pad's d-pad reports on the hat axes rather than as key codes, and it wins where it is
-    // off centre: it is the deliberate, fully-deflected input of the two.
+    // off center: it is the deliberate, fully-deflected input of the two.
     val hatX = event.getAxisValue(MotionEvent.AXIS_HAT_X)
     val hatY = event.getAxisValue(MotionEvent.AXIS_HAT_Y)
     onAxis(
