@@ -21,18 +21,16 @@ addresses through `SpriteComponent.srcX`.
 """
 
 import pathlib
-from math import cos, hypot, radians, sin
+import sys
+from math import cos, radians, sin
 
-from PIL import Image
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+
+import pixelart as pa
 
 FRAME_WIDTH = 45
 FRAME_HEIGHT = 40
 FRAME_COUNT = 6
-
-# Supersampling used to decide whether a pixel is inside a shape. Coverage is thresholded rather
-# than blended: the point is accurate silhouettes, not soft ones.
-SUBSAMPLES = 3
-COVERAGE_THRESHOLD = 0.5
 
 # Cyan and deep blue, because that is what the enemies, the cave and the bat's own wake already
 # are. The warm dot on the tail fin is the single exception, carried over from the old artwork.
@@ -80,75 +78,6 @@ SHOULDER = (30.0, 22.0)
 HIP = (21.0, 27.0)
 
 
-# --- geometry ------------------------------------------------------------------------------------
-
-
-def ellipse(cx, cy, rx, ry):
-    return lambda x, y: ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0
-
-
-def capsule(p, q, r_start, r_end):
-    """A segment with a radius that tapers from end to end - a limb, a tail, a finger bone."""
-    px, py = p
-    qx, qy = q
-    dx, dy = qx - px, qy - py
-    span = dx * dx + dy * dy
-
-    def inside(x, y):
-        t = 0.0 if span == 0 else max(0.0, min(1.0, ((x - px) * dx + (y - py) * dy) / span))
-        return hypot(x - (px + dx * t), y - (py + dy * t)) <= r_start + (r_end - r_start) * t
-
-    return inside
-
-
-def polygon(points):
-    def inside(x, y):
-        hit = False
-        j = len(points) - 1
-        for i, (xi, yi) in enumerate(points):
-            xj, yj = points[j]
-            if (yi > y) != (yj > y) and x < (xj - xi) * (y - yi) / (yj - yi) + xi:
-                hit = not hit
-            j = i
-        return hit
-
-    return inside
-
-
-def union(*shapes):
-    return lambda x, y: any(shape(x, y) for shape in shapes)
-
-
-def offset(shape, dx, dy):
-    return lambda x, y: shape(x - dx, y - dy)
-
-
-def bezier(start, control, end, steps=8):
-    """Points along a quadratic curve, for the scalloped trailing edge between two fingertips."""
-    out = []
-    for i in range(1, steps):
-        t = i / steps
-        u = 1 - t
-        out.append(
-            (
-                u * u * start[0] + 2 * u * t * control[0] + t * t * end[0],
-                u * u * start[1] + 2 * u * t * control[1] + t * t * end[1],
-            )
-        )
-    return out
-
-
-def distance_to_segments(point, segments):
-    best = float("inf")
-    x, y = point
-    for (px, py), (qx, qy) in segments:
-        dx, dy = qx - px, qy - py
-        span = dx * dx + dy * dy
-        t = 0.0 if span == 0 else max(0.0, min(1.0, ((x - px) * dx + (y - py) * dy) / span))
-        best = min(best, hypot(x - (px + dx * t), y - (py + dy * t)))
-    return best
-
-
 # --- the animal ----------------------------------------------------------------------------------
 
 
@@ -188,7 +117,7 @@ def wing(shoulder, hip, angle_degrees, extension, scale=1.0):
             middle[0] + (wrist[0] - middle[0]) * 0.24,
             middle[1] + (wrist[1] - middle[1]) * 0.24,
         )
-        outline += bezier(start, control, end)
+        outline += pa.bezier(start, control, end)
         outline.append(end)
 
     return bones, outline
@@ -199,16 +128,16 @@ def near_wing_layers(angle_degrees, extension, dy):
     shoulder = (SHOULDER[0], SHOULDER[1] + dy)
     hip = (HIP[0], HIP[1] + dy)
     bones, outline = wing(shoulder, hip, angle_degrees, extension)
-    membrane = polygon(outline)
-    bone_shapes = [capsule(p, q, 1.5, 0.9) for p, q in bones[:2]]
-    bone_shapes += [capsule(p, q, 1.0, 0.4) for p, q in bones[2:]]
+    membrane = pa.polygon(outline)
+    bone_shapes = [pa.capsule(p, q, 1.5, 0.9) for p, q in bones[:2]]
+    bone_shapes += [pa.capsule(p, q, 1.0, 0.4) for p, q in bones[2:]]
 
     # A panel is membrane far enough from every bone to read as stretched skin rather than as
     # ridge. Quantized, not shaded: two flat tones is what the rest of the sheet uses.
     def lit(x, y):
-        return membrane(x, y) and distance_to_segments((x, y), bones) > 3.0
+        return membrane(x, y) and pa.distance_to_segments((x, y), bones) > 3.0
 
-    return [(membrane, "M"), (lit, "N"), (union(*bone_shapes), "B")]
+    return [(membrane, "M"), (lit, "N"), (pa.union(*bone_shapes), "B")]
 
 
 def far_wing_layers(angle_degrees, extension, dy):
@@ -221,7 +150,7 @@ def far_wing_layers(angle_degrees, extension, dy):
     shoulder = (SHOULDER[0] + 2.5, SHOULDER[1] - 1.5 + dy)
     hip = (HIP[0] + 3.5, HIP[1] - 1.5 + dy)
     _, outline = wing(shoulder, hip, angle_degrees - 10.0, extension * 0.92, scale=0.84)
-    return [(polygon(outline), "F")]
+    return [(pa.polygon(outline), "F")]
 
 
 def body_regions(dy):
@@ -234,24 +163,24 @@ def body_regions(dy):
     """
     # A big head on a slim body, which is the proportion a bat actually has and the one that keeps
     # the two reading as separate parts rather than as one tube.
-    torso = ellipse(26.5, 28.6 + dy, 8.0, 4.4)
-    head = ellipse(38.0, 25.6 + dy, 6.4, 6.0)
-    snout = polygon(
+    torso = pa.ellipse(26.5, 28.6 + dy, 8.0, 4.4)
+    head = pa.ellipse(38.0, 25.6 + dy, 6.4, 6.0)
+    snout = pa.polygon(
         [(41.2, 26.0 + dy), (44.8, 28.0 + dy), (44.4, 31.0 + dy), (40.4, 31.4 + dy)]
     )
-    tail = capsule((19.0, 29.4 + dy), (6.4, 30.6 + dy), 2.6, 0.9)
-    leg = union(
-        capsule((24.0, 31.4 + dy), (25.6, 34.2 + dy), 1.8, 1.2),
-        capsule((25.6, 34.2 + dy), (28.2, 34.5 + dy), 1.2, 0.8),
+    tail = pa.capsule((19.0, 29.4 + dy), (6.4, 30.6 + dy), 2.6, 0.9)
+    leg = pa.union(
+        pa.capsule((24.0, 31.4 + dy), (25.6, 34.2 + dy), 1.8, 1.2),
+        pa.capsule((25.6, 34.2 + dy), (28.2, 34.5 + dy), 1.2, 0.8),
     )
 
     # Tall and leaf-shaped rather than the horns this started as. Ears are what separate a bat from
     # every other thing that could be drawn cyan and pointed at this size, so they are worth the
     # pixels - but only just: any larger and they read as a second pair of wings.
-    near_ear = polygon([(32.6, 22.8 + dy), (30.4, 12.4 + dy), (37.6, 20.2 + dy)])
-    far_ear = polygon([(36.8, 21.2 + dy), (35.8, 14.6 + dy), (40.8, 20.4 + dy)])
+    near_ear = pa.polygon([(32.6, 22.8 + dy), (30.4, 12.4 + dy), (37.6, 20.2 + dy)])
+    far_ear = pa.polygon([(36.8, 21.2 + dy), (35.8, 14.6 + dy), (40.8, 20.4 + dy)])
 
-    fin = polygon(
+    fin = pa.polygon(
         [
             (10.4, 29.2 + dy),
             (5.0, 23.6 + dy),
@@ -265,74 +194,10 @@ def body_regions(dy):
         ("far_ear", far_ear),
         ("near_ear", near_ear),
         ("fin", fin),
-        ("head", union(head, snout)),
-        ("body", union(torso, tail)),
+        ("head", pa.union(head, snout)),
+        ("body", pa.union(torso, tail)),
         ("leg", leg),
     ]
-
-
-# --- rasterizing ---------------------------------------------------------------------------------
-
-
-def rasterize(shape):
-    """A shape sampled onto the frame grid, hard-edged."""
-    filled = set()
-    weight = 1.0 / (SUBSAMPLES * SUBSAMPLES)
-    for y in range(FRAME_HEIGHT):
-        for x in range(FRAME_WIDTH):
-            coverage = 0.0
-            for sy in range(SUBSAMPLES):
-                for sx in range(SUBSAMPLES):
-                    px = x + (sx + 0.5) / SUBSAMPLES
-                    py = y + (sy + 0.5) / SUBSAMPLES
-                    if shape(px, py):
-                        coverage += weight
-            if coverage >= COVERAGE_THRESHOLD:
-                filled.add((x, y))
-    return filled
-
-
-def neighbors(x, y):
-    for dy in (-1, 0, 1):
-        for dx in (-1, 0, 1):
-            if dx or dy:
-                yield x + dx, y + dy
-
-
-def outline_against(grid, subject, others, color="o"):
-    """Darkens every [subject] pixel that touches one of [others], so the two read apart."""
-    edge = {p for p in subject if any(n in others for n in neighbors(*p))}
-    for x, y in edge:
-        grid[y][x] = color
-    return edge
-
-
-def shade_body(grid, region_pixels, materials, extent=None):
-    """
-    Bands a region from its own top edge to its own bottom edge, column by column.
-
-    Per column rather than over the whole region, so the gradient follows the shape: the belly
-    stays on the belly where the body is deep, and does not slide up onto the muzzle where it is
-    shallow.
-
-    @param extent the shape the bands are measured against, where that is wider than the pixels
-        actually painted. The torso needs it: the head overlaps and claims its pixels first, and a
-        torso banded against only what is left would put its dark back in the sliver under the jaw.
-    """
-    columns = {}
-    for x, y in extent if extent is not None else region_pixels:
-        low, high = columns.get(x, (y, y))
-        columns[x] = (min(low, y), max(high, y))
-
-    for x, y in region_pixels:
-        top, bottom = columns[x]
-        depth = 0.0 if bottom == top else (y - top) / (bottom - top)
-        for threshold, material in materials:
-            if depth < threshold:
-                grid[y][x] = material
-                break
-        else:
-            grid[y][x] = materials[-1][1]
 
 
 BODY_BANDS = ((0.26, "d"), (0.56, "b"), (0.82, "c"), (1.01, "y"))
@@ -350,14 +215,14 @@ def render_frame(index):
 
     far = set()
     for shape, material in far_wing_layers(angle, extension, bob):
-        pixels = rasterize(shape)
+        pixels = pa.rasterize(shape, FRAME_WIDTH, FRAME_HEIGHT)
         far |= pixels
         for x, y in pixels:
             grid[y][x] = material
 
     near = set()
     for shape, material in near_wing_layers(angle, extension, bob):
-        pixels = rasterize(shape)
+        pixels = pa.rasterize(shape, FRAME_WIDTH, FRAME_HEIGHT)
         near |= pixels
         for x, y in pixels:
             grid[y][x] = material
@@ -365,7 +230,7 @@ def render_frame(index):
     body = set()
     owned = {}
     for name, shape in body_regions(bob):
-        extent = rasterize(shape)
+        extent = pa.rasterize(shape, FRAME_WIDTH, FRAME_HEIGHT)
         pixels = extent - body
         body |= extent
         owned[name] = pixels
@@ -373,21 +238,21 @@ def render_frame(index):
             for x, y in pixels:
                 grid[y][x] = "f"
         elif name.endswith("ear"):
-            shade_body(grid, pixels, EAR_BANDS, extent)
+            pa.shade_bands(grid, pixels, EAR_BANDS, extent)
         elif name == "leg":
-            shade_body(grid, pixels, LEG_BANDS, extent)
+            pa.shade_bands(grid, pixels, LEG_BANDS, extent)
         else:
-            shade_body(grid, pixels, BODY_BANDS, extent)
+            pa.shade_bands(grid, pixels, BODY_BANDS, extent)
 
     # The crease where the head sits on the shoulders. Without it the head and torso are one
     # continuous gradient and the animal reads as a fish - which is exactly what it did read as
     # until this line existed.
     for x, y in owned["body"]:
-        if any(n in owned["head"] for n in neighbors(x, y)):
+        if any(n in owned["head"] for n in pa.neighbors(x, y)):
             grid[y][x] = DARKER[grid[y][x]]
 
     # The inner ear, which is the detail that says "bat" rather than "horn".
-    for x, y in rasterize(polygon([(33.6, 21.0 + bob), (32.2, 15.4 + bob), (36.4, 20.0 + bob)])):
+    for x, y in pa.rasterize(pa.polygon([(33.6, 21.0 + bob), (32.2, 15.4 + bob), (36.4, 20.0 + bob)]), FRAME_WIDTH, FRAME_HEIGHT):
         if (x, y) in owned["near_ear"]:
             grid[y][x] = "d"
 
@@ -414,38 +279,26 @@ def render_frame(index):
     # far one. Each pass darkens the *further* layer, so nothing eats into the shape in front.
     near -= body
     far -= body | near
-    outline_against(grid, near, body)
-    outline_against(grid, far, near | body)
+    pa.outline_against(grid, near, body)
+    pa.outline_against(grid, far, near | body)
 
     # Eyes last, over the shading, so they stay the crispest thing on the sprite.
-    for x, y in rasterize(ellipse(39.9, 24.0 + bob, 2.7, 2.3)):
+    for x, y in pa.rasterize(pa.ellipse(39.9, 24.0 + bob, 2.7, 2.3), FRAME_WIDTH, FRAME_HEIGHT):
         grid[y][x] = "e"
-    for x, y in rasterize(ellipse(40.8, 24.2 + bob, 1.3, 1.5)):
+    for x, y in pa.rasterize(pa.ellipse(40.8, 24.2 + bob, 1.3, 1.5), FRAME_WIDTH, FRAME_HEIGHT):
         grid[y][x] = "p"
 
-    # The outer outline goes on afterwards and outwards, into pixels nothing else claimed, so the
-    # silhouette keeps the size every shape above was drawn at.
-    filled = {(x, y) for y in range(FRAME_HEIGHT) for x in range(FRAME_WIDTH) if grid[y][x] != "."}
-    for y in range(FRAME_HEIGHT):
-        for x in range(FRAME_WIDTH):
-            if grid[y][x] == "." and any(n in filled for n in neighbors(x, y)):
-                grid[y][x] = "o"
+    # Outwards, into pixels nothing else claimed, so the silhouette keeps the size every shape
+    # above was drawn at.
+    pa.outer_outline(grid, FRAME_WIDTH, FRAME_HEIGHT)
 
     return grid
 
 
 def main() -> int:
     output = pathlib.Path(__file__).resolve().parent.parent / "assets" / "cyanBat.png"
-    sheet = Image.new("RGBA", (FRAME_WIDTH * FRAME_COUNT, FRAME_HEIGHT), (0, 0, 0, 0))
-
-    for index in range(FRAME_COUNT):
-        grid = render_frame(index)
-        for y, row in enumerate(grid):
-            for x, key in enumerate(row):
-                if key != ".":
-                    sheet.putpixel((index * FRAME_WIDTH + x, y), PALETTE[key])
-
-    sheet.save(output)
+    grids = [render_frame(index) for index in range(FRAME_COUNT)]
+    sheet = pa.save_sheet(output, grids, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
     print(f"{output} ({sheet.width}x{sheet.height}, {FRAME_COUNT} frames)")
     return 0
 

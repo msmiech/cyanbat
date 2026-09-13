@@ -115,7 +115,7 @@ private fun loadAssets(game: DesktopGame): GameAssets {
             Level(
                 id = 1,
                 name = "Level 1: The Cave",
-                background = g.newPixmap("background.jpg", PixmapFormat.ARGB8888),
+                background = g.newPixmap("background.png", PixmapFormat.ARGB8888),
                 topObstacles = arrayOf(
                     g.newPixmap("topObstacle1.png", PixmapFormat.ARGB8888),
                     g.newPixmap("topObstacle2.png", PixmapFormat.ARGB8888),

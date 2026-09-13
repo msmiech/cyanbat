@@ -2,15 +2,22 @@
 # requires-python = ">=3.9"
 # dependencies = ["pillow"]
 # ///
-"""Generate the player's shot sprite.
+"""Generate the shot sheet: one bolt, in every colorway that fires it.
 
 Kept as a script rather than a loose PNG so the pixel art stays editable: tweak the map below
 and re-run, instead of reverse-engineering colors out of the image.
 
     uv run tools/generate_shot_sprite.py
 
-The bolt points right, which is the only direction the player fires. Sizing is set against the
-480x320 framebuffer, where the bat is 45x40 and an enemy is ~32x29.
+The bolt points right, which is the only direction the *player* fires; enemy shots travel left and
+are turned by `FacingSystem`, so one drawing serves both.
+
+Four colorways, laid out left to right and addressed the way the enemy sheet is. The player's is
+cyan, and the other three are the enemy palettes from `generate_enemy_sprites.py` - violet, amber
+and crimson - so a shot is the same color as whatever fired it. That matters more than it sounds:
+the screen can hold the bat's shots and the boss's at once, travelling in opposite directions, and
+before this they were the same cyan bolt. Which ones were dangerous had to be worked out from
+which way they were moving.
 """
 
 import pathlib
@@ -37,14 +44,24 @@ SPRITE = [
     "...........dcccw........",
 ]
 
-# Picked against the existing art: the bat is cyan and white, the cave background is dark and
-# desaturated, so a cyan bolt reads clearly without introducing a new hue to the palette.
-PALETTE = {
-    ".": (0, 0, 0, 0),
-    "d": (0, 140, 200, 180),
-    "c": (0, 229, 255, 255),
-    "w": (240, 255, 255, 255),
-}
+# One ramp per colorway: a part-transparent tail, a solid body, and a hot tip. The tip stays near
+# white in every one of them - that is the part which reads as "this is moving fast" - so the hue
+# lives in the body and the tail, where there is enough of it to carry a color.
+#
+# The order is the order `EntityFactory` addresses them in: the player first, then the three enemy
+# types in the order the enemy sheet lays them out.
+COLORWAYS = (
+    # player: cyan, the bat's own color
+    {"d": (0, 140, 200, 180), "c": (0, 229, 255, 255), "w": (240, 255, 255, 255)},
+    # SCOUT: violet
+    {"d": (96, 40, 150, 180), "c": (176, 92, 232, 255), "w": (244, 222, 255, 255)},
+    # SINE: amber
+    {"d": (150, 78, 20, 180), "c": (232, 148, 44, 255), "w": (255, 240, 206, 255)},
+    # ZIGZAG, and so the boss: crimson
+    {"d": (140, 30, 50, 180), "c": (220, 66, 80, 255), "w": (255, 222, 216, 255)},
+)
+
+TRANSPARENT = (0, 0, 0, 0)
 
 OUTPUT = pathlib.Path(__file__).resolve().parent.parent / "assets" / "shot.png"
 
@@ -55,13 +72,15 @@ def main() -> int:
     if any(len(row) != width for row in SPRITE):
         raise SystemExit("every row of SPRITE must be the same width")
 
-    image = Image.new("RGBA", (width, height))
-    for y, row in enumerate(SPRITE):
-        for x, key in enumerate(row):
-            image.putpixel((x, y), PALETTE[key])
+    sheet = Image.new("RGBA", (width * len(COLORWAYS), height), TRANSPARENT)
+    for index, ramp in enumerate(COLORWAYS):
+        for y, row in enumerate(SPRITE):
+            for x, key in enumerate(row):
+                color = TRANSPARENT if key == "." else ramp[key]
+                sheet.putpixel((index * width + x, y), color)
 
-    image.save(OUTPUT)
-    print(f"{OUTPUT} ({width}x{height})")
+    sheet.save(OUTPUT)
+    print(f"{OUTPUT} ({sheet.width}x{sheet.height}, {len(COLORWAYS)} colorways of {width}x{height})")
     return 0
 
 
