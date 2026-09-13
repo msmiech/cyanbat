@@ -91,7 +91,7 @@ class PlayerInputSystemTest {
     @Test
     fun `a grab on the sprite drags it one to one, keeping the offset`() {
         val h = Harness()
-        // Down near the bat's top-left corner, well away from its centre.
+        // Down near the bat's top-left corner, well away from its center.
         h.down(110, 110)
         h.tick()
         assertTrue(h.control.dragging)
@@ -100,7 +100,7 @@ class PlayerInputSystemTest {
         h.tick()
 
         // The finger moved +50/+30 and the bat moved exactly with it: the spot it was caught by is
-        // still under the fingertip, rather than the sprite snapping its centre there.
+        // still under the fingertip, rather than the sprite snapping its center there.
         assertClose(150f, h.rect.left)
         assertClose(130f, h.rect.top)
     }
@@ -133,11 +133,11 @@ class PlayerInputSystemTest {
         h.tick()
         assertFalse(h.control.dragging, "should still be travelling")
 
-        val travelled = sqrt(
+        val traveled = sqrt(
             (h.rect.centerX - 122.5f) * (h.rect.centerX - 122.5f) +
                 (h.rect.centerY - 120f) * (h.rect.centerY - 120f)
         )
-        assertClose(PlayerInputSystem.CATCH_UP_SPEED * TICK, travelled, 0.5f)
+        assertClose(PlayerInputSystem.CATCH_UP_SPEED * TICK, traveled, 0.5f)
 
         // Comfortably longer than crossing the framebuffer takes at that speed.
         h.tick(times = 120)
@@ -286,12 +286,12 @@ class PlayerInputSystemTest {
         diagonal.controls.onDirection(Direction.RIGHT, true)
         diagonal.controls.onDirection(Direction.DOWN, true)
         diagonal.tick(times = 10)
-        val travelled = sqrt(
+        val traveled = sqrt(
             (diagonal.rect.centerX - 122.5f) * (diagonal.rect.centerX - 122.5f) +
                 (diagonal.rect.centerY - 120f) * (diagonal.rect.centerY - 120f)
         )
 
-        assertClose(straightDistance, travelled, 0.5f)
+        assertClose(straightDistance, traveled, 0.5f)
     }
 
     @Test

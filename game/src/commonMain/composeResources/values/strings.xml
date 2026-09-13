@@ -10,7 +10,7 @@
     <string name="button_credits">Credits</string>
 
     <string name="dialog_help_title">Help</string>
-    <string name="dialog_help_text">How to play this game: steer CyanBat towards the pointer and it will follow.</string>
+    <string name="dialog_help_text">How to play this game: steer CyanBat toward the pointer and it will follow.</string>
 
     <string name="settings_music_title">Music</string>
     <string name="settings_sound_title">Sounds</string>

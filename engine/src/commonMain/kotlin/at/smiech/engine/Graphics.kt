@@ -15,7 +15,7 @@ interface Graphics {
     fun drawPixmap(pixmap: Pixmap, x: Int, y: Int)
 
     /**
-     * The same blit stretched into a [dstWidth] by [dstHeight] box, nearest-neighbour on both
+     * The same blit stretched into a [dstWidth] by [dstHeight] box, nearest-neighbor on both
      * platforms so a magnified sprite stays pixel art instead of turning to mush.
      *
      * Both backends already blit through a destination rectangle, so this costs a scaled sprite
@@ -34,7 +34,7 @@ interface Graphics {
     )
 
     /**
-     * The same blit again, turned [rotationDegrees] clockwise about the centre of its destination
+     * The same blit again, turned [rotationDegrees] clockwise about the center of its destination
      * box. The box itself does not move or grow: a rotated sprite occupies the same place on
      * screen, pointing a different way.
      *
@@ -82,7 +82,7 @@ fun Graphics.drawOutlinedString(
     drawString(s, x, y, fontSize, color)
 }
 
-/** The eight neighbours of the origin, as x/y pairs. */
+/** The eight neighbors of the origin, as x/y pairs. */
 private val OUTLINE_OFFSETS = intArrayOf(
     -1, -1, 0, -1, 1, -1,
     -1, 0, 1, 0,

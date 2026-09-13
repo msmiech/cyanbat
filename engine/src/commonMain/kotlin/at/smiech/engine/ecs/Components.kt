@@ -20,7 +20,7 @@ data class VelocityComponent(var velocity: Vector2) : Component
  *   size of every sprite, so this is what lets a boss be that same artwork drawn large. Keep it in
  *   step with the entity's [TransformComponent], which is what collisions are read from.
  * @param rotationDegrees how far the artwork is turned when it is drawn, clockwise, about the
- *   sprite's own centre. Purely cosmetic: the entity's [TransformComponent] stays the upright box
+ *   sprite's own center. Purely cosmetic: the entity's [TransformComponent] stays the upright box
  *   collisions are read from, because a rotated hitbox would make a near miss depend on an angle
  *   the player cannot measure. [FacingSystem] keeps it pointing where an entity is going.
  */
@@ -183,8 +183,8 @@ data class LifetimeComponent(val removeIfOutOfBounds: Boolean = true) : Componen
  *
  * @param activePointer pointer id currently steering this entity, or [NO_POINTER].
  * @param dragging true once the entity is pinned to that pointer and follows it one to one; false
- *   while it is still flying towards a touch that landed away from it.
- * @param grabOffsetX/grabOffsetY where the entity's centre sits relative to the pointer, fixed at
+ *   while it is still flying toward a touch that landed away from it.
+ * @param grabOffsetX/grabOffsetY where the entity's center sits relative to the pointer, fixed at
  *   the moment of the grab so the sprite does not jump under the fingertip.
  * @param targetX/targetY last reported position of [activePointer], in framebuffer pixels. Held
  *   across updates because touch events are consumed once per frame while the world may tick
@@ -230,7 +230,7 @@ data class EnemyBehaviorComponent(
  * @param color the segment at full strength. Its alpha is scaled down as the segment ages.
  * @param duration how long the segment lives, in seconds.
  * @param minScale the fraction of its size a segment is down to at the very end, as 0..1. It
- *   shrinks about its own centre, so the wake tapers to a thread rather than stopping at full
+ *   shrinks about its own center, so the wake tapers to a thread rather than stopping at full
  *   width.
  */
 data class TrailComponent(

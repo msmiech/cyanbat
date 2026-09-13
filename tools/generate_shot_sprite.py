@@ -5,7 +5,7 @@
 """Generate the player's shot sprite.
 
 Kept as a script rather than a loose PNG so the pixel art stays editable: tweak the map below
-and re-run, instead of reverse-engineering colours out of the image.
+and re-run, instead of reverse-engineering colors out of the image.
 
     uv run tools/generate_shot_sprite.py
 
@@ -19,7 +19,7 @@ from PIL import Image
 
 # . transparent   d dim tail   c cyan body   w white-hot tip
 #
-# Drawn at 24x12 rather than scaling a smaller map up: a nearest-neighbour 2x would give the
+# Drawn at 24x12 rather than scaling a smaller map up: a nearest-neighbor 2x would give the
 # bolt 2x2 pixel blocks, visibly coarser than the bat and the enemies it flies past. Same pixel
 # density as the rest of the art, just a bigger object.
 SPRITE = [

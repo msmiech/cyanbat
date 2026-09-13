@@ -13,7 +13,7 @@ import kotlinx.coroutines.flow.stateIn
  *
  * A plain multiplatform [ViewModel]; the old AndroidViewModel(Application) form has no KMP
  * equivalent, and the menu track now goes through the engine's [Music] abstraction rather than
- * MediaPlayer, so desktop gets the same behaviour.
+ * MediaPlayer, so desktop gets the same behavior.
  */
 class MainMenuViewModel(
     settings: SettingsRepository,

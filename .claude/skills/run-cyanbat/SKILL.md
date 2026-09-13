@@ -9,7 +9,7 @@ CyanBat is a landscape game sharing one Kotlin Multiplatform codebase between An
 desktop. On Android a Compose menu (`MainActivity`) launches a custom-framebuffer game activity
 (`CyanBatGameActivity`); on desktop a single Compose window swaps between the two.
 
-Unit tests cover the ECS, maths and spawn pacing, but nothing covers rendering, input or the
+Unit tests cover the ECS, math and spawn pacing, but nothing covers rendering, input or the
 activity lifecycle - for those, run it.
 
 Everything is driven by `.claude/skills/run-cyanbat/driver.sh`. All paths below are relative to
@@ -126,7 +126,7 @@ so a green build says nothing about behavior. Verify on the emulator.
   Capture what you need immediately after `start`, or use `play`.
 
 - **The bat is dragged, so `input swipe` places it precisely.** It ends the swipe
-  centred on the release point when the swipe started away from it, or offset by
+  centered on the release point when the swipe started away from it, or offset by
   wherever on the sprite it was grabbed. A press and hold (`input swipe x y x y
   1200`) also works: one `TOUCH_DOWN` is enough, and the bat flies over to it.
   That makes screenshots of a chosen position repeatable - see

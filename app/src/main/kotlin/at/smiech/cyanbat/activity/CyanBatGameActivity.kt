@@ -28,7 +28,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen
         get() = GameScreen(this, buildEnvironment())
 
-    /** Feeds the live audio settings; cancelled with the activity. */
+    /** Feeds the live audio settings; canceled with the activity. */
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     override val frameBufferWidth: Int get() = 480

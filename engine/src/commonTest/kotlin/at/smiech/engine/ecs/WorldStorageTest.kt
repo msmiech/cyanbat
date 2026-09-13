@@ -13,7 +13,7 @@ import kotlin.test.assertTrue
 
 /**
  * Covers the dense-array storage underneath [World]: id recycling, growth past the initial
- * capacity, and the mapper-based iteration the systems run on. The behavioural contract
+ * capacity, and the mapper-based iteration the systems run on. The behavioral contract
  * ([WorldTest]) is what these have to keep intact - they only pin down the parts of it that the
  * storage layer could plausibly break.
  */
@@ -27,7 +27,7 @@ class WorldStorageTest {
 
     /**
      * Ids are handed back out once a removal lands. Whatever the recycled slot held before must be
-     * gone: leaking a component into the next entity would silently give it behaviour it never
+     * gone: leaking a component into the next entity would silently give it behavior it never
      * asked for.
      */
     @Test
@@ -46,7 +46,7 @@ class WorldStorageTest {
     }
 
     /**
-     * Recycling only happens when removals are finalised, at the end of an update. Anything else
+     * Recycling only happens when removals are finalized, at the end of an update. Anything else
      * would let a spawn inside a system - an explosion raised by a collision, say - land on top of
      * an entity that is still being processed.
      */

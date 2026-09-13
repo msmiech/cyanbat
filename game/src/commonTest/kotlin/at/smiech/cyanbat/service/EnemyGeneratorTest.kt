@@ -65,7 +65,7 @@ class EnemyGeneratorTest {
 
         generator.run(MINUTE)
 
-        // At a 2.6s opening gap easing towards 0.9s, a minute is well under 40 arrivals; the
+        // At a 2.6s opening gap easing toward 0.9s, a minute is well under 40 arrivals; the
         // point of the assertion is that it is nothing like a tick-by-tick flood.
         assertTrue(enemies().size in 15..40, "the first minute spawned ${enemies().size} enemies")
     }

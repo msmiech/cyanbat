@@ -123,7 +123,7 @@ class EnemyGenerator(
         val id = factory.createBoss(
             // Level with the edge it enters from, so it slides in rather than appearing in place.
             x = xSpawnPosition.toFloat(),
-            // Centred, so its weave has the same room above it as below.
+            // Centered, so its weave has the same room above it as below.
             y = (worldHeight - realEnemyHeight * BOSS_SPRITE_SCALE) / 2f,
             holdX = xSpawnPosition * BOSS_HOLD_X_FRACTION,
             pixmap = enemyPixmap,

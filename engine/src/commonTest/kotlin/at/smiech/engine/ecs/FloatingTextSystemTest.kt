@@ -63,7 +63,7 @@ class FloatingTextSystemTest {
 
     private fun draw(): List<DrawnString> = StringRecordingGraphics().also { world.draw(it) }.strings
 
-    /** Eight offsets in the outline colour, then the fill, so the number reads over any background. */
+    /** Eight offsets in the outline color, then the fill, so the number reads over any background. */
     @Test
     fun `text is drawn with a black outline around the fill`() {
         spawn()

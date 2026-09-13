@@ -106,24 +106,24 @@ class AuraSystemTest {
 
     /**
      * Every ring, not just the outermost: concentric is the thing being claimed, and one ring
-     * sitting on the entity's centre says nothing about whether the rest share it.
+     * sitting on the entity's center says nothing about whether the rest share it.
      *
-     * Asserted against the entity's own centre with a pixel of slack rather than against measured
-     * numbers. A ring is placed by rounding a float centre and an odd width rounds a half pixel
+     * Asserted against the entity's own center with a pixel of slack rather than against measured
+     * numbers. A ring is placed by rounding a float center and an odd width rounds a half pixel
      * off it, so an exact expectation is really an assertion about the current radius constants -
      * it broke on the first tuning pass, which is the opposite of what this test is for.
      */
     @Test
-    fun `the halo is centred on the entity`() {
+    fun `the halo is centered on the entity`() {
         charged(intensity = 1f)
 
         val ovals = draw().ovals
         assertTrue(ovals.isNotEmpty(), "no rings drawn")
         for (oval in ovals) {
-            val offCentreX = abs(oval.x + oval.width / 2f - ENTITY_CENTER_X)
-            val offCentreY = abs(oval.y + oval.height / 2f - ENTITY_CENTER_Y)
-            assertTrue(offCentreX <= 1f, "ring off centre by $offCentreX in x: $oval")
-            assertTrue(offCentreY <= 1f, "ring off centre by $offCentreY in y: $oval")
+            val offCenterX = abs(oval.x + oval.width / 2f - ENTITY_CENTER_X)
+            val offCenterY = abs(oval.y + oval.height / 2f - ENTITY_CENTER_Y)
+            assertTrue(offCenterX <= 1f, "ring off center by $offCenterX in x: $oval")
+            assertTrue(offCenterY <= 1f, "ring off center by $offCenterY in y: $oval")
         }
     }
 
@@ -253,7 +253,7 @@ class AuraSystemTest {
     }
 
     private companion object {
-        /** The centre of the box [charged] places its entity at: 100,100 by 45x40. */
+        /** The center of the box [charged] places its entity at: 100,100 by 45x40. */
         const val ENTITY_CENTER_X = 122.5f
         const val ENTITY_CENTER_Y = 120.0f
     }

@@ -50,7 +50,7 @@ interface Controls {
     /** -1 hard left to +1 hard right. Analog from a stick, snapped to the ends by a key. */
     val moveX: Float
 
-    /** -1 up to +1 down, matching the framebuffer's y axis rather than a maths one. */
+    /** -1 up to +1 down, matching the framebuffer's y axis rather than a math one. */
     val moveY: Float
 
     /**

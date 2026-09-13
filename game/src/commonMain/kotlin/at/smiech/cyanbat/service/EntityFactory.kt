@@ -284,9 +284,9 @@ class EntityFactory(private val world: World) {
     }
 
     /**
-     * A blast centred on ([centerX], [centerY]).
+     * A blast centered on ([centerX], [centerY]).
      *
-     * Centred rather than placed by its corner because the caller knows what died, not how big an
+     * Centered rather than placed by its corner because the caller knows what died, not how big an
      * explosion frame happens to be - and [scale] changes that size. Blowing the blast up to match
      * is what keeps a boss from going out in the same puff as one of its escorts.
      */
@@ -337,7 +337,7 @@ class EntityFactory(private val world: World) {
             else -> 0
         }
 
-        /** The boss wears the third enemy's colours, the same ones the final wave escorts it in. */
+        /** The boss wears the third enemy's colors, the same ones the final wave escorts it in. */
         const val BOSS_ENEMY_TYPE = 2
 
         /** Degrees to radians, for the spread on a fanned shot. */

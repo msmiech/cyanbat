@@ -1,6 +1,6 @@
 package at.smiech.cyanbat.progress
 
-import at.smiech.cyanbat.util.ARMOUR_FLOOR
+import at.smiech.cyanbat.util.ARMOR_FLOOR
 import at.smiech.cyanbat.util.COUNTERWEIGHT_REDUCTION
 import at.smiech.cyanbat.util.HEAVY_ROUNDS_DAMAGE
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
@@ -79,8 +79,8 @@ class PowerUpTest {
     }
 
     @Test
-    fun `armour plating cuts incoming damage`() {
-        take(PowerUp.ARMOUR_PLATING)
+    fun `armor plating cuts incoming damage`() {
+        take(PowerUp.ARMOR_PLATING)
 
         assertTrue(loadout.damageTaken < 1f)
     }
@@ -180,7 +180,7 @@ class PowerUpTest {
 
         assertEquals(MIN_SHOT_INTERVAL_SECONDS, loadout.shotIntervalSeconds)
         assertEquals(MAX_EXTRA_SHOTS, loadout.extraShots)
-        assertEquals(ARMOUR_FLOOR, loadout.damageTaken)
+        assertEquals(ARMOR_FLOOR, loadout.damageTaken)
         assertEquals(MAX_HIT_COOLDOWN_SECONDS, loadout.hitCooldownSeconds)
         assertEquals(MAX_HEALTH_REGEN_PER_SECOND, loadout.healthRegenPerSecond)
         assertEquals(MAX_REVIVES, loadout.revives)

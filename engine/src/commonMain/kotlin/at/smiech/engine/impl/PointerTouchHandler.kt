@@ -10,7 +10,7 @@ import kotlin.math.abs
  * Platform-neutral: hosts feed it through [onPointer], via a Compose adapter on Android or an
  * AWT adapter on desktop.
  *
- * Threading: NOT synchronised, deliberately. On every host the pointer callbacks and the game
+ * Threading: NOT synchronized, deliberately. On every host the pointer callbacks and the game
  * loop run on the same thread (the Compose UI thread on Android, the same on Compose Desktop).
  * If a host ever drives the loop from a separate thread, locking has to come back - and would
  * then have to live in a JVM-only source set, since `synchronized` is not available in common

@@ -15,7 +15,7 @@ import kotlin.math.sqrt
  * owns the bat the sprite is pinned under it - the system moves the bat by exactly what the pointer
  * moved, so there is no lag between finger and bat to fight.
  *
- * A touch that lands on the bat keeps the grab offset, so the bat does not snap its centre to the
+ * A touch that lands on the bat keeps the grab offset, so the bat does not snap its center to the
  * fingertip that just caught it. "On the bat" means within [GRAB_PADDING] of the sprite: a
  * fingertip covers far more of a 480x320 framebuffer than a 45x40 sprite does, and without the
  * padding the player would have to aim precisely at a bat their own finger is hiding.
@@ -181,7 +181,7 @@ class PlayerInputSystem(
     private fun PlayerControlComponent.beginDrag(pointer: Int, x: Float, y: Float, rect: Rect) {
         activePointer = pointer
         dragging = rect.inflate(GRAB_PADDING).contains(x, y)
-        // Only a grab keeps an offset. A tap in open space means "come here", and centring the bat
+        // Only a grab keeps an offset. A tap in open space means "come here", and centering the bat
         // on it is the least surprising reading of that.
         grabOffsetX = if (dragging) rect.centerX - x else 0f
         grabOffsetY = if (dragging) rect.centerY - y else 0f

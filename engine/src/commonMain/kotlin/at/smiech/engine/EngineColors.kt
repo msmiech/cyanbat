@@ -3,7 +3,7 @@ package at.smiech.engine
 import kotlin.math.roundToInt
 
 /**
- * Packed ARGB colours, matching what [Graphics] takes. These exist so screen code does not need
+ * Packed ARGB colors, matching what [Graphics] takes. These exist so screen code does not need
  * `android.graphics.Color`, which would pin it to one platform.
  */
 object EngineColors {
@@ -14,7 +14,7 @@ object EngineColors {
     const val RED: Int = 0xFFFF0000.toInt()
 
     /**
-     * [color] at [alpha] of its opacity, where alpha runs 0..1. Both platforms honour the alpha
+     * [color] at [alpha] of its opacity, where alpha runs 0..1. Both platforms honor the alpha
      * byte in every draw call, so this is all a fade needs.
      */
     fun withAlpha(color: Int, alpha: Float): Int {
@@ -23,12 +23,12 @@ object EngineColors {
     }
 
     /**
-     * [from] blended towards [to], where [t] runs 0..1.
+     * [from] blended toward [to], where [t] runs 0..1.
      *
      * Channel by channel in sRGB, which is not physically correct but is what a palette ramp
-     * between two neighbouring hues wants: the point is to walk a gradient somebody picked by eye,
+     * between two neighboring hues wants: the point is to walk a gradient somebody picked by eye,
      * not to be right about light. Alpha is interpolated with the rest, so a fade to a transparent
-     * colour works.
+     * color works.
      */
     fun lerp(from: Int, to: Int, t: Float): Int {
         val amount = t.coerceIn(0f, 1f)

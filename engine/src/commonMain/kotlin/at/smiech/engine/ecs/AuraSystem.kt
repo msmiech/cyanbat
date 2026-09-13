@@ -83,8 +83,8 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
     /**
      * Concentric ovals from the outside in, faint and wide to bright and tight.
      *
-     * Outermost first, so each ring paints over the one before it and the alphas stack towards the
-     * centre instead of leaving a flat wash. The innermost ring is deliberately smaller than the
+     * Outermost first, so each ring paints over the one before it and the alphas stack toward the
+     * center instead of leaving a flat wash. The innermost ring is deliberately smaller than the
      * entity: it is the part that never shows on its own, and only exists to make the light appear
      * to come from inside the sprite rather than from a ring drawn around it.
      *
@@ -315,7 +315,7 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
 
         // Bright on purpose, and the reason is the blend rather than the hue. Half-opacity amber
         // over the dark blue of the cave averages to khaki - the first two passes both came out
-        // brown - and the fix is not a warmer colour but a lighter one, carried at enough alpha
+        // brown - and the fix is not a warmer color but a lighter one, carried at enough alpha
         // that the middle of the halo settles near its own gold instead of halfway to the cave.
         val AURA_AMBER = 0xFFFFC83C.toInt()
         val AURA_GOLD = 0xFFFFFCE4.toInt()

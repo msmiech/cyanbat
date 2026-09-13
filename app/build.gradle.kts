@@ -80,7 +80,7 @@ extensions.configure<ApplicationExtension> {
     buildTypes {
         release {
             // Null when no keystore was supplied, which leaves the build type unsigned rather than
-            // failing - the same behaviour this module had before signing was wired up at all.
+            // failing - the same behavior this module had before signing was wired up at all.
             signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
             proguardFiles(

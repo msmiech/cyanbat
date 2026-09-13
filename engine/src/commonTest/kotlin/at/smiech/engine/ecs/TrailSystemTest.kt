@@ -127,15 +127,15 @@ class TrailSystemTest {
         assertEquals(listOf(TrailRect(80, 100, 20, 10, EngineColors.CYAN)), draw())
     }
 
-    /** Smaller over time, and about its own centre so the wake stays on one line. */
+    /** Smaller over time, and about its own center so the wake stays on one line. */
     @Test
-    fun `a segment shrinks about its centre as it ages`() {
+    fun `a segment shrinks about its center as it ages`() {
         segment(duration = 1f, minScale = 0.2f)
 
         repeat(25) { world.update(0.02f, null) }
 
         val drawn = draw().single()
-        // Halfway through: scale is 0.6, so 20x10 becomes 12x6, still centred on (90, 105).
+        // Halfway through: scale is 0.6, so 20x10 becomes 12x6, still centered on (90, 105).
         assertEquals(12, drawn.width)
         assertEquals(6, drawn.height)
         assertEquals(90, drawn.x + drawn.width / 2)
@@ -185,7 +185,7 @@ class TrailSystemTest {
         world.update(0.019f, null)
         world.update(0.019f, null)
 
-        // Measured centre to centre, because the shrink has taken a little off the width by now.
+        // Measured center to center, because the shrink has taken a little off the width by now.
         val after = draw().single().let { it.x + it.width / 2 }
         assertEquals(4, before - after)
     }
