@@ -331,3 +331,28 @@ data class HitFlashComponent(
  * opt-in - most things in a world never fire at all.
  */
 data class ProjectileStyleComponent(val variant: Int) : Component
+
+/**
+ * What is happening to something that has just been killed: it tumbles, it falls, and it comes
+ * apart as it goes.
+ *
+ * Carried only while an entity is dying, which is what lets [DeathSystem] own the motion outright.
+ * Before this the dead player was given a flat downward drift by [PlayerInputSystem] - input code
+ * deciding how a corpse moves - and it slid off the bottom of the frame at a constant speed, still
+ * beating its wings.
+ *
+ * @param gravity added to the entity's downward velocity every second. Velocities here are per
+ *   tick, so this is "pixels per tick, per second" - a rate of change of a rate.
+ * @param terminalVelocity the fastest it may fall, so a long drop does not end in a blur.
+ * @param spinDegreesPerSecond how fast it turns as it goes. Purely cosmetic, like every rotation
+ *   in this engine: the collision box stays upright.
+ * @param puffInterval seconds between the blasts thrown off on the way down, or zero for none.
+ */
+data class DeathThroesComponent(
+    val gravity: Float,
+    val terminalVelocity: Float,
+    val spinDegreesPerSecond: Float,
+    val puffInterval: Float,
+    var elapsed: Float = 0f,
+    var timeSincePuff: Float = 0f,
+) : Component

@@ -13,7 +13,15 @@ import at.smiech.cyanbat.service.ObstacleGenerator
 import at.smiech.cyanbat.util.AURA_SURGE_VOLUME
 import at.smiech.cyanbat.util.BANNER_CHAR_WIDTH
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
+import at.smiech.cyanbat.util.BAT_DEATH_FRAME_COUNT
+import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
+import at.smiech.cyanbat.util.BAT_DEATH_FRAME_SECONDS
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
+import at.smiech.cyanbat.util.DEATH_GRAVITY
+import at.smiech.cyanbat.util.DEATH_PUFF_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.DEATH_PUFF_SCALE
+import at.smiech.cyanbat.util.DEATH_SPIN_DEGREES_PER_SECOND
+import at.smiech.cyanbat.util.DEATH_TERMINAL_VELOCITY
 import at.smiech.cyanbat.util.HIT_FLASH_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
@@ -50,7 +58,10 @@ import at.smiech.engine.ecs.BounceSystem
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.CollisionSystem
+import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.DamageComponent
+import at.smiech.engine.ecs.DeathSystem
+import at.smiech.engine.ecs.DeathThroesComponent
 import at.smiech.engine.ecs.EnemyBehaviorSystem
 import at.smiech.engine.ecs.EntityId
 import at.smiech.engine.ecs.FacingSystem
@@ -66,6 +77,7 @@ import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.PlayerInputSystem
 import at.smiech.engine.ecs.ProjectileStyleComponent
 import at.smiech.engine.ecs.RenderSystem
+import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TrailSystem
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.WeaponComponent
@@ -176,6 +188,9 @@ class GameScreen(
 
         // Setup Systems
         world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight))
+        // Before the movement it feeds: the gravity it adds this tick is the gravity this tick
+        // moves by, rather than arriving one frame late.
+        world.addSystem(DeathSystem { dyingId -> shedDeathPuff(dyingId) })
         world.addSystem(MovementSystem())
         // Straight after the movement that carries a shot into an edge, and well before the
         // culling that would remove it there.
@@ -521,7 +536,10 @@ class GameScreen(
 
             health.hitPoints = 0
             health.alive = false
-            if (control != null) endRun()
+            if (control != null) {
+                beginDeath(targetId)
+                endRun()
+            }
             if (targetId == enmGen.bossId) completeLevel()
         }
         return dealt
@@ -574,6 +592,66 @@ class GameScreen(
     private fun announce(text: String) {
         bannerText = text
         bannerTime = WAVE_BANNER_SECONDS
+    }
+
+    /**
+     * Puts the bat into its death throes: the limp sheet, played once, and a tumbling fall.
+     *
+     * The sprite and the animation are *replaced* rather than a second entity being spawned in the
+     * bat's place. Everything already watching this entity - the screen's own health and position
+     * checks, the aura, the wake - keeps watching the same one, and each of those systems already
+     * knows to stop when its owner is dead. A stand-in would have meant teaching all of them about
+     * a second bat.
+     *
+     * The one-shot animation is why [at.smiech.engine.ecs.LifetimeSystem] has to leave the player
+     * alone when an animation finishes: without that, the bat would be deleted the instant its
+     * death animation ended, halfway through the fall the player is meant to watch.
+     */
+    private fun beginDeath(batId: EntityId) {
+        val sprite = world.getComponent(batId, SpriteComponent::class) ?: return
+        val death = env.assets.graphics.batDeath
+
+        world.addComponent(
+            batId,
+            SpriteComponent(death, srcWidth = BAT_FRAME_WIDTH, srcHeight = death.height),
+        )
+        world.addComponent(
+            batId,
+            AnimationComponent(
+                BAT_FRAME_WIDTH,
+                death.height,
+                BAT_DEATH_FRAME_COUNT,
+                BAT_DEATH_FRAME_SECONDS,
+                isLooping = false,
+            ),
+        )
+        world.addComponent(
+            batId,
+            DeathThroesComponent(
+                gravity = DEATH_GRAVITY,
+                terminalVelocity = DEATH_TERMINAL_VELOCITY,
+                // Whichever way it was already turning stays the way it turns, so the tumble
+                // carries on from the hit rather than starting over.
+                spinDegreesPerSecond = DEATH_SPIN_DEGREES_PER_SECOND,
+                puffInterval = DEATH_PUFF_INTERVAL_SECONDS,
+            ),
+        )
+        // Kept off the previous sprite's rotation, which is zero for the bat but would not be for
+        // anything that had been turned before it died.
+        world.getComponent(batId, SpriteComponent::class)?.rotationDegrees = sprite.rotationDegrees
+    }
+
+    /** One of the pieces coming off the bat on its way down; see [DeathThroesComponent]. */
+    private fun shedDeathPuff(dyingId: EntityId) {
+        val rect = world.getComponent(dyingId, TransformComponent::class)?.rect ?: return
+        factory.createExplosion(
+            // Scattered over the sprite rather than centered on it, so the pieces come off the
+            // whole animal instead of pulsing out of one point.
+            centerX = rect.centerX + (random.nextFloat() - 0.5f) * rect.width,
+            centerY = rect.centerY + (random.nextFloat() - 0.5f) * rect.height,
+            pixmap = env.assets.graphics.explosion,
+            scale = DEATH_PUFF_SCALE,
+        )
     }
 
     /** Banks the score and hands playback over to the game over track. */
@@ -999,11 +1077,6 @@ class GameScreen(
             drawLevelName()
         }
         bannerText?.takeIf { bannerTime > 0 }?.let { drawBanner(it) }
-
-        val health = world.getComponent(batId, HealthComponent::class)!!
-        if (!health.alive) {
-            g.drawPixmap(env.assets.graphics.death, 15, 15)
-        }
 
         if (offer.isNotEmpty()) drawPowerUpOffer()
         if (levelComplete) drawLevelCompleteOverlay()

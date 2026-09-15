@@ -11,7 +11,8 @@ data class GameAssets(
 ) {
     data class Graphics(
         var bat: Pixmap,
-        var death: Pixmap,
+        /** The bat going limp: five frames played once, then held while it tumbles and falls. */
+        var batDeath: Pixmap,
         var gameOver: Pixmap,
         var explosion: Pixmap,
         var shot: Pixmap,

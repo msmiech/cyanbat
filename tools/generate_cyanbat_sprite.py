@@ -68,6 +68,23 @@ FLAP = (
     (68.0, 0.70, 1),
 )
 
+# The bat dying, in the same three numbers plus how open its eye is.
+#
+# It is a *sequence*, not a cycle: played once and held on the last frame while `DeathSystem` spins
+# and drops the entity. So the wings do not beat here, they give up - thrown wide on the blow that
+# killed it, then folding down and in until the animal is a limp bundle with its eye shut.
+#
+# The bob runs the other way from the flap's: it rises on the hit and then sags, which is the one
+# pixel that makes the first frame read as recoil rather than as another wingbeat.
+DEATH = (
+    # angle  extension  bob  eye
+    (96.0, 1.00, -1, 1.00),   # the hit: wings thrown up and open, eye wide
+    (74.0, 0.86, -1, 0.70),
+    (44.0, 0.60, 0, 0.35),    # folding, losing the light
+    (16.0, 0.38, 1, 0.10),
+    (-6.0, 0.24, 1, 0.00),    # limp: wings hanging past the body, eye shut
+)
+
 # The body, in frame coordinates before the bob is applied. The bat faces right, which is the only
 # direction it ever flies.
 #
@@ -209,8 +226,7 @@ LEG_BANDS = ((0.50, "d"), (1.01, "b"))
 DARKER = {"y": "c", "c": "b", "b": "d", "d": "d", "w": "c"}
 
 
-def render_frame(index):
-    angle, extension, bob = FLAP[index]
+def render_frame(angle, extension, bob, eye=1.0):
     grid = [["." for _ in range(FRAME_WIDTH)] for _ in range(FRAME_HEIGHT)]
 
     far = set()
@@ -283,10 +299,24 @@ def render_frame(index):
     pa.outline_against(grid, far, near | body)
 
     # Eyes last, over the shading, so they stay the crispest thing on the sprite.
-    for x, y in pa.rasterize(pa.ellipse(39.9, 24.0 + bob, 2.7, 2.3), FRAME_WIDTH, FRAME_HEIGHT):
-        grid[y][x] = "e"
-    for x, y in pa.rasterize(pa.ellipse(40.8, 24.2 + bob, 1.3, 1.5), FRAME_WIDTH, FRAME_HEIGHT):
-        grid[y][x] = "p"
+    #
+    # [eye] closes it: the white shrinks to a slit and then to nothing, and below a slit the lid
+    # is drawn as a dark line instead. On a 45px sprite the eye is the one feature the player
+    # actually reads, so closing it is most of what says the animal has stopped flying.
+    if eye > 0.05:
+        for x, y in pa.rasterize(
+            pa.ellipse(39.9, 24.0 + bob, 2.7, 2.3 * eye), FRAME_WIDTH, FRAME_HEIGHT
+        ):
+            grid[y][x] = "e"
+        for x, y in pa.rasterize(
+            pa.ellipse(40.8, 24.2 + bob, 1.3, 1.5 * eye), FRAME_WIDTH, FRAME_HEIGHT
+        ):
+            grid[y][x] = "p"
+    else:
+        for x, y in pa.rasterize(
+            pa.ellipse(39.9, 24.0 + bob, 2.7, 0.6), FRAME_WIDTH, FRAME_HEIGHT
+        ):
+            grid[y][x] = "o"
 
     # Outwards, into pixels nothing else claimed, so the silhouette keeps the size every shape
     # above was drawn at.
@@ -296,10 +326,15 @@ def render_frame(index):
 
 
 def main() -> int:
-    output = pathlib.Path(__file__).resolve().parent.parent / "assets" / "cyanBat.png"
-    grids = [render_frame(index) for index in range(FRAME_COUNT)]
-    sheet = pa.save_sheet(output, grids, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
-    print(f"{output} ({sheet.width}x{sheet.height}, {FRAME_COUNT} frames)")
+    assets = pathlib.Path(__file__).resolve().parent.parent / "assets"
+
+    # Two sheets from one animal. That is the whole reason the death frames live in this file
+    # rather than a generator of their own: the bat dying has to be recognisably the same bat, and
+    # the surest way to guarantee that is for both sheets to come out of the same body.
+    for name, poses in (("cyanBat.png", FLAP), ("cyanBatDeath.png", DEATH)):
+        grids = [render_frame(*pose) for pose in poses]
+        sheet = pa.save_sheet(assets / name, grids, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
+        print(f"{assets / name} ({sheet.width}x{sheet.height}, {len(poses)} frames)")
     return 0
 
 
