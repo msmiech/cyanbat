@@ -427,10 +427,17 @@ class LifetimeSystem(private val worldWidth: Int) : GameSystem() {
             }
         }
 
-        // Handle finished animations
+        // Handle finished animations. A one-shot animation is normally the entire reason its
+        // entity exists - an explosion is a blast and nothing else - so finishing it is the same
+        // as being over.
+        //
+        // The player is the exception, and has to be: its death animation is one-shot too, and
+        // culling the bat the instant that animation ended would delete the entity the screen
+        // still reads its health and position from, mid-fall. Who ends the player's run is the
+        // screen's decision, exactly as it already is for the health cull above.
         world.forEach(animations) { id ->
             val anim = animations.require(id)
-            if (anim.isFinished && !anim.isLooping) {
+            if (anim.isFinished && !anim.isLooping && !playerControls.has(id)) {
                 world.removeEntity(id)
             }
         }
@@ -622,6 +629,57 @@ class HitFlashSystem : GameSystem() {
             val flash = flashes.require(id)
             if (flash.remaining > 0f) {
                 flash.remaining = (flash.remaining - deltaTime).coerceAtLeast(0f)
+            }
+        }
+    }
+}
+
+/**
+ * Drives everything carrying a [DeathThroesComponent]: gravity, tumble, and the blasts thrown off
+ * on the way down.
+ *
+ * Add it before [MovementSystem], so the velocity it sets is the velocity that frame is moved by
+ * rather than the next one's.
+ *
+ * What a blast looks like is left to [onPuff], the same split [WeaponSystem] and [TrailSystem]
+ * use: an engine knows that a dying thing sheds debris, not what this game's debris is made of.
+ */
+class DeathSystem(private val onPuff: (EntityId) -> Unit) : GameSystem() {
+    private lateinit var velocities: ComponentMapper<VelocityComponent>
+    private lateinit var sprites: ComponentMapper<SpriteComponent>
+    private lateinit var throes: ComponentMapper<DeathThroesComponent>
+
+    override fun onAttach(world: World) {
+        velocities = world.mapper(VelocityComponent::class)
+        sprites = world.mapper(SpriteComponent::class)
+        throes = world.mapper(DeathThroesComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(velocities, throes) { id ->
+            val dying = throes.require(id)
+            dying.elapsed += deltaTime
+
+            // Whatever it was doing when it died, plus gravity from there. Accelerating from the
+            // last velocity rather than snapping to a fixed drop is what makes the fall read as
+            // the same object carrying on, rather than as a new one being dropped in its place.
+            val velocity = velocities.require(id)
+            velocity.velocity = velocity.velocity.copy(
+                y = (velocity.velocity.y + dying.gravity * deltaTime)
+                    .coerceAtMost(dying.terminalVelocity)
+            )
+
+            // Not every dying thing has a sprite to turn - a dying thing with no sprite is still
+            // allowed to fall.
+            sprites[id]?.let { it.rotationDegrees += dying.spinDegreesPerSecond * deltaTime }
+
+            if (dying.puffInterval <= 0f) return@forEach
+            dying.timeSincePuff += deltaTime
+            if (dying.timeSincePuff >= dying.puffInterval) {
+                // Subtracted rather than zeroed, so a long frame does not lose the remainder and
+                // thin the trail of blasts out.
+                dying.timeSincePuff -= dying.puffInterval
+                onPuff(id)
             }
         }
     }

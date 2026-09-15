@@ -83,6 +83,11 @@ class PlayerInputSystemTest {
         fun kill() {
             world.getComponent(bat, HealthComponent::class)!!.alive = false
         }
+
+        /** Drops whatever velocity the last live tick left behind; the fall is [DeathSystem]'s. */
+        fun stop() {
+            world.getComponent(bat, VelocityComponent::class)!!.velocity = Vector2.Zero
+        }
     }
 
     private fun assertClose(expected: Float, actual: Float, tolerance: Float = 0.01f) =
@@ -244,17 +249,22 @@ class PlayerInputSystemTest {
     }
 
     @Test
-    fun `a dead bat drops and ignores input`() {
+    fun `a dead bat ignores input and lets go of the finger steering it`() {
         val h = Harness()
         h.down(110, 110)
         h.tick()
         h.kill()
+        // Whatever the last live tick left it doing is not what is under test, and how a corpse
+        // falls is DeathSystem's business now rather than this system's. Zeroed, so the only thing
+        // that could move the bat here is the input this asserts it ignores.
+        h.stop()
 
         val before = h.rect
         h.drag(400, 300)
         h.tick()
+
         assertEquals(before.left, h.rect.left)
-        assertClose(before.top + 2f, h.rect.top)
+        assertEquals(before.top, h.rect.top)
         assertEquals(PlayerControlComponent.NO_POINTER, h.control.activePointer)
     }
 
@@ -357,8 +367,9 @@ class PlayerInputSystemTest {
 
         val before = h.rect
         h.tick()
+
         assertEquals(before.left, h.rect.left)
-        assertClose(before.top + 2f, h.rect.top)
+        assertEquals(before.top, h.rect.top)
     }
 
     @Test

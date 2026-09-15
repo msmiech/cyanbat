@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
 import at.smiech.cyanbat.util.CRITICAL_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.CRITICAL_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
@@ -375,7 +376,6 @@ class EntityFactory(private val world: World) {
          * so the whole cycle still takes about the 0.4s the old pair did - the bat beats its wings
          * at the same rate, it just has the frames to show it now.
          */
-        const val BAT_FRAME_WIDTH = 45
         const val BAT_FRAME_COUNT = 6
         const val BAT_FRAME_SECONDS = 0.07f
 

@@ -61,8 +61,12 @@ class PlayerInputSystem(
             val control = playerControls.require(id)
 
             if (!healths.require(id).alive) {
+                // Input stops reaching a dead bat, and stops *moving* one too. It used to assign a
+                // flat downward drift here, which put the question of how a corpse falls inside
+                // the code that reads the controls - and pinned it to a constant speed that no
+                // amount of gravity elsewhere could override. DeathThroesComponent owns the fall
+                // now; this just lets go of the finger that was steering.
                 control.releaseDrag()
-                velocity.velocity = DEATH_DRIFT
                 return@forEach
             }
 
@@ -217,7 +221,5 @@ class PlayerInputSystem(
          */
         const val DIRECTIONAL_SPEED = 420f
 
-        /** A dead bat drops out of the frame under its own weight; input no longer reaches it. */
-        private val DEATH_DRIFT = Vector2(0f, 2f)
     }
 }

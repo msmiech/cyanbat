@@ -27,6 +27,12 @@ class SpriteSheetTest {
         return image.width to image.height
     }
 
+    /** Five frames of the bat going limp, the same 45x40 as the flap sheet it is swapped for. */
+    @Test
+    fun `the death sheet holds five frames`() {
+        assertEquals(45 * 5 to 40, sizeOf("cyanBatDeath.png"))
+    }
+
     /** Six frames of 45x40; see `EntityFactory.BAT_FRAME_*`. */
     @Test
     fun `the bat sheet holds six frames`() {
@@ -131,6 +137,7 @@ class SpriteSheetTest {
     fun `the generated art is flat, not resampled`() {
         for (name in listOf(
             "cyanBat.png",
+            "cyanBatDeath.png",
             "enemies.png",
             "shot.png",
             "background.png",

@@ -350,3 +350,38 @@ const val SHOT_FRAME_WIDTH = 24
 // indexed 0..2 and sit behind the player's, so a type-2 boss fires the fourth bolt.
 const val PLAYER_SHOT_VARIANT = 0
 const val ENEMY_SHOT_VARIANT_OFFSET = 1
+
+
+// --- The bat's death ---------------------------------------------------------------------------
+//
+// What used to happen when the bat died was that it kept beating its wings, slid off the bottom of
+// the frame at a flat two pixels a tick, and had a 483x257 picture of the words "You've lost!"
+// dropped on top of it. The words are the game over screen's job; this is the bat's.
+
+// Width of one bat frame. Shared rather than private to EntityFactory, because the screen has to
+// address the death sheet with it too - the same reason SHOT_FRAME_WIDTH lives out here.
+const val BAT_FRAME_WIDTH = 45
+
+// The five frames of cyanBatDeath.png, played once and then held. Faster than the wingbeat: dying
+// is one motion, and it has to be finished well before the fall carries the bat off screen.
+const val BAT_DEATH_FRAME_COUNT = 5
+const val BAT_DEATH_FRAME_SECONDS = 0.08f
+
+// The fall, in pixels per tick added per second, and the fastest it may go. Velocities in this
+// engine are per tick, so the first of these is a rate of change of a rate. Terminal is set so a
+// drop from mid-screen takes a little under a second - long enough to watch, short enough that the
+// player is not kept waiting for a run they have already lost.
+const val DEATH_GRAVITY = 7.5f
+const val DEATH_TERMINAL_VELOCITY = 6f
+
+// The tumble. Cosmetic, like every rotation here - the collision box stays upright, though nothing
+// is left to collide with by this point.
+const val DEATH_SPIN_DEGREES_PER_SECOND = 210f
+
+// Seconds between the blasts thrown off on the way down. Three or four over a typical fall: enough
+// to read as the bat coming apart, few enough that it is not a firework.
+const val DEATH_PUFF_INTERVAL_SECONDS = 0.22f
+
+// How big those blasts are against the full-size one an enemy gets. Small - they are pieces coming
+// off, and a full blast every fifth of a second would bury the sprite they are meant to be leaving.
+const val DEATH_PUFF_SCALE = 0.55f

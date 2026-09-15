@@ -100,7 +100,7 @@ private fun loadAssets(game: DesktopGame): GameAssets {
         graphics = GameAssets.Graphics(
             bat = g.newPixmap("cyanBat.png", PixmapFormat.ARGB8888),
             gameOver = g.newPixmap("gameover.png", PixmapFormat.ARGB8888),
-            death = g.newPixmap("death.png", PixmapFormat.ARGB8888),
+            batDeath = g.newPixmap("cyanBatDeath.png", PixmapFormat.ARGB8888),
             enemy = g.newPixmap("enemies.png", PixmapFormat.ARGB8888),
             explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888),
             shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888),
