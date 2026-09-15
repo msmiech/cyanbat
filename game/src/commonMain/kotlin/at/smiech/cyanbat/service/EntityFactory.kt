@@ -341,8 +341,46 @@ class EntityFactory(private val world: World) {
         centerY: Float,
         pixmap: Pixmap,
         scale: Float = 1f,
+    ): EntityId = createBurst(
+        centerX, centerY, pixmap, EXPLOSION_FRAME_WIDTH,
+        EXPLOSION_FRAME_COUNT, EXPLOSION_FRAME_SECONDS, scale,
+    )
+
+    /**
+     * Rock coming apart, for an obstacle: chunks and dust rather than fire.
+     *
+     * Its own sheet rather than the explosion tinted grey, because the two are different events
+     * and the difference is in the motion, not the palette. A fireball expands from a hot core and
+     * hollows out; a break throws angular pieces outward and lets them fall.
+     */
+    fun createShatter(
+        centerX: Float,
+        centerY: Float,
+        pixmap: Pixmap,
+        scale: Float = 1f,
+    ): EntityId = createBurst(
+        centerX, centerY, pixmap, SHATTER_FRAME_WIDTH,
+        SHATTER_FRAME_COUNT, SHATTER_FRAME_SECONDS, scale,
+    )
+
+    /**
+     * The shared shape of a one-shot effect left where something died.
+     *
+     * Centered rather than placed by its corner, because the caller knows what died and not how
+     * big a frame of the effect happens to be. It drifts with the scenery so it stays where the
+     * thing was in the world rather than on the screen, and it is reaped by [LifetimeComponent]
+     * and the animation cull once it has played.
+     */
+    private fun createBurst(
+        centerX: Float,
+        centerY: Float,
+        pixmap: Pixmap,
+        frameWidth: Int,
+        frameCount: Int,
+        frameSeconds: Float,
+        scale: Float,
     ): EntityId {
-        val width = EXPLOSION_FRAME_WIDTH * scale
+        val width = frameWidth * scale
         val height = pixmap.height * scale
 
         val id = world.createEntity()
@@ -351,14 +389,14 @@ class EntityFactory(private val world: World) {
             TransformComponent(Rect.fromLTWH(centerX - width / 2f, centerY - height / 2f, width, height))
         )
         world.addComponent(id, VelocityComponent(Vector2(-1f, 0f)))
-        world.addComponent(id, SpriteComponent(pixmap, srcWidth = EXPLOSION_FRAME_WIDTH, scale = scale))
+        world.addComponent(id, SpriteComponent(pixmap, srcWidth = frameWidth, scale = scale))
         world.addComponent(
             id,
             AnimationComponent(
-                EXPLOSION_FRAME_WIDTH,
+                frameWidth,
                 pixmap.height,
-                EXPLOSION_FRAME_COUNT,
-                EXPLOSION_FRAME_SECONDS,
+                frameCount,
+                frameSeconds,
                 isLooping = false,
             )
         )
@@ -402,6 +440,17 @@ class EntityFactory(private val world: World) {
         const val EXPLOSION_FRAME_WIDTH = 32
         const val EXPLOSION_FRAME_COUNT = 8
         const val EXPLOSION_FRAME_SECONDS = 0.055f
+
+        /**
+         * The obstacle break: seven frames of rock and dust, a little wider than the fireball
+         * because the dust reaches further than a blast of the same nominal size.
+         *
+         * Held a touch slower than the explosion too. Fire is over the instant it has burned, but
+         * debris has to be seen falling or it reads as a flicker.
+         */
+        const val SHATTER_FRAME_WIDTH = 40
+        const val SHATTER_FRAME_COUNT = 7
+        const val SHATTER_FRAME_SECONDS = 0.07f
 
         /**
          * The sheet strip each enemy type animates from.
