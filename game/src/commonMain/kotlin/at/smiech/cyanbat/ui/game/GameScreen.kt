@@ -473,24 +473,32 @@ class GameScreen(
         }
 
         val died = dealt > 0 && world.getComponent(id, HealthComponent::class)?.alive == false
-        // Only for the things a player watches die. A blast on every shot that merely lands would
-        // bury a tough enemy behind its own hit effects.
-        if (died && collisionGroupOf(id) in EXPLODES_ON_DEATH) explode(id)
+        // What is left behind depends on what died; see [burst], which is also what decides that
+        // most things leave nothing at all.
+        if (died) burst(id)
         return died
     }
 
     /** A blast the size of whatever just died, so the boss goes out bigger than its escort. */
-    private fun explode(id: EntityId) {
+    private fun burst(id: EntityId) {
         val rect = world.getComponent(id, TransformComponent::class)?.rect ?: return
-        val explosion = env.assets.graphics.explosion
-        factory.createExplosion(
-            centerX = rect.centerX,
-            centerY = rect.centerY,
-            pixmap = explosion,
-            // Never smaller than the artwork was drawn: an ordinary enemy keeps the blast it
-            // always had, and only something bigger than one scales the blast up.
-            scale = (rect.height / explosion.height).coerceAtLeast(1f),
-        )
+        val graphics = env.assets.graphics
+
+        // What died decides what is left behind, and the two are deliberately different events.
+        // An enemy burns; a spire of limestone breaks. Sharing one effect between them said the
+        // obstacle had been detonated, in a cave where nothing is flammable.
+        //
+        // Everything else is left alone. A blast on every shot that lands would bury a tough enemy
+        // behind its own hit effects, and the bat's death has an animation of its own.
+        val (pixmap, spawn) = when (collisionGroupOf(id)) {
+            CollisionGroup.ENEMY -> graphics.explosion to factory::createExplosion
+            CollisionGroup.OBSTACLE -> graphics.shatter to factory::createShatter
+            else -> return
+        }
+
+        // Never smaller than the artwork was drawn: an ordinary enemy keeps the blast it always
+        // had, and only something bigger than one scales the effect up.
+        spawn(rect.centerX, rect.centerY, pixmap, (rect.height / pixmap.height).coerceAtLeast(1f))
     }
 
     /**
@@ -1162,13 +1170,6 @@ class GameScreen(
     }
 
     private companion object {
-        /**
-         * What leaves a blast behind when it dies. Shots are left off deliberately - one per
-         * bullet would put an explosion on the screen every second the bat is firing - and so is
-         * the bat, whose death already has its own artwork.
-         */
-        val EXPLODES_ON_DEATH = setOf(CollisionGroup.ENEMY, CollisionGroup.OBSTACLE)
-
         /** A power-up card's panel: dark enough to read white text on, over a dimmed run. */
         const val CARD_FILL = 0xE6101820.toInt()
 

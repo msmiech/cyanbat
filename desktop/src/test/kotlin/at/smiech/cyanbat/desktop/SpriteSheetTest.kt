@@ -39,6 +39,12 @@ class SpriteSheetTest {
         assertEquals(45 * 6 to 40, sizeOf("cyanBat.png"))
     }
 
+    /** Seven 40x40 frames of rock breaking; see `EntityFactory.SHATTER_FRAME_*`. */
+    @Test
+    fun `the shatter sheet holds seven frames`() {
+        assertEquals(40 * 7 to 40, sizeOf("shatter.png"))
+    }
+
     /** Eight 32x32 frames of one fireball; see `EntityFactory.EXPLOSION_FRAME_*`. */
     @Test
     fun `the explosion sheet holds eight frames`() {
@@ -142,6 +148,7 @@ class SpriteSheetTest {
             "shot.png",
             "background.png",
             "explosion.png",
+            "shatter.png",
             "topObstacle1.png",
             "topObstacle2.png",
             "bottomObstacle1.png",

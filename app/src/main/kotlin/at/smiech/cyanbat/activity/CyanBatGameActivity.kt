@@ -61,6 +61,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
                 batDeath = g.newPixmap("cyanBatDeath.png", PixmapFormat.ARGB8888),
                 enemy = g.newPixmap("enemies.png", PixmapFormat.ARGB8888),
                 explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888),
+                    shatter = g.newPixmap("shatter.png", PixmapFormat.ARGB8888),
                 shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888),
             ),
             audio = GameAssets.Audio(

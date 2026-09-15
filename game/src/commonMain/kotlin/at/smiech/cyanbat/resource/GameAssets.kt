@@ -15,6 +15,8 @@ data class GameAssets(
         var batDeath: Pixmap,
         var gameOver: Pixmap,
         var explosion: Pixmap,
+        /** Rock coming apart, for an obstacle; the explosion is for things that burn. */
+        var shatter: Pixmap,
         var shot: Pixmap,
         var enemy: Pixmap
     )
