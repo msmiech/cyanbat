@@ -216,21 +216,144 @@ data class PlayerControlComponent(
     }
 }
 
-enum class EnemyMovementType { SINE, ZIGZAG, SCOUT, BOSS }
+/**
+ * How an enemy flies, run by [EnemyBehaviorSystem].
+ *
+ * The first four are the cave's. The rest arrived with the forest, where the enemies do more than
+ * cross the screen: they flock, they lunge, they stop to shoot.
+ */
+enum class EnemyMovementType {
+    SINE,
+    ZIGZAG,
+    SCOUT,
+    BOSS,
+
+    /**
+     * One member of a swarm. Every member of a flock is spawned on the same tick with the same
+     * [EnemyBehaviorComponent.initialY], so they share a flight path; each one buzzes around its
+     * own place in the flock by its [EnemyBehaviorComponent.offsetY] and
+     * [EnemyBehaviorComponent.phase]. That is the whole trick - no member ever has to know where
+     * the others are.
+     */
+    SWARM,
+
+    /** Lurches forward in surges and all but stops between them, like something heavy flying. */
+    SURGE,
+
+    /**
+     * Flies in to [EnemyBehaviorComponent.holdX], hangs there drifting toward the player's lane
+     * for a while, then leaves. The one that stops to shoot.
+     */
+    HOVER,
+
+    /**
+     * Cruises in to [EnemyBehaviorComponent.holdX], checks its swing for a moment - the tell - and
+     * then dives at wherever the player was at that instant, in a straight line. Aimed once and
+     * not steered after, so it can always be sidestepped by a player who saw it coming.
+     */
+    DIVE,
+
+    /**
+     * One member of a formation. Like [SWARM], members share a spawn tick and so a clock, and
+     * every one of them flies the same path from its own starting point - which is what holds the
+     * shape together without any member steering by another.
+     */
+    FORMATION,
+
+    /** A boss that holds station by tracing a figure eight around [EnemyBehaviorComponent.holdX]. */
+    BOSS_FIGURE_EIGHT,
+}
 
 /**
- * @param holdX for [EnemyMovementType.BOSS]: the x it closes to and then holds at. A boss that
- *   kept advancing would either pin the player against the left edge or sail off it, so it takes
- *   up a station instead and weaves there.
+ * @param initialY the lane the enemy flies around. Mutable because a hovering enemy drifts its
+ *   lane toward the player's.
+ * @param holdX for [EnemyMovementType.BOSS] and its kin: the x it closes to and then holds at. A
+ *   boss that kept advancing would either pin the player against the left edge or sail off it, so
+ *   it takes up a station instead and weaves there. [EnemyMovementType.HOVER] and
+ *   [EnemyMovementType.DIVE] use it as the point they stop to shoot, or to dive, from.
+ * @param baseSpeedX the enemy's own closing speed, for the patterns that set their horizontal
+ *   velocity outright every tick rather than leaving the one it was spawned with alone.
+ * @param offsetY where in its swarm or formation this member flies, relative to [initialY].
+ * @param phase a per-member offset into the pattern's cycle, so a swarm does not buzz in unison.
+ * @param tempo how fast the pattern's clock runs against real time. A boss is sped up by raising
+ *   it, which carries it smoothly into a faster version of the same pattern instead of snapping it
+ *   to a new one.
+ * @param state for the patterns with stages - hovering, diving, a boss on station - which stage
+ *   it is in, and [stateTime] how long it has been there.
  */
 data class EnemyBehaviorComponent(
     val type: EnemyMovementType,
-    val initialY: Float,
+    var initialY: Float,
     var elapsedTime: Float = 0f,
     var verticalDirection: Float = 1f,
     var nextDirectionChange: Float = 0f,
     val holdX: Float = 0f,
+    val baseSpeedX: Float = 0f,
+    val offsetY: Float = 0f,
+    val phase: Float = 0f,
+    var tempo: Float = 1f,
+    var state: Int = 0,
+    var stateTime: Float = 0f,
 ) : Component
+
+/**
+ * A bubble around an entity that soaks up hits before its health does, drawn and recharged by
+ * [ShieldSystem].
+ *
+ * A bubble takes a hit whole, however little it has left: the hit that breaks it is spent breaking
+ * it. That is what makes a shield read as a separate thing to get through, rather than as extra
+ * health with a different color - the player learns that the first shot at a shielded enemy is
+ * the one that pops it, and the next one is the one that hurts.
+ *
+ * @param points what it has left. At zero it is down, and draws nothing but the burst of it going.
+ * @param regenPerSecond how fast it builds back once it has gone [regenDelay] seconds untouched,
+ *   or zero for a bubble that stays broken. Recharging from nothing brings it back up.
+ * @param flash set to 1 when it takes a hit and burned down by [ShieldSystem], for a flare on the
+ *   bubble rather than on the entity inside it - which was not hit.
+ * @param popTime counted down from [ShieldSystem.POP_SECONDS] once the bubble breaks, for the ring
+ *   it goes out in.
+ */
+data class ShieldComponent(
+    var points: Int,
+    var maxPoints: Int = points,
+    val color: Int = EngineColors.SHIELD,
+    val regenPerSecond: Float = 0f,
+    val regenDelay: Float = 0f,
+    var sinceHit: Float = 0f,
+    var flash: Float = 0f,
+    var popTime: Float = 0f,
+    var regenCarry: Float = 0f,
+) : Component {
+    val isUp: Boolean get() = points > 0
+
+    /** What is left, as 0..1. */
+    val fraction: Float
+        get() = if (maxPoints <= 0) 0f else (points.toFloat() / maxPoints).coerceIn(0f, 1f)
+
+    /**
+     * Takes a hit of [amount] on the bubble, if there is a bubble to take it.
+     *
+     * @return true when the bubble absorbed it - all of it, even if that broke the bubble - and
+     *   false when it was already down and the hit goes through to whatever is inside.
+     */
+    fun absorb(amount: Int): Boolean {
+        if (!isUp) return false
+        points = (points - amount).coerceAtLeast(0)
+        sinceHit = 0f
+        flash = 1f
+        if (points == 0) popTime = ShieldSystem.POP_SECONDS
+        return true
+    }
+
+    /** Puts the bubble back up at [points], as a boss does when it changes phase. */
+    fun raise(points: Int) {
+        this.points = points
+        maxPoints = points
+        sinceHit = 0f
+        flash = 1f
+        popTime = 0f
+    }
+}
 
 /**
  * One segment of the wake an entity leaves behind it, drawn as a plain block that thins and fades

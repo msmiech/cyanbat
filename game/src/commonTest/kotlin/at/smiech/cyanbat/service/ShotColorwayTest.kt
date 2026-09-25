@@ -2,6 +2,7 @@ package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
+import at.smiech.cyanbat.util.MOTH_QUEEN_SHOT_VARIANT
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.engine.Graphics
@@ -30,7 +31,7 @@ class ShotColorwayTest {
 
     private val world = World()
     private val factory = EntityFactory(world)
-    private val shotSheet = SheetPixmap(SHOT_FRAME_WIDTH * 4, 12)
+    private val shotSheet = SheetPixmap(SHOT_FRAME_WIDTH * COLORWAYS, 12)
     private val enemySheet = SheetPixmap(32 * 4 * 3, 29)
 
     private fun spriteOf(id: Int) = world.getComponent(id, SpriteComponent::class)!!
@@ -50,14 +51,14 @@ class ShotColorwayTest {
 
     @Test
     fun `each colorway reads from its own frame`() {
-        for (variant in 0 until 4) {
+        for (variant in 0 until COLORWAYS) {
             assertEquals(variant * SHOT_FRAME_WIDTH, spriteOf(shot(variant)).baseSrcX)
         }
     }
 
     @Test
     fun `every colorway stays inside the sheet`() {
-        for (variant in 0 until 4) {
+        for (variant in 0 until COLORWAYS) {
             val sprite = spriteOf(shot(variant))
             assertTrue(
                 sprite.baseSrcX + sprite.srcWidth <= shotSheet.width,
@@ -79,13 +80,29 @@ class ShotColorwayTest {
     // --- who carries a colorway ------------------------------------------------------------------
 
     @Test
-    fun `an enemy carries the colorway matching its own sprite`() {
-        for (type in 0..2) {
-            val id = factory.createEnemy(0f, 0f, 28f, 29f, enemySheet, type = type)
+    fun `an enemy carries its species' colorway`() {
+        for (species in EnemySpecies.entries) {
+            val id = factory.createEnemy(0f, 0f, 28f, 29f, enemySheet, species = species)
             val style = world.getComponent(id, ProjectileStyleComponent::class)
-            assertNotNull(style, "enemy type $type has no colorway")
-            assertEquals(type + ENEMY_SHOT_VARIANT_OFFSET, style.variant)
+            assertNotNull(style, "$species has no colorway")
+            assertEquals(species.shotVariant, style.variant)
         }
+    }
+
+    /** The cave's drones fire the colorway laid out behind the player's in their sheet's order. */
+    @Test
+    fun `the cave's drones fire in the colors of their own strip`() {
+        for (species in listOf(EnemySpecies.SCOUT, EnemySpecies.WEAVER, EnemySpecies.STRIKER)) {
+            assertEquals(species.strip + ENEMY_SHOT_VARIANT_OFFSET, species.shotVariant)
+        }
+    }
+
+    @Test
+    fun `every colorway an enemy fires is on the sheet`() {
+        for (species in EnemySpecies.entries) {
+            assertTrue(species.shotVariant in 0 until COLORWAYS, "$species fires colorway ${species.shotVariant}")
+        }
+        assertTrue(MOTH_QUEEN_SHOT_VARIANT in 0 until COLORWAYS)
     }
 
     /**
@@ -111,11 +128,17 @@ class ShotColorwayTest {
     /** Nothing an enemy fires should ever come out in the player's color. */
     @Test
     fun `no enemy colorway collides with the player's`() {
-        for (type in 0..2) {
+        for (species in EnemySpecies.entries) {
             assertTrue(
-                type + ENEMY_SHOT_VARIANT_OFFSET != PLAYER_SHOT_VARIANT,
-                "enemy type $type fires the player's colorway",
+                species.shotVariant != PLAYER_SHOT_VARIANT,
+                "$species fires the player's colorway",
             )
         }
+        assertTrue(MOTH_QUEEN_SHOT_VARIANT != PLAYER_SHOT_VARIANT)
+    }
+
+    private companion object {
+        /** How many colorways shot.png lays out: the player's, the cave's three, the forest's three. */
+        const val COLORWAYS = 7
     }
 }

@@ -15,6 +15,13 @@ object EngineColors {
     const val RED: Int = 0xFFFF0000.toInt()
 
     /**
+     * A shield bubble: pale periwinkle. Cool, so it reads as a barrier rather than as part of the
+     * warm enemy inside it, and pale and violet-leaning enough not to be mistaken for the bat's
+     * cyan.
+     */
+    const val SHIELD: Int = 0xFFB8C4FF.toInt()
+
+    /**
      * [color] at [alpha] of its opacity, where alpha runs 0..1. Both platforms honor the alpha
      * byte in every draw call, so this is all a fade needs.
      */

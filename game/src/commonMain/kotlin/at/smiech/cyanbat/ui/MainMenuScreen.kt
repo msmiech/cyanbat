@@ -51,13 +51,15 @@ fun MainMenuScreen(
     viewModel: MainMenuViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToCredits: () -> Unit,
-    onStartGame: () -> Unit,
+    onNavigateToLevelSelect: () -> Unit,
+    onStartGame: (levelId: Int) -> Unit,
     onExit: () -> Unit,
 ) {
     val isMusicEnabled by viewModel.isMusicEnabled.collectAsState()
     LaunchedEffect(isMusicEnabled) {
         if (isMusicEnabled) viewModel.startMusic() else viewModel.stopMusic()
     }
+    val highestUnlocked by viewModel.highestUnlocked.collectAsState()
 
     var showHelpDialog by remember { mutableStateOf(false) }
     if (showHelpDialog) {
@@ -66,8 +68,13 @@ fun MainMenuScreen(
 
     MainMenuContent(
         onStartGameClicked = {
-            viewModel.stopMusic()
-            onStartGame()
+            // Straight into the cave until there is a second level to choose; see LevelSelectScreen.
+            if (highestUnlocked > 1) {
+                onNavigateToLevelSelect()
+            } else {
+                viewModel.stopMusic()
+                onStartGame(1)
+            }
         },
         onHelpClicked = { showHelpDialog = true },
         onSettingsClicked = onNavigateToSettings,

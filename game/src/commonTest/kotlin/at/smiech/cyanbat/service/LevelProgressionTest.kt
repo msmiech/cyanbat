@@ -14,6 +14,8 @@ import kotlin.test.assertTrue
 
 private const val MINUTE = WAVE_DURATION_SECONDS
 
+private val CAVE_SPECIES = setOf(EnemySpecies.SCOUT, EnemySpecies.WEAVER, EnemySpecies.STRIKER)
+
 class LevelProgressionTest {
 
     private val level1 = LevelProgression.forLevel(1)
@@ -133,13 +135,13 @@ class LevelProgressionTest {
     }
 
     @Test
-    fun `every wave draws only from the three enemies on the sheet`() {
+    fun `every wave of the cave draws only from the cave's three drones`() {
         (0..BOSS_WAVE).forEach { index ->
             val types = level1.waveAt(index * MINUTE).enemyTypes
             assertTrue(types.isNotEmpty(), "wave $index has nothing to spawn")
             assertTrue(
-                types.all { it in 0..2 },
-                "wave $index asks for a sprite that is not on the sheet: $types"
+                types.all { it in CAVE_SPECIES },
+                "wave $index asks for a sprite that is not on the cave's sheet: $types"
             )
         }
     }

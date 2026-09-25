@@ -4,13 +4,12 @@ import android.content.Intent
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
+import at.smiech.cyanbat.data.DataStoreLevelUnlockStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.resource.GameAssets
-import at.smiech.cyanbat.resource.Level
 import at.smiech.cyanbat.ui.game.GameScreen
-import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Screen
 import at.smiech.engine.impl.AndroidGameActivity
 import at.smiech.engine.impl.AndroidHaptics
@@ -26,7 +25,7 @@ import kotlinx.coroutines.cancel
  */
 class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen
-        get() = GameScreen(this, buildEnvironment())
+        get() = GameScreen(this, buildEnvironment(), intent.getIntExtra(EXTRA_LEVEL_ID, 1))
 
     /** Feeds the live audio settings; canceled with the activity. */
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -38,6 +37,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
         assets = loadAssets(),
         haptics = AndroidHaptics(this),
         highscores = DataStoreHighscoreStore(dataStore),
+        levelUnlocks = DataStoreLevelUnlockStore(dataStore),
         onExitToMenu = {
             // CLEAR_TOP replaces the menu this game was started from instead of stacking a second
             // one on top of it. Without it every run left another menu behind, each one more press
@@ -58,42 +58,13 @@ class CyanBatGameActivity : AndroidGameActivity() {
         activityScope.cancel()
     }
 
-    private fun loadAssets(): GameAssets {
-        val g = graphics ?: error("Graphics not initialized")
-        val a = audio ?: error("Audio not initialized")
+    private fun loadAssets(): GameAssets = GameAssets.load(
+        graphics ?: error("Graphics not initialized"),
+        audio ?: error("Audio not initialized"),
+    )
 
-        return GameAssets(
-            graphics = GameAssets.Graphics(
-                bat = g.newPixmap("cyanBat.png", PixmapFormat.ARGB8888),
-                gameOver = g.newPixmap("gameover.png", PixmapFormat.ARGB8888),
-                batDeath = g.newPixmap("cyanBatDeath.png", PixmapFormat.ARGB8888),
-                enemy = g.newPixmap("enemies.png", PixmapFormat.ARGB8888),
-                explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888),
-                shatter = g.newPixmap("shatter.png", PixmapFormat.ARGB8888),
-                shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888),
-            ),
-            audio = GameAssets.Audio(
-                gameOverMusic = a.newMusic("game_over.mp3"),
-                deathSound = a.newSound("deathSound.mp3"),
-                auraSurgeSound = a.newSound("auraSurge.wav"),
-                shotSound = a.newSound("shotFire.wav"),
-            ),
-            levels = listOf(
-                Level(
-                    id = 1,
-                    name = "Level 1: The Cave",
-                    background = g.newPixmap("background.png", PixmapFormat.ARGB8888),
-                    topObstacles = arrayOf(
-                        g.newPixmap("topObstacle1.png", PixmapFormat.ARGB8888),
-                        g.newPixmap("topObstacle2.png", PixmapFormat.ARGB8888),
-                    ),
-                    bottomObstacles = arrayOf(
-                        g.newPixmap("bottomObstacle1.png", PixmapFormat.ARGB8888),
-                        g.newPixmap("bottomObstacle2.png", PixmapFormat.ARGB8888),
-                    ),
-                    music = a.newMusic("game_theme.mp3"),
-                ),
-            ),
-        )
+    companion object {
+        /** Which level the run starts on, 1-based; see [GameScreen]. Level 1 when absent. */
+        const val EXTRA_LEVEL_ID = "at.smiech.cyanbat.LEVEL_ID"
     }
 }

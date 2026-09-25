@@ -152,6 +152,68 @@ class WorldTest {
         )
     }
 
+    /** Aimed and radial enemy fire leaves through the top and bottom, which nothing used to. */
+    @Test
+    fun `lifetime system reaps what leaves through the top or bottom, once it is well clear`() {
+        val world = World()
+        world.addSystem(LifetimeSystem(worldWidth = 480, worldHeight = 320))
+
+        fun at(y: Float) = world.createEntity().also {
+            world.addComponent(it, TransformComponent(Rect.fromLTWH(100f, y, 10f, 10f)))
+            world.addComponent(it, LifetimeComponent(removeIfOutOfBounds = true))
+        }
+        val farAbove = at(-100f)
+        val farBelow = at(420f)
+        val justAbove = at(-30f)
+        val justBelow = at(330f)
+
+        world.update(0.016f, null)
+
+        assertFalse(world.hasComponent(farAbove, TransformComponent::class))
+        assertFalse(world.hasComponent(farBelow, TransformComponent::class))
+        assertTrue(world.hasComponent(justAbove, TransformComponent::class), "a dip past the edge is not an exit")
+        assertTrue(world.hasComponent(justBelow, TransformComponent::class), "a dip past the edge is not an exit")
+    }
+
+    /**
+     * Regression: a swarm's trailing members spawn further off the right edge than its leader, and
+     * were deleted on the tick they arrived - only the leader of every group ever flew.
+     */
+    @Test
+    fun `lifetime system leaves alone what is still on its way in`() {
+        val world = World()
+        world.addSystem(LifetimeSystem(worldWidth = 480, worldHeight = 320))
+
+        fun entering(x: Float, y: Float, velocity: Vector2) = world.createEntity().also {
+            world.addComponent(it, TransformComponent(Rect.fromLTWH(x, y, 10f, 10f)))
+            world.addComponent(it, VelocityComponent(velocity))
+            world.addComponent(it, LifetimeComponent(removeIfOutOfBounds = true))
+        }
+        val fromRight = entering(520f, 100f, Vector2(-2f, 0f))
+        val fromAbove = entering(100f, -120f, Vector2(0f, 2f))
+        val leavingRight = entering(520f, 100f, Vector2(4f, 0f))
+
+        world.update(0.016f, null)
+
+        assertTrue(world.hasComponent(fromRight, TransformComponent::class))
+        assertTrue(world.hasComponent(fromAbove, TransformComponent::class))
+        assertFalse(world.hasComponent(leavingRight, TransformComponent::class))
+    }
+
+    @Test
+    fun `lifetime system without a height never culls vertically`() {
+        val world = World()
+        world.addSystem(LifetimeSystem(worldWidth = 480))
+        val farAbove = world.createEntity().also {
+            world.addComponent(it, TransformComponent(Rect.fromLTWH(100f, -1000f, 10f, 10f)))
+            world.addComponent(it, LifetimeComponent(removeIfOutOfBounds = true))
+        }
+
+        world.update(0.016f, null)
+
+        assertTrue(world.hasComponent(farAbove, TransformComponent::class))
+    }
+
     /**
      * Regression: only the left edge was culled, which was fine while everything drifted
      * leftwards. Player shots travel right, so a miss would have leaked its entity for the rest

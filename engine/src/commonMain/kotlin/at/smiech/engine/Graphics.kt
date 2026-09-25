@@ -1,5 +1,8 @@
 package at.smiech.engine
 
+import kotlin.math.cos
+import kotlin.math.sin
+
 interface Graphics {
     enum class PixmapFormat {
         ARGB8888, RGB565
@@ -11,6 +14,31 @@ interface Graphics {
     fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int)
     fun drawRect(x: Int, y: Int, width: Int, height: Int, color: Int)
     fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int)
+
+    /**
+     * The outline of the oval [drawOval] would fill, one pixel thick.
+     *
+     * A default rather than an abstract method, so a test double that only draws rectangles does
+     * not have to learn it: this plots the ring pixel by pixel, which is correct everywhere and
+     * slow everywhere. Both real backends override it with their own stroked oval.
+     */
+    fun drawOvalOutline(x: Int, y: Int, width: Int, height: Int, color: Int) {
+        val rx = width / 2f
+        val ry = height / 2f
+        if (rx <= 0f || ry <= 0f) return
+        val cx = x + rx
+        val cy = y + ry
+        // Enough steps that neighbouring samples are never more than a pixel apart.
+        val steps = (maxOf(rx, ry) * 7f).toInt().coerceAtLeast(8)
+        for (i in 0 until steps) {
+            val angle = i * 6.2831855f / steps
+            drawPixel(
+                (cx + rx * cos(angle)).toInt(),
+                (cy + ry * sin(angle)).toInt(),
+                color
+            )
+        }
+    }
     fun drawPixmap(
         pixmap: Pixmap,
         x: Int,

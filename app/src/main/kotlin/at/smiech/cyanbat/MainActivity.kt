@@ -11,6 +11,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.cyanbat.data.DataStoreLevelUnlockStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost
@@ -22,6 +23,7 @@ import at.smiech.engine.impl.AndroidAudio
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
 internal val PREFS_KEY_SOUNDS = booleanPreferencesKey("sounds_enabled")
 internal val PREFS_KEY_HIGH_SCORE = intPreferencesKey("highscore")
+internal val PREFS_KEY_HIGHEST_LEVEL = intPreferencesKey("highest_level_unlocked")
 internal val Context.dataStore by preferencesDataStore(name = "cyanbat")
 
 /**
@@ -51,6 +53,7 @@ class MainActivity : ComponentActivity() {
         audio = AndroidAudio(this)
         menuMusic = audio.newMusic("menu_theme.mp3")
         val settings = DataStoreSettingsRepository(dataStore)
+        val levelUnlocks = DataStoreLevelUnlockStore(dataStore)
 
         setContent {
             // The shared back stack is host-owned so the Android back gesture can drive it;
@@ -63,8 +66,12 @@ class MainActivity : ComponentActivity() {
                 host = MenuHost(
                     settings = settings,
                     menuMusic = menuMusic,
-                    onStartGame = {
-                        startActivity(Intent(this, CyanBatGameActivity::class.java))
+                    levelUnlocks = levelUnlocks,
+                    onStartGame = { levelId ->
+                        startActivity(
+                            Intent(this, CyanBatGameActivity::class.java)
+                                .putExtra(CyanBatGameActivity.EXTRA_LEVEL_ID, levelId)
+                        )
                     },
                     onExit = { finishAffinity() },
                 )

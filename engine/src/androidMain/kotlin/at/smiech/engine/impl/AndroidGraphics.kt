@@ -188,6 +188,19 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
         )
     }
 
+    override fun drawOvalOutline(x: Int, y: Int, width: Int, height: Int, color: Int) {
+        paint.color = color
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = 1f
+        canvas.drawOval(
+            RectF(x.toFloat(), y.toFloat(), (x + width).toFloat(), (y + height).toFloat()),
+            paint
+        )
+        // Put back: drawString and drawLine do not set a style of their own, and text drawn with
+        // a stroking paint comes out as hollow outlines.
+        paint.style = Paint.Style.FILL
+    }
+
     init {
         paint.typeface = typeface
     }

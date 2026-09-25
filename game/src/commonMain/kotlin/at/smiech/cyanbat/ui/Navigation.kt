@@ -5,14 +5,14 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 
 /** The menu destinations. */
-enum class MenuDestination { Main, Settings, Credits }
+enum class MenuDestination { Main, LevelSelect, Settings, Credits }
 
 /**
- * A back stack for three screens.
+ * A back stack for the menu's handful of screens.
  *
  * Deliberately hand-rolled rather than using Navigation3: JetBrains publishes only
  * navigation3-ui for multiplatform, not navigation3-runtime, which is where NavKey/NavEntry and
- * the back stack live. For three destinations a list is smaller than the dependency would be.
+ * the back stack live. For four destinations a list is smaller than the dependency would be.
  */
 class MenuBackStack(initial: MenuDestination = MenuDestination.Main) {
     private val entries = mutableStateListOf(initial)
