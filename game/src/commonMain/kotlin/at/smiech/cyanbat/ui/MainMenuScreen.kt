@@ -92,7 +92,7 @@ private fun HelpDialog(dismiss: () -> Unit) {
                 Spacer(Modifier.height(12.dp))
                 // Scrolls rather than pushing OK off a short landscape screen.
                 Text(
-                    text = stringResource(Res.string.dialog_help_text),
+                    text = stringResource(helpControls) + "\n" + stringResource(Res.string.dialog_help_text),
                     modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
                 )
                 Spacer(Modifier.height(12.dp))
