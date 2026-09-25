@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.ui.game
 
 import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.util.GAME_OVER_ARMING_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
@@ -13,7 +14,12 @@ class GameOverScreen(
     private val env: CyanBatEnvironment,
 ) : Screen {
 
+    /** Time before a tap or press counts as "leave"; see [GAME_OVER_ARMING_SECONDS]. */
+    private var armingTime = GAME_OVER_ARMING_SECONDS
+
     override fun update(deltaTime: Float) {
+        armingTime -= deltaTime
+
         val input = game.input
 
         // Read the buffer whatever happens, so a screen that lingers does not hoard events.
@@ -25,7 +31,7 @@ class GameOverScreen(
         val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
         val backed = controls?.consumePress(GameButton.BACK) == true
 
-        if (tapped || confirmed || backed) {
+        if ((tapped || confirmed || backed) && armingTime <= 0f) {
             env.haptics.vibrate(HIT_VIBRATION_MILLIS)
             env.onExitToMenu()
         }

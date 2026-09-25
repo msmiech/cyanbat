@@ -19,6 +19,11 @@ const val PAUSE_DIM = 0xB4000000.toInt()
 // that a player reaching to resume never notices it.
 const val RESUME_ARMING_SECONDS = 0.35f
 
+// How long the game over screen ignores a tap. Longer than the other overlays: a player steering
+// with a finger down watches the bat fall and lifts it only once the screen has changed, and
+// that lift is not them asking to leave.
+const val GAME_OVER_ARMING_SECONDS = 0.8f
+
 // Scoring. Surviving pays 1 point per tick (~52/second), so a kill at the base rate is worth
 // about a second of survival and a maxed-out streak roughly eight.
 //
