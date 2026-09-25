@@ -10,7 +10,7 @@
     <string name="button_credits">Credits</string>
 
     <string name="dialog_help_title">Help</string>
-    <string name="dialog_help_text">How to play this game: steer CyanBat toward the pointer and it will follow.</string>
+    <string name="dialog_help_text">• Fly: drag CyanBat with your finger or mouse, or use the arrow keys or a controller.\n• Shoot: CyanBat fires automatically. Shoot enemies and obstacles, and avoid touching them or their shots.\n• Health: every hit drains the bar under the bat. When it is empty, the run is over.\n• Score: points come from surviving and from kills. Kills in a row raise the multiplier (up to x8), and taking a hit resets it.\n• Level up: kills earn experience. Each new level lets you pick a power-up.\n• Waves: a tougher wave arrives every minute. After five, the boss appears. Defeat it to clear the level for a big bonus.\n• Pause: Back, Esc or P.</string>
 
     <string name="settings_music_title">Music</string>
     <string name="settings_sound_title">Sounds</string>
