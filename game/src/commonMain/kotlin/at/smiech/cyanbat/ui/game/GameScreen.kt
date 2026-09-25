@@ -48,7 +48,6 @@ import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
 import at.smiech.engine.Graphics
-import at.smiech.engine.Input.TouchEvent
 import at.smiech.engine.Screen
 import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.ecs.AnimationSystem
@@ -100,8 +99,11 @@ class GameScreen(
     private val world = World()
     private val factory = EntityFactory(world)
 
-    /** Canceled in [dispose], so nothing started here outlives the screen. */
-    private val screenScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    /**
+     * Canceled in [dispose], so nothing started here outlives the screen. On the main dispatcher,
+     * which is the thread the game loop runs on, so what a coroutine here writes needs no locking.
+     */
+    private val screenScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val batId: EntityId
 
@@ -167,6 +169,13 @@ class GameScreen(
 
     /** Time before the level up dialog will accept a tap; see [handlePowerUpChoice]. */
     private var offerArmingTime = 0f
+
+    /**
+     * Taps on whichever overlay is up - level up, pause, level complete. One is enough because
+     * only one of them reads the events on any frame (pause, over the level up dialog, reads them
+     * first), and each [TapDetector.reset]s it as it opens.
+     */
+    private val overlayTaps = TapDetector()
 
     /** Fractional health owed by Regeneration, carried between ticks; see [regenerate]. */
     private var regenCarry = 0f
@@ -583,6 +592,7 @@ class GameScreen(
         if (levelComplete) return
         levelComplete = true
         levelCompleteArmingTime = LEVEL_COMPLETE_ARMING_SECONDS
+        overlayTaps.reset()
         enmGen.clearBoss()
         scoring.awardLevelCleared()
         // Banked even though the run ends here: the total is what the victory screen reports, and
@@ -715,7 +725,8 @@ class GameScreen(
     // nothing to keep observing. Stays on the main thread, which is the only thread that touches
     // `highscore`.
     private fun readHighscore() = screenScope.launch {
-        highscore = env.highscores.read()
+        // Merged rather than assigned, in case this run has already beaten the stored value.
+        highscore = maxOf(highscore, env.highscores.read())
     }
 
     override fun update(deltaTime: Float) {
@@ -754,7 +765,7 @@ class GameScreen(
             enmGen.update(tick)
             // Held back for the boss. The duel is fought in an open cave, because a boss pinning
             // the player against scenery they cannot outrun is a death with nothing to read in it.
-            if (!enmGen.bossSpawned) obsGen.generateObstacle()
+            if (!enmGen.bossSpawned) obsGen.update(tick)
         }
 
         val health = world.getComponent(batId, HealthComponent::class)!!
@@ -771,6 +782,7 @@ class GameScreen(
         pendingLevelUps--
         offer = PowerUp.offer(loadout)
         offerArmingTime = POWER_UP_ARMING_SECONDS
+        overlayTaps.reset()
 
         // A dialog with nothing to choose between would trap the run. Two of the power-ups scale
         // without a ceiling so this cannot happen, but a future one that forgets to say so would
@@ -795,7 +807,9 @@ class GameScreen(
         val controls = input?.controls
         // Consumed whether or not they can act yet, so the buffer does not hand the whole backlog
         // to the run the moment the dialog closes.
-        val touches = input?.touchEvents.orEmpty().filter { it.type == TouchEvent.TOUCH_UP }
+        // Only taps begun on the dialog. The finger that was steering when it opened is still
+        // down, and its lift used to pick whatever card it happened to be over.
+        val touches = overlayTaps.taps(input?.touchEvents.orEmpty())
         // CONFIRM picks the leftmost card: a game pad has no number keys, and its A button is the
         // only thing on it a player will reach for first.
         val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
@@ -892,7 +906,7 @@ class GameScreen(
 
         val input = game.input
         // Read whether or not it can act on them, so the buffer does not hoard events.
-        val tapped = input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true
+        val tapped = overlayTaps.taps(input?.touchEvents.orEmpty()).isNotEmpty()
         val controls = input?.controls
         val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
         val backed = controls?.consumePress(GameButton.BACK) == true
@@ -929,7 +943,7 @@ class GameScreen(
         resumeArmingTime -= deltaTime
         // Read even when it cannot resume: the buffer is drained by reading it, and a pause spent
         // hoarding events would dump them all on the bat at once on the way back in.
-        val tapped = input?.touchEvents?.any { it.type == TouchEvent.TOUCH_UP } == true
+        val tapped = overlayTaps.taps(input?.touchEvents.orEmpty()).isNotEmpty()
         if (tapped && resumeArmingTime <= 0f) setPaused(false)
         return true
     }
@@ -939,6 +953,7 @@ class GameScreen(
         paused = value
         if (value) {
             resumeArmingTime = RESUME_ARMING_SECONDS
+            overlayTaps.reset()
             if (currentLevel.music.isPlaying) currentLevel.music.pause()
         } else {
             // Only the level theme: once the bat is dead the game over track owns playback, and

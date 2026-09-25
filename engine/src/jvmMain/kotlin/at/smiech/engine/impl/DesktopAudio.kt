@@ -101,11 +101,20 @@ internal class DesktopSound(pcm: PcmBuffer) : Sound {
  *
  * Looping reopens the stream at EOF rather than seeking, because the decoded stream is forward
  * only.
+ *
+ * Each playback thread is stamped with a generation, and only the current one may touch the
+ * shared state. [stop] cannot wait for its thread - a line write blocks and is not interruptible -
+ * so a [play] right behind it starts a new thread while the old one is still unwinding. Without
+ * the stamp the old thread saw the flags the new play had just reset and either kept writing,
+ * doubling the track, or ran its cleanup and stopped the new one.
  */
 class DesktopMusic(private val openStream: () -> InputStream) : Music {
     private val lock = Any()
     private var line: SourceDataLine? = null
     private var thread: Thread? = null
+
+    /** Bumped by every [play] that starts a thread and by every [stop]. */
+    @Volatile private var generation = 0
 
     @Volatile private var playing = false
     @Volatile private var stopped = true
@@ -121,9 +130,11 @@ class DesktopMusic(private val openStream: () -> InputStream) : Music {
         synchronized(lock) {
             if (disposed || playing) return
             playing = true
+            // Paused rather than stopped: the thread is still there, waiting to carry on.
+            if (!stopped && thread?.isAlive == true) return
             stopped = false
-            if (thread?.isAlive == true) return
-            thread = Thread({ pump() }, "cyanbat-music").apply {
+            val current = ++generation
+            thread = Thread({ pump(current) }, "cyanbat-music").apply {
                 isDaemon = true
                 start()
             }
@@ -131,15 +142,20 @@ class DesktopMusic(private val openStream: () -> InputStream) : Music {
     }
 
     override fun pause() {
-        playing = false
-        line?.stop()
+        synchronized(lock) {
+            playing = false
+            line?.stop()
+        }
     }
 
     override fun stop() {
-        playing = false
-        stopped = true
-        thread?.interrupt()
-        thread = null
+        synchronized(lock) {
+            playing = false
+            stopped = true
+            generation++
+            thread?.interrupt()
+            thread = null
+        }
     }
 
     override fun setVolume(volume: Float) {
@@ -148,17 +164,21 @@ class DesktopMusic(private val openStream: () -> InputStream) : Music {
     }
 
     override fun dispose() {
-        disposed = true
-        stop()
-        line?.close()
-        line = null
+        synchronized(lock) {
+            disposed = true
+            stop()
+            line?.close()
+            line = null
+        }
     }
+
+    private fun isCurrent(stamp: Int) = stamp == generation && !disposed
 
     private fun applyVolume() {
         setLineVolume(line?.getControl(FloatControl.Type.MASTER_GAIN) as? FloatControl, volume)
     }
 
-    private fun pump() {
+    private fun pump(stamp: Int) {
         try {
             do {
                 val pcm = decodeToPcm(openStream())
@@ -166,32 +186,47 @@ class DesktopMusic(private val openStream: () -> InputStream) : Music {
                     open(pcm.format)
                     start()
                 }
-                line = out
-                applyVolume()
-
-                var offset = 0
-                val chunk = 4096
-                while (offset < pcm.bytes.size && !stopped && !disposed) {
-                    if (!playing) {
-                        Thread.sleep(PAUSE_POLL_MILLIS)
-                        continue
+                try {
+                    synchronized(lock) {
+                        if (!isCurrent(stamp)) return
+                        line = out
                     }
-                    if (!out.isRunning) out.start()
-                    val len = minOf(chunk, pcm.bytes.size - offset)
-                    offset += out.write(pcm.bytes, offset, len)
+                    applyVolume()
+
+                    var offset = 0
+                    val chunk = 4096
+                    while (offset < pcm.bytes.size && isCurrent(stamp)) {
+                        if (!playing) {
+                            Thread.sleep(PAUSE_POLL_MILLIS)
+                            continue
+                        }
+                        if (!out.isRunning) out.start()
+                        val len = minOf(chunk, pcm.bytes.size - offset)
+                        offset += out.write(pcm.bytes, offset, len)
+                    }
+                    // Let a track that ran to its end finish sounding; one that was stopped is
+                    // cut off at once.
+                    if (isCurrent(stamp)) out.drain()
+                } finally {
+                    synchronized(lock) { if (line === out) line = null }
+                    out.close()
                 }
-                out.drain()
-                out.close()
-                line = null
-            } while (isLooping && !stopped && !disposed)
+            } while (isLooping && isCurrent(stamp))
         } catch (_: InterruptedException) {
             Thread.currentThread().interrupt()
         } catch (exc: Exception) {
             // A missing codec or an unavailable mixer must not take the game down with it.
             System.err.println("CyanBat: music playback stopped - $exc")
         } finally {
-            playing = false
-            stopped = true
+            // Only the current thread speaks for the track. A superseded one finishing must not
+            // mark a newer playback as stopped.
+            synchronized(lock) {
+                if (stamp == generation) {
+                    playing = false
+                    stopped = true
+                    thread = null
+                }
+            }
         }
     }
 

@@ -26,8 +26,8 @@ class AndroidAudio(activity: Activity) : Audio {
 
     override fun newSound(filename: String): Sound {
         return try {
-            val afd = assets.openFd(filename)
-            val soundID = soundPool.load(afd, 0)
+            // SoundPool keeps its own duplicate of the descriptor, so this one can go at once.
+            val soundID = assets.openFd(filename).use { soundPool.load(it, 0) }
             AndroidSound(soundID, soundPool)
         } catch (exc: IOException) {
             throw RuntimeException("Sound-file <$filename> not found! $exc")

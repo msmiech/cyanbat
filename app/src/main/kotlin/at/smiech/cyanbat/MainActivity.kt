@@ -16,6 +16,7 @@ import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost
 import at.smiech.cyanbat.ui.rememberMenuBackStack
 import at.smiech.engine.Audio
+import at.smiech.engine.Music
 import at.smiech.engine.impl.AndroidAudio
 
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
@@ -33,11 +34,23 @@ class MainActivity : ComponentActivity() {
 
     private lateinit var audio: Audio
 
+    /**
+     * Created once per activity rather than inside [setContent]. That lambda recomposes whenever
+     * the back stack changes, and a track built there prepared a fresh MediaPlayer on every trip
+     * into Settings or Credits - none of which the menu ever played.
+     */
+    private lateinit var menuMusic: Music
+
+    /** Whether [onStop] silenced the menu track, so [onStart] knows to bring it back. */
+    private var resumeMusicOnStart = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
 
         audio = AndroidAudio(this)
+        menuMusic = audio.newMusic("menu_theme.mp3")
+        val settings = DataStoreSettingsRepository(dataStore)
 
         setContent {
             // The shared back stack is host-owned so the Android back gesture can drive it;
@@ -48,8 +61,8 @@ class MainActivity : ComponentActivity() {
             CyanBatMenu(
                 backStack = backStack,
                 host = MenuHost(
-                    settings = DataStoreSettingsRepository(dataStore),
-                    menuMusic = audio.newMusic("menu_theme.mp3"),
+                    settings = settings,
+                    menuMusic = menuMusic,
                     onStartGame = {
                         startActivity(Intent(this, CyanBatGameActivity::class.java))
                     },
@@ -57,6 +70,22 @@ class MainActivity : ComponentActivity() {
                 )
             )
         }
+    }
+
+    // Nothing else stops the menu track when the app leaves the screen - the menu only silences
+    // it on the way into a game - so without these it played on behind the home screen.
+    override fun onStart() {
+        super.onStart()
+        if (resumeMusicOnStart) {
+            resumeMusicOnStart = false
+            menuMusic.play()
+        }
+    }
+
+    override fun onStop() {
+        super.onStop()
+        resumeMusicOnStart = menuMusic.isPlaying
+        if (resumeMusicOnStart) menuMusic.pause()
     }
 
     override fun onDestroy() {

@@ -23,11 +23,19 @@ class PlayerInputSystemTest {
         const val BAT_HEIGHT = 40f
     }
 
-    /** Queues touch events and hands them over exactly once, as the real handler does. */
+    /**
+     * Queues touch events and hands them over exactly once, as the real handler does. Tracks which
+     * pointers are down as the events are queued, which is also when the real handler updates it.
+     */
     private class FakeInput(override val controls: Controls) : Input {
         private val queued = mutableListOf<Input.TouchEvent>()
+        private val held = mutableSetOf<Int>()
 
         fun queue(type: Int, x: Int, y: Int, pointer: Int) {
+            when (type) {
+                Input.TouchEvent.TOUCH_DOWN -> held += pointer
+                Input.TouchEvent.TOUCH_UP -> held -= pointer
+            }
             queued += Input.TouchEvent().also {
                 it.type = type
                 it.x = x
@@ -39,7 +47,15 @@ class PlayerInputSystemTest {
         override val touchEvents: List<Input.TouchEvent>
             get() = queued.toList().also { queued.clear() }
 
-        override fun isTouchDown(pointer: Int) = false
+        /**
+         * A finger lifting whose TOUCH_UP someone else read first - an overlay that was up at the
+         * time. The pointer is no longer down, and this system never gets the event.
+         */
+        fun liftUnseen(pointer: Int) {
+            held -= pointer
+        }
+
+        override fun isTouchDown(pointer: Int) = pointer in held
         override fun getTouchX(pointer: Int) = 0
         override fun getTouchY(pointer: Int) = 0
         override val accelX = 0f
@@ -79,6 +95,8 @@ class PlayerInputSystemTest {
 
         fun up(x: Int, y: Int, pointer: Int = 0) =
             input.queue(Input.TouchEvent.TOUCH_UP, x, y, pointer)
+
+        fun liftUnseen(pointer: Int = 0) = input.liftUnseen(pointer)
 
         fun kill() {
             world.getComponent(bat, HealthComponent::class)!!.alive = false
@@ -378,5 +396,41 @@ class PlayerInputSystemTest {
         h.control.hitCooldown = 0.5f
         h.tick(times = 10)
         assertClose(0.5f - 10 * TICK, h.control.hitCooldown, 0.001f)
+    }
+
+    @Test
+    fun `a finger that lifted while an overlay read its release no longer holds the bat`() {
+        val h = Harness()
+        h.down(110, 110, pointer = 3)
+        h.tick()
+        assertEquals(3, h.control.activePointer)
+
+        // The level up dialog opens and closes around the finger lifting: the world never ticks
+        // in between, so the TOUCH_UP it would have released the bat on is gone.
+        h.liftUnseen(pointer = 3)
+        h.tick()
+        assertEquals(PlayerControlComponent.NO_POINTER, h.control.activePointer)
+
+        // And a new finger, which arrives under a new id, can take the bat again.
+        h.down(120, 120, pointer = 4)
+        h.tick()
+        assertEquals(4, h.control.activePointer)
+        assertTrue(h.control.dragging)
+        h.drag(170, 150, pointer = 4)
+        h.tick()
+        assertClose(150f, h.rect.left)
+        assertClose(130f, h.rect.top)
+    }
+
+    @Test
+    fun `a hovering pointer that was never pressed keeps steering`() {
+        val h = Harness()
+        // A desktop mouse: motion with no button held claims the bat, and nothing is ever down.
+        h.drag(300, 200, pointer = 0)
+        h.tick()
+        assertEquals(0, h.control.activePointer)
+
+        h.tick(5)
+        assertEquals(0, h.control.activePointer)
     }
 }

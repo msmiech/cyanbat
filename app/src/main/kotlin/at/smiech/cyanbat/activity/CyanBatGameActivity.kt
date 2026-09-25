@@ -39,7 +39,12 @@ class CyanBatGameActivity : AndroidGameActivity() {
         haptics = AndroidHaptics(this),
         highscores = DataStoreHighscoreStore(dataStore),
         onExitToMenu = {
-            startActivity(Intent(this, MainActivity::class.java))
+            // CLEAR_TOP replaces the menu this game was started from instead of stacking a second
+            // one on top of it. Without it every run left another menu behind, each one more press
+            // of Back between the player and the home screen.
+            startActivity(
+                Intent(this, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            )
             finish()
         },
         audioSettings = ObservedAudioSettings(DataStoreSettingsRepository(dataStore), activityScope),
@@ -61,7 +66,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
                 batDeath = g.newPixmap("cyanBatDeath.png", PixmapFormat.ARGB8888),
                 enemy = g.newPixmap("enemies.png", PixmapFormat.ARGB8888),
                 explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888),
-                    shatter = g.newPixmap("shatter.png", PixmapFormat.ARGB8888),
+                shatter = g.newPixmap("shatter.png", PixmapFormat.ARGB8888),
                 shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888),
             ),
             audio = GameAssets.Audio(

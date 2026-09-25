@@ -16,7 +16,7 @@ class PreferencesHighscoreStore : HighscoreStore {
     override suspend fun read(): Int = prefs.getInt(KEY, 0)
 
     override fun saveAsync(value: Int) {
-        prefs.putInt(KEY, value)
+        prefs.putInt(KEY, maxOf(prefs.getInt(KEY, 0), value))
     }
 
     private companion object {

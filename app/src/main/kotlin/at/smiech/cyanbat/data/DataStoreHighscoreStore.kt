@@ -25,6 +25,8 @@ class DataStoreHighscoreStore(
     override suspend fun read(): Int = dataStore.data.first()[PREFS_KEY_HIGH_SCORE] ?: 0
 
     override fun saveAsync(value: Int) {
-        scope.launch { dataStore.edit { it[PREFS_KEY_HIGH_SCORE] = value } }
+        scope.launch {
+            dataStore.edit { it[PREFS_KEY_HIGH_SCORE] = maxOf(it[PREFS_KEY_HIGH_SCORE] ?: 0, value) }
+        }
     }
 }

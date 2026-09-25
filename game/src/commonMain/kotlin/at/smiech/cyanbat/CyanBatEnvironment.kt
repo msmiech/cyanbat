@@ -14,7 +14,7 @@ class CyanBatEnvironment(
     val assets: GameAssets,
     val haptics: Haptics,
     val highscores: HighscoreStore,
-    /** Leave the game: back to the menu on Android, close the window on desktop. */
+    /** Leave the game and go back to the menu. */
     val onExitToMenu: () -> Unit,
     /** Consulted each time a track or effect would start, so the settings actually apply. */
     val audioSettings: AudioSettings = AudioSettings.AllEnabled,

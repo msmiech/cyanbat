@@ -77,7 +77,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         val frameBuffer = createBitmap(frameBufferWidth, frameBufferHeight, Bitmap.Config.RGB_565)
         val touchHandler = PointerTouchHandler()
 
-        input = AndroidInput(this, touchHandler, controlHandler)
+        input = AndroidInput(touchHandler, controlHandler)
         graphics = AndroidGraphics(assets, frameBuffer)
 
         // Back reaches the game as a button rather than finishing the activity, so a screen can
