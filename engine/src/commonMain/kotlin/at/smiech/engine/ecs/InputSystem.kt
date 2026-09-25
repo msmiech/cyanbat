@@ -74,8 +74,9 @@ class PlayerInputSystem(
                 control.hitCooldown -= deltaTime
             }
 
-            if (touchEvents != null) {
-                trackPointer(touchEvents, transform.rect, control)
+            if (input != null) {
+                dropLiftedPointer(input, control)
+                if (touchEvents != null) trackPointer(input, touchEvents, transform.rect, control)
             }
             velocity.velocity = if (steering) {
                 control.releaseDrag()
@@ -101,10 +102,26 @@ class PlayerInputSystem(
     }
 
     /**
+     * Lets go of a pointer that has lifted without this system seeing it lift.
+     *
+     * The release normally arrives as a TOUCH_UP, but the events are a consuming read and this
+     * system only gets them while the world is ticking. An overlay that opens mid-drag - the level
+     * up dialog, the pause screen - reads them instead, and the finger's release goes with it. The
+     * bat then stayed bound to a pointer that no longer existed, and ignored every new touch,
+     * because a new finger arrives under a different pointer id.
+     */
+    private fun dropLiftedPointer(input: Input, control: PlayerControlComponent) {
+        val pointer = control.activePointer
+        if (pointer == PlayerControlComponent.NO_POINTER || !control.pointerHeld) return
+        if (!input.isTouchDown(pointer)) control.releaseDrag()
+    }
+
+    /**
      * Folds this update's events into the entity's drag state: which pointer owns the bat, where
      * that pointer now is, and how the bat sits under it.
      */
     private fun trackPointer(
+        input: Input,
         touchEvents: List<Input.TouchEvent>,
         rect: Rect,
         control: PlayerControlComponent
@@ -124,6 +141,7 @@ class PlayerInputSystem(
             // can steer without ever having gone down.
             if (control.activePointer == PlayerControlComponent.NO_POINTER) {
                 control.beginDrag(event.pointer, x, y, rect)
+                control.pointerHeld = input.isTouchDown(event.pointer)
             }
             if (event.pointer == control.activePointer) {
                 control.targetX = x
@@ -195,6 +213,7 @@ class PlayerInputSystem(
 
     private fun PlayerControlComponent.releaseDrag() {
         activePointer = PlayerControlComponent.NO_POINTER
+        pointerHeld = false
         dragging = false
         grabOffsetX = 0f
         grabOffsetY = 0f

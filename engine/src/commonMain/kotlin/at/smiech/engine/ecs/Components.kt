@@ -196,6 +196,9 @@ data class LifetimeComponent(val removeIfOutOfBounds: Boolean = true) : Componen
  * @param targetX/targetY last reported position of [activePointer], in framebuffer pixels. Held
  *   across updates because touch events are consumed once per frame while the world may tick
  *   several times.
+ * @param pointerHeld whether [activePointer] was physically down when it claimed the entity. Only
+ *   such a pointer can be found to have lifted; a desktop mouse steers by hovering, with nothing
+ *   held, and must not be let go just because no button is pressed.
  */
 data class PlayerControlComponent(
     var hitCooldown: Float = 0f,
@@ -205,6 +208,7 @@ data class PlayerControlComponent(
     var grabOffsetY: Float = 0f,
     var targetX: Float = 0f,
     var targetY: Float = 0f,
+    var pointerHeld: Boolean = false,
 ) : Component {
     companion object {
         const val NO_POINTER = -1
