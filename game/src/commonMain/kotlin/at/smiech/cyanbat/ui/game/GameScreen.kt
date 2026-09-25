@@ -758,7 +758,7 @@ class GameScreen(
             enmGen.update(tick)
             // Held back for the boss. The duel is fought in an open cave, because a boss pinning
             // the player against scenery they cannot outrun is a death with nothing to read in it.
-            if (!enmGen.bossSpawned) obsGen.generateObstacle()
+            if (!enmGen.bossSpawned) obsGen.update(tick)
         }
 
         val health = world.getComponent(batId, HealthComponent::class)!!
