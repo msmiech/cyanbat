@@ -37,9 +37,18 @@ class LevelProgressionTest {
         val waves = (0 until BOSS_WAVE).map { level1.waveAt(it * MINUTE) }
 
         waves.zipWithNext { earlier, later ->
-            assertTrue(later.hitPoints > earlier.hitPoints, "health did not climb into wave ${later.index}")
-            assertTrue(later.damage > earlier.damage, "damage did not climb into wave ${later.index}")
-            assertTrue(later.speedMultiplier > earlier.speedMultiplier, "speed did not climb into wave ${later.index}")
+            assertTrue(
+                later.hitPoints > earlier.hitPoints,
+                "health did not climb into wave ${later.index}"
+            )
+            assertTrue(
+                later.damage > earlier.damage,
+                "damage did not climb into wave ${later.index}"
+            )
+            assertTrue(
+                later.speedMultiplier > earlier.speedMultiplier,
+                "speed did not climb into wave ${later.index}"
+            )
         }
     }
 
@@ -55,7 +64,11 @@ class LevelProgressionTest {
     @Test
     fun `the spawn interval runs from the opening gap down to the floor`() {
         assertEquals(OPENING_SPAWN_INTERVAL_SECONDS, level1.spawnIntervalAt(0f))
-        assertEquals(MINIMUM_SPAWN_INTERVAL_SECONDS, level1.spawnIntervalAt(level1.bossTimeSeconds), 0.001f)
+        assertEquals(
+            MINIMUM_SPAWN_INTERVAL_SECONDS,
+            level1.spawnIntervalAt(level1.bossTimeSeconds),
+            0.001f
+        )
     }
 
     /**
@@ -69,7 +82,10 @@ class LevelProgressionTest {
         for (second in 0..3_600) {
             val interval = level1.spawnIntervalAt(second.toFloat())
             assertTrue(interval > 0f, "interval went to $interval at ${second}s")
-            assertTrue(level1.nextSpawnDelay(second.toFloat(), random) > 0f, "delay went non-positive at ${second}s")
+            assertTrue(
+                level1.nextSpawnDelay(second.toFloat(), random) > 0f,
+                "delay went non-positive at ${second}s"
+            )
         }
     }
 
@@ -81,7 +97,10 @@ class LevelProgressionTest {
 
         assertTrue(delays.toSet().size > 1, "every delay came out identical")
         delays.forEach {
-            assertTrue(it in interval * 0.6f..interval * 1.4f, "delay $it strayed far from the $interval interval")
+            assertTrue(
+                it in interval * 0.6f..interval * 1.4f,
+                "delay $it strayed far from the $interval interval"
+            )
         }
     }
 
@@ -118,7 +137,10 @@ class LevelProgressionTest {
         (0..BOSS_WAVE).forEach { index ->
             val types = level1.waveAt(index * MINUTE).enemyTypes
             assertTrue(types.isNotEmpty(), "wave $index has nothing to spawn")
-            assertTrue(types.all { it in 0..2 }, "wave $index asks for a sprite that is not on the sheet: $types")
+            assertTrue(
+                types.all { it in 0..2 },
+                "wave $index asks for a sprite that is not on the sheet: $types"
+            )
         }
     }
 

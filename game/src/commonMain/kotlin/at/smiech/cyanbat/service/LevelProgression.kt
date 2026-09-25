@@ -99,7 +99,8 @@ data class LevelProgression(
     }
 
     /** The wave in force at [elapsedSeconds]. */
-    fun waveAt(elapsedSeconds: Float): EnemyWave = waveFor(waveIndexAt(elapsedSeconds), elapsedSeconds)
+    fun waveAt(elapsedSeconds: Float): EnemyWave =
+        waveFor(waveIndexAt(elapsedSeconds), elapsedSeconds)
 
     private fun waveFor(index: Int, elapsedSeconds: Float) = EnemyWave(
         index = index,

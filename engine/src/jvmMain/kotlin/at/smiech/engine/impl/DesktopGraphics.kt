@@ -23,7 +23,10 @@ class DesktopGraphics(
 
     private val g2d = frameBuffer.createGraphics().apply {
         // Pixel art: never smooth it.
-        setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR)
+        setRenderingHint(
+            RenderingHints.KEY_INTERPOLATION,
+            RenderingHints.VALUE_INTERPOLATION_NEAREST_NEIGHBOR
+        )
         setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_OFF)
         setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_SPEED)
     }
@@ -33,7 +36,8 @@ class DesktopGraphics(
             ?: throw RuntimeException("Asset-Bitmap <$filename> not found!")
 
         // Redraw into a known type so downstream blits do not hit a surprising color model.
-        val type = if (format == PixmapFormat.RGB565) BufferedImage.TYPE_INT_RGB else BufferedImage.TYPE_INT_ARGB
+        val type =
+            if (format == PixmapFormat.RGB565) BufferedImage.TYPE_INT_RGB else BufferedImage.TYPE_INT_ARGB
         val image = BufferedImage(decoded.width, decoded.height, type)
         image.createGraphics().apply {
             drawImage(decoded, 0, 0, null)

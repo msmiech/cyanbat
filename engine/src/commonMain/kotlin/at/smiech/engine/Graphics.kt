@@ -11,7 +11,16 @@ interface Graphics {
     fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int)
     fun drawRect(x: Int, y: Int, width: Int, height: Int, color: Int)
     fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int)
-    fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int)
+    fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int
+    )
+
     fun drawPixmap(pixmap: Pixmap, x: Int, y: Int)
 
     /**
@@ -54,6 +63,7 @@ interface Graphics {
         dstHeight: Int,
         rotationDegrees: Float,
     )
+
     /**
      * The sprite's own shape, filled flat with [color], drawn over whatever is already there.
      *

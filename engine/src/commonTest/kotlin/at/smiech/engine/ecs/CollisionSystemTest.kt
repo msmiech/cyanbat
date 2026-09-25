@@ -99,6 +99,10 @@ class CollisionSystemTest {
         h.spawn(CollisionGroup.OBSTACLE, 10f)
         h.step()
         val unordered = h.hits.map { setOf(it.first, it.second) }
-        assertEquals(unordered.size, unordered.distinct().size, "a pair was reported twice: ${h.hits}")
+        assertEquals(
+            unordered.size,
+            unordered.distinct().size,
+            "a pair was reported twice: ${h.hits}"
+        )
     }
 }

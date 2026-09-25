@@ -89,7 +89,11 @@ class BackgroundScrollingSystemTest {
         // The first tile has moved on by one tick, so compare against where it is now.
         // One column of overlap, on purpose: the blit paints a column short of its box, so a flush
         // join would leave a hairline hole. See BackgroundScrollingSystem.TILE_OVERLAP.
-        assertEquals(laid[0].endInclusive - 1f, laid[1].start, "tiles are not laid with the one column overlap")
+        assertEquals(
+            laid[0].endInclusive - 1f,
+            laid[1].start,
+            "tiles are not laid with the one column overlap"
+        )
         assertTrue(first.endInclusive < frameWidth)
     }
 

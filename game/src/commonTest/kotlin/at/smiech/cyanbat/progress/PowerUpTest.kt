@@ -287,7 +287,10 @@ class PowerUpTest {
         val offer = PowerUp.offer(loadout, Random(3))
 
         assertEquals(POWER_UP_CHOICES, offer.size)
-        assertTrue(UNCAPPED.containsAll(offer), "a maxed-out run was offered something capped: $offer")
+        assertTrue(
+            UNCAPPED.containsAll(offer),
+            "a maxed-out run was offered something capped: $offer"
+        )
     }
 
     /**
@@ -305,8 +308,14 @@ class PowerUpTest {
     @Test
     fun `every power-up says what it is in words that fit a card`() {
         PowerUp.entries.forEach {
-            assertTrue(it.title.length <= 16, "${it.name} has a title too long for a card: ${it.title}")
-            assertTrue(it.description.length <= 44, "${it.name} has a description too long: ${it.description}")
+            assertTrue(
+                it.title.length <= 16,
+                "${it.name} has a title too long for a card: ${it.title}"
+            )
+            assertTrue(
+                it.description.length <= 44,
+                "${it.name} has a description too long: ${it.description}"
+            )
         }
     }
 

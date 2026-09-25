@@ -1,8 +1,8 @@
 package at.smiech.cyanbat.data
 
-import kotlin.concurrent.Volatile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
+import kotlin.concurrent.Volatile
 
 /**
  * Whether the game may play music and sound effects.

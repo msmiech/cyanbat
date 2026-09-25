@@ -9,7 +9,13 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-private data class TrailRect(val x: Int, val y: Int, val width: Int, val height: Int, val color: Int)
+private data class TrailRect(
+    val x: Int,
+    val y: Int,
+    val width: Int,
+    val height: Int,
+    val color: Int
+)
 
 private class TrailRecordingGraphics : Graphics {
     val rects = mutableListOf<TrailRect>()
@@ -18,7 +24,9 @@ private class TrailRecordingGraphics : Graphics {
         rects += TrailRect(x, y, width, height, color)
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) = throw UnsupportedOperationException()
+    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+        throw UnsupportedOperationException()
+
     override fun clear(color: Int) = Unit
     override fun drawPixel(x: Int, y: Int, color: Int) = Unit
     override fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int) = Unit
@@ -72,7 +80,11 @@ class TrailSystemTest {
     }
 
     /** A 20x10 segment, so a scaled draw reads straight off the numbers. */
-    private fun segment(duration: Float = 0.5f, minScale: Float = 0.2f, drift: Float = 0f): EntityId {
+    private fun segment(
+        duration: Float = 0.5f,
+        minScale: Float = 0.2f,
+        drift: Float = 0f
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(80f, 100f, 20f, 10f)))
         world.addComponent(id, VelocityComponent(Vector2(drift, 0f)))

@@ -5,6 +5,7 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -20,7 +21,6 @@ import at.smiech.engine.Haptics
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopAudio
 import at.smiech.engine.impl.onComposeKeyEvent
-import androidx.compose.runtime.rememberCoroutineScope
 import kotlin.system.exitProcess
 
 private const val FRAME_BUFFER_WIDTH = 480

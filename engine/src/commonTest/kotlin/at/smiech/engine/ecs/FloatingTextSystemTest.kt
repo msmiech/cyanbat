@@ -10,7 +10,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /** One string the system asked for, in the order it asked. */
-private data class DrawnString(val text: String, val x: Int, val y: Int, val fontSize: Int, val color: Int)
+private data class DrawnString(
+    val text: String,
+    val x: Int,
+    val y: Int,
+    val fontSize: Int,
+    val color: Int
+)
 
 private class StringRecordingGraphics : Graphics {
     val strings = mutableListOf<DrawnString>()
@@ -19,7 +25,9 @@ private class StringRecordingGraphics : Graphics {
         strings += DrawnString(s ?: "", x, y, fontSize, col)
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) = throw UnsupportedOperationException()
+    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+        throw UnsupportedOperationException()
+
     override fun clear(color: Int) = Unit
     override fun drawPixel(x: Int, y: Int, color: Int) = Unit
     override fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int) = Unit
@@ -62,7 +70,11 @@ class FloatingTextSystemTest {
         addSystem(FloatingTextSystem())
     }
 
-    private fun spawn(text: String = "34", risesPerTick: Float = 1f, duration: Float = 0.6f): EntityId {
+    private fun spawn(
+        text: String = "34",
+        risesPerTick: Float = 1f,
+        duration: Float = 0.6f
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(100f, 200f, 0f, 0f)))
         world.addComponent(id, VelocityComponent(Vector2(0f, -risesPerTick)))
@@ -70,7 +82,8 @@ class FloatingTextSystemTest {
         return id
     }
 
-    private fun draw(): List<DrawnString> = StringRecordingGraphics().also { world.draw(it) }.strings
+    private fun draw(): List<DrawnString> =
+        StringRecordingGraphics().also { world.draw(it) }.strings
 
     /** Eight offsets in the outline color, then the fill, so the number reads over any background. */
     @Test
@@ -79,7 +92,8 @@ class FloatingTextSystemTest {
 
         val strings = draw()
         assertEquals(9, strings.size)
-        assertTrue(strings.dropLast(1).all { it.color and 0xFFFFFF == EngineColors.BLACK and 0xFFFFFF })
+        assertTrue(
+            strings.dropLast(1).all { it.color and 0xFFFFFF == EngineColors.BLACK and 0xFFFFFF })
         assertEquals(EngineColors.WHITE, strings.last().color)
         assertTrue(strings.all { it.text == "34" })
 

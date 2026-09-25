@@ -52,7 +52,9 @@ enum class PowerUp(val title: String, val description: String) {
     },
 
     SHARPSHOOTER("Sharpshooter", "+${percent(CRITICAL_CHANCE_BONUS)} critical chance") {
-        override fun applyTo(loadout: PlayerLoadout) = loadout.addCriticalChance(CRITICAL_CHANCE_BONUS)
+        override fun applyTo(loadout: PlayerLoadout) =
+            loadout.addCriticalChance(CRITICAL_CHANCE_BONUS)
+
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canAddCriticalChance
     },
 
@@ -62,12 +64,16 @@ enum class PowerUp(val title: String, val description: String) {
     },
 
     SECOND_WIND("Second Wind", "Longer mercy after a hit") {
-        override fun applyTo(loadout: PlayerLoadout) = loadout.lengthenHitCooldown(SECOND_WIND_SECONDS)
+        override fun applyTo(loadout: PlayerLoadout) =
+            loadout.lengthenHitCooldown(SECOND_WIND_SECONDS)
+
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canLengthenHitCooldown
     },
 
     REGENERATION("Regeneration", "Heal $REGEN_PER_SECOND health a second") {
-        override fun applyTo(loadout: PlayerLoadout) = loadout.addHealthRegen(REGEN_PER_SECOND.toFloat())
+        override fun applyTo(loadout: PlayerLoadout) =
+            loadout.addHealthRegen(REGEN_PER_SECOND.toFloat())
+
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canAddHealthRegen
     },
 
@@ -84,7 +90,10 @@ enum class PowerUp(val title: String, val description: String) {
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canAddRevive
     },
 
-    COUNTERWEIGHT("Counterweight", "-$COUNTERWEIGHT_REDUCTION damage taken, +${percent(COUNTERWEIGHT_BONUS)} dealt") {
+    COUNTERWEIGHT(
+        "Counterweight",
+        "-$COUNTERWEIGHT_REDUCTION damage taken, +${percent(COUNTERWEIGHT_BONUS)} dealt"
+    ) {
         override fun applyTo(loadout: PlayerLoadout) =
             loadout.counterweight(COUNTERWEIGHT_REDUCTION, COUNTERWEIGHT_BONUS)
 

@@ -7,7 +7,9 @@ class Pool<T>(private val factory: PoolObjectFactory<T>, private val maxSize: In
 
     private val freeObjects: MutableList<T> = ArrayList(maxSize)
     fun newObject(): T {
-        return if (freeObjects.isEmpty()) factory.createObject() else freeObjects.removeAt(freeObjects.size - 1)
+        return if (freeObjects.isEmpty()) factory.createObject() else freeObjects.removeAt(
+            freeObjects.size - 1
+        )
     }
 
     fun free(obj: T) {

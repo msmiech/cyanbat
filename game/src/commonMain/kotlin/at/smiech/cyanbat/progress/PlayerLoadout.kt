@@ -1,17 +1,17 @@
 package at.smiech.cyanbat.progress
 
 import at.smiech.cyanbat.util.ARMOR_FLOOR
-import at.smiech.cyanbat.util.MAX_FLAT_DAMAGE_REDUCTION
-import at.smiech.cyanbat.util.MAX_HEALTH_REGEN_PER_SECOND
-import at.smiech.cyanbat.util.MAX_REVIVES
-import at.smiech.cyanbat.util.MAX_SHOT_BOUNCE
-import at.smiech.cyanbat.util.MAX_SHOT_PIERCE
 import at.smiech.cyanbat.util.CRITICAL_CHANCE
 import at.smiech.cyanbat.util.CRITICAL_DAMAGE_MULTIPLIER
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.MAX_CRITICAL_CHANCE
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
+import at.smiech.cyanbat.util.MAX_FLAT_DAMAGE_REDUCTION
+import at.smiech.cyanbat.util.MAX_HEALTH_REGEN_PER_SECOND
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
+import at.smiech.cyanbat.util.MAX_REVIVES
+import at.smiech.cyanbat.util.MAX_SHOT_BOUNCE
+import at.smiech.cyanbat.util.MAX_SHOT_PIERCE
 import at.smiech.cyanbat.util.MIN_SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.PLAYER_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
@@ -108,7 +108,8 @@ class PlayerLoadout {
         private set
 
     fun quickenShots(factor: Float) {
-        shotIntervalSeconds = (shotIntervalSeconds * factor).coerceAtLeast(MIN_SHOT_INTERVAL_SECONDS)
+        shotIntervalSeconds =
+            (shotIntervalSeconds * factor).coerceAtLeast(MIN_SHOT_INTERVAL_SECONDS)
     }
 
     fun addShot() {
@@ -144,7 +145,8 @@ class PlayerLoadout {
     }
 
     fun addHealthRegen(perSecond: Float) {
-        healthRegenPerSecond = (healthRegenPerSecond + perSecond).coerceAtMost(MAX_HEALTH_REGEN_PER_SECOND)
+        healthRegenPerSecond =
+            (healthRegenPerSecond + perSecond).coerceAtMost(MAX_HEALTH_REGEN_PER_SECOND)
     }
 
     fun addExperienceBonus(fraction: Float) {
@@ -166,7 +168,8 @@ class PlayerLoadout {
      * pick for a player who means to stand and trade rather than dodge.
      */
     fun counterweight(damageReduction: Int, extraDamageFraction: Float) {
-        flatDamageReduction = (flatDamageReduction + damageReduction).coerceAtMost(MAX_FLAT_DAMAGE_REDUCTION)
+        flatDamageReduction =
+            (flatDamageReduction + damageReduction).coerceAtMost(MAX_FLAT_DAMAGE_REDUCTION)
         // Rounded up, so the smallest raise is still worth a point of damage rather than nothing.
         shotDamage += ceil(shotDamage * extraDamageFraction).toInt()
     }

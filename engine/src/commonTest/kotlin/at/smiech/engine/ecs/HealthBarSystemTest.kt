@@ -9,7 +9,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /** One rectangle the system asked for. */
-private data class DrawnRect(val x: Int, val y: Int, val width: Int, val height: Int, val color: Int)
+private data class DrawnRect(
+    val x: Int,
+    val y: Int,
+    val width: Int,
+    val height: Int,
+    val color: Int
+)
 
 private class RectRecordingGraphics : Graphics {
     val rects = mutableListOf<DrawnRect>()
@@ -18,7 +24,9 @@ private class RectRecordingGraphics : Graphics {
         rects += DrawnRect(x, y, width, height, color)
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) = throw UnsupportedOperationException()
+    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+        throw UnsupportedOperationException()
+
     override fun clear(color: Int) = Unit
     override fun drawPixel(x: Int, y: Int, color: Int) = Unit
     override fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int) = Unit

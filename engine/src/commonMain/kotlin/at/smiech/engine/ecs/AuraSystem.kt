@@ -3,6 +3,8 @@ package at.smiech.engine.ecs
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
+import at.smiech.engine.ecs.AuraSystem.Companion.BOLT_FLASH_SECONDS
+import at.smiech.engine.ecs.AuraSystem.Companion.SPARKS_PER_TIER
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.pow
@@ -51,7 +53,8 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
             // Wrapped rather than left to run: the phase drives sines and modulo cycles, and a
             // float that has grown large enough loses the precision they are read at.
             aura.phase = (aura.phase + deltaTime) % PHASE_WRAP_SECONDS
-            if (aura.surge > 0f) aura.surge = (aura.surge - deltaTime * SURGE_DECAY).coerceAtLeast(0f)
+            if (aura.surge > 0f) aura.surge =
+                (aura.surge - deltaTime * SURGE_DECAY).coerceAtLeast(0f)
         }
     }
 
@@ -63,8 +66,10 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
             if (healths[id]?.alive == false) return@forEach
 
             val rect = transforms.require(id).rect
-            val radiusX = rect.width * (HALO_BASE_X + HALO_GROWTH_X * aura.intensity) * swellOf(aura)
-            val radiusY = rect.height * (HALO_BASE_Y + HALO_GROWTH_Y * aura.intensity) * swellOf(aura)
+            val radiusX =
+                rect.width * (HALO_BASE_X + HALO_GROWTH_X * aura.intensity) * swellOf(aura)
+            val radiusY =
+                rect.height * (HALO_BASE_Y + HALO_GROWTH_Y * aura.intensity) * swellOf(aura)
 
             when (layer) {
                 Layer.HALO -> drawHalo(graphics, aura, rect.centerX, rect.centerY, radiusX, radiusY)
@@ -106,7 +111,7 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
             val inwards = ring / (HALO_RINGS - 1f)
             val scale = 1f - inwards * HALO_TAPER
             val alpha = HALO_PEAK_ALPHA * inwards.pow(HALO_FALLOFF) *
-                aura.intensity * (1f + aura.surge)
+                    aura.intensity * (1f + aura.surge)
             val color = EngineColors.withAlpha(
                 EngineColors.lerp(AURA_AMBER, AURA_GOLD, inwards),
                 alpha,
@@ -228,7 +233,11 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
                 val toY = centerY + sin(angle) * shellY * jitter
 
                 graphics.drawLine(
-                    fromX.roundToInt(), fromY.roundToInt(), toX.roundToInt(), toY.roundToInt(), color
+                    fromX.roundToInt(),
+                    fromY.roundToInt(),
+                    toX.roundToInt(),
+                    toY.roundToInt(),
+                    color
                 )
                 // A second line a pixel over, once the aura is fierce enough to deserve one. It is
                 // the only thickness available: the Graphics API draws hairlines and nothing else.

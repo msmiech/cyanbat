@@ -14,8 +14,8 @@ import at.smiech.cyanbat.util.AURA_SURGE_VOLUME
 import at.smiech.cyanbat.util.BANNER_CHAR_WIDTH
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_COUNT
-import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_SECONDS
+import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.DEATH_GRAVITY
 import at.smiech.cyanbat.util.DEATH_PUFF_INTERVAL_SECONDS
@@ -27,12 +27,12 @@ import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.cyanbat.util.LEVEL_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
+import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.POWER_UP_ARMING_SECONDS
 import at.smiech.cyanbat.util.POWER_UP_CARD_GAP
 import at.smiech.cyanbat.util.POWER_UP_CARD_HEIGHT
 import at.smiech.cyanbat.util.POWER_UP_CARD_TOP
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
-import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
@@ -50,6 +50,7 @@ import at.smiech.engine.GameButton
 import at.smiech.engine.Graphics
 import at.smiech.engine.Screen
 import at.smiech.engine.drawOutlinedString
+import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AnimationSystem
 import at.smiech.engine.ecs.AuraComponent
 import at.smiech.engine.ecs.AuraSystem
@@ -57,7 +58,6 @@ import at.smiech.engine.ecs.BounceSystem
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.CollisionSystem
-import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.DamageComponent
 import at.smiech.engine.ecs.DeathSystem
 import at.smiech.engine.ecs.DeathThroesComponent

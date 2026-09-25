@@ -79,6 +79,7 @@ private fun buttonOf(keyCode: Int): GameButton? = when (keyCode) {
     KeyEvent.KEYCODE_ESCAPE, KeyEvent.KEYCODE_P, KeyEvent.KEYCODE_BUTTON_START -> GameButton.PAUSE
     KeyEvent.KEYCODE_Q, KeyEvent.KEYCODE_BUTTON_B, KeyEvent.KEYCODE_BUTTON_SELECT ->
         GameButton.BACK
+
     KeyEvent.KEYCODE_ENTER, KeyEvent.KEYCODE_SPACE, KeyEvent.KEYCODE_DPAD_CENTER,
     KeyEvent.KEYCODE_BUTTON_A -> GameButton.CONFIRM
     // Both number rows from a keyboard. A pad has no numbers, so its shoulders take the second and

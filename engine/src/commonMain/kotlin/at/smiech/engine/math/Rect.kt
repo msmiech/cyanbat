@@ -39,11 +39,11 @@ data class Rect(
 
     companion object {
         val Empty = Rect()
-        
-        fun fromLTRB(left: Float, top: Float, right: Float, bottom: Float): Rect = 
+
+        fun fromLTRB(left: Float, top: Float, right: Float, bottom: Float): Rect =
             Rect(left, top, right, bottom)
-            
-        fun fromLTWH(left: Float, top: Float, width: Float, height: Float): Rect = 
+
+        fun fromLTWH(left: Float, top: Float, width: Float, height: Float): Rect =
             Rect(left, top, left + width, top + height)
     }
 }

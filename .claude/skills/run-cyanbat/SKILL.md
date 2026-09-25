@@ -99,7 +99,8 @@ so a green build says nothing about behavior. Verify on the emulator.
 
 ## Gotchas
 
-- **`CyanBatGameActivity` is not exported.** `am start -n at.smiech.cyanbat/.activity.CyanBatGameActivity`
+- **`CyanBatGameActivity` is not exported.**
+  `am start -n at.smiech.cyanbat/.activity.CyanBatGameActivity`
   fails with `SecurityException: Permission Denial ... not exported from uid`.
   Tapping "Start Game" on the menu is the only way in — which is why `start`
   goes through `uiautomator`.

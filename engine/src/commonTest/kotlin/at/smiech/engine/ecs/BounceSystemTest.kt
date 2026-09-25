@@ -28,9 +28,12 @@ class BounceSystemTest {
 
     private fun tick(times: Int = 1) = repeat(times) { world.update(0.019f, null) }
 
-    private fun velocityOf(id: EntityId) = world.getComponent(id, VelocityComponent::class)!!.velocity
+    private fun velocityOf(id: EntityId) =
+        world.getComponent(id, VelocityComponent::class)!!.velocity
+
     private fun rectOf(id: EntityId) = world.getComponent(id, TransformComponent::class)!!.rect
-    private fun bouncesLeft(id: EntityId) = world.getComponent(id, BounceComponent::class)!!.remaining
+    private fun bouncesLeft(id: EntityId) =
+        world.getComponent(id, BounceComponent::class)!!.remaining
 
     // region the reflections
 

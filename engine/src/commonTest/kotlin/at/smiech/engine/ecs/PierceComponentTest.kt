@@ -75,7 +75,11 @@ class PierceComponentTest {
 
         repeat(8) { frame ->
             if (!pierce.meet(targetId = 7)) pierce.spend()
-            assertEquals(2, pierce.remaining, "frame $frame spent a second pierce on the same enemy")
+            assertEquals(
+                2,
+                pierce.remaining,
+                "frame $frame spent a second pierce on the same enemy"
+            )
         }
 
         // And the next enemy along still takes one.

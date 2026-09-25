@@ -2,6 +2,8 @@ package at.smiech.engine.ecs
 
 import at.smiech.engine.Controls
 import at.smiech.engine.Input
+import at.smiech.engine.ecs.PlayerInputSystem.Companion.CATCH_UP_SPEED
+import at.smiech.engine.ecs.PlayerInputSystem.Companion.GRAB_PADDING
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
 import kotlin.math.max

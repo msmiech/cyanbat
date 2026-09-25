@@ -37,7 +37,7 @@ class ControlHandler : Controls {
 
     private fun digital(negative: Direction, positive: Direction): Float? {
         val value = (if (heldDirections[positive.ordinal]) 1f else 0f) -
-            (if (heldDirections[negative.ordinal]) 1f else 0f)
+                (if (heldDirections[negative.ordinal]) 1f else 0f)
         return if (value == 0f) null else value
     }
 

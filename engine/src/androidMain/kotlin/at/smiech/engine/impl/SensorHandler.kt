@@ -24,7 +24,11 @@ class SensorHandler(context: Context) : SensorEventListener {
     init {
         val sensorManager = context.getSystemService(Context.SENSOR_SERVICE) as SensorManager
         if (sensorManager.getSensorList(Sensor.TYPE_ACCELEROMETER).size > 0) {
-            sensorManager.registerListener(this, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER), SensorManager.SENSOR_DELAY_NORMAL)
+            sensorManager.registerListener(
+                this,
+                sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
+                SensorManager.SENSOR_DELAY_NORMAL
+            )
         }
     }
 }

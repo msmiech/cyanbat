@@ -8,9 +8,9 @@ import at.smiech.cyanbat.util.DAMAGE_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.DAMAGE_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_TEXT_RISE_PER_TICK
 import at.smiech.cyanbat.util.DESTRUCTIBLE_HIT_POINTS
+import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.HEALTH_BAR_HEIGHT
 import at.smiech.cyanbat.util.HEALTH_BAR_OFFSET_Y
-import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
@@ -118,10 +118,18 @@ class EntityFactory(private val world: World) {
         }
         world.addComponent(id, VelocityComponent(Vector2(speedX * speedMultiplier, 0f)))
 
-        world.addComponent(id, SpriteComponent(pixmap, baseSrcX = srcXOf(type), srcWidth = ENEMY_FRAME_WIDTH))
         world.addComponent(
             id,
-            AnimationComponent(ENEMY_FRAME_WIDTH, height.toInt(), ENEMY_FRAME_COUNT, ENEMY_FRAME_SECONDS)
+            SpriteComponent(pixmap, baseSrcX = srcXOf(type), srcWidth = ENEMY_FRAME_WIDTH)
+        )
+        world.addComponent(
+            id,
+            AnimationComponent(
+                ENEMY_FRAME_WIDTH,
+                height.toInt(),
+                ENEMY_FRAME_COUNT,
+                ENEMY_FRAME_SECONDS
+            )
         )
 
         val movementType = when (type) {
@@ -171,11 +179,21 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, VelocityComponent(Vector2.Zero))
         world.addComponent(
             id,
-            SpriteComponent(pixmap, baseSrcX = srcXOf(BOSS_ENEMY_TYPE), srcWidth = ENEMY_FRAME_WIDTH, scale = scale)
+            SpriteComponent(
+                pixmap,
+                baseSrcX = srcXOf(BOSS_ENEMY_TYPE),
+                srcWidth = ENEMY_FRAME_WIDTH,
+                scale = scale
+            )
         )
         world.addComponent(
             id,
-            AnimationComponent(ENEMY_FRAME_WIDTH, pixmap.height, ENEMY_FRAME_COUNT, ENEMY_FRAME_SECONDS)
+            AnimationComponent(
+                ENEMY_FRAME_WIDTH,
+                pixmap.height,
+                ENEMY_FRAME_COUNT,
+                ENEMY_FRAME_SECONDS
+            )
         )
         world.addComponent(id, EnemyBehaviorComponent(EnemyMovementType.BOSS, y, holdX = holdX))
         world.addComponent(
@@ -208,7 +226,14 @@ class EntityFactory(private val world: World) {
         val id = world.createEntity()
         world.addComponent(
             id,
-            TransformComponent(Rect.fromLTWH(x, 0f, pixmap.width.toFloat(), pixmap.height.toFloat()))
+            TransformComponent(
+                Rect.fromLTWH(
+                    x,
+                    0f,
+                    pixmap.width.toFloat(),
+                    pixmap.height.toFloat()
+                )
+            )
         )
         world.addComponent(id, VelocityComponent(Vector2(-2f, 0f)))
         world.addComponent(id, SpriteComponent(pixmap))
@@ -217,7 +242,7 @@ class EntityFactory(private val world: World) {
         world.addComponent(id, ZIndexComponent(-100))
         return id
     }
-    
+
     fun createObstacle(x: Float, y: Float, width: Float, height: Float, pixmap: Pixmap): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
@@ -275,7 +300,13 @@ class EntityFactory(private val world: World) {
                 srcWidth = SHOT_FRAME_WIDTH,
             )
         )
-        world.addComponent(id, CollisionComponent(2f, if (isPlayer) CollisionGroup.PLAYER_PROJECTILE else CollisionGroup.ENEMY_PROJECTILE))
+        world.addComponent(
+            id,
+            CollisionComponent(
+                2f,
+                if (isPlayer) CollisionGroup.PLAYER_PROJECTILE else CollisionGroup.ENEMY_PROJECTILE
+            )
+        )
         world.addComponent(id, HealthComponent(SHOT_HIT_POINTS))
         world.addComponent(id, DamageComponent(damage, isCritical = critical))
         world.addComponent(id, LifetimeComponent(true))
@@ -386,7 +417,14 @@ class EntityFactory(private val world: World) {
         val id = world.createEntity()
         world.addComponent(
             id,
-            TransformComponent(Rect.fromLTWH(centerX - width / 2f, centerY - height / 2f, width, height))
+            TransformComponent(
+                Rect.fromLTWH(
+                    centerX - width / 2f,
+                    centerY - height / 2f,
+                    width,
+                    height
+                )
+            )
         )
         world.addComponent(id, VelocityComponent(Vector2(-1f, 0f)))
         world.addComponent(id, SpriteComponent(pixmap, srcWidth = frameWidth, scale = scale))
