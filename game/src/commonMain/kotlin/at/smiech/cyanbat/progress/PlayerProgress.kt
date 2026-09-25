@@ -10,8 +10,8 @@ import at.smiech.cyanbat.util.XP_PER_KILL_PER_WAVE
 /**
  * The bat's experience over a single run, and the levels it buys.
  *
- * Not to be confused with [at.smiech.cyanbat.resource.Level], which is the stage being flown
- * through, or with the waves inside it. This is the player getting stronger; that is the cave
+ * Not to be confused with the [at.smiech.cyanbat.resource.Stage] being flown through, or with the
+ * waves inside it. This is the player getting stronger; that is the cave
  * getting harder. They are deliberately separate curves, because the whole point of the two is
  * that they race each other.
  *

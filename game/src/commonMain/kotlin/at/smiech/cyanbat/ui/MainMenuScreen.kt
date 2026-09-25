@@ -51,8 +51,8 @@ fun MainMenuScreen(
     viewModel: MainMenuViewModel,
     onNavigateToSettings: () -> Unit,
     onNavigateToCredits: () -> Unit,
-    onNavigateToLevelSelect: () -> Unit,
-    onStartGame: (levelId: Int) -> Unit,
+    onNavigateToStageSelect: () -> Unit,
+    onStartGame: (stageId: Int) -> Unit,
     onExit: () -> Unit,
 ) {
     val isMusicEnabled by viewModel.isMusicEnabled.collectAsState()
@@ -68,9 +68,9 @@ fun MainMenuScreen(
 
     MainMenuContent(
         onStartGameClicked = {
-            // Straight into the cave until there is a second level to choose; see LevelSelectScreen.
+            // Straight into the cave until there is a second stage to choose; see StageSelectScreen.
             if (highestUnlocked > 1) {
-                onNavigateToLevelSelect()
+                onNavigateToStageSelect()
             } else {
                 viewModel.stopMusic()
                 onStartGame(1)

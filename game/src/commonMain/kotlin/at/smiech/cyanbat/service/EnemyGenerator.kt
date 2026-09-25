@@ -23,21 +23,21 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /**
- * Runs a level's enemies against its clock.
+ * Runs a stage's enemies against its clock.
  *
  * The generator owns nothing but the clock and the dice: what to spawn at a given second is
- * [LevelProgression]'s answer, and this turns that answer into entities. Keeping the two apart is
+ * [StageProgression]'s answer, and this turns that answer into entities. Keeping the two apart is
  * what lets the whole difficulty curve be tested without a running game.
  *
  * Time is accumulated from the caller's fixed tick rather than read off a wall clock, which is
- * what makes a paused game a paused level - the old generator slept on a coroutine and went on
+ * what makes a paused game a paused stage - the old generator slept on a coroutine and went on
  * counting down while the player was away from the controls.
  *
- * @param enemyPixmap the level's enemy sheet, which every species of that level is drawn from.
- * @param bossPixmap the sheet of a boss drawn at its own size, for the levels that have one.
- * @param onWaveChanged fired with the new wave whenever the level crosses a minute boundary, so
+ * @param enemyPixmap the stage's enemy sheet, which every species of that stage is drawn from.
+ * @param bossPixmap the sheet of a boss drawn at its own size, for the stages that have one.
+ * @param onWaveChanged fired with the new wave whenever the stage crosses a minute boundary, so
  *   the screen can announce it. Not fired for the opening wave, which needs no announcing.
- * @param onBossSpawned fired once, with the boss entity, when the level's boss arrives.
+ * @param onBossSpawned fired once, with the boss entity, when the stage's boss arrives.
  * @param onBossPhaseChanged fired when a boss with phases enters a new one.
  */
 class EnemyGenerator(
@@ -45,7 +45,7 @@ class EnemyGenerator(
     private val worldHeight: Int,
     private val factory: EntityFactory,
     private val enemyPixmap: Pixmap,
-    private var progression: LevelProgression,
+    private var progression: StageProgression,
     private val random: Random = Random.Default,
     private val onWaveChanged: (EnemyWave) -> Unit = {},
     private val onBossSpawned: (EntityId) -> Unit = {},
@@ -54,14 +54,14 @@ class EnemyGenerator(
 ) {
     private val realEnemyHeight = enemyPixmap.height
 
-    /** Seconds of play into the current level. Everything else is derived from it. */
+    /** Seconds of play into the current stage. Everything else is derived from it. */
     var elapsedSeconds = 0f
         private set
 
     var currentWave: EnemyWave = progression.waveAt(0f)
         private set
 
-    /** The level's boss, once it has arrived. Null until then, and after it has been destroyed. */
+    /** The stage's boss, once it has arrived. Null until then, and after it has been destroyed. */
     var bossId: EntityId? = null
         private set
 
@@ -75,7 +75,7 @@ class EnemyGenerator(
     private var timeUntilNextSpawn = progression.nextSpawnDelay(0f, random)
 
     /**
-     * Advances the level clock by one tick and spawns whatever has come due.
+     * Advances the stage clock by one tick and spawns whatever has come due.
      *
      * Ordinary enemies stop the moment the boss is due: the boss is a duel, and a screen still
      * filling with escorts turns it into an ambush the player cannot read. What a boss calls in
@@ -110,8 +110,8 @@ class EnemyGenerator(
         bossBrain = null
     }
 
-    /** Restarts the clock on a new level, so its first minute opens as gently as level 1's did. */
-    fun startLevel(progression: LevelProgression) {
+    /** Restarts the clock on a new stage, so its first minute opens as gently as stage 1's did. */
+    fun startStage(progression: StageProgression) {
         this.progression = progression
         elapsedSeconds = 0f
         currentWave = progression.waveAt(0f)
@@ -189,7 +189,7 @@ class EnemyGenerator(
     /**
      * One enemy of [species] at [wave]'s strength, with whatever shield and gun the dice give it.
      *
-     * Dice are only rolled for what a species can actually have, so a level whose enemies never
+     * Dice are only rolled for what a species can actually have, so a stage whose enemies never
      * carry shields or guns - the cave - draws exactly the numbers it always did.
      */
     private fun spawn(
@@ -282,7 +282,7 @@ class EnemyGenerator(
     }
 
     /**
-     * A swarm the boss has called in: the same wasps as the level's own, at the strength of the
+     * A swarm the boss has called in: the same wasps as the stage's own, at the strength of the
      * wave that escorted her in, arriving from the edge in a lane away from the middle - she holds
      * the middle, and a swarm spawned inside her would be a swarm the player never saw arrive.
      */

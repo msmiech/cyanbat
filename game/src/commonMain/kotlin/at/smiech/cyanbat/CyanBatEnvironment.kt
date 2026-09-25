@@ -14,8 +14,8 @@ class CyanBatEnvironment(
     val assets: GameAssets,
     val haptics: Haptics,
     val highscores: HighscoreStore,
-    /** Which levels are open; clearing one opens the next. */
-    val levelUnlocks: LevelUnlockStore,
+    /** Which stages are open; clearing one opens the next. */
+    val stageUnlocks: StageUnlockStore,
     /** Leave the game and go back to the menu. */
     val onExitToMenu: () -> Unit,
     /** Consulted each time a track or effect would start, so the settings actually apply. */

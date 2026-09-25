@@ -10,13 +10,13 @@ import at.smiech.engine.Graphics as EngineGraphics
 data class GameAssets(
     var graphics: Graphics,
     var audio: Audio,
-    var levels: List<Level> = emptyList()
+    var stages: List<Stage> = emptyList()
 ) {
-    /** The level with this id, or the first one for an id nothing is registered under. */
-    fun level(id: Int): Level = levels.firstOrNull { it.id == id } ?: levels.first()
+    /** The stage with this id, or the first one for an id nothing is registered under. */
+    fun stage(id: Int): Stage = stages.firstOrNull { it.id == id } ?: stages.first()
 
-    /** Whether a level follows [id], and so whether clearing it has anything to unlock. */
-    fun hasLevelAfter(id: Int): Boolean = levels.any { it.id == id + 1 }
+    /** Whether a stage follows [id], and so whether clearing it has anything to unlock. */
+    fun hasStageAfter(id: Int): Boolean = stages.any { it.id == id + 1 }
 
     data class Graphics(
         var bat: Pixmap,
@@ -44,12 +44,12 @@ data class GameAssets(
          * [EngineAudio] it is handed.
          *
          * Shared, because the Android activity and the desktop window used to carry a copy each,
-         * and a level added to one of them would have been missing from the other.
+         * and a stage added to one of them would have been missing from the other.
          */
         fun load(g: EngineGraphics, a: EngineAudio): GameAssets {
             fun pixmap(name: String) = g.newPixmap(name, PixmapFormat.ARGB8888)
 
-            // One track for both levels: there is only the one game theme, and sharing the object
+            // One track for both stages: there is only the one game theme, and sharing the object
             // rather than loading it twice keeps a single player to stop and start.
             val theme = a.newMusic("game_theme.mp3")
 
@@ -68,10 +68,10 @@ data class GameAssets(
                     auraSurgeSound = a.newSound("auraSurge.wav"),
                     shotSound = a.newSound("shotFire.wav"),
                 ),
-                levels = listOf(
-                    Level(
+                stages = listOf(
+                    Stage(
                         id = 1,
-                        name = "Level 1: The Cave",
+                        name = "Stage 1: The Cave",
                         background = pixmap("background.png"),
                         topObstacles = arrayOf(pixmap("topObstacle1.png"), pixmap("topObstacle2.png")),
                         bottomObstacles = arrayOf(
@@ -81,9 +81,9 @@ data class GameAssets(
                         music = theme,
                         enemySheet = pixmap("enemies.png"),
                     ),
-                    Level(
+                    Stage(
                         id = 2,
-                        name = "Level 2: The Forest",
+                        name = "Stage 2: The Forest",
                         background = pixmap("forestBackground.png"),
                         topObstacles = arrayOf(
                             pixmap("forestTopObstacle1.png"),

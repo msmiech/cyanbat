@@ -4,7 +4,7 @@ import android.content.Intent
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
-import at.smiech.cyanbat.data.DataStoreLevelUnlockStore
+import at.smiech.cyanbat.data.DataStoreStageUnlockStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.dataStore
@@ -25,7 +25,7 @@ import kotlinx.coroutines.cancel
  */
 class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen
-        get() = GameScreen(this, buildEnvironment(), intent.getIntExtra(EXTRA_LEVEL_ID, 1))
+        get() = GameScreen(this, buildEnvironment(), intent.getIntExtra(EXTRA_STAGE_ID, 1))
 
     /** Feeds the live audio settings; canceled with the activity. */
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -37,7 +37,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
         assets = loadAssets(),
         haptics = AndroidHaptics(this),
         highscores = DataStoreHighscoreStore(dataStore),
-        levelUnlocks = DataStoreLevelUnlockStore(dataStore),
+        stageUnlocks = DataStoreStageUnlockStore(dataStore),
         onExitToMenu = {
             // CLEAR_TOP replaces the menu this game was started from instead of stacking a second
             // one on top of it. Without it every run left another menu behind, each one more press
@@ -64,7 +64,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
     )
 
     companion object {
-        /** Which level the run starts on, 1-based; see [GameScreen]. Level 1 when absent. */
-        const val EXTRA_LEVEL_ID = "at.smiech.cyanbat.LEVEL_ID"
+        /** Which stage the run starts on, 1-based; see [GameScreen]. Stage 1 when absent. */
+        const val EXTRA_STAGE_ID = "at.smiech.cyanbat.STAGE_ID"
     }
 }

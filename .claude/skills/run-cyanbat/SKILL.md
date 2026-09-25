@@ -152,15 +152,15 @@ so a green build says nothing about behavior. Verify on the emulator.
   `1080x2400`. The app is locked to landscape; `uiautomator` bounds are already in
   the rotated frame, so they match `input tap` directly.
 
-- **Once level 1 has been cleared, Start Game opens the level select.** The unlock is
-  persisted (DataStore key `highest_level_unlocked`), so on a device that has ever beaten the
-  cave, `start` lands on the level select rather than in a run - follow it with
-  `tap "Level 1: The Cave"` or `tap "Level 2: The Forest"`. `adb shell pm clear at.smiech.cyanbat`
-  resets it (and the highscore). The level is handed to the game activity as the
-  `at.smiech.cyanbat.LEVEL_ID` extra.
+- **Once stage 1 has been cleared, Start Game opens the stage select.** The unlock is
+  persisted (DataStore key `highest_stage_unlocked`), so on a device that has ever beaten the
+  cave, `start` lands on the stage select rather than in a run - follow it with
+  `tap "Stage 1: The Cave"` or `tap "Stage 2: The Forest"`. `adb shell pm clear at.smiech.cyanbat`
+  resets it (and the highscore). The stage is handed to the game activity as the
+  `at.smiech.cyanbat.STAGE_ID` extra.
 
-- **Level 2 cannot be reached quickly by playing.** It opens only after level 1's boss, five
-  minutes in. To look at the forest, unlock it (clear level 1 once) and pick it from the level
+- **Stage 2 cannot be reached quickly by playing.** It opens only after stage 1's boss, five
+  minutes in. To look at the forest, unlock it (clear stage 1 once) and pick it from the stage
   select; there is no debug shortcut.
 
 - **Menu navigation does not change the foreground activity.** Settings and Credits

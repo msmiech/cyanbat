@@ -27,7 +27,7 @@ import wave
 SAMPLE_RATE = 22050
 DURATION = 0.85
 
-# Well under the death sound and the level theme. This fires on a beat that already has a banner
+# Well under the death sound and the stage theme. This fires on a beat that already has a banner
 # and a power-up dialog on it, so it is meant to be felt more than heard.
 PEAK = 0.22
 
