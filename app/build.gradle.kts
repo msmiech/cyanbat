@@ -143,6 +143,7 @@ abstract class StageComposeResources : DefaultTask() {
 }
 
 val stageSharedComposeResources = tasks.register<StageComposeResources>("stageSharedComposeResources") {
+    description = "Staging shared compose resources"
     dependsOn(":game:prepareComposeResourcesTaskForCommonMain")
     sourceDir.set(
         project(":game").layout.buildDirectory
