@@ -59,27 +59,46 @@ class SpriteSheetTest {
      */
     @Test
     fun `no frame of the explosion is empty`() {
-        val image = javaClass.getResourceAsStream("/explosion.png")!!.use { ImageIO.read(it) }
-        for (frame in 0 until 8) {
+        assertNoBlankFrames("explosion.png", frameWidth = 32, frames = 8)
+    }
+
+    /** Every creature on the forest's sheet, and every beat of the Moth Queen's wings. */
+    @Test
+    fun `no frame of the forest's creatures is empty`() {
+        assertNoBlankFrames("forestEnemies.png", frameWidth = 32, frames = 4 * 5)
+        assertNoBlankFrames("forestBoss.png", frameWidth = 96, frames = 4)
+    }
+
+    private fun assertNoBlankFrames(name: String, frameWidth: Int, frames: Int) {
+        val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
+        for (frame in 0 until frames) {
             var opaque = 0
             for (y in 0 until image.height) {
-                for (x in frame * 32 until (frame + 1) * 32) {
+                for (x in frame * frameWidth until (frame + 1) * frameWidth) {
                     if ((image.getRGB(x, y) ushr 24) != 0) opaque++
                 }
             }
-            assertTrue(opaque > 0, "frame $frame of the explosion is blank")
+            assertTrue(opaque > 0, "frame $frame of $name is blank")
         }
     }
 
-    /** Four colorways of one 24x12 bolt: the player's, then one per enemy type. */
+    /**
+     * Seven colorways of one 24x12 bolt: the player's, one per cave enemy type, then the forest's
+     * spitter, wisp and Moth Queen; see `EnemySpecies.shotVariant`.
+     */
     @Test
     fun `the shot sheet holds a colorway per shooter`() {
-        assertEquals(24 * 4 to 12, sizeOf("shot.png"))
+        assertEquals(24 * 7 to 12, sizeOf("shot.png"))
     }
 
     @Test
     fun `the cave strip is three framebuffers wide`() {
         assertEquals(480 * 3 to 320, sizeOf("background.png"))
+    }
+
+    @Test
+    fun `the forest strip is three framebuffers wide`() {
+        assertEquals(480 * 3 to 320, sizeOf("forestBackground.png"))
     }
 
     /**
@@ -93,7 +112,17 @@ class SpriteSheetTest {
      */
     @Test
     fun `the cave strip meets itself`() {
-        val image = javaClass.getResourceAsStream("/background.png")!!.use { ImageIO.read(it) }
+        assertTiles("background.png")
+    }
+
+    /** The same claim for the forest, whose trunks and branches wrap round the seam as well. */
+    @Test
+    fun `the forest strip meets itself`() {
+        assertTiles("forestBackground.png")
+    }
+
+    private fun assertTiles(name: String) {
+        val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
 
         fun step(left: Int, right: Int) = (0 until image.height).sumOf { y ->
             val a = image.getRGB(left, y)
@@ -110,7 +139,7 @@ class SpriteSheetTest {
 
         assertTrue(
             seam <= typical * 4 + 1,
-            "the strip does not tile: edge step $seam against a typical $typical",
+            "$name does not tile: edge step $seam against a typical $typical",
         )
     }
 
@@ -118,6 +147,21 @@ class SpriteSheetTest {
     @Test
     fun `the enemy sheet holds three strips of four frames`() {
         assertEquals(32 * 4 * 3 to 29, sizeOf("enemies.png"))
+    }
+
+    /**
+     * Five types of four 32x29 frames, the same frame as the cave's so `EnemyGenerator` can size
+     * every enemy off either sheet the same way; see `EnemySpecies.strip`.
+     */
+    @Test
+    fun `the forest's enemy sheet holds five strips of four frames`() {
+        assertEquals(32 * 4 * 5 to 29, sizeOf("forestEnemies.png"))
+    }
+
+    /** Four 96x80 frames; see `MOTH_QUEEN_FRAME_WIDTH`. */
+    @Test
+    fun `the Moth Queen's sheet holds four frames`() {
+        assertEquals(96 * 4 to 80, sizeOf("forestBoss.png"))
     }
 
     /**
@@ -132,6 +176,15 @@ class SpriteSheetTest {
         assertEquals(38 to 57, sizeOf("topObstacle2.png"))
         assertEquals(76 to 50, sizeOf("bottomObstacle1.png"))
         assertEquals(96 to 54, sizeOf("bottomObstacle2.png"))
+    }
+
+    /** The forest keeps the cave's footprints, so its scenery is exactly as hard to fly through. */
+    @Test
+    fun `the forest's obstacles keep the cave's footprints`() {
+        assertEquals(41 to 46, sizeOf("forestTopObstacle1.png"))
+        assertEquals(38 to 57, sizeOf("forestTopObstacle2.png"))
+        assertEquals(76 to 50, sizeOf("forestBottomObstacle1.png"))
+        assertEquals(96 to 54, sizeOf("forestBottomObstacle2.png"))
     }
 
     /**
@@ -153,6 +206,13 @@ class SpriteSheetTest {
             "topObstacle2.png",
             "bottomObstacle1.png",
             "bottomObstacle2.png",
+            "forestEnemies.png",
+            "forestBoss.png",
+            "forestBackground.png",
+            "forestTopObstacle1.png",
+            "forestTopObstacle2.png",
+            "forestBottomObstacle1.png",
+            "forestBottomObstacle2.png",
         )) {
             val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
             val colors = buildSet {
@@ -168,7 +228,10 @@ class SpriteSheetTest {
     }
 
     private companion object {
-        /** Comfortably above the largest palette in `tools/`, and far below a resized photograph. */
-        const val MAX_COLORS = 32
+        /**
+         * Above the largest palette in `tools/` - the forest's enemy sheet, which carries five
+         * creatures' ramps at about three dozen colors - and far below a resized photograph.
+         */
+        const val MAX_COLORS = 48
     }
 }

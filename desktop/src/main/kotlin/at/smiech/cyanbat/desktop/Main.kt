@@ -12,11 +12,9 @@ import androidx.compose.ui.window.application
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.resource.GameAssets
-import at.smiech.cyanbat.resource.Level
 import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost
 import at.smiech.cyanbat.ui.game.GameScreen
-import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Haptics
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopAudio
@@ -50,8 +48,12 @@ fun main() = application {
  */
 @Composable
 private fun CyanBatApp(controls: ControlHandler) {
-    var playing by remember { mutableStateOf(false) }
+    // The level being played, or null while the menu is up.
+    var playingLevel by remember { mutableStateOf<Int?>(null) }
     val settings = remember { PreferencesSettingsRepository() }
+    // One instance for the menu and every run, so the menu sees a level unlock the moment the run
+    // that earned it records it; see PreferencesLevelUnlockStore.
+    val levelUnlocks = remember { PreferencesLevelUnlockStore() }
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
     // The menu outlives any single game instance, so it owns its own Audio.
@@ -63,20 +65,22 @@ private fun CyanBatApp(controls: ControlHandler) {
     // first one.
     val menuMusic = remember { menuAudio.newMusic("menu_theme.mp3") }
 
-    if (playing) {
+    val level = playingLevel
+    if (level != null) {
         val game = remember {
             DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, controls).also { game ->
                 val env = CyanBatEnvironment(
-                    assets = loadAssets(game),
+                    assets = GameAssets.load(game.graphics, game.audio),
                     haptics = Haptics.None,
                     highscores = PreferencesHighscoreStore(),
+                    levelUnlocks = levelUnlocks,
                     onExitToMenu = {
                         controls.releaseAll()
-                        playing = false
+                        playingLevel = null
                     },
                     audioSettings = audioSettings,
                 )
-                game.setScreen(GameScreen(game, env))
+                game.setScreen(GameScreen(game, env, level))
             }
         }
         // A run owns its screen and its audio, and neither is needed once the player is back in
@@ -96,53 +100,15 @@ private fun CyanBatApp(controls: ControlHandler) {
             MenuHost(
                 settings = settings,
                 menuMusic = menuMusic,
+                levelUnlocks = levelUnlocks,
                 // The handler spans the menu too, so an Escape pressed here would otherwise be
                 // waiting to pause the run the moment it starts.
-                onStartGame = {
+                onStartGame = { id ->
                     controls.releaseAll()
-                    playing = true
+                    playingLevel = id
                 },
                 onExit = { exitProcess(0) },
             )
         )
     }
-}
-
-/** Desktop counterpart of CyanBatGameActivity.loadAssets. */
-private fun loadAssets(game: DesktopGame): GameAssets {
-    val g = game.graphics
-    val a = game.audio
-    return GameAssets(
-        graphics = GameAssets.Graphics(
-            bat = g.newPixmap("cyanBat.png", PixmapFormat.ARGB8888),
-            gameOver = g.newPixmap("gameover.png", PixmapFormat.ARGB8888),
-            batDeath = g.newPixmap("cyanBatDeath.png", PixmapFormat.ARGB8888),
-            enemy = g.newPixmap("enemies.png", PixmapFormat.ARGB8888),
-            explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888),
-            shatter = g.newPixmap("shatter.png", PixmapFormat.ARGB8888),
-            shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888),
-        ),
-        audio = GameAssets.Audio(
-            gameOverMusic = a.newMusic("game_over.mp3"),
-            deathSound = a.newSound("deathSound.mp3"),
-            auraSurgeSound = a.newSound("auraSurge.wav"),
-            shotSound = a.newSound("shotFire.wav"),
-        ),
-        levels = listOf(
-            Level(
-                id = 1,
-                name = "Level 1: The Cave",
-                background = g.newPixmap("background.png", PixmapFormat.ARGB8888),
-                topObstacles = arrayOf(
-                    g.newPixmap("topObstacle1.png", PixmapFormat.ARGB8888),
-                    g.newPixmap("topObstacle2.png", PixmapFormat.ARGB8888),
-                ),
-                bottomObstacles = arrayOf(
-                    g.newPixmap("bottomObstacle1.png", PixmapFormat.ARGB8888),
-                    g.newPixmap("bottomObstacle2.png", PixmapFormat.ARGB8888),
-                ),
-                music = a.newMusic("game_theme.mp3"),
-            ),
-        ),
-    )
 }

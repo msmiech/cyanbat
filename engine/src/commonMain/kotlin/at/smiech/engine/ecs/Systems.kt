@@ -4,10 +4,13 @@ import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.drawOutlinedString
+import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
 import kotlin.math.atan2
+import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * System that moves entities based on their velocity.
@@ -42,27 +45,105 @@ private const val BOSS_WEAVE_AMPLITUDE = 60f
 private const val BOSS_WEAVE_FREQUENCY = 0.9f
 private const val BOSS_WEAVE_TRACKING = 0.06f
 
+/** A swarm's shared path: a slow, wide sway the whole flock follows. */
+private const val SWARM_SWAY_AMPLITUDE = 42f
+private const val SWARM_SWAY_FREQUENCY = 1.7f
+
+/** Each member's buzz about its place in the flock: small, fast, and never in step with the rest. */
+private const val SWARM_BUZZ_RADIUS = 6f
+private const val SWARM_BUZZ_FREQUENCY = 7f
+private const val SWARM_BUZZ_DRIFT = 0.45f
+private const val SWARM_TRACKING = 0.2f
+
+/** A surge: how fast the lurches come, and how much of its speed it keeps between them. */
+private const val SURGE_FREQUENCY = 2.4f
+private const val SURGE_FLOOR = 0.3f
+private const val SURGE_GAIN = 1.4f
+
+/**
+ * A hover: how long it hangs on station, how quickly its lane drifts toward the player's - slow,
+ * so it tracks a player who sits still and loses one who keeps moving - and how it bobs there.
+ */
+private const val HOVER_SECONDS = 5f
+private const val HOVER_LANE_DRIFT = 0.35f
+private const val HOVER_BOB = 10f
+private const val HOVER_LEAVE_FACTOR = 1.3f
+
+/**
+ * A dive: how long the tell lasts - the moment it checks its swing and backs off a little, which
+ * is the player's warning - and how fast it comes once committed. Its closing speed never drops
+ * below [DIVE_MIN_CLOSING], so a player who has slipped behind it cannot make it fly backwards.
+ */
+private const val DIVE_TELL_SECONDS = 0.45f
+private const val DIVE_TELL_BACKOFF = 0.4f
+private const val DIVE_SPEED = 3.4f
+private const val DIVE_MIN_CLOSING = 1.2f
+
+/** A formation's path: a wide sweep, with the whole shape surging forward and easing off in time. */
+private const val FORMATION_AMPLITUDE = 36f
+private const val FORMATION_FREQUENCY = 1.3f
+private const val FORMATION_SURGE = 0.7f
+private const val FORMATION_TRACKING = 0.15f
+
+/** The figure eight a [EnemyMovementType.BOSS_FIGURE_EIGHT] traces on station, and how it chases it. */
+private const val FIGURE_EIGHT_X = 36f
+private const val FIGURE_EIGHT_Y = 64f
+private const val FIGURE_EIGHT_FREQUENCY = 0.7f
+private const val FIGURE_EIGHT_TRACKING = 0.06f
+
+/** Stages of the patterns that have them; see [EnemyBehaviorComponent.state]. */
+private const val STAGE_APPROACH = 0
+private const val STAGE_HOLD = 1
+private const val STAGE_COMMITTED = 2
+
 /**
  * System that handles enemy movement patterns.
+ *
+ * Some patterns aim at the player, so it looks the player up once per update: the first living
+ * entity carrying a [PlayerControlComponent]. With none - a test world, or a bat already dead -
+ * those patterns fly on as if nobody were there.
  */
 class EnemyBehaviorSystem : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var velocities: ComponentMapper<VelocityComponent>
     private lateinit var behaviors: ComponentMapper<EnemyBehaviorComponent>
+    private lateinit var players: ComponentMapper<PlayerControlComponent>
+    private lateinit var healths: ComponentMapper<HealthComponent>
+
+    /** The player's center this update, or NaN when there is no living player to aim at. */
+    private var targetX = Float.NaN
+    private var targetY = Float.NaN
 
     override fun onAttach(world: World) {
         transforms = world.mapper(TransformComponent::class)
         velocities = world.mapper(VelocityComponent::class)
         behaviors = world.mapper(EnemyBehaviorComponent::class)
+        players = world.mapper(PlayerControlComponent::class)
+        healths = world.mapper(HealthComponent::class)
+    }
+
+    private fun findTarget(world: World) {
+        targetX = Float.NaN
+        targetY = Float.NaN
+        world.forEach(transforms, players) { id ->
+            if (!targetX.isNaN()) return@forEach
+            if (healths[id]?.alive == false) return@forEach
+            val rect = transforms.require(id).rect
+            targetX = rect.centerX
+            targetY = rect.centerY
+        }
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
+        findTarget(world)
+
         world.forEach(transforms, velocities, behaviors) { id ->
             val transform = transforms.require(id)
             val velocity = velocities.require(id)
             val behavior = behaviors.require(id)
 
-            behavior.elapsedTime += deltaTime
+            behavior.elapsedTime += deltaTime * behavior.tempo
+            behavior.stateTime += deltaTime
 
             when (behavior.type) {
                 EnemyMovementType.SCOUT -> {
@@ -102,8 +183,256 @@ class EnemyBehaviorSystem : GameSystem() {
                         y = (targetY - transform.rect.top) * BOSS_WEAVE_TRACKING,
                     )
                 }
+
+                EnemyMovementType.SWARM -> swarm(transform, velocity, behavior)
+                EnemyMovementType.SURGE -> surge(velocity, behavior)
+                EnemyMovementType.HOVER -> hover(transform, velocity, behavior)
+                EnemyMovementType.DIVE -> dive(transform, velocity, behavior)
+                EnemyMovementType.FORMATION -> formation(transform, velocity, behavior)
+                EnemyMovementType.BOSS_FIGURE_EIGHT -> figureEight(transform, velocity, behavior)
             }
         }
+    }
+
+    private fun swarm(
+        transform: TransformComponent,
+        velocity: VelocityComponent,
+        behavior: EnemyBehaviorComponent,
+    ) {
+        val t = behavior.elapsedTime
+        val buzz = t * SWARM_BUZZ_FREQUENCY + behavior.phase
+        val targetY = behavior.initialY + behavior.offsetY +
+                sin(t * SWARM_SWAY_FREQUENCY) * SWARM_SWAY_AMPLITUDE +
+                sin(buzz) * SWARM_BUZZ_RADIUS
+        velocity.velocity = Vector2(
+            x = behavior.baseSpeedX + cos(buzz) * SWARM_BUZZ_DRIFT,
+            y = (targetY - transform.rect.top) * SWARM_TRACKING,
+        )
+    }
+
+    private fun surge(velocity: VelocityComponent, behavior: EnemyBehaviorComponent) {
+        val t = behavior.elapsedTime * SURGE_FREQUENCY + behavior.phase
+        val thrust = SURGE_FLOOR + SURGE_GAIN * sin(t).coerceAtLeast(0f)
+        velocity.velocity = Vector2(
+            x = behavior.baseSpeedX * thrust,
+            // A heavy bob in time with the surges: it dips as it lunges.
+            y = cos(t) * 0.35f,
+        )
+    }
+
+    private fun hover(
+        transform: TransformComponent,
+        velocity: VelocityComponent,
+        behavior: EnemyBehaviorComponent,
+    ) {
+        val rect = transform.rect
+        when (behavior.state) {
+            STAGE_APPROACH -> if (rect.left <= behavior.holdX) enter(behavior, STAGE_HOLD)
+            STAGE_HOLD -> if (behavior.stateTime >= HOVER_SECONDS) enter(behavior, STAGE_COMMITTED)
+        }
+
+        if (behavior.state == STAGE_HOLD && !targetY.isNaN()) {
+            // The lane creeps toward the player's, capped per tick, so a hoverer lines up on a
+            // player who sits still and loses one who keeps moving.
+            val wanted = targetY - rect.height / 2f
+            behavior.initialY += (wanted - behavior.initialY)
+                .coerceIn(-HOVER_LANE_DRIFT, HOVER_LANE_DRIFT)
+        }
+
+        val bobY = behavior.initialY + sin(behavior.elapsedTime * 2.2f + behavior.phase) * HOVER_BOB
+        velocity.velocity = Vector2(
+            x = when (behavior.state) {
+                STAGE_APPROACH -> behavior.baseSpeedX
+                STAGE_HOLD -> 0f
+                else -> behavior.baseSpeedX * HOVER_LEAVE_FACTOR
+            },
+            y = (bobY - rect.top) * 0.08f,
+        )
+    }
+
+    private fun dive(
+        transform: TransformComponent,
+        velocity: VelocityComponent,
+        behavior: EnemyBehaviorComponent,
+    ) {
+        val rect = transform.rect
+        // Checked first, so the tell starts on the very tick it reaches its station.
+        if (behavior.state == STAGE_APPROACH && rect.left <= behavior.holdX) enter(behavior, STAGE_HOLD)
+
+        when (behavior.state) {
+            STAGE_APPROACH -> velocity.velocity = Vector2(
+                behavior.baseSpeedX,
+                sin(behavior.elapsedTime * 3f + behavior.phase) * 0.4f,
+            )
+
+            STAGE_HOLD -> {
+                // The tell: it checks its swing and drifts back a touch before it commits.
+                velocity.velocity = Vector2(DIVE_TELL_BACKOFF, 0f)
+                if (behavior.stateTime >= DIVE_TELL_SECONDS) {
+                    enter(behavior, STAGE_COMMITTED)
+                    velocity.velocity = diveHeading(rect)
+                }
+            }
+
+            // Committed: the heading was set once, on the way in, and is left alone. A dive that
+            // kept steering would be a homing missile, which nothing can dodge.
+        }
+    }
+
+    /** Straight at the player's center, at [DIVE_SPEED], never closing slower than [DIVE_MIN_CLOSING]. */
+    private fun diveHeading(rect: Rect): Vector2 {
+        if (targetX.isNaN()) return Vector2(-DIVE_SPEED, 0f)
+        val dx = targetX - rect.centerX
+        val dy = targetY - rect.centerY
+        val length = sqrt(dx * dx + dy * dy)
+        if (length < 1f) return Vector2(-DIVE_SPEED, 0f)
+        val vx = (dx / length * DIVE_SPEED).coerceAtMost(-DIVE_MIN_CLOSING)
+        val vy = dy / length * DIVE_SPEED
+        return Vector2(vx, vy)
+    }
+
+    private fun formation(
+        transform: TransformComponent,
+        velocity: VelocityComponent,
+        behavior: EnemyBehaviorComponent,
+    ) {
+        val t = behavior.elapsedTime * FORMATION_FREQUENCY
+        val targetY = behavior.initialY + behavior.offsetY + sin(t) * FORMATION_AMPLITUDE
+        velocity.velocity = Vector2(
+            x = behavior.baseSpeedX + cos(t) * FORMATION_SURGE,
+            y = (targetY - transform.rect.top) * FORMATION_TRACKING,
+        )
+    }
+
+    private fun figureEight(
+        transform: TransformComponent,
+        velocity: VelocityComponent,
+        behavior: EnemyBehaviorComponent,
+    ) {
+        val rect = transform.rect
+        val t = behavior.elapsedTime * FIGURE_EIGHT_FREQUENCY
+        if (behavior.state == STAGE_APPROACH) {
+            if (rect.left <= behavior.holdX) {
+                enter(behavior, STAGE_HOLD)
+            } else {
+                // Enters the way the cave's boss does, weaving as it closes.
+                val weaveY = behavior.initialY + sin(behavior.elapsedTime * BOSS_WEAVE_FREQUENCY) * BOSS_WEAVE_AMPLITUDE
+                velocity.velocity = Vector2(BOSS_APPROACH_SPEED, (weaveY - rect.top) * BOSS_WEAVE_TRACKING)
+                return
+            }
+        }
+        // Across at one frequency and up and down at twice it: a figure eight lying on its side.
+        val targetX = behavior.holdX + sin(t) * FIGURE_EIGHT_X
+        val targetY = behavior.initialY + sin(t * 2f) * FIGURE_EIGHT_Y
+        velocity.velocity = Vector2(
+            x = (targetX - rect.left) * FIGURE_EIGHT_TRACKING * behavior.tempo,
+            y = (targetY - rect.top) * FIGURE_EIGHT_TRACKING * behavior.tempo,
+        )
+    }
+
+    private fun enter(behavior: EnemyBehaviorComponent, state: Int) {
+        behavior.state = state
+        behavior.stateTime = 0f
+    }
+}
+
+/**
+ * Recharges [ShieldComponent]s and draws them as bubbles over whatever they protect.
+ *
+ * Add it after [RenderSystem]: a bubble is drawn around a sprite, and one drawn first would be
+ * painted over by the enemy it is meant to be enclosing.
+ *
+ * The bubble is sized off the entity's box rather than set per entity, so the same component reads
+ * right on a wasp and on a boss.
+ */
+class ShieldSystem : GameSystem() {
+    private lateinit var transforms: ComponentMapper<TransformComponent>
+    private lateinit var shields: ComponentMapper<ShieldComponent>
+    private lateinit var healths: ComponentMapper<HealthComponent>
+
+    override fun onAttach(world: World) {
+        transforms = world.mapper(TransformComponent::class)
+        shields = world.mapper(ShieldComponent::class)
+        healths = world.mapper(HealthComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(shields) { id ->
+            val shield = shields.require(id)
+            shield.flash = (shield.flash - deltaTime / FLASH_SECONDS).coerceAtLeast(0f)
+            shield.popTime = (shield.popTime - deltaTime).coerceAtLeast(0f)
+            shield.sinceHit += deltaTime
+
+            // Nothing dead recharges, and nothing without a recharge rate ever comes back.
+            if (healths[id]?.alive == false) return@forEach
+            if (shield.regenPerSecond <= 0f || shield.points >= shield.maxPoints) return@forEach
+            if (shield.sinceHit < shield.regenDelay) return@forEach
+
+            // Carried like the bat's regeneration, so a slow rate is not rounded away to nothing.
+            shield.regenCarry += shield.regenPerSecond * deltaTime
+            val whole = shield.regenCarry.toInt()
+            if (whole > 0) {
+                shield.regenCarry -= whole
+                shield.points = (shield.points + whole).coerceAtMost(shield.maxPoints)
+            }
+        }
+    }
+
+    override fun draw(world: World, graphics: Graphics) {
+        world.forEach(transforms, shields) { id ->
+            val shield = shields.require(id)
+            val rect = transforms.require(id).rect
+            val radius = maxOf(rect.width, rect.height) / 2f + PADDING
+
+            if (shield.isUp) {
+                val size = (radius * 2f).roundToInt()
+                val left = (rect.centerX - radius).roundToInt()
+                val top = (rect.centerY - radius).roundToInt()
+                // Faint inside, so the enemy stays readable through it; the rim carries the
+                // strength, fading as the bubble wears down; and a hit flares both.
+                graphics.drawOval(
+                    left, top, size, size,
+                    EngineColors.withAlpha(shield.color, FILL_ALPHA + FLASH_FILL_ALPHA * shield.flash),
+                )
+                graphics.drawOvalOutline(
+                    left, top, size, size,
+                    EngineColors.withAlpha(
+                        shield.color,
+                        (RIM_MIN_ALPHA + RIM_RANGE_ALPHA * shield.fraction + shield.flash).coerceAtMost(1f),
+                    ),
+                )
+                // A glint on the upper left, the side the game's light comes from.
+                val glint = (radius * 0.5f).roundToInt()
+                graphics.drawOvalOutline(
+                    left + glint / 2, top + glint / 2, glint, glint,
+                    EngineColors.withAlpha(EngineColors.WHITE, GLINT_ALPHA),
+                )
+            } else if (shield.popTime > 0f) {
+                // Going out as a ring that grows and fades, so a broken bubble is an event.
+                val progress = 1f - shield.popTime / POP_SECONDS
+                val grown = radius * (1f + progress * POP_GROWTH)
+                val size = (grown * 2f).roundToInt()
+                graphics.drawOvalOutline(
+                    (rect.centerX - grown).roundToInt(), (rect.centerY - grown).roundToInt(),
+                    size, size,
+                    EngineColors.withAlpha(shield.color, 1f - progress),
+                )
+            }
+        }
+    }
+
+    companion object {
+        /** How long a broken bubble's ring takes to fade. */
+        const val POP_SECONDS = 0.25f
+
+        private const val FLASH_SECONDS = 0.15f
+        private const val PADDING = 3f
+        private const val FILL_ALPHA = 0.14f
+        private const val FLASH_FILL_ALPHA = 0.3f
+        private const val RIM_MIN_ALPHA = 0.35f
+        private const val RIM_RANGE_ALPHA = 0.5f
+        private const val GLINT_ALPHA = 0.5f
+        private const val POP_GROWTH = 0.6f
     }
 }
 
@@ -403,13 +732,28 @@ class BounceSystem(
 
 /**
  * System that removes entities when they are out of bounds or marked for removal.
+ *
+ * @param worldHeight when given, things that leave through the top or the bottom are culled too,
+ *   once they are [VERTICAL_MARGIN] clear of the edge. For a long time nothing could: everything
+ *   travelled left or right. Aimed and radial enemy fire does not, and a shot that left through the
+ *   ceiling would otherwise fly on above the frame for the rest of the run.
+ *
+ * Something moving is only culled at an edge it is travelling *out* through. An entity still on its
+ * way in from beyond the frame is left alone, which is what lets a swarm or a formation spawn with
+ * its trailing members further off screen than its leader - without that, everything behind the
+ * leader was deleted on the tick it arrived. Something with no velocity is culled wherever it
+ * lies, as it always was.
  */
-class LifetimeSystem(private val worldWidth: Int) : GameSystem() {
+class LifetimeSystem(
+    private val worldWidth: Int,
+    private val worldHeight: Int? = null,
+) : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var lifetimes: ComponentMapper<LifetimeComponent>
     private lateinit var healths: ComponentMapper<HealthComponent>
     private lateinit var animations: ComponentMapper<AnimationComponent>
     private lateinit var playerControls: ComponentMapper<PlayerControlComponent>
+    private lateinit var velocities: ComponentMapper<VelocityComponent>
 
     override fun onAttach(world: World) {
         transforms = world.mapper(TransformComponent::class)
@@ -417,17 +761,26 @@ class LifetimeSystem(private val worldWidth: Int) : GameSystem() {
         healths = world.mapper(HealthComponent::class)
         animations = world.mapper(AnimationComponent::class)
         playerControls = world.mapper(PlayerControlComponent::class)
+        velocities = world.mapper(VelocityComponent::class)
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
         world.forEach(transforms, lifetimes) { id ->
             val rect = transforms.require(id).rect
+            val velocity = velocities[id]?.velocity
+            val vx = velocity?.x ?: 0f
+            val vy = velocity?.y ?: 0f
 
             // Both edges: scenery and enemies leave to the left, projectiles to the right.
             // Culling only the left edge would leak every shot that misses.
-            val offLeft = rect.right < 0
-            val offRight = rect.left > worldWidth
-            if (lifetimes.require(id).removeIfOutOfBounds && (offLeft || offRight)) {
+            val offLeft = rect.right < 0 && vx <= 0f
+            val offRight = rect.left > worldWidth && vx >= 0f
+            // A margin rather than the edge itself: a swarm or a diving enemy routinely dips a
+            // little past the frame and comes back.
+            val offVertically = worldHeight != null &&
+                    ((rect.bottom < -VERTICAL_MARGIN && vy <= 0f) ||
+                            (rect.top > worldHeight + VERTICAL_MARGIN && vy >= 0f))
+            if (lifetimes.require(id).removeIfOutOfBounds && (offLeft || offRight || offVertically)) {
                 world.removeEntity(id)
             }
         }
@@ -457,6 +810,11 @@ class LifetimeSystem(private val worldWidth: Int) : GameSystem() {
                 world.removeEntity(id)
             }
         }
+    }
+
+    private companion object {
+        /** How far past the top or bottom edge something has to be before it is culled. */
+        const val VERTICAL_MARGIN = 48f
     }
 }
 

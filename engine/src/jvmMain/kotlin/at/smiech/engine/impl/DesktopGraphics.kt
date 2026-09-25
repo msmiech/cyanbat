@@ -72,6 +72,11 @@ class DesktopGraphics(
         g2d.fillOval(x, y, width, height)
     }
 
+    override fun drawOvalOutline(x: Int, y: Int, width: Int, height: Int, color: Int) {
+        g2d.color = Color(color, true)
+        g2d.drawOval(x, y, width, height)
+    }
+
     /**
      * The `- 1` on the far edges is deliberate and matches AndroidGraphics exactly. Android's
      * `Rect` and Java2D's `sx2`/`dx2` are both exclusive, so the Android code already draws one

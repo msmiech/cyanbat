@@ -119,18 +119,8 @@ const val ENEMY_DAMAGE_PER_WAVE = 6
 // shots cannot be fought at all, only dodged.
 const val ENEMY_SPEED_PER_WAVE = 0.1f
 
-/**
- * Which of the three enemy sprites each wave draws from, indexed by wave. Types are 0 SCOUT,
- * 1 SINE and 2 ZIGZAG - the mix is the point, so each minute brings a group that moves in a way
- * the last one did not.
- */
-val WAVE_ENEMY_TYPES: List<List<Int>> = listOf(
-    listOf(0),          // minute 1: scouts only, straight and readable
-    listOf(0, 1),       // minute 2: weavers join them
-    listOf(1, 2),       // minute 3: the scouts give way to zigzags
-    listOf(0, 1, 2),    // minute 4: everything at once
-    listOf(1, 2),       // minute 5: the two that are hardest to lead, as the boss escort
-)
+// What each wave draws from - the species mix - is part of a level's design rather than its
+// difficulty, so it lives with the rest of the design in LevelDesign.
 
 // The boss. Its health is a fight length: at one 34-damage shot a second, 1920 points is roughly
 // 25 seconds of landed hits, which leaves room to be driven off and come back without the fight
@@ -162,6 +152,92 @@ const val BANNER_CHAR_WIDTH = 15
 // the player has just been steering with a finger down and the boss went up in a blast worth
 // watching.
 const val LEVEL_COMPLETE_ARMING_SECONDS = 1.2f
+
+
+// --- The forest --------------------------------------------------------------------------------
+//
+// Level 2's enemies fly in groups, shoot back and carry shields. What each species does is in
+// EnemySpecies and which wave sends what is in LevelDesign; these are the numbers underneath.
+
+// A shield handed out by a wave's shieldChance, as a fraction of the enemy's own health. Under
+// one, so a shielded enemy is tougher rather than twice as tough - the point is the extra shot it
+// takes to pop, and the moment of seeing it go.
+const val WAVE_SHIELD_FRACTION = 0.6f
+
+// A swarm: how many, and how many more per wave, up to a cap. Five is enough to read as a flock
+// rather than as a handful of wasps; the cap is what keeps a late swarm from being a wall.
+const val SWARM_SIZE = 5
+const val SWARM_SIZE_PER_TWO_WAVES = 1
+const val SWARM_SIZE_MAX = 7
+
+// How loosely a swarm is packed around its path, in framebuffer pixels either way.
+const val SWARM_SPREAD_X = 40f
+const val SWARM_SPREAD_Y = 22f
+
+// A V formation: how far each rank sits behind the one in front, and how far out to either side.
+const val FORMATION_RANK_SPACING_X = 22f
+const val FORMATION_RANK_SPACING_Y = 17f
+const val FORMATION_RANKS = 2
+
+// How much room a group needs from the top and bottom edges of the frame, so its path never carries
+// its outer members off screen: a sway of up to ~40px, plus the widest rank or scatter, plus half a
+// sprite.
+const val GROUP_EDGE_MARGIN = 85f
+
+// Where a hovering or diving enemy stops, as a fraction of the framebuffer width, picked per enemy
+// from this range. Far enough in that it is on screen and in reach; far enough back that the bat
+// still has room to get out of the way.
+const val HOLD_X_MIN_FRACTION = 0.5f
+const val HOLD_X_MAX_FRACTION = 0.82f
+
+// Enemy fire, beyond straight bolts. An aimed shot flies at the player's position when it was
+// fired, which a moving player simply is not at by the time it arrives; the speeds on the guns
+// themselves (EnemySpecies) are set so it can be seen and sidestepped.
+//
+// The fraction of an armed enemy's first interval it waits, at most, before its first volley - so
+// a formation that spawned on one tick does not fire as one.
+const val FIRST_SHOT_JITTER = 0.6f
+
+
+// --- The Moth Queen ----------------------------------------------------------------------------
+//
+// Level 2's boss. Three phases, marked by her health: each one raises her shield, and she gets
+// faster and calls in wasps as she goes.
+
+// Her sheet: four frames of wingbeat, drawn at 96x80 - the footprint of the cave's boss, at the
+// pixel density of everything else.
+const val MOTH_QUEEN_FRAME_WIDTH = 96
+const val MOTH_QUEEN_FRAME_COUNT = 4
+const val MOTH_QUEEN_FRAME_SECONDS = 0.11f
+
+// Her hit box sits this far inside her frame. Much of a moth's frame is the air between its wings.
+const val MOTH_QUEEN_COLLISION_TOLERANCE = 14f
+
+// The colorway of shot.png her bolts are drawn in: rose, like her wings.
+const val MOTH_QUEEN_SHOT_VARIANT = 6
+
+// The health fractions at which she changes phase.
+const val MOTH_QUEEN_PHASE_2_AT = 0.66f
+const val MOTH_QUEEN_PHASE_3_AT = 0.33f
+
+// The shield she raises at each change of phase, as a fraction of her full health. It does not
+// recharge: it is a wall to break through, once, at the start of each phase.
+const val MOTH_QUEEN_SHIELD_FRACTION = 0.12f
+
+// Seconds between the wasp swarms she calls in, from phase two on, and how much faster they come
+// once she is enraged.
+const val MOTH_QUEEN_SUMMON_SECONDS = 9f
+const val MOTH_QUEEN_ENRAGED_SUMMON_SECONDS = 7f
+
+// How much faster she flies her figure eight in the last phase.
+const val MOTH_QUEEN_ENRAGED_TEMPO = 1.6f
+
+// What one of her bolts deals, as a share of her contact damage - which at level 2 is about 67, two
+// thirds of the bat's bar. Her rings put a dozen bolts on screen at once, so each has to be a
+// setback rather than half a death: a ring bolt costs about a fifth of the bar, an aimed one - the
+// ones the player should always be dodging - a little under a third.
+const val MOTH_QUEEN_RING_DAMAGE = 0.3f
+const val MOTH_QUEEN_FAN_DAMAGE = 0.45f
 
 
 // --- Experience and power-ups ------------------------------------------------------------------
@@ -343,8 +419,9 @@ const val MAX_CRITICAL_CHANCE = 0.5f
 
 // --- Shot colorways ----------------------------------------------------------------------------
 //
-// `shot.png` is one bolt drawn four times over: the player's cyan, then the three enemy palettes in
-// the order the enemy sheet lays them out. A shot is the color of whatever fired it, so a screen
+// `shot.png` is one bolt drawn seven times over: the player's cyan, then the cave's three enemy
+// palettes in the order the enemy sheet lays them out, then the forest's shooters. Which colorway
+// a species fires is on EnemySpecies. A shot is the color of whatever fired it, so a screen
 // holding the bat's fire and the boss's at the same time says which is which by color rather than
 // by which way a bolt happens to be travelling.
 

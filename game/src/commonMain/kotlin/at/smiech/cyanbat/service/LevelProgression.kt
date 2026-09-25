@@ -14,7 +14,6 @@ import at.smiech.cyanbat.util.MINIMUM_SPAWN_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.OPENING_SPAWN_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.SPAWN_INTERVAL_JITTER
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
-import at.smiech.cyanbat.util.WAVE_ENEMY_TYPES
 import kotlin.random.Random
 
 /**
@@ -25,22 +24,25 @@ import kotlin.random.Random
  * a level without having played up to it.
  *
  * @param index full minutes into the level, so wave 0 is the opening minute.
- * @param enemyTypes the sprite/movement types this wave draws from. Changing the mix every minute
- *   is what makes a new wave read as a new *group* of enemies rather than as more of the last one.
+ * @param enemyTypes the species this wave draws from. Changing the mix every minute is what makes a
+ *   new wave read as a new *group* of enemies rather than as more of the last one.
  * @param hitPoints what each of them can absorb.
  * @param damage what each of them takes off the bat on contact.
  * @param speedMultiplier applied to the type's own base speed.
  * @param spawnIntervalSeconds average gap between spawns, before jitter.
  * @param burstSize how many arrive together at each spawn.
+ * @param shieldChance/gunChance see [WaveDesign].
  */
 data class EnemyWave(
     val index: Int,
-    val enemyTypes: List<Int>,
+    val enemyTypes: List<EnemySpecies>,
     val hitPoints: Int,
     val damage: Int,
     val speedMultiplier: Float,
     val spawnIntervalSeconds: Float,
     val burstSize: Int,
+    val shieldChance: Float = 0f,
+    val gunChance: Float = 0f,
 )
 
 /**
@@ -59,8 +61,10 @@ data class EnemyWave(
  *   default minute-long waves, level 1's boss is the five minute mark.
  * @param difficulty scales the whole level against level 1, so later levels open where earlier
  *   ones left off instead of starting from nothing again.
+ * @param design what the level's waves and boss are; this class only decides how hard.
  */
 data class LevelProgression(
+    val design: LevelDesign = LevelDesign.CAVE,
     val waveDurationSeconds: Float = WAVE_DURATION_SECONDS,
     val bossWave: Int = BOSS_WAVE,
     val difficulty: Float = 1f,
@@ -102,11 +106,14 @@ data class LevelProgression(
     fun waveAt(elapsedSeconds: Float): EnemyWave =
         waveFor(waveIndexAt(elapsedSeconds), elapsedSeconds)
 
+    // The last entry covers every wave past the table, so a longer level degrades into its toughest
+    // mix instead of running off the end.
+    private fun designOf(index: Int): WaveDesign =
+        design.waves[index.coerceAtMost(design.waves.lastIndex)]
+
     private fun waveFor(index: Int, elapsedSeconds: Float) = EnemyWave(
         index = index,
-        // The last entry covers every wave past the table, so a longer level degrades into its
-        // toughest mix instead of running off the end.
-        enemyTypes = WAVE_ENEMY_TYPES[index.coerceAtMost(WAVE_ENEMY_TYPES.lastIndex)],
+        enemyTypes = designOf(index).species,
         hitPoints = scaled(ENEMY_BASE_HIT_POINTS + index * ENEMY_HIT_POINTS_PER_WAVE),
         damage = scaled(ENEMY_BASE_DAMAGE + index * ENEMY_DAMAGE_PER_WAVE),
         speedMultiplier = 1f + index * ENEMY_SPEED_PER_WAVE,
@@ -114,6 +121,8 @@ data class LevelProgression(
         // Kept to one arrival for the opening waves: two enemies at once is a shape to read, and
         // the player should meet it once they have learned to read one.
         burstSize = 1 + index / BURST_EVERY_WAVES,
+        shieldChance = designOf(index).shieldChance,
+        gunChance = designOf(index).gunChance,
     )
 
     /**
@@ -125,7 +134,7 @@ data class LevelProgression(
      */
     fun bossWave(): EnemyWave = EnemyWave(
         index = bossWave,
-        enemyTypes = WAVE_ENEMY_TYPES.last(),
+        enemyTypes = design.waves.last().species,
         hitPoints = scaled(bossHitPoints),
         damage = scaled(bossDamage),
         speedMultiplier = 1f,
@@ -147,13 +156,14 @@ data class LevelProgression(
 
         /**
          * The progression for the level with this id, where level 1 is the baseline and each one
-         * after it opens [LEVEL_DIFFICULTY_STEP] harder.
+         * after it opens [LEVEL_DIFFICULTY_STEP] harder, on top of whatever its own design adds.
          *
          * Level ids are 1-based, matching [at.smiech.cyanbat.resource.Level.id].
          */
         fun forLevel(id: Int): LevelProgression {
             val stepsAboveFirst = (id - 1).coerceAtLeast(0)
             return LevelProgression(
+                design = LevelDesign.forLevel(id),
                 difficulty = 1f + stepsAboveFirst * LEVEL_DIFFICULTY_STEP,
             )
         }

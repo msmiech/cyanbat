@@ -10,6 +10,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import at.smiech.cyanbat.LevelUnlockStore
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.button_back
@@ -26,12 +27,15 @@ class MenuHost(
     val settings: SettingsRepository,
     /** Menu track, or null where audio is unavailable. */
     val menuMusic: Music?,
-    val onStartGame: () -> Unit,
+    /** Which levels the player can start from. The same store the game unlocks them in. */
+    val levelUnlocks: LevelUnlockStore,
+    /** Start a run on the level with this 1-based id. */
+    val onStartGame: (levelId: Int) -> Unit,
     val onExit: () -> Unit,
 )
 
 /**
- * The whole menu: main screen, settings and credits, with a back stack.
+ * The whole menu: main screen, level select, settings and credits, with a back stack.
  *
  * Shared by both platforms - this is the entry point Android's MainActivity and the desktop
  * window each render.
@@ -43,16 +47,25 @@ fun CyanBatMenu(
     backStack: MenuBackStack = rememberMenuBackStack(),
 ) {
     MaterialTheme {
+        // Hoisted above the destinations, so the main screen and the level select share one - and
+        // with it one menu track, which keeps playing as the player moves between them.
+        val menuViewModel = viewModel {
+            MainMenuViewModel(host.settings, host.menuMusic, host.levelUnlocks)
+        }
         when (backStack.current) {
             MenuDestination.Main -> {
-                val viewModel = viewModel { MainMenuViewModel(host.settings, host.menuMusic) }
                 MainMenuScreen(
-                    viewModel = viewModel,
+                    viewModel = menuViewModel,
                     onNavigateToSettings = { backStack.navigateTo(MenuDestination.Settings) },
                     onNavigateToCredits = { backStack.navigateTo(MenuDestination.Credits) },
+                    onNavigateToLevelSelect = { backStack.navigateTo(MenuDestination.LevelSelect) },
                     onStartGame = host.onStartGame,
                     onExit = host.onExit,
                 )
+            }
+
+            MenuDestination.LevelSelect -> SubScreen(onBack = { backStack.back() }) {
+                LevelSelectScreen(menuViewModel, onStartLevel = host.onStartGame)
             }
 
             MenuDestination.Settings -> SubScreen(onBack = { backStack.back() }) {

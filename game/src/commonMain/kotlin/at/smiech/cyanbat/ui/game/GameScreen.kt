@@ -3,6 +3,9 @@ package at.smiech.cyanbat.ui.game
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.ScoreTracker
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
+import at.smiech.cyanbat.ecs.GunComponent
+import at.smiech.cyanbat.ecs.ShotPattern
+import at.smiech.cyanbat.ecs.Volley
 import at.smiech.cyanbat.progress.PlayerLoadout
 import at.smiech.cyanbat.progress.PlayerProgress
 import at.smiech.cyanbat.progress.PowerUp
@@ -76,25 +79,39 @@ import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.PlayerInputSystem
 import at.smiech.engine.ecs.ProjectileStyleComponent
 import at.smiech.engine.ecs.RenderSystem
+import at.smiech.engine.ecs.ShieldComponent
+import at.smiech.engine.ecs.ShieldSystem
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TrailSystem
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.ecs.WeaponSystem
 import at.smiech.engine.ecs.World
+import at.smiech.engine.math.Rect
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import kotlin.math.atan2
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
+/**
+ * One run through one level.
+ *
+ * A run is a level: moving on to the next one builds a fresh screen, which is what resets the score,
+ * the bat's experience and its power-ups. Each level is meant to be beaten from a standing start,
+ * however it was reached - through the one before it or straight from the level select.
+ *
+ * @param levelId which level to fly, 1-based. An id with no level behind it flies the first.
+ */
 class GameScreen(
     override val game: Game,
     private val env: CyanBatEnvironment,
+    levelId: Int = 1,
 ) : Screen {
-    var currentLevel = env.assets.levels[0]
+    var currentLevel = env.assets.level(levelId)
 
     private val world = World()
     private val factory = EntityFactory(world)
@@ -119,10 +136,12 @@ class GameScreen(
         xSpawnPosition = game.frameBufferWidth,
         worldHeight = game.frameBufferHeight,
         factory,
-        env.assets.graphics.enemy,
+        currentLevel.enemySheet,
         progression = progression,
         onWaveChanged = { wave -> announce("WAVE ${wave.index + 1}") },
-        onBossSpawned = { announce("FINAL BOSS") },
+        onBossSpawned = { announce(progression.design.bossName) },
+        bossPixmap = currentLevel.bossSheet,
+        onBossPhaseChanged = { phase -> announce(bossPhaseBanner(phase)) },
     )
     var obsGen = ObstacleGenerator(
         worldWidth = game.frameBufferWidth,
@@ -216,11 +235,16 @@ class GameScreen(
         // rather than being aged down on the very tick it happened.
         world.addSystem(HitFlashSystem())
         world.addSystem(CollisionSystem { id1, id2 -> handleCollision(id1, id2) })
-        world.addSystem(LifetimeSystem(game.frameBufferWidth))
+        // With the height too: enemy fire is aimed and fanned now, and leaves through the top and
+        // bottom as well as the sides.
+        world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight))
         // Before the sprites, so the halo is light coming off the bat rather than a wash over it.
         // This is also the pass that advances the aura's clock; see [AuraSystem.Layer].
         world.addSystem(AuraSystem(AuraSystem.Layer.HALO))
         world.addSystem(RenderSystem())
+        // Straight after the sprites, so a bubble encloses the enemy it protects rather than being
+        // painted over by it; and before the health bars, which must never be lost behind one.
+        world.addSystem(ShieldSystem())
         // After the sprites: these four draw on top of the run rather than into it. The wake goes
         // first of them, so the bar and the damage numbers stay legible over it. The arcs go over
         // the wake and under the bar, which is the one thing that must never be lost behind an
@@ -259,6 +283,14 @@ class GameScreen(
     private fun fireShot(shooterId: EntityId) {
         val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
         val isPlayer = world.hasComponent(shooterId, PlayerControlComponent::class)
+        // An enemy holds its fire until it is on screen. A volley fired from past the right edge
+        // would arrive out of nowhere, and nothing the player could see would have warned them.
+        if (!isPlayer && !isOnScreen(transform.rect)) return
+        val gun = if (isPlayer) null else world.getComponent(shooterId, GunComponent::class)
+        if (gun != null) {
+            fireVolley(shooterId, transform.rect, gun)
+            return
+        }
         val shot = env.assets.graphics.shot
         // The sheet's own width is every colorway laid side by side, so a shot is positioned and
         // sized by one frame of it rather than by the pixmap.
@@ -305,6 +337,83 @@ class GameScreen(
         if (isPlayer && env.audioSettings.soundsEnabled) {
             env.assets.audio.shotSound.play(SHOT_VOLUME)
         }
+    }
+
+    private fun isOnScreen(rect: Rect): Boolean =
+        rect.left >= 0f && rect.right <= game.frameBufferWidth
+
+    /**
+     * One pull of an enemy's trigger: whatever [gun]'s next [Volley] is, in the shooter's color
+     * and at its damage.
+     *
+     * Everything but a straight bolt leaves from the shooter's center, because a fan or a ring
+     * spreads out from a point and a straight bolt from the edge it is travelling toward.
+     */
+    private fun fireVolley(shooterId: EntityId, rect: Rect, gun: GunComponent) {
+        val volley = gun.pull()
+        val shot = env.assets.graphics.shot
+        val variant = world.getComponent(shooterId, ProjectileStyleComponent::class)?.variant
+            ?: PLAYER_SHOT_VARIANT
+        val damage = (damageOf(shooterId) * volley.damageFactor).roundToInt().coerceAtLeast(1)
+
+        val straight = volley.pattern == ShotPattern.STRAIGHT
+        val x = if (straight) rect.left - SHOT_FRAME_WIDTH else rect.centerX - SHOT_FRAME_WIDTH / 2f
+        val y = rect.centerY - shot.height / 2f
+
+        for (angle in volleyAngles(volley, gun, rect)) {
+            factory.createShot(
+                x = x,
+                y = y,
+                width = SHOT_FRAME_WIDTH.toFloat(),
+                height = shot.height.toFloat(),
+                pixmap = shot,
+                isPlayer = false,
+                damage = damage,
+                variant = variant,
+                angleDegrees = angle,
+                speed = volley.speed,
+            )
+        }
+    }
+
+    /**
+     * The headings of one enemy volley, in the same terms [EntityFactory.createShot] takes: degrees
+     * off straight ahead - which for an enemy is to the left - positive downwards.
+     */
+    private fun volleyAngles(volley: Volley, gun: GunComponent, rect: Rect): List<Float> =
+        when (volley.pattern) {
+            ShotPattern.STRAIGHT -> listOf(0f)
+            ShotPattern.AIMED -> listOf(aimAt(rect))
+            ShotPattern.AIMED_FAN -> {
+                val aim = aimAt(rect)
+                val middle = (volley.count - 1) / 2f
+                List(volley.count) { aim + (it - middle) * volley.spreadDegrees }
+            }
+
+            ShotPattern.RADIAL -> {
+                val step = 360f / volley.count
+                val start = gun.spin
+                // Half a step round each time, so the lanes one ring leaves open are the ones the
+                // next ring closes.
+                gun.spin = (gun.spin + step / 2f) % 360f
+                List(volley.count) { start + it * step }
+            }
+        }
+
+    /**
+     * The heading from [rect]'s center to the bat's, or straight ahead with no bat to aim at.
+     *
+     * Aimed where the bat *is*, not where it is going: leading the target would make a moving
+     * player unable to dodge by moving, which is the one thing a player can always do.
+     */
+    private fun aimAt(rect: Rect): Float {
+        val health = world.getComponent(batId, HealthComponent::class)
+        if (health?.alive != true) return 0f
+        val bat = world.getComponent(batId, TransformComponent::class)?.rect ?: return 0f
+        val dx = bat.centerX - rect.centerX
+        val dy = bat.centerY - rect.centerY
+        // Measured from the left, which is the way enemy fire faces: atan2 of (down, left).
+        return atan2(dy, -dx) * DEGREES_PER_RADIAN
     }
 
     /**
@@ -472,6 +581,8 @@ class GameScreen(
             return false
         }
 
+        if (absorbedByShield(id, amount)) return false
+
         val dealt = applyDamage(id, amount)
         if (dealt > 0 && collisionGroupOf(id) == CollisionGroup.ENEMY) {
             // Read off whatever landed the blow, not off the amount: a crit is a property of the
@@ -486,6 +597,23 @@ class GameScreen(
         // most things leave nothing at all.
         if (died) burst(id)
         return died
+    }
+
+    /**
+     * Lets [id]'s shield take a hit of [amount], if it has one up, and says so over the enemy in
+     * the shield's own color - so a player can see their shot was spent on the bubble, not wasted.
+     *
+     * @return true when the bubble took the hit, and nothing gets through to the enemy inside.
+     */
+    private fun absorbedByShield(id: EntityId, amount: Int): Boolean {
+        if (amount <= 0 || collisionGroupOf(id) != CollisionGroup.ENEMY) return false
+        if (world.getComponent(id, HealthComponent::class)?.alive != true) return false
+        val shield = world.getComponent(id, ShieldComponent::class) ?: return false
+        if (!shield.absorb(amount)) return false
+
+        val rect = world.getComponent(id, TransformComponent::class)?.rect ?: return true
+        factory.createDamageText(rect.left, rect.centerY, amount, color = shield.color)
+        return true
     }
 
     /** A blast the size of whatever just died, so the boss goes out bigger than its escort. */
@@ -599,12 +727,22 @@ class GameScreen(
         // a boss worth nothing would read as a boss that did not count.
         awardExperience(XP_PER_BOSS)
         saveHighscore()
+        // Unlocked the moment it is earned, not when the player taps through: a player who quits
+        // from the victory screen has still beaten the level.
+        nextLevelId?.let { env.levelUnlocks.unlockAsync(it) }
 
         currentLevel.music.apply {
             stop()
             isLooping = false
         }
     }
+
+    /** The level after this one, or null when this is the last. */
+    private val nextLevelId: Int?
+        get() = (currentLevel.id + 1).takeIf { env.assets.hasLevelAfter(currentLevel.id) }
+
+    /** What a boss with phases announces on entering phase [phase]. */
+    private fun bossPhaseBanner(phase: Int): String = if (phase >= 3) "QUEEN ENRAGED" else "SWARM CALLED"
 
     /** Puts [text] up over the run for [WAVE_BANNER_SECONDS], replacing whatever was there. */
     private fun announce(text: String) {
@@ -896,7 +1034,8 @@ class GameScreen(
     }
 
     /**
-     * The level is won; a tap or a button press takes the player back out to the menu.
+     * The level is won. A tap or Confirm flies on to the next level, where there is one; Back
+     * leaves for the menu, and so does a tap on the last level.
      *
      * Armed on a delay for the same reason the pause overlay is: the player was steering with a
      * finger down as the boss died, and the lift that follows is not them asking to leave.
@@ -911,7 +1050,21 @@ class GameScreen(
         val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
         val backed = controls?.consumePress(GameButton.BACK) == true
 
-        if ((tapped || confirmed || backed) && levelCompleteArmingTime <= 0f) env.onExitToMenu()
+        if (levelCompleteArmingTime > 0f) return
+        val next = nextLevelId
+        when {
+            backed -> env.onExitToMenu()
+            (tapped || confirmed) && next != null -> startLevel(next)
+            tapped || confirmed -> env.onExitToMenu()
+        }
+    }
+
+    /**
+     * Flies on to level [id], on a fresh screen - which is the reset: a new run's score, a bat at
+     * level 1, and no power-ups. The highscore was already banked when the boss went down.
+     */
+    private fun startLevel(id: Int) {
+        game.setScreen(GameScreen(game, env, id))
     }
 
     /**
@@ -1013,7 +1166,13 @@ class GameScreen(
             drawString("LEVEL COMPLETE", 120, 130, 30, EngineColors.YELLOW)
             drawString(currentLevel.name, 150, 160, 15, EngineColors.CYAN)
             drawString("Score: ${scoring.score}", 175, 185, 20, EngineColors.WHITE)
-            drawString("Tap or press Enter to continue", 140, 215, 15, EngineColors.WHITE)
+            if (nextLevelId != null) {
+                drawString("Tap or press Enter for level ${nextLevelId}", 135, 215, 15, EngineColors.WHITE)
+                drawString("Back or Q for the menu", 170, 237, 15, EngineColors.WHITE)
+                drawString("Score, level and power-ups start over", 118, 262, 13, EngineColors.CYAN)
+            } else {
+                drawString("Tap or press Enter to continue", 140, 215, 15, EngineColors.WHITE)
+            }
         }
     }
 
@@ -1193,5 +1352,7 @@ class GameScreen(
 
         /** The unfilled part of the experience bar. */
         const val XP_BAR_EMPTY = 0x80000000.toInt()
+
+        const val DEGREES_PER_RADIAN = 57.29578f
     }
 }

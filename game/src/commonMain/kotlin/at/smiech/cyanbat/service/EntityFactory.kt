@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
 import at.smiech.cyanbat.util.CRITICAL_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.CRITICAL_TEXT_FONT_SIZE
@@ -11,6 +12,11 @@ import at.smiech.cyanbat.util.DESTRUCTIBLE_HIT_POINTS
 import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.HEALTH_BAR_HEIGHT
 import at.smiech.cyanbat.util.HEALTH_BAR_OFFSET_Y
+import at.smiech.cyanbat.util.MOTH_QUEEN_COLLISION_TOLERANCE
+import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_COUNT
+import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_SECONDS
+import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_WIDTH
+import at.smiech.cyanbat.util.MOTH_QUEEN_SHOT_VARIANT
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
@@ -40,6 +46,7 @@ import at.smiech.engine.ecs.LifetimeComponent
 import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.ProjectileStyleComponent
+import at.smiech.engine.ecs.ShieldComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TrailComponent
 import at.smiech.engine.ecs.TrailEmitterComponent
@@ -53,7 +60,7 @@ import at.smiech.engine.math.Vector2
 import kotlin.math.cos
 import kotlin.math.sin
 
-class EntityFactory(private val world: World) {
+class EntityFactory(val world: World) {
 
     fun createBat(
         x: Float,
@@ -88,13 +95,21 @@ class EntityFactory(private val world: World) {
     }
 
     /**
-     * One of the three enemies from the sheet, at whatever strength the wave that ordered it
-     * calls for.
+     * One enemy of [species], at whatever strength the wave that ordered it calls for.
      *
      * [hitPoints], [damage] and [speedMultiplier] are arguments rather than constants because
-     * that is the whole of how a level ramps: the same three sprites, sent in tougher, angrier
-     * and faster as the minutes go by. They are fixed at spawn, so enemies already on screen keep
-     * the strength they arrived with when a wave turns over.
+     * that is the whole of how a level ramps: the same species, sent in tougher, angrier and
+     * faster as the minutes go by. They are fixed at spawn, so enemies already on screen keep the
+     * strength they arrived with when a wave turns over.
+     *
+     * @param laneY the path a group flies around, for the species that fly in one. A swarm's
+     *   members all share it and each sits [offsetY] from it; a loner's lane is where it spawned.
+     * @param phase a per-member offset into its pattern, so a swarm does not buzz in unison.
+     * @param holdX where a hovering enemy stops, or a diving one commits.
+     * @param shieldPoints a shield bubble to spawn behind, or zero for none.
+     * @param gun what it fires, or null for an enemy that only rams.
+     * @param firstShotDelay how long an armed enemy waits before its first volley, on top of its
+     *   interval - so a formation spawned on one tick does not fire as one.
      */
     fun createEnemy(
         x: Float,
@@ -102,25 +117,27 @@ class EntityFactory(private val world: World) {
         width: Float,
         height: Float,
         pixmap: Pixmap,
-        type: Int,
+        species: EnemySpecies,
         hitPoints: Int = DESTRUCTIBLE_HIT_POINTS,
         damage: Int = DAMAGE_PER_HIT,
         speedMultiplier: Float = 1f,
+        laneY: Float = y,
+        offsetY: Float = 0f,
+        phase: Float = 0f,
+        holdX: Float = 0f,
+        shieldPoints: Int = 0,
+        gun: EnemyGun? = null,
+        firstShotDelay: Float = 0f,
     ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
 
-        val speedX = when (type) {
-            0 -> -2.5f
-            1 -> -1.5f
-            2 -> -1.2f
-            else -> -1.0f
-        }
-        world.addComponent(id, VelocityComponent(Vector2(speedX * speedMultiplier, 0f)))
+        val speedX = species.speedX * speedMultiplier
+        world.addComponent(id, VelocityComponent(Vector2(speedX, 0f)))
 
         world.addComponent(
             id,
-            SpriteComponent(pixmap, baseSrcX = srcXOf(type), srcWidth = ENEMY_FRAME_WIDTH)
+            SpriteComponent(pixmap, baseSrcX = srcXOf(species.strip), srcWidth = ENEMY_FRAME_WIDTH)
         )
         world.addComponent(
             id,
@@ -132,18 +149,26 @@ class EntityFactory(private val world: World) {
             )
         )
 
-        val movementType = when (type) {
-            0 -> EnemyMovementType.SCOUT
-            1 -> EnemyMovementType.SINE
-            2 -> EnemyMovementType.ZIGZAG
-            else -> EnemyMovementType.SCOUT
+        world.addComponent(
+            id,
+            EnemyBehaviorComponent(
+                species.movement,
+                initialY = laneY,
+                holdX = holdX,
+                baseSpeedX = speedX,
+                offsetY = offsetY,
+                phase = phase,
+            )
+        )
+        // So that anything which is given a gun fires in its own color rather than the player's.
+        world.addComponent(id, ProjectileStyleComponent(species.shotVariant))
+        if (gun != null) {
+            world.addComponent(id, WeaponComponent(gun.interval, timeSinceLastShot = -firstShotDelay))
+            world.addComponent(id, GunComponent(gun.volleys))
         }
-        world.addComponent(id, EnemyBehaviorComponent(movementType, y))
-        // So that anything which is given a gun later fires in its own color rather than the
-        // player's; ordinary enemies carry no weapon today, and this costs them one component.
-        world.addComponent(id, ProjectileStyleComponent(type + ENEMY_SHOT_VARIANT_OFFSET))
+        if (shieldPoints > 0) world.addComponent(id, ShieldComponent(shieldPoints))
 
-        world.addComponent(id, CollisionComponent(5f, CollisionGroup.ENEMY))
+        world.addComponent(id, CollisionComponent(species.collisionTolerance, CollisionGroup.ENEMY))
         world.addComponent(id, HealthComponent(hitPoints))
         world.addComponent(id, DamageComponent(damage))
         world.addComponent(id, LifetimeComponent(true))
@@ -170,39 +195,91 @@ class EntityFactory(private val world: World) {
         hitPoints: Int,
         damage: Int,
         shotIntervalSeconds: Float,
+    ): EntityId = createBossEntity(
+        x, y, holdX, pixmap, hitPoints, damage, shotIntervalSeconds,
+        frameWidth = ENEMY_FRAME_WIDTH,
+        frameHeight = pixmap.height,
+        frameCount = ENEMY_FRAME_COUNT,
+        frameSeconds = ENEMY_FRAME_SECONDS,
+        baseSrcX = srcXOf(BOSS_ENEMY_TYPE),
+        scale = scale,
+        movement = EnemyMovementType.BOSS,
+        shotVariant = BOSS_ENEMY_TYPE + ENEMY_SHOT_VARIANT_OFFSET,
+        // Tolerance scaled with the sprite, so the boss's box sits in from its edges by the same
+        // proportion an ordinary enemy's does.
+        collisionTolerance = 5f * scale,
+    )
+
+    /**
+     * The forest's boss: drawn at its own size from its own sheet, rather than an enemy magnified.
+     *
+     * Everything [createBoss] says about why a boss is built the way it is holds here too. What is
+     * different is the flight - a figure eight rather than a weave - and the gun, which starts on
+     * the Moth Queen's opening volleys; [MothQueenBrain] rearms it as the fight goes on.
+     */
+    fun createMothQueen(
+        x: Float,
+        y: Float,
+        holdX: Float,
+        pixmap: Pixmap,
+        hitPoints: Int,
+        damage: Int,
+        gun: EnemyGun,
     ): EntityId {
-        val width = ENEMY_FRAME_WIDTH * scale
-        val height = pixmap.height * scale
+        val id = createBossEntity(
+            x, y, holdX, pixmap, hitPoints, damage, gun.interval,
+            frameWidth = MOTH_QUEEN_FRAME_WIDTH,
+            frameHeight = pixmap.height,
+            frameCount = MOTH_QUEEN_FRAME_COUNT,
+            frameSeconds = MOTH_QUEEN_FRAME_SECONDS,
+            baseSrcX = 0,
+            scale = 1f,
+            movement = EnemyMovementType.BOSS_FIGURE_EIGHT,
+            shotVariant = MOTH_QUEEN_SHOT_VARIANT,
+            // Wide, because most of her frame is wing and the corners of it are empty air.
+            collisionTolerance = MOTH_QUEEN_COLLISION_TOLERANCE,
+        )
+        world.addComponent(id, GunComponent(gun.volleys))
+        // Down until she raises it, but present, so the brain only ever has to raise it.
+        world.addComponent(id, ShieldComponent(0))
+        return id
+    }
+
+    private fun createBossEntity(
+        x: Float,
+        y: Float,
+        holdX: Float,
+        pixmap: Pixmap,
+        hitPoints: Int,
+        damage: Int,
+        shotIntervalSeconds: Float,
+        frameWidth: Int,
+        frameHeight: Int,
+        frameCount: Int,
+        frameSeconds: Float,
+        baseSrcX: Int,
+        scale: Float,
+        movement: EnemyMovementType,
+        shotVariant: Int,
+        collisionTolerance: Float,
+    ): EntityId {
+        val width = frameWidth * scale
+        val height = frameHeight * scale
 
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
         world.addComponent(id, VelocityComponent(Vector2.Zero))
         world.addComponent(
             id,
-            SpriteComponent(
-                pixmap,
-                baseSrcX = srcXOf(BOSS_ENEMY_TYPE),
-                srcWidth = ENEMY_FRAME_WIDTH,
-                scale = scale
-            )
+            SpriteComponent(pixmap, baseSrcX = baseSrcX, srcWidth = frameWidth, scale = scale)
         )
         world.addComponent(
             id,
-            AnimationComponent(
-                ENEMY_FRAME_WIDTH,
-                pixmap.height,
-                ENEMY_FRAME_COUNT,
-                ENEMY_FRAME_SECONDS
-            )
+            AnimationComponent(frameWidth, frameHeight, frameCount, frameSeconds)
         )
-        world.addComponent(id, EnemyBehaviorComponent(EnemyMovementType.BOSS, y, holdX = holdX))
-        world.addComponent(
-            id,
-            ProjectileStyleComponent(BOSS_ENEMY_TYPE + ENEMY_SHOT_VARIANT_OFFSET)
-        )
-        // Tolerance scaled with the sprite, so the boss's box sits in from its edges by the same
-        // proportion an ordinary enemy's does.
-        world.addComponent(id, CollisionComponent(5f * scale, CollisionGroup.ENEMY))
+        world.addComponent(id, EnemyBehaviorComponent(movement, y, holdX = holdX))
+        world.addComponent(id, ProjectileStyleComponent(shotVariant))
+        world.addComponent(id, CollisionComponent(collisionTolerance, CollisionGroup.ENEMY))
         world.addComponent(id, HealthComponent(hitPoints))
         world.addComponent(id, DamageComponent(damage))
         world.addComponent(id, HealthBarComponent(HEALTH_BAR_HEIGHT * scale, HEALTH_BAR_OFFSET_Y))
@@ -257,8 +334,10 @@ class EntityFactory(private val world: World) {
 
     /**
      * @param angleDegrees how far off straight the shot flies, positive downwards. A fanned shot
-     *   keeps the full [SHOT_SPEED] along its own heading rather than along x, so the outer shots
+     *   keeps the full [speed] along its own heading rather than along x, so the outer shots
      *   of a spread do not lag behind the middle one.
+     * @param speed along its heading, in framebuffer pixels per tick. The bat's are [SHOT_SPEED];
+     *   enemy fire is slower, so it can be seen coming.
      */
     fun createShot(
         x: Float,
@@ -273,15 +352,16 @@ class EntityFactory(private val world: World) {
         bounce: Int = 0,
         critical: Boolean = false,
         variant: Int = PLAYER_SHOT_VARIANT,
+        speed: Float = SHOT_SPEED,
     ): EntityId {
         val radians = angleDegrees * PI_OVER_180
-        val forward = if (isPlayer) SHOT_SPEED else -SHOT_SPEED
+        val forward = if (isPlayer) speed else -speed
 
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
         world.addComponent(
             id,
-            VelocityComponent(Vector2(forward * cos(radians), SHOT_SPEED * sin(radians)))
+            VelocityComponent(Vector2(forward * cos(radians), speed * sin(radians)))
         )
         // The artwork is a bullet with a point on it, so where it is going is the only thing its
         // shape means. Every shot gets this, the enemy's included: theirs travels left, and drawing
@@ -340,8 +420,17 @@ class EntityFactory(private val world: World) {
      * Carries no collision or health of its own, so nothing in the run can touch it: it drifts on
      * the shared [at.smiech.engine.ecs.MovementSystem] and is reaped by
      * [at.smiech.engine.ecs.FloatingTextSystem] when its time is up.
+     *
+     * @param color overrides the white or red, for a number that is not damage to health - what
+     *   a shield soaked up is drawn in the shield's own color.
      */
-    fun createDamageText(x: Float, y: Float, damage: Int, critical: Boolean = false): EntityId {
+    fun createDamageText(
+        x: Float,
+        y: Float,
+        damage: Int,
+        critical: Boolean = false,
+        color: Int? = null,
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, 0f, 0f)))
         world.addComponent(id, VelocityComponent(Vector2(0f, -DAMAGE_TEXT_RISE_PER_TICK)))
@@ -353,7 +442,7 @@ class EntityFactory(private val world: World) {
                 // longer. Three changes rather than one because a number that is only larger
                 // still gets lost in a screen of white numbers going up at the same time.
                 fontSize = if (critical) CRITICAL_TEXT_FONT_SIZE else DAMAGE_TEXT_FONT_SIZE,
-                color = if (critical) EngineColors.RED else EngineColors.WHITE,
+                color = color ?: if (critical) EngineColors.RED else EngineColors.WHITE,
                 duration = if (critical) CRITICAL_TEXT_DURATION_SECONDS else DAMAGE_TEXT_DURATION_SECONDS,
             )
         )
@@ -456,7 +545,8 @@ class EntityFactory(private val world: World) {
         const val BAT_FRAME_SECONDS = 0.07f
 
         /**
-         * The enemy sheet: three types, four frames of wingbeat each, laid out type by type.
+         * The enemy sheets: three types in the cave's and five in the forest's, four frames of
+         * wingbeat each, laid out type by type.
          *
          * Four rather than the two it had, for the same reason the bat got six - and at an
          * interval that puts the cycle at the same ~0.4s, so the hostiles and the player beat

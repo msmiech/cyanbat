@@ -2,6 +2,7 @@ package at.smiech.cyanbat.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import at.smiech.cyanbat.LevelUnlockStore
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.engine.Music
 import kotlinx.coroutines.flow.SharingStarted
@@ -9,19 +10,30 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * Menu music and the music setting.
+ * Menu music, the music setting, and which levels are open.
  *
  * A plain multiplatform [ViewModel]; the old AndroidViewModel(Application) form has no KMP
  * equivalent, and the menu track now goes through the engine's [Music] abstraction rather than
  * MediaPlayer, so desktop gets the same behavior.
+ *
+ * Shared by the main screen and the level select - both ask for it from the same owner - so the
+ * menu track is one track across the two, and stopping it from either stops it.
  */
 class MainMenuViewModel(
     settings: SettingsRepository,
     private val menuMusic: Music?,
+    levelUnlocks: LevelUnlockStore,
 ) : ViewModel() {
 
     val isMusicEnabled: StateFlow<Boolean> = settings.isMusicEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), true)
+
+    /**
+     * The highest level open to the player. Eager, so Start Game knows where to go the moment it
+     * is pressed rather than on whatever frame the store's first read lands.
+     */
+    val highestUnlocked: StateFlow<Int> = levelUnlocks.highestUnlocked
+        .stateIn(viewModelScope, SharingStarted.Eagerly, 1)
 
     fun startMusic() {
         if (!isMusicEnabled.value) return

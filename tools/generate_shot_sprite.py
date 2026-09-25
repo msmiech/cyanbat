@@ -12,9 +12,10 @@ and re-run, instead of reverse-engineering colors out of the image.
 The bolt points right, which is the only direction the *player* fires; enemy shots travel left and
 are turned by `FacingSystem`, so one drawing serves both.
 
-Four colorways, laid out left to right and addressed the way the enemy sheet is. The player's is
-cyan, and the other three are the enemy palettes from `generate_enemy_sprites.py` - violet, amber
-and crimson - so a shot is the same color as whatever fired it. That matters more than it sounds:
+Seven colorways, laid out left to right and addressed the way the enemy sheet is. The player's is
+cyan, the next three are the cave's enemy palettes from `generate_enemy_sprites.py` - violet, amber
+and crimson - and the last three are the forest's shooters - so a shot is the same color as
+whatever fired it. That matters more than it sounds:
 the screen can hold the bat's shots and the boss's at once, travelling in opposite directions, and
 before this they were the same cyan bolt. Which ones were dangerous had to be worked out from
 which way they were moving.
@@ -57,8 +58,15 @@ COLORWAYS = (
     {"d": (96, 40, 150, 180), "c": (176, 92, 232, 255), "w": (244, 222, 255, 255)},
     # SINE: amber
     {"d": (150, 78, 20, 180), "c": (232, 148, 44, 255), "w": (255, 240, 206, 255)},
-    # ZIGZAG, and so the boss: crimson
+    # ZIGZAG, and so the boss: crimson. The forest's beetle fires these too - it is crimson.
     {"d": (140, 30, 50, 180), "c": (220, 66, 80, 255), "w": (255, 222, 216, 255)},
+    # The forest's own, from `generate_forest_enemy_sprites.py` and `generate_forest_boss_sprite.py`.
+    # SPITTER: magenta, the pod's color.
+    {"d": (130, 30, 120, 180), "c": (228, 90, 204, 255), "w": (255, 226, 248, 255)},
+    # WISP: flame orange.
+    {"d": (170, 56, 20, 180), "c": (252, 140, 40, 255), "w": (255, 244, 200, 255)},
+    # the Moth Queen: rose, and a touch paler than the spitter's so the two read apart mid-fight.
+    {"d": (150, 50, 96, 180), "c": (240, 128, 170, 255), "w": (255, 236, 244, 255)},
 )
 
 TRANSPARENT = (0, 0, 0, 0)
