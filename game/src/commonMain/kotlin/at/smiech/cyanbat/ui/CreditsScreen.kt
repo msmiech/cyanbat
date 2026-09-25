@@ -12,6 +12,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.credit_ai_disclosure_content
+import at.smiech.cyanbat.resources.credit_ai_disclosure_title
+import at.smiech.cyanbat.resources.credit_game_development
 import at.smiech.cyanbat.resources.credit_gameframework_0
 import at.smiech.cyanbat.resources.credit_gameframework_1
 import at.smiech.cyanbat.resources.credit_gameframework_title
@@ -30,6 +33,9 @@ fun CreditsScreen() {
                 text = stringResource(Res.string.credits_headline),
                 style = MaterialTheme.typography.headlineMedium
             )
+            Text(
+                text = stringResource(Res.string.credit_game_development)
+            )
             Spacer(Modifier.height(16.dp))
 
             Text(
@@ -47,6 +53,14 @@ fun CreditsScreen() {
             )
             Text(stringResource(Res.string.credit_gameframework_0))
             Text(stringResource(Res.string.credit_gameframework_1))
+
+            Spacer(Modifier.height(16.dp))
+
+            Text(
+                text = stringResource(Res.string.credit_ai_disclosure_title),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Text(stringResource(Res.string.credit_ai_disclosure_content))
         }
     }
 }

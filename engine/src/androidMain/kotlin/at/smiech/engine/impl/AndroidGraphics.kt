@@ -10,6 +10,7 @@ import android.graphics.PorterDuffColorFilter
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
+import androidx.core.graphics.withRotation
 import at.smiech.engine.Graphics
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Pixmap
@@ -52,7 +53,7 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
         } catch (exc: IOException) {
             throw RuntimeException(
                 "Asset-Bitmap <" + filename
-                        + "> not found!"
+                        + "> not found!", exc
             )
         } finally {
             if (inputStream != null) {
@@ -63,7 +64,7 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
             }
         }
         val resultFormat =
-            if (bitmap?.config == Bitmap.Config.RGB_565) PixmapFormat.RGB565 else PixmapFormat.ARGB8888
+            if (bitmap.config == Bitmap.Config.RGB_565) PixmapFormat.RGB565 else PixmapFormat.ARGB8888
         return AndroidPixmap(bitmap, resultFormat)
     }
 
@@ -123,12 +124,11 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
     override fun drawPixmap(
         pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int,
         srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int, rotationDegrees: Float
-    ) {
-        val saved = canvas.save()
-        canvas.rotate(rotationDegrees, x + dstWidth / 2f, y + dstHeight / 2f)
-        drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight)
-        canvas.restoreToCount(saved)
-    }
+    ) =
+        canvas.withRotation(rotationDegrees, x + dstWidth / 2f, y + dstHeight / 2f) {
+            drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight)
+        }
+
 
     /**
      * SRC_IN throws the bitmap's own colors away and keeps its alpha, so what lands is the frame's
