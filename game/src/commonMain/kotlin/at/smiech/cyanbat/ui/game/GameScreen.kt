@@ -100,8 +100,11 @@ class GameScreen(
     private val world = World()
     private val factory = EntityFactory(world)
 
-    /** Canceled in [dispose], so nothing started here outlives the screen. */
-    private val screenScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    /**
+     * Canceled in [dispose], so nothing started here outlives the screen. On the main dispatcher,
+     * which is the thread the game loop runs on, so what a coroutine here writes needs no locking.
+     */
+    private val screenScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
     private val batId: EntityId
 
@@ -715,7 +718,8 @@ class GameScreen(
     // nothing to keep observing. Stays on the main thread, which is the only thread that touches
     // `highscore`.
     private fun readHighscore() = screenScope.launch {
-        highscore = env.highscores.read()
+        // Merged rather than assigned, in case this run has already beaten the stored value.
+        highscore = maxOf(highscore, env.highscores.read())
     }
 
     override fun update(deltaTime: Float) {
