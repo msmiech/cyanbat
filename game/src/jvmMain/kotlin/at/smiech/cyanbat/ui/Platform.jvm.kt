@@ -5,3 +5,5 @@ import at.smiech.cyanbat.resources.dialog_help_controls_desktop
 import org.jetbrains.compose.resources.StringResource
 
 internal actual val helpControls: StringResource = Res.string.dialog_help_controls_desktop
+
+internal actual val hasSystemBack: Boolean = false

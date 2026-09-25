@@ -6,6 +6,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
 import at.smiech.cyanbat.CyanBatEnvironment
@@ -13,7 +17,9 @@ import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.Level
 import at.smiech.cyanbat.ui.CyanBatMenu
+import at.smiech.cyanbat.ui.MenuBackStack
 import at.smiech.cyanbat.ui.MenuHost
+import at.smiech.cyanbat.ui.rememberMenuBackStack
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Haptics
@@ -30,15 +36,22 @@ fun main() = application {
     // The handler is hoisted above the window because keys are delivered to the window, not to
     // whatever the game happens to be showing - and because it has to outlive a single run.
     val controls = remember { ControlHandler() }
+    // Up here with the handler for the same reason: Escape reaches the window, and it is what
+    // leaves Settings or Credits, the way the back gesture does on Android.
+    val backStack = rememberMenuBackStack()
     Window(
         onCloseRequest = ::exitApplication,
         title = "CyanBat",
         // A backstop. The game surface claims focus and handles these itself; this catches the
         // window-level case where focus sits somewhere that does not - the menu, or the moment
-        // between the surface appearing and its focus request landing.
-        onKeyEvent = controls::onComposeKeyEvent,
+        // between the surface appearing and its focus request landing. The back stack only has
+        // somewhere to go below the main menu, so during a run Escape still falls through to pause.
+        onKeyEvent = { event ->
+            (event.key == Key.Escape && event.type == KeyEventType.KeyDown && backStack.back()) ||
+                controls.onComposeKeyEvent(event)
+        },
     ) {
-        CyanBatApp(controls)
+        CyanBatApp(controls, backStack)
     }
 }
 
@@ -49,7 +62,7 @@ fun main() = application {
  * why "back to menu" here is a state change rather than an Intent.
  */
 @Composable
-private fun CyanBatApp(controls: ControlHandler) {
+private fun CyanBatApp(controls: ControlHandler, backStack: MenuBackStack) {
     var playing by remember { mutableStateOf(false) }
     val settings = remember { PreferencesSettingsRepository() }
     val scope = rememberCoroutineScope()
@@ -93,7 +106,8 @@ private fun CyanBatApp(controls: ControlHandler) {
         GameSurface(game)
     } else {
         CyanBatMenu(
-            MenuHost(
+            backStack = backStack,
+            host = MenuHost(
                 settings = settings,
                 menuMusic = menuMusic,
                 // The handler spans the menu too, so an Escape pressed here would otherwise be
