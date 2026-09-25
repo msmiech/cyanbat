@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.desktop
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -57,6 +58,10 @@ private fun CyanBatApp(controls: ControlHandler) {
     val menuAudio = remember { DesktopAudio { name ->
         object {}.javaClass.getResourceAsStream("/$name") ?: error("Asset <$name> not found")
     } }
+    // Out here rather than in the menu branch, which leaves composition for every run: a track
+    // remembered there was rebuilt on each return, while the menu's ViewModel went on holding the
+    // first one.
+    val menuMusic = remember { menuAudio.newMusic("menu_theme.mp3") }
 
     if (playing) {
         val game = remember {
@@ -74,12 +79,23 @@ private fun CyanBatApp(controls: ControlHandler) {
                 game.setScreen(GameScreen(game, env))
             }
         }
+        // A run owns its screen and its audio, and neither is needed once the player is back in
+        // the menu. Android gets this from the game activity's onDestroy; here nothing else would
+        // do it, so the game over track played on over the menu and every run leaked its sound
+        // lines and music threads.
+        DisposableEffect(game) {
+            onDispose {
+                game.currentScreen?.dispose()
+                game.currentScreen = null
+                game.audio.dispose()
+            }
+        }
         GameSurface(game)
     } else {
         CyanBatMenu(
             MenuHost(
                 settings = settings,
-                menuMusic = remember { menuAudio.newMusic("menu_theme.mp3") },
+                menuMusic = menuMusic,
                 // The handler spans the menu too, so an Escape pressed here would otherwise be
                 // waiting to pause the run the moment it starts.
                 onStartGame = {
@@ -103,7 +119,7 @@ private fun loadAssets(game: DesktopGame): GameAssets {
             batDeath = g.newPixmap("cyanBatDeath.png", PixmapFormat.ARGB8888),
             enemy = g.newPixmap("enemies.png", PixmapFormat.ARGB8888),
             explosion = g.newPixmap("explosion.png", PixmapFormat.ARGB8888),
-                    shatter = g.newPixmap("shatter.png", PixmapFormat.ARGB8888),
+            shatter = g.newPixmap("shatter.png", PixmapFormat.ARGB8888),
             shot = g.newPixmap("shot.png", PixmapFormat.ARGB8888),
         ),
         audio = GameAssets.Audio(

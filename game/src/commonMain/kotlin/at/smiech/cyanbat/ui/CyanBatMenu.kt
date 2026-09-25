@@ -14,7 +14,7 @@ import at.smiech.engine.Music
  */
 class MenuHost(
     val settings: SettingsRepository,
-    /** Menu track, or null where audio is unavailable (desktop, until MP3 decoding lands). */
+    /** Menu track, or null where audio is unavailable. */
     val menuMusic: Music?,
     val onStartGame: () -> Unit,
     val onExit: () -> Unit,
