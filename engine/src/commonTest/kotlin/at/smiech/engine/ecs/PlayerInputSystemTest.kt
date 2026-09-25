@@ -158,7 +158,7 @@ class PlayerInputSystemTest {
 
         val traveled = sqrt(
             (h.rect.centerX - 122.5f) * (h.rect.centerX - 122.5f) +
-                (h.rect.centerY - 120f) * (h.rect.centerY - 120f)
+                    (h.rect.centerY - 120f) * (h.rect.centerY - 120f)
         )
         assertClose(PlayerInputSystem.CATCH_UP_SPEED * TICK, traveled, 0.5f)
 
@@ -223,7 +223,11 @@ class PlayerInputSystemTest {
 
         h.up(400, 300)
         h.tick(times = 10)
-        assertEquals(stoppedAt, h.rect, "the bat should not coast on to the last touch after release")
+        assertEquals(
+            stoppedAt,
+            h.rect,
+            "the bat should not coast on to the last touch after release"
+        )
     }
 
     @Test
@@ -316,7 +320,7 @@ class PlayerInputSystemTest {
         diagonal.tick(times = 10)
         val traveled = sqrt(
             (diagonal.rect.centerX - 122.5f) * (diagonal.rect.centerX - 122.5f) +
-                (diagonal.rect.centerY - 120f) * (diagonal.rect.centerY - 120f)
+                    (diagonal.rect.centerY - 120f) * (diagonal.rect.centerY - 120f)
         )
 
         assertClose(straightDistance, traveled, 0.5f)

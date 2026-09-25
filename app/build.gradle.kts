@@ -1,4 +1,3 @@
-import javax.inject.Inject
 import com.android.build.api.dsl.ApplicationExtension
 
 // Module-level build file with build configurations for the app module
@@ -125,13 +124,17 @@ dependencies {
  * and register it as a generated asset directory.
  */
 abstract class StageComposeResources : DefaultTask() {
-    @get:InputDirectory abstract val sourceDir: DirectoryProperty
+    @get:InputDirectory
+    abstract val sourceDir: DirectoryProperty
 
-    @get:Input abstract val resourcePackage: Property<String>
+    @get:Input
+    abstract val resourcePackage: Property<String>
 
-    @get:OutputDirectory abstract val outputDir: DirectoryProperty
+    @get:OutputDirectory
+    abstract val outputDir: DirectoryProperty
 
-    @get:Inject abstract val fs: FileSystemOperations
+    @get:Inject
+    abstract val fs: FileSystemOperations
 
     @TaskAction
     fun stage() {
@@ -142,16 +145,17 @@ abstract class StageComposeResources : DefaultTask() {
     }
 }
 
-val stageSharedComposeResources = tasks.register<StageComposeResources>("stageSharedComposeResources") {
-    description = "Staging shared compose resources"
-    dependsOn(":game:prepareComposeResourcesTaskForCommonMain")
-    sourceDir.set(
-        project(":game").layout.buildDirectory
-            .dir("generated/compose/resourceGenerator/preparedResources/commonMain/composeResources")
-    )
-    resourcePackage.set("at.smiech.cyanbat.resources")
-    outputDir.set(layout.buildDirectory.dir("generated/composeResourcesAssets"))
-}
+val stageSharedComposeResources =
+    tasks.register<StageComposeResources>("stageSharedComposeResources") {
+        description = "Staging shared compose resources"
+        dependsOn(":game:prepareComposeResourcesTaskForCommonMain")
+        sourceDir.set(
+            project(":game").layout.buildDirectory
+                .dir("generated/compose/resourceGenerator/preparedResources/commonMain/composeResources")
+        )
+        resourcePackage.set("at.smiech.cyanbat.resources")
+        outputDir.set(layout.buildDirectory.dir("generated/composeResourcesAssets"))
+    }
 
 androidComponents {
     onVariants { variant ->

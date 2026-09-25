@@ -35,16 +35,17 @@ class EnemyGeneratorTest {
     private val wavesAnnounced = mutableListOf<Int>()
     private val bossesSpawned = mutableListOf<EntityId>()
 
-    private fun generator(progression: LevelProgression = LevelProgression.forLevel(1)) = EnemyGenerator(
-        xSpawnPosition = WORLD_WIDTH,
-        worldHeight = WORLD_HEIGHT,
-        factory = factory,
-        enemyPixmap = FakePixmap(),
-        progression = progression,
-        random = Random(20260911),
-        onWaveChanged = { wavesAnnounced += it.index },
-        onBossSpawned = { bossesSpawned += it },
-    )
+    private fun generator(progression: LevelProgression = LevelProgression.forLevel(1)) =
+        EnemyGenerator(
+            xSpawnPosition = WORLD_WIDTH,
+            worldHeight = WORLD_HEIGHT,
+            factory = factory,
+            enemyPixmap = FakePixmap(),
+            progression = progression,
+            random = Random(20260911),
+            onWaveChanged = { wavesAnnounced += it.index },
+            onBossSpawned = { bossesSpawned += it },
+        )
 
     /** Runs the generator forward the way the game does: a fixed tick, over and over. */
     private fun EnemyGenerator.run(seconds: Float) {
@@ -84,7 +85,10 @@ class EnemyGeneratorTest {
         generator.run(MINUTE)
         val fifthMinute = enemies().size
 
-        assertTrue(fifthMinute > firstMinute, "minute two spawned $fifthMinute against minute one's $firstMinute")
+        assertTrue(
+            fifthMinute > firstMinute,
+            "minute two spawned $fifthMinute against minute one's $firstMinute"
+        )
     }
 
     @Test
@@ -190,7 +194,12 @@ class EnemyGeneratorTest {
         val boss = generator.bossId!!
 
         val lastWave = LevelProgression.forLevel(1).waveAt(BOSS_WAVE * MINUTE - 1f)
-        assertTrue(world.getComponent(boss, HealthComponent::class)!!.hitPoints > lastWave.hitPoints)
+        assertTrue(
+            world.getComponent(
+                boss,
+                HealthComponent::class
+            )!!.hitPoints > lastWave.hitPoints
+        )
         assertTrue(world.getComponent(boss, DamageComponent::class)!!.amount > lastWave.damage)
     }
 

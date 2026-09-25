@@ -37,7 +37,10 @@ class WorldTest {
     fun `components round trip and missing ones read null`() {
         val world = World()
         val id = world.spawn()
-        assertEquals(Rect.fromLTWH(0f, 0f, 10f, 10f), world.getComponent(id, TransformComponent::class)!!.rect)
+        assertEquals(
+            Rect.fromLTWH(0f, 0f, 10f, 10f),
+            world.getComponent(id, TransformComponent::class)!!.rect
+        )
         assertNull(world.getComponent(id, VelocityComponent::class))
         assertTrue(world.hasComponent(id, TransformComponent::class))
         assertFalse(world.hasComponent(id, VelocityComponent::class))
@@ -51,7 +54,10 @@ class WorldTest {
         world.addComponent(moving, VelocityComponent(Vector2.Zero))
 
         assertContentEquals(listOf(bare, moving), world.query(TransformComponent::class))
-        assertContentEquals(listOf(moving), world.query(TransformComponent::class, VelocityComponent::class))
+        assertContentEquals(
+            listOf(moving),
+            world.query(TransformComponent::class, VelocityComponent::class)
+        )
         assertContentEquals(emptyList(), world.query(HealthComponent::class))
     }
 
@@ -66,7 +72,10 @@ class WorldTest {
         val id = world.spawn()
         world.removeEntity(id)
 
-        assertTrue(world.hasComponent(id, TransformComponent::class), "entity vanished before the frame ended")
+        assertTrue(
+            world.hasComponent(id, TransformComponent::class),
+            "entity vanished before the frame ended"
+        )
 
         world.update(0.016f, null)
 
@@ -137,7 +146,10 @@ class WorldTest {
 
         assertFalse(world.hasComponent(offscreen, TransformComponent::class))
         assertTrue(world.hasComponent(onscreen, TransformComponent::class))
-        assertTrue(world.hasComponent(pinned, TransformComponent::class), "opted out of bounds culling")
+        assertTrue(
+            world.hasComponent(pinned, TransformComponent::class),
+            "opted out of bounds culling"
+        )
     }
 
     /**
@@ -161,6 +173,9 @@ class WorldTest {
 
         assertFalse(world.hasComponent(offRight, TransformComponent::class))
         assertTrue(world.hasComponent(atEdge, TransformComponent::class), "still partly on screen")
-        assertTrue(world.hasComponent(pinned, TransformComponent::class), "opted out of bounds culling")
+        assertTrue(
+            world.hasComponent(pinned, TransformComponent::class),
+            "opted out of bounds culling"
+        )
     }
 }

@@ -49,7 +49,15 @@ private class RecordingGraphics : Graphics {
         sprites += DrawnSprite("$tag:flash", dstWidth, dstHeight)
     }
 
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int) {
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int
+    ) {
         sprites += DrawnSprite((pixmap as TaggedPixmap).tag, srcWidth, srcHeight)
     }
 

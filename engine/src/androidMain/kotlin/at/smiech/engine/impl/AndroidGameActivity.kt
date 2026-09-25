@@ -9,8 +9,8 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.Window
 import androidx.activity.ComponentActivity
-import androidx.activity.addCallback
 import androidx.activity.SystemBarStyle
+import androidx.activity.addCallback
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.Canvas
@@ -59,11 +59,11 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
+
         // Dispose old components if this is a configuration change and we're reusing the Activity?
         // Actually, onCreate is called on a NEW instance usually, but let's be safe if we manage state.
         audio?.dispose()
-        
+
         requestWindowFeature(Window.FEATURE_NO_TITLE)
         enableEdgeToEdge(
             statusBarStyle = SystemBarStyle.light(

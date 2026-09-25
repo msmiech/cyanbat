@@ -1,7 +1,6 @@
 package at.smiech.engine.impl
 
 import androidx.compose.ui.input.key.Key
-import at.smiech.engine.Direction
 import at.smiech.engine.GameButton
 import kotlin.test.Test
 import kotlin.test.assertEquals

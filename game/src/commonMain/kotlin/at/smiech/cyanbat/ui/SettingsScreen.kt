@@ -50,9 +50,17 @@ private fun SettingsContent(
                 style = MaterialTheme.typography.headlineMedium
             )
             Spacer(modifier = Modifier.height(16.dp))
-            SettingRow(stringResource(Res.string.settings_music_title), musicEnabled, onMusicEnabledChanged)
+            SettingRow(
+                stringResource(Res.string.settings_music_title),
+                musicEnabled,
+                onMusicEnabledChanged
+            )
             Spacer(modifier = Modifier.height(16.dp))
-            SettingRow(stringResource(Res.string.settings_sound_title), soundEnabled, onSoundEnabledChanged)
+            SettingRow(
+                stringResource(Res.string.settings_sound_title),
+                soundEnabled,
+                onSoundEnabledChanged
+            )
         }
     }
 }

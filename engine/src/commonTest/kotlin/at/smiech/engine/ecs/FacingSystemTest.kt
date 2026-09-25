@@ -25,7 +25,12 @@ class FacingSystemTest {
         addSystem(FacingSystem())
     }
 
-    private fun spawn(velocity: Vector2, x: Float = 100f, y: Float = 100f, faces: Boolean = true): EntityId {
+    private fun spawn(
+        velocity: Vector2,
+        x: Float = 100f,
+        y: Float = 100f,
+        faces: Boolean = true
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, 24f, 12f)))
         world.addComponent(id, VelocityComponent(velocity))
@@ -34,7 +39,8 @@ class FacingSystemTest {
         return id
     }
 
-    private fun angleOf(id: EntityId) = world.getComponent(id, SpriteComponent::class)!!.rotationDegrees
+    private fun angleOf(id: EntityId) =
+        world.getComponent(id, SpriteComponent::class)!!.rotationDegrees
 
     private fun tick() = world.update(0.019f, null)
 

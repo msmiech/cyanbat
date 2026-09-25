@@ -2,6 +2,7 @@ package at.smiech.engine.ecs
 
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Pixmap
+import at.smiech.engine.ecs.PlayerControlComponent.Companion.NO_POINTER
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
 

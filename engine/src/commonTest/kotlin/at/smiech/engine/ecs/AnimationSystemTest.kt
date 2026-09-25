@@ -26,16 +26,31 @@ private val STRIP_OFFSETS = listOf(0, 128, 256)
 
 class AnimationSystemTest {
 
-    private fun world(baseSrcX: Int, frameCount: Int = STRIP_FRAMES, looping: Boolean = true): Pair<World, EntityId> {
+    private fun world(
+        baseSrcX: Int,
+        frameCount: Int = STRIP_FRAMES,
+        looping: Boolean = true
+    ): Pair<World, EntityId> {
         val world = World()
         world.addSystem(AnimationSystem())
         val id = world.createEntity()
-        world.addComponent(id, SpriteComponent(FakePixmap(SHEET_WIDTH, 29), baseSrcX = baseSrcX, srcWidth = FRAME_WIDTH))
-        world.addComponent(id, AnimationComponent(FRAME_WIDTH, 29, frameCount, interval = 0.2f, isLooping = looping))
+        world.addComponent(
+            id,
+            SpriteComponent(
+                FakePixmap(SHEET_WIDTH, 29),
+                baseSrcX = baseSrcX,
+                srcWidth = FRAME_WIDTH
+            )
+        )
+        world.addComponent(
+            id,
+            AnimationComponent(FRAME_WIDTH, 29, frameCount, interval = 0.2f, isLooping = looping)
+        )
         return world to id
     }
 
-    private fun srcX(world: World, id: EntityId) = world.getComponent(id, SpriteComponent::class)!!.srcX
+    private fun srcX(world: World, id: EntityId) =
+        world.getComponent(id, SpriteComponent::class)!!.srcX
 
     @Test
     fun `sprite starts on the first frame of its own strip`() {
@@ -53,7 +68,11 @@ class AnimationSystemTest {
         for (baseSrcX in STRIP_OFFSETS) {
             val (world, id) = world(baseSrcX)
             world.update(0.25f, null)
-            assertEquals(baseSrcX + FRAME_WIDTH, srcX(world, id), "strip at $baseSrcX advanced to the wrong frame")
+            assertEquals(
+                baseSrcX + FRAME_WIDTH,
+                srcX(world, id),
+                "strip at $baseSrcX advanced to the wrong frame"
+            )
         }
     }
 
@@ -65,7 +84,10 @@ class AnimationSystemTest {
                 world.update(0.25f, null)
                 val x = srcX(world, id)
                 assertTrue(x >= baseSrcX, "frame ran left of its strip: $x < $baseSrcX")
-                assertTrue(x + FRAME_WIDTH <= SHEET_WIDTH, "frame ran past the sheet: $x + $FRAME_WIDTH > $SHEET_WIDTH")
+                assertTrue(
+                    x + FRAME_WIDTH <= SHEET_WIDTH,
+                    "frame ran past the sheet: $x + $FRAME_WIDTH > $SHEET_WIDTH"
+                )
             }
         }
     }

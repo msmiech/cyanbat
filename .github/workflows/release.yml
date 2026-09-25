@@ -226,7 +226,7 @@ jobs:
     # publishing would leave gathering the assets - the step most likely to go quietly wrong, and
     # the only use of download-artifact anywhere - untested until a tag already existed.
     name: Collect and publish
-    needs: [version, android, desktop]
+    needs: [ version, android, desktop ]
     runs-on: ubuntu-latest
     # The only job that writes, and the only one that needs a token that can.
     permissions:

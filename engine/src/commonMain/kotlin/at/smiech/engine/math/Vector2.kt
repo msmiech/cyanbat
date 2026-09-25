@@ -27,6 +27,7 @@ value class Vector2(val packed: Long) {
             val yi = y.toBits().toLong()
             return (xi shl 32) or (yi and 0xFFFFFFFFL)
         }
+
         private fun unpackX(packed: Long): Float = Float.fromBits((packed shr 32).toInt())
         private fun unpackY(packed: Long): Float = Float.fromBits(packed.toInt())
     }

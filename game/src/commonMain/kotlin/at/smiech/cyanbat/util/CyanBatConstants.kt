@@ -4,6 +4,7 @@ const val TICK_INITIAL = 0.019f // in seconds
 
 // The bat fires automatically on this cadence.
 const val SHOT_INTERVAL_SECONDS = 1f
+
 // Shot travel per tick, in framebuffer pixels. Enemies close at 1.2-2.5, so this outruns them.
 const val SHOT_SPEED = 4f
 

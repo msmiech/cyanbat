@@ -75,7 +75,10 @@ class DeathSystemTest {
 
         val velocity = velocities.require(id).velocity
         assertEquals(-3f, velocity.x, "sideways motion should be untouched")
-        assertTrue(velocity.y > -2f && velocity.y < 0f, "it should still be rising, slower: ${velocity.y}")
+        assertTrue(
+            velocity.y > -2f && velocity.y < 0f,
+            "it should still be rising, slower: ${velocity.y}"
+        )
     }
 
     @Test

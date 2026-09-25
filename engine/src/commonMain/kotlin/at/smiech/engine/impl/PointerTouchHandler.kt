@@ -61,8 +61,9 @@ class PointerTouchHandler(
             pressed && !previouslyPressed -> Input.TouchEvent.TOUCH_DOWN
             !pressed && previouslyPressed -> Input.TouchEvent.TOUCH_UP
             (pressed || treatMotionAsDrag) &&
-                (touchX[pointer] != scaledX || touchY[pointer] != scaledY) ->
+                    (touchX[pointer] != scaledX || touchY[pointer] != scaledY) ->
                 Input.TouchEvent.TOUCH_DRAGGED
+
             else -> return
         }
 

@@ -66,29 +66,35 @@ class EnemyBehaviorSystem : GameSystem() {
 
             when (behavior.type) {
                 EnemyMovementType.SCOUT -> {
-                    velocity.velocity = velocity.velocity.copy(y = sin(behavior.elapsedTime * 2f) * 0.2f)
+                    velocity.velocity =
+                        velocity.velocity.copy(y = sin(behavior.elapsedTime * 2f) * 0.2f)
                 }
+
                 EnemyMovementType.SINE -> {
                     val amplitude = 80f
                     val frequency = 3f
-                    val targetY = behavior.initialY + sin(behavior.elapsedTime * frequency) * amplitude
+                    val targetY =
+                        behavior.initialY + sin(behavior.elapsedTime * frequency) * amplitude
                     val dy = (targetY - transform.rect.top) * 0.1f
                     velocity.velocity = velocity.velocity.copy(y = dy)
                 }
+
                 EnemyMovementType.ZIGZAG -> {
                     if (behavior.elapsedTime > behavior.nextDirectionChange) {
                         behavior.verticalDirection *= -1f
                         behavior.nextDirectionChange = behavior.elapsedTime + 0.8f // simplified
                     }
-                    velocity.velocity = velocity.velocity.copy(y = behavior.verticalDirection * 2.5f)
+                    velocity.velocity =
+                        velocity.velocity.copy(y = behavior.verticalDirection * 2.5f)
                 }
+
                 EnemyMovementType.BOSS -> {
                     // Closes from the edge it entered on, then stops dead at its station. Its own
                     // x velocity is overwritten here rather than decayed, so the entrance reads as
                     // one deliberate move instead of a drift.
                     val closing = transform.rect.left > behavior.holdX
                     val targetY = behavior.initialY +
-                        sin(behavior.elapsedTime * BOSS_WEAVE_FREQUENCY) * BOSS_WEAVE_AMPLITUDE
+                            sin(behavior.elapsedTime * BOSS_WEAVE_FREQUENCY) * BOSS_WEAVE_AMPLITUDE
                     velocity.velocity = Vector2(
                         x = if (closing) BOSS_APPROACH_SPEED else 0f,
                         // Chased rather than set outright, so the boss eases into the turns at the
@@ -354,10 +360,20 @@ class BounceSystem(
                     reflect(id, transform, velocity.copy(y = -velocity.y), dy = -rect.top)
 
                 rect.bottom > worldHeight && velocity.y > 0f ->
-                    reflect(id, transform, velocity.copy(y = -velocity.y), dy = worldHeight - rect.bottom)
+                    reflect(
+                        id,
+                        transform,
+                        velocity.copy(y = -velocity.y),
+                        dy = worldHeight - rect.bottom
+                    )
 
                 rect.right > worldWidth && velocity.x > 0f ->
-                    reflect(id, transform, velocity.copy(x = -velocity.x), dx = worldWidth - rect.right)
+                    reflect(
+                        id,
+                        transform,
+                        velocity.copy(x = -velocity.x),
+                        dx = worldWidth - rect.right
+                    )
 
                 rect.left < 0f && velocity.x > 0f -> Unit // travelling away from it already
 

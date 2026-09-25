@@ -101,7 +101,11 @@ class ShotColorwayTest {
 
         val style = world.getComponent(id, ProjectileStyleComponent::class)
         assertNotNull(style)
-        assertEquals(2 + ENEMY_SHOT_VARIANT_OFFSET, style.variant, "the boss wears the third enemy's colors")
+        assertEquals(
+            2 + ENEMY_SHOT_VARIANT_OFFSET,
+            style.variant,
+            "the boss wears the third enemy's colors"
+        )
     }
 
     /** Nothing an enemy fires should ever come out in the player's color. */

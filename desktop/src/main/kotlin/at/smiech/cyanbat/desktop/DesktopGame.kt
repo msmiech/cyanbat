@@ -6,10 +6,10 @@ import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.Screen
 import at.smiech.engine.impl.ControlHandler
+import at.smiech.engine.impl.DesktopAudio
 import at.smiech.engine.impl.DesktopGraphics
 import at.smiech.engine.impl.DesktopInput
 import at.smiech.engine.impl.PointerTouchHandler
-import at.smiech.engine.impl.DesktopAudio
 import java.awt.image.BufferedImage
 
 /**
