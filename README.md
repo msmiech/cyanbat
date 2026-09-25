@@ -53,7 +53,7 @@ build, install, launch, screenshot, and check persistence. See
 |            | Move                                   | Pause / resume  | Quit to menu |
 |------------|----------------------------------------|-----------------|--------------|
 | Touch      | Drag the bat, or tap where you want it | — (tap resumes) | Back, twice  |
-| Keyboard   | `WASD` or the arrow keys               | `Esc` (or `P`)  | `Q`          |
+| Keyboard   | `WASD` or the arrow keys               | `Q`             | `Q`, twice   |
 | Controller | Left stick or d-pad                    | `Start`         | `B`          |
 
 Dragging pins the bat under your finger and keeps the offset you grabbed it by, so it never snaps

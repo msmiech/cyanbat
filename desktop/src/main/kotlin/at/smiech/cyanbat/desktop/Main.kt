@@ -39,26 +39,19 @@ fun main() = application {
     // Up here with the handler for the same reason: Escape reaches the window, and it is what
     // leaves Settings or Credits, the way the back gesture does on Android.
     val backStack = rememberMenuBackStack()
-    var playing by remember { mutableStateOf(false) }
     Window(
         onCloseRequest = ::exitApplication,
         title = "CyanBat",
-        // Escape is taken here, before the scene dispatches it at all. Left to the key handlers
-        // below, it never reached the game - Esc did not pause while Q did - which points at
-        // Compose claiming it for its own back or focus handling first. Only Escape, and only
-        // where it has a job, so the Help dialog on the main menu can still close on it.
-        onPreviewKeyEvent = { event ->
-            event.key == Key.Escape && when {
-                playing -> controls.onComposeKeyEvent(event)
-                else -> event.type == KeyEventType.KeyDown && backStack.back()
-            }
-        },
         // A backstop. The game surface claims focus and handles these itself; this catches the
         // window-level case where focus sits somewhere that does not - the menu, or the moment
-        // between the surface appearing and its focus request landing.
-        onKeyEvent = controls::onComposeKeyEvent,
+        // between the surface appearing and its focus request landing. The back stack only has
+        // somewhere to go below the main menu, so during a run Escape still falls through to pause.
+        onKeyEvent = { event ->
+            (event.key == Key.Escape && event.type == KeyEventType.KeyDown && backStack.back()) ||
+                controls.onComposeKeyEvent(event)
+        },
     ) {
-        CyanBatApp(controls, backStack, playing, onPlayingChange = { playing = it })
+        CyanBatApp(controls, backStack)
     }
 }
 
@@ -69,12 +62,8 @@ fun main() = application {
  * why "back to menu" here is a state change rather than an Intent.
  */
 @Composable
-private fun CyanBatApp(
-    controls: ControlHandler,
-    backStack: MenuBackStack,
-    playing: Boolean,
-    onPlayingChange: (Boolean) -> Unit,
-) {
+private fun CyanBatApp(controls: ControlHandler, backStack: MenuBackStack) {
+    var playing by remember { mutableStateOf(false) }
     val settings = remember { PreferencesSettingsRepository() }
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
@@ -96,7 +85,7 @@ private fun CyanBatApp(
                     highscores = PreferencesHighscoreStore(),
                     onExitToMenu = {
                         controls.releaseAll()
-                        onPlayingChange(false)
+                        playing = false
                     },
                     audioSettings = audioSettings,
                 )
@@ -125,7 +114,7 @@ private fun CyanBatApp(
                 // waiting to pause the run the moment it starts.
                 onStartGame = {
                     controls.releaseAll()
-                    onPlayingChange(true)
+                    playing = true
                 },
                 onExit = { exitProcess(0) },
             )
