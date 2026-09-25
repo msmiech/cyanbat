@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -88,7 +90,11 @@ private fun HelpDialog(dismiss: () -> Unit) {
                     style = MaterialTheme.typography.titleMedium
                 )
                 Spacer(Modifier.height(12.dp))
-                Text(text = stringResource(Res.string.dialog_help_text))
+                // Scrolls rather than pushing OK off a short landscape screen.
+                Text(
+                    text = stringResource(helpControls) + "\n" + stringResource(Res.string.dialog_help_text),
+                    modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState())
+                )
                 Spacer(Modifier.height(12.dp))
                 TextButton(modifier = Modifier.align(Alignment.End), onClick = dismiss) {
                     Text("OK")

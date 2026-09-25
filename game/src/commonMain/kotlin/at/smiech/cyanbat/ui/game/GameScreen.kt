@@ -969,7 +969,7 @@ class GameScreen(
             // No text measurement in the Graphics API, so these x offsets are eyeballed against
             // the 480px framebuffer rather than centered properly.
             drawString("PAUSED", 186, 140, 30, EngineColors.CYAN)
-            drawString("Tap or press Esc to resume", 155, 175, 15, EngineColors.WHITE)
+            drawString("Tap or click to resume", 170, 175, 15, EngineColors.WHITE)
             drawString("Back or Q to quit", 185, 197, 15, EngineColors.WHITE)
         }
     }

@@ -1,10 +1,20 @@
 package at.smiech.cyanbat.ui
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import at.smiech.cyanbat.data.SettingsRepository
+import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.button_back
 import at.smiech.engine.Music
+import org.jetbrains.compose.resources.stringResource
 
 /**
  * Everything the shared menu needs from its host.
@@ -45,12 +55,34 @@ fun CyanBatMenu(
                 )
             }
 
-            MenuDestination.Settings -> {
+            MenuDestination.Settings -> SubScreen(onBack = { backStack.back() }) {
                 val viewModel = viewModel { SettingsViewModel(host.settings) }
                 SettingsScreen(viewModel)
             }
 
-            MenuDestination.Credits -> CreditsScreen()
+            MenuDestination.Credits -> SubScreen(onBack = { backStack.back() }) {
+                CreditsScreen()
+            }
+        }
+    }
+}
+
+/**
+ * A screen reached from the main menu, with a way back to it where the platform has none of its
+ * own. On Android the system back already does this and a second control would only crowd it.
+ */
+@Composable
+private fun SubScreen(onBack: () -> Unit, content: @Composable () -> Unit) {
+    if (hasSystemBack) {
+        content()
+        return
+    }
+    Surface {
+        Column(Modifier.fillMaxSize()) {
+            TextButton(onClick = onBack) {
+                Text("← " + stringResource(Res.string.button_back))
+            }
+            Box(Modifier.weight(1f)) { content() }
         }
     }
 }
