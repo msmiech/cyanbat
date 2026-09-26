@@ -1140,14 +1140,10 @@ class GameScreen(
     }
 
     private fun drawPauseOverlay() {
-        g.apply {
-            drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-            // These x offsets are eyeballed against the 480px framebuffer rather than centered on
-            // measured widths, so a reworded line needs its x moved by hand.
-            drawString("PAUSED", 186, 140, 30, EngineColors.CYAN)
-            drawString("Tap or click to resume", 170, 175, 15, EngineColors.WHITE)
-            drawString("Back or Q to quit", 185, 197, 15, EngineColors.WHITE)
-        }
+        g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
+        drawCentered("PAUSED", 140, 30, EngineColors.CYAN)
+        drawCentered("Tap or click to resume", 175, 15, EngineColors.WHITE)
+        drawCentered("Back or Q to quit", 197, 15, EngineColors.WHITE)
     }
 
     fun saveHighscore() {
@@ -1170,12 +1166,27 @@ class GameScreen(
     private fun drawBanner(text: String) {
         g.drawOutlinedString(
             text,
-            (game.frameBufferWidth - g.measureString(text, BANNER_FONT_SIZE)) / 2,
+            centeredX(text, BANNER_FONT_SIZE),
             game.frameBufferHeight / 3,
             BANNER_FONT_SIZE,
             EngineColors.YELLOW,
         )
     }
+
+    /**
+     * Draws [text] centered across the framebuffer, which is how every overlay line is placed.
+     *
+     * Centered on its measured width rather than at an x picked by eye: the faces the platforms
+     * draw text in disagree on widths, so a picked x is off center in all but one of them, and
+     * has to be picked again whenever the line is reworded.
+     */
+    private fun drawCentered(text: String, y: Int, fontSize: Int, color: Int) {
+        g.drawString(text, centeredX(text, fontSize), y, fontSize, color)
+    }
+
+    /** The x that centers [text] at [fontSize] on the framebuffer. */
+    private fun centeredX(text: String, fontSize: Int): Int =
+        (game.frameBufferWidth - g.measureString(text, fontSize)) / 2
 
     /**
      * What the player gets for clearing the stage: the run's total against the stage's highscore,
@@ -1185,42 +1196,47 @@ class GameScreen(
      * cave they beat with the wreckage of the boss still clearing off it.
      */
     private fun drawStageCompleteOverlay() {
-        g.apply {
-            drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-            drawString("STAGE COMPLETE", 120, 120, 30, EngineColors.YELLOW)
-            drawString(currentStage.name, 150, 150, 15, EngineColors.CYAN)
-            drawString("Score: ${scoring.score}", 175, 175, 20, EngineColors.WHITE)
-            // Already raised by this run if it beat the record, which is how the player can tell
-            // that it did: the two numbers match.
-            drawString("Highscore: $highscore", 175, 197, 15, EngineColors.CYAN)
-            if (nextStageId != null) {
-                drawString("Tap or press Enter for stage ${nextStageId}", 135, 227, 15, EngineColors.WHITE)
-                drawString("Back or Q for the menu", 170, 249, 15, EngineColors.WHITE)
-                drawString("Score, level and power-ups start over", 118, 274, 13, EngineColors.CYAN)
-            } else {
-                drawString("Tap or press Enter to continue", 140, 227, 15, EngineColors.WHITE)
-            }
+        g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
+        drawCentered("STAGE COMPLETE", 120, 30, EngineColors.YELLOW)
+        drawCentered(currentStage.name, 150, 15, EngineColors.CYAN)
+
+        val score = "Score: ${scoring.score}"
+        // Already raised by this run if it beat the record, which is how the player can tell that
+        // it did: the two numbers match.
+        val record = "Highscore: $highscore"
+        // The two share a left edge, so they read as one block, and it is the block that is
+        // centered, by the wider of the two. Centering each line on its own would stagger them.
+        val width = maxOf(g.measureString(score, 20), g.measureString(record, 15))
+        val left = (game.frameBufferWidth - width) / 2
+        g.drawString(score, left, 175, 20, EngineColors.WHITE)
+        g.drawString(record, left, 197, 15, EngineColors.CYAN)
+
+        if (nextStageId != null) {
+            drawCentered("Tap or press Enter for stage $nextStageId", 227, 15, EngineColors.WHITE)
+            drawCentered("Back or Q for the menu", 249, 15, EngineColors.WHITE)
+            drawCentered("Score, level and power-ups start over", 274, 13, EngineColors.CYAN)
+        } else {
+            drawCentered("Tap or press Enter to continue", 227, 15, EngineColors.WHITE)
         }
     }
 
     /**
      * The level up dialog: what the bat just reached, and the three things it can become.
      *
-     * Cards are drawn rather than composed, because this screen owns a 480x320 framebuffer - every
-     * offset here is eyeballed against that frame, as the other overlays are. A card is its own
-     * tap target, and carries no number: what it does is the whole of what the player needs to
-     * read. The number keys still pick by position for anyone on a keyboard, which is a shortcut
-     * rather than the advertised way in.
+     * Cards are drawn rather than composed, because this screen owns a 480x320 framebuffer: the
+     * row of cards is centered on that frame, and so are the two lines over it, by their measured
+     * widths, as the other overlays' lines are. A card is its own tap target, and carries no
+     * number: what it does is the whole of what the player needs to read. The number keys still
+     * pick by position for anyone on a keyboard, which is a shortcut rather than the advertised
+     * way in.
      */
     private fun drawPowerUpOffer() {
-        g.apply {
-            drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-            drawString("LEVEL ${progress.level}", 190, 70, 30, EngineColors.YELLOW)
-            drawString("Choose an upgrade", 168, 100, 15, EngineColors.WHITE)
+        g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
+        drawCentered("LEVEL ${progress.level}", 70, 30, EngineColors.YELLOW)
+        drawCentered("Choose an upgrade", 100, 15, EngineColors.WHITE)
 
-            offer.forEachIndexed { index, powerUp ->
-                drawPowerUpCard(index, powerUp)
-            }
+        offer.forEachIndexed { index, powerUp ->
+            drawPowerUpCard(index, powerUp)
         }
     }
 
@@ -1305,7 +1321,7 @@ class GameScreen(
         val time = formatStageTime(finalStageSeconds ?: enmGen.elapsedSeconds)
         g.drawOutlinedString(
             time,
-            (game.frameBufferWidth - g.measureString(time, STAGE_TIMER_FONT_SIZE)) / 2,
+            centeredX(time, STAGE_TIMER_FONT_SIZE),
             20,
             STAGE_TIMER_FONT_SIZE,
             EngineColors.WHITE,
@@ -1372,14 +1388,9 @@ class GameScreen(
         else -> "Wave: ${enmGen.currentWave.index + 1}/${progression.bossWave}"
     }
 
+    /** The stage's name, across the middle of the frame for the opening seconds of the run. */
     private fun drawStageName() {
-        g.drawString(
-            currentStage.name,
-            game.frameBufferWidth / 4,
-            game.frameBufferHeight / 2,
-            30,
-            EngineColors.YELLOW
-        )
+        drawCentered(currentStage.name, game.frameBufferHeight / 2, 30, EngineColors.YELLOW)
     }
 
     /** Starts or resumes the stage theme, if music is enabled. */

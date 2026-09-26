@@ -91,8 +91,9 @@ by device.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
 - In-game text (HUD, banners, overlays) is literal strings drawn at framebuffer coordinates in
-  `GameScreen`. The overlays' coordinates are hard-coded, so a longer string can knock one out of
-  line. Menu text is in `composeResources/values/strings.xml`.
+  `GameScreen` and `GameOverScreen`. The rows are hard-coded, but every centered or right-aligned
+  line is placed by its measured width, so rewording one needs no new x. Menu text is in
+  `composeResources/values/strings.xml`.
 
 **Stage content is split four ways.**
 - `Stage` (registered in `GameAssets.load`) is how a stage looks and sounds.

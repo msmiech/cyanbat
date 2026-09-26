@@ -53,10 +53,27 @@ class GameOverScreen(
         game.graphics?.let { graphics ->
             graphics.clear(EngineColors.BLACK)
             graphics.drawPixmap(env.assets.graphics.gameOver, 0, 0)
-            // In the dark band the artwork leaves under its own two lines, and aligned with each
-            // other at an x that centers a four digit score.
-            graphics.drawString("Score: $score", 185, 270, 20, EngineColors.WHITE)
-            graphics.drawString("Highscore: $highscore", 185, 293, 15, EngineColors.CYAN)
+            // In the dark band the artwork leaves under its own two lines. The two share a left
+            // edge, so they read as one block, and the block is centered by the wider of them on
+            // the column the artwork's lines are.
+            val scoreLine = "Score: $score"
+            val highscoreLine = "Highscore: $highscore"
+            val width = maxOf(
+                graphics.measureString(scoreLine, 20),
+                graphics.measureString(highscoreLine, 15),
+            )
+            val left = ARTWORK_CENTER_X - width / 2
+            graphics.drawString(scoreLine, left, 270, 20, EngineColors.WHITE)
+            graphics.drawString(highscoreLine, left, 293, 15, EngineColors.CYAN)
         }
+    }
+
+    private companion object {
+        /**
+         * The column gameover.png centers its own two lines on, 12px right of the frame's center.
+         * Read off the artwork, which is hand-drawn rather than generated. Centered on the frame
+         * instead, the score would sit visibly left of the lines above it.
+         */
+        const val ARTWORK_CENTER_X = 252
     }
 }
