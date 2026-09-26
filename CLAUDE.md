@@ -24,10 +24,12 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
   (`iosSimulatorArm64Test`, which needs Xcode; on a Mac `build` runs it too). No Android host tests
   or instrumentation tests are configured. `:app` has plain JVM unit tests of its own
   (`app/src/test`), for its DataStore code.
-- **Every host compiles `:engine` and `:game` for iOS** as part of `build`, test code included,
-  since Kotlin cross-compiles Apple libraries. So a JVM-only API in `commonMain` fails the build
-  anywhere, and so does a comma in a backticked test name, which Kotlin/Native rejects. Only
-  linking and running need a Mac; CI's `ios` job does that.
+- **Off a Mac, `build` skips the iOS targets** (`kotlin.native.enableKlibsCrossCompilation=false`
+  in `gradle.properties`), so it needs no Kotlin/Native toolchain. It still compiles `commonMain`
+  as common code, so a JVM-only API there fails the build anywhere. What only Kotlin/Native
+  catches - a comma in a backticked test name, for one, which it rejects - fails in CI's `ios`
+  job, or locally with `-Pkotlin.native.enableKlibsCrossCompilation=true`, at the cost of a
+  one-time download of about 800 MB. An IDE sync downloads that toolchain regardless.
 - To run, drive and screenshot the app on an emulator, use the `run-cyanbat` skill
   (`.claude/skills/run-cyanbat/`). Its gotchas cover what trips up device testing: the game
   activity is not exported, `monkey` destroys it, and binary output needs `adb exec-out`.

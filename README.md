@@ -90,9 +90,10 @@ is `ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
 Assembles every module, runs lint, and runs the unit tests — ECS, math, spawn pacing, and a
 check that the MP3 service provider desktop audio depends on is actually present.
 
-It also compiles `:engine` and `:game` for iOS, groundwork for an iOS app that does not exist yet,
-so shared code cannot quietly come to depend on the JVM. The shared tests run on the iOS
-simulator only on a Mac, where `build` includes them, and in CI's `ios` job.
+`:engine` and `:game` also have iOS targets, groundwork for an iOS app that does not exist yet, so
+shared code cannot quietly come to depend on the JVM. Only a Mac builds them: there `build` also
+compiles the shared code for iOS and runs its tests on the simulator, as CI's `ios` job does.
+Elsewhere they are skipped, which spares Linux and Windows builds the Kotlin/Native toolchain.
 
 ## 📦 Cutting a release
 

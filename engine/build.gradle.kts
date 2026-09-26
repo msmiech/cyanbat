@@ -18,9 +18,9 @@ kotlin {
 
     /*
      * There is no iOS app yet. The targets are here so that shared code has to keep working on
-     * Kotlin/Native: every host compiles them, since Kotlin cross-compiles Apple libraries, so
-     * `build` fails on a JVM-only API in commonMain. Linking, and running the tests on the
-     * simulator, need a Mac - CI's ios job does that part.
+     * Kotlin/Native. With them, commonMain is compiled as common code on every host, so a
+     * JVM-only API there fails `build` anywhere. Compiling for iOS itself, and running the tests
+     * on the simulator, is left to a Mac - CI's ios job; gradle.properties says why.
      */
     iosArm64()
     iosSimulatorArm64()

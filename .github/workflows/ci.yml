@@ -37,8 +37,8 @@ jobs:
         uses: gradle/actions/setup-gradle@v5
 
       # `build` covers every module - :app, :engine, :game and :desktop - assembling each
-      # and running its unit tests and lint. It compiles the iOS targets of :engine and :game
-      # too, which Kotlin can do from Linux; running their tests is the ios job's.
+      # and running its unit tests and lint. It leaves the iOS targets of :engine and :game to
+      # the ios job; see gradle.properties.
       - name: Build with Gradle
         run: ./gradlew build
 
@@ -53,9 +53,9 @@ jobs:
           retention-days: 14
           if-no-files-found: ignore
 
-  # The shared tests again, on the iOS simulator. Kotlin/Native is a different compiler and runtime
-  # from the JVM's, so passing there proves little about iOS - and only a Mac can link and run what
-  # it builds.
+  # The shared code built for iOS, and its tests run on the simulator. Nothing else in CI builds for
+  # iOS - the build job skips it - and Kotlin/Native is a different compiler and runtime from the
+  # JVM's, so the tests passing there proves little about iOS.
   ios:
     runs-on: macos-latest
     timeout-minutes: 60
@@ -73,12 +73,14 @@ jobs:
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v5
 
-      # The Kotlin plugin picks the first available iOS simulator on its own. Linking the test
-      # binaries runs Compose through Kotlin/Native, which is heavier than anything the JVM build
-      # does, so the daemon gets more heap here than gradle.properties gives it.
-      - name: Run the shared tests on the iOS simulator
+      # The device target is only compiled; there is no device to run it on. The Kotlin plugin
+      # picks the first available iOS simulator for the tests on its own. Linking the test binaries
+      # runs Compose through Kotlin/Native, which is heavier than anything the JVM build does, so
+      # the daemon gets more heap here than gradle.properties gives it.
+      - name: Compile for iOS and run the shared tests on the simulator
         run: >-
-          ./gradlew :engine:iosSimulatorArm64Test :game:iosSimulatorArm64Test
+          ./gradlew :engine:compileKotlinIosArm64 :game:compileKotlinIosArm64
+          :engine:iosSimulatorArm64Test :game:iosSimulatorArm64Test
           "-Dorg.gradle.jvmargs=-Xmx4g -Dfile.encoding=UTF-8"
 
       - name: Upload test reports
