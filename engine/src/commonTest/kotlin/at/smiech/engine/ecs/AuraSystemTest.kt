@@ -59,6 +59,7 @@ private class AuraRecordingGraphics : Graphics {
 
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) = Unit
     override fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int) = Unit
+    override fun measureString(s: String, fontSize: Int) = 0
     override val width = 480
     override val height = 320
 }

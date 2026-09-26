@@ -199,10 +199,18 @@ class DesktopGraphics(
     override fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int) {
         if (s == null) return
         g2d.color = Color(col, true)
-        g2d.font = Font(Font.SANS_SERIF, Font.PLAIN, fontSize)
+        g2d.font = sansSerif(fontSize)
         // Both Android and Java2D draw text from the baseline, so y transfers unchanged.
         g2d.drawString(s, x, y)
     }
+
+    // Asked of the framebuffer's own Graphics2D, under the same rendering hints drawString draws
+    // with, so the width is exactly where the pen ends up.
+    override fun measureString(s: String, fontSize: Int): Int =
+        g2d.getFontMetrics(sansSerif(fontSize)).stringWidth(s)
+
+    /** The face both of the above use: Java's logical SansSerif, which each OS resolves itself. */
+    private fun sansSerif(size: Int) = Font(Font.SANS_SERIF, Font.PLAIN, size)
 
     override val width: Int get() = frameBuffer.width
     override val height: Int get() = frameBuffer.height

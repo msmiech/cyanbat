@@ -25,6 +25,8 @@ private class StringRecordingGraphics : Graphics {
         strings += DrawnString(s ?: "", x, y, fontSize, col)
     }
 
+    override fun measureString(s: String, fontSize: Int) = 0
+
     override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
         throw UnsupportedOperationException()
 

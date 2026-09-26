@@ -54,7 +54,7 @@ class GameOverScreen(
             graphics.clear(EngineColors.BLACK)
             graphics.drawPixmap(env.assets.graphics.gameOver, 0, 0)
             // In the dark band the artwork leaves under its own two lines, and aligned with each
-            // other at an x that centers a four digit score - the Graphics API cannot measure one.
+            // other at an x that centers a four digit score.
             graphics.drawString("Score: $score", 185, 270, 20, EngineColors.WHITE)
             graphics.drawString("Highscore: $highscore", 185, 293, 15, EngineColors.CYAN)
         }
