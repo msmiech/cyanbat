@@ -16,11 +16,20 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
 
+    /*
+     * There is no iOS app yet. The targets are here so that shared code has to keep working on
+     * Kotlin/Native: every host compiles them, since Kotlin cross-compiles Apple libraries, so
+     * `build` fails on a JVM-only API in commonMain. Linking, and running the tests on the
+     * simulator, need a Mac - CI's ios job does that part.
+     */
+    iosArm64()
+    iosSimulatorArm64()
+
     sourceSets {
         commonMain {
             dependencies {
                 // Compose Multiplatform, not androidx: these resolve to androidx.compose on the
-                // Android target and to the Skiko-backed artifacts on the JVM target.
+                // Android target and to the Skiko-backed artifacts on the JVM and iOS targets.
                 implementation(compose.runtime)
                 implementation(compose.foundation)
             }

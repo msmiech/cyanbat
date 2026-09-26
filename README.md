@@ -23,7 +23,7 @@ and Linux) from a single shared codebase.
 | Module | What it is |
 | --- | --- |
 | `:engine` | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), math (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain` and `jvmMain` hold the platform implementations. |
-| `:game` | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI. Android + JVM. |
+| `:game` | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI. Android + JVM, and iOS too, though no iOS app exists yet. |
 | `:app` | Android application — activities, DataStore, and Android asset wiring. |
 | `:desktop` | Compose Desktop application — window, JVM asset wiring, and preferences-backed storage. |
 
@@ -89,6 +89,10 @@ is `ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
 
 Assembles every module, runs lint, and runs the unit tests — ECS, math, spawn pacing, and a
 check that the MP3 service provider desktop audio depends on is actually present.
+
+It also compiles `:engine` and `:game` for iOS, groundwork for an iOS app that does not exist yet,
+so shared code cannot quietly come to depend on the JVM. The shared tests run on the iOS
+simulator only on a Mac, where `build` includes them, and in CI's `ios` job.
 
 ## 📦 Cutting a release
 

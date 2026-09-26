@@ -108,7 +108,7 @@ class BounceSystemTest {
 
     /** A corner is two walls; taking both at once would send the entity straight back for two. */
     @Test
-    fun `a corner costs one bounce, not two`() {
+    fun `a corner costs one bounce and not two`() {
         val id = spawn(x = WORLD_WIDTH - 11f, y = 1f, velocity = Vector2(4f, -4f), bounces = 4)
 
         tick()

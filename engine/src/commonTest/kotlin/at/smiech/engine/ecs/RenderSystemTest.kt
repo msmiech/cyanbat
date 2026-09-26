@@ -172,7 +172,7 @@ class RenderSystemTest {
      * of the screen it covers.
      */
     @Test
-    fun `a rotated sprite is blitted turned, at the same size`() {
+    fun `a rotated sprite is blitted turned but at the same size`() {
         val id = spawn("shot")
         world.getComponent(id, SpriteComponent::class)!!.rotationDegrees = 180f
 
@@ -212,7 +212,7 @@ class RenderSystemTest {
     }
 
     @Test
-    fun `a flash is drawn straight over its own sprite, not over the whole scene`() {
+    fun `a flash is drawn straight over its own sprite and not over the whole scene`() {
         val lit = spawn("behind", zIndex = 10)
         world.addComponent(lit, HitFlashComponent(duration = 0.1f, color = FLASH))
         spawn("in front", zIndex = 20)

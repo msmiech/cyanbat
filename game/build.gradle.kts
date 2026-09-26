@@ -16,6 +16,10 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
 
+    // Compiled for iOS ahead of any iOS app, for the reason given in the engine's build file.
+    iosArm64()
+    iosSimulatorArm64()
+
     sourceSets {
         commonMain {
             dependencies {
