@@ -16,13 +16,21 @@ covers what you need to change the code.
 ./gradlew :app:lint                                      # lint exists only in :app
 ./gradlew :desktop:run                                   # play on the desktop, no emulator
 ./gradlew :app:installDebug                              # install on a running emulator
+./gradlew :engine:iosSimulatorArm64Test :game:iosSimulatorArm64Test   # the shared tests on the iOS simulator; Mac only
 ./gradlew :desktop:recordGameplay                        # re-record the README's GIFs in docs/gameplay
 uv run tools/generate_enemy_sprites.py                   # regenerate an asset; each script declares its own deps
 ```
 
-- `commonTest` runs on the JVM target only (`jvmTest`). No Android host tests or instrumentation
-  tests are configured. `:app` has plain JVM unit tests of its own (`app/src/test`), for its
-  DataStore code.
+- `commonTest` runs on the JVM (`jvmTest`) and, on a Mac, on the iOS simulator
+  (`iosSimulatorArm64Test`, which needs Xcode; on a Mac `build` runs it too). No Android host tests
+  or instrumentation tests are configured. `:app` has plain JVM unit tests of its own
+  (`app/src/test`), for its DataStore code.
+- **Off a Mac, `build` skips the iOS targets** (`kotlin.native.enableKlibsCrossCompilation=false`
+  in `gradle.properties`), so it needs no Kotlin/Native toolchain. It still compiles `commonMain`
+  as common code, so a JVM-only API there fails the build anywhere. What only Kotlin/Native
+  catches - a comma in a backticked test name, for one, which it rejects - fails in CI's `ios`
+  job, or locally with `-Pkotlin.native.enableKlibsCrossCompilation=true`, at the cost of a
+  one-time download of about 800 MB. An IDE sync downloads that toolchain regardless.
 - To run, drive and screenshot the app on an emulator, use the `run-cyanbat` skill
   (`.claude/skills/run-cyanbat/`). Its gotchas cover what trips up device testing: the game
   activity is not exported, `monkey` destroys it, and binary output needs `adb exec-out`.
@@ -36,6 +44,8 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
 `:engine` <- `:game` <- `:app` (Android) and `:desktop` (Compose Desktop). The engine and the whole
 game, menu UI included, are common code; the two platform modules only supply platform pieces.
 The few platform differences inside `:game` are `expect`/`actual` (`ui/Platform.kt`).
+`:engine` and `:game` also have iOS targets (`iosArm64`, `iosSimulatorArm64`), but there is no iOS
+app yet: the targets are there so that the shared code stays portable to one.
 
 **Two kinds of UI.** The menu - main screen, stage select, settings, credits - is shared Compose:
 `CyanBatMenu`, fed by a `MenuHost`, navigated by a hand-rolled `MenuBackStack`. The game itself is
@@ -128,15 +138,23 @@ select's strings.
   references them; `Mp3DecodingTest` guards them.
 - Generated sound effects are WAV: `javax.sound.sampled` reads PCM natively, and SoundPool can
   `openFd` them uncompressed from the APK.
+- The launcher icon is adaptive: `mipmap-anydpi/ic_launcher.xml` over three vector layers in
+  `app/src/main/res/drawable`, which redraw the pixel art crisply at any size a launcher picks.
+- The desktop installers take `desktop/icons/cyanbat.{icns,ico,png}` through `nativeDistributions`.
+  The window hands the OS every size in `desktop/src/main/resources/icons` itself (`WindowIcon`),
+  because Compose's `icon` parameter renders one image and Windows shrinks it into noise.
+  `AppIconTest` checks both sets, since nothing else reads the installers' before a release.
 
 **The art is generated.** `tools/generate_*.py`, built on `tools/pixelart.py`, produce every
-sprite sheet, background, obstacle, stage preview, the framed title and the WAV effects. The MP3s,
-`gameover.png` and `tools/title_lettering.png` are the exceptions.
-- To change art, change the script and re-run it; never edit the PNG.
+sprite sheet, background, obstacle, stage preview, the framed title, the app icons and the WAV
+effects. The MP3s, `gameover.png` and `tools/title_lettering.png` are the exceptions.
+- To change art, change the script and re-run it; never edit its output, the icons' vector XML
+  included.
 - The scripts are deterministic: re-running an unchanged one must reproduce the committed file
   byte for byte.
 - `SpriteSheetTest` pins each sheet's dimensions and color ceiling.
-- Re-run `generate_stage_previews.py` after changing any sheet it composes.
+- Re-run `generate_stage_previews.py` and `generate_icons.py` after changing any sheet they
+  compose.
 - Palette rule: the player is cool, everything hostile is warm.
 
 **The README's GIFs are recorded, not generated.** `recordGameplay` runs the `recorder` source

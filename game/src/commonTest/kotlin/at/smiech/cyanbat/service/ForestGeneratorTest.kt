@@ -85,7 +85,7 @@ class ForestGeneratorTest {
     }
 
     @Test
-    fun `wisps arrive as a V of five, the leader at the point`() {
+    fun `wisps arrive as a V of five with the leader at the point`() {
         generator(only(EnemySpecies.WISP)).firstArrival()
 
         val formation = enemies()
@@ -154,7 +154,7 @@ class ForestGeneratorTest {
     }
 
     @Test
-    fun `spitters always arrive armed, and aim`() {
+    fun `spitters always arrive armed and aim`() {
         generator(only(EnemySpecies.SPITTER)).run(10f)
 
         assertTrue(enemies().isNotEmpty())
@@ -188,7 +188,7 @@ class ForestGeneratorTest {
 
     /** Wasps come six at a time; a shield on each would turn a swarm into a wall. */
     @Test
-    fun `wasps never get shields, whatever the wave says`() {
+    fun `wasps never get shields whatever the wave says`() {
         generator(only(EnemySpecies.WASP, shieldChance = 1f)).run(10f)
 
         enemies().forEach { assertNull(world.getComponent(it, ShieldComponent::class)) }
@@ -216,7 +216,7 @@ class ForestGeneratorTest {
     }
 
     @Test
-    fun `the forest ends on the Moth Queen, flying her figure eight behind a shield not yet raised`() {
+    fun `the forest ends on the Moth Queen flying her figure eight behind a shield not yet raised`() {
         val (_, queen) = queenFight()
 
         assertEquals(EnemyMovementType.BOSS_FIGURE_EIGHT, behaviorOf(queen).type)
@@ -242,7 +242,7 @@ class ForestGeneratorTest {
     }
 
     @Test
-    fun `one blow past both thresholds still plays both phases, in order`() {
+    fun `one blow past both thresholds still plays both phases in order`() {
         val (generator, queen) = queenFight()
         val health = world.getComponent(queen, HealthComponent::class)!!
 

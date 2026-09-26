@@ -42,7 +42,7 @@ class ShotColorwayTest {
     )
 
     @Test
-    fun `a shot is addressed by its colorway, not drawn from the whole sheet`() {
+    fun `a shot is addressed by its colorway and not drawn from the whole sheet`() {
         val sprite = spriteOf(shot(PLAYER_SHOT_VARIANT))
 
         assertEquals(SHOT_FRAME_WIDTH, sprite.srcWidth, "a shot should be one frame of the sheet")
