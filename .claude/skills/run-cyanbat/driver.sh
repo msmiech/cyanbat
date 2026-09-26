@@ -57,6 +57,18 @@ cmd_boot() {
 
 cmd_install() {
   log "gradlew :app:installDebug"
+  # Gradle does not search for the SDK; it reads sdk.dir from local.properties or takes
+  # $ANDROID_HOME. local.properties is gitignored, so a git worktree (like the ones under
+  # .claude/worktrees/) has none and the build stops at "SDK location not found". Hand Gradle
+  # the SDK found above instead. Gradle is a Windows program on Windows, so it gets the C:\ form
+  # from cygpath. $SDK itself stays as it is: it also went into PATH, where the colon after the
+  # drive letter would split the entry in two.
+  if [ ! -f local.properties ] && [ -z "${ANDROID_HOME:-}${ANDROID_SDK_ROOT:-}" ]; then
+    ANDROID_HOME="$SDK"
+    command -v cygpath >/dev/null && ANDROID_HOME="$(cygpath -w "$SDK")"
+    export ANDROID_HOME
+    log "no local.properties; passing ANDROID_HOME=$ANDROID_HOME to Gradle"
+  fi
   ./gradlew :app:installDebug --console=plain -q || die "install failed"
   log "installed $PKG"
 }
