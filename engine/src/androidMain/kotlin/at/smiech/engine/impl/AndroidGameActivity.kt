@@ -17,6 +17,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -25,15 +26,17 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.unit.IntSize
 import androidx.core.graphics.createBitmap
 import at.smiech.engine.Audio
+import at.smiech.engine.DisplayMode
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.Screen
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.isActive
 
 /**
@@ -56,6 +59,13 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
      * screen, because the events it is fed arrive at the window.
      */
     private val controlHandler = ControlHandler()
+
+    /**
+     * How the framebuffer is fitted to the screen, for a host that lets the player choose; null
+     * shows [DisplayMode.DEFAULT]. Collected while the game is on screen, so a new value takes
+     * effect on the next frame.
+     */
+    protected open val displayModes: Flow<DisplayMode>? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -102,8 +112,18 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
                 val boxWithConstraintsScope = this
 
-                val scaleX = frameBufferWidth.toFloat() / constraints.maxWidth
-                val scaleY = frameBufferHeight.toFloat() / constraints.maxHeight
+                val displayMode by remember { displayModes ?: flowOf(DisplayMode.DEFAULT) }
+                    .collectAsState(DisplayMode.DEFAULT)
+                val fit = remember(displayMode, constraints.maxWidth, constraints.maxHeight) {
+                    FrameFit.of(
+                        displayMode,
+                        frameBufferWidth,
+                        frameBufferHeight,
+                        constraints.maxWidth,
+                        constraints.maxHeight,
+                    )
+                }
+                val ambientBars = remember { AmbientBars() }
 
                 var frameTrigger by remember { mutableIntStateOf(0) }
 
@@ -126,11 +146,11 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                 Canvas(
                     modifier = Modifier
                         .fillMaxSize()
-                        .pointerInput(scaleX, scaleY) {
+                        .pointerInput(fit) {
                             awaitPointerEventScope {
                                 while (true) {
                                     val event = awaitPointerEvent()
-                                    touchHandler.onComposePointerEvent(event, scaleX, scaleY)
+                                    touchHandler.onComposePointerEvent(event, fit)
                                 }
                             }
                         }
@@ -140,9 +160,8 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                     @Suppress("UNUSED_VARIABLE")
                     val trigger = frameTrigger
 
-                    drawImage(
-                        image = imageBitmap,
-                        dstSize = IntSize(size.width.toInt(), size.height.toInt())
+                    drawFrameBuffer(
+                        imageBitmap, fit, ambientBars.takeIf { displayMode == DisplayMode.AMBIENT }
                     )
                 }
             }

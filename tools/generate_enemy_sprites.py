@@ -10,9 +10,8 @@ The drones this replaced read as fish: a teardrop hull with an eye at the pointe
 the back where a tail fin would be, and a pair of blades that sat on it like fins. So the cave is
 now haunted by imps instead, and every part of one is chosen to be a thing no fish has:
 
-* **A round body under a crown of horns**, drawn a little taller than it is wide. The framebuffer
-  is stretched to fill the screen, which on a 20:9 phone makes everything half as wide again, so a
-  body that is round on the sheet would play as an egg on its side - most of the way back to fish.
+* **A round body under a crown of horns**, drawn a little taller than it is wide, so it stands
+  upright rather than lying along the way it flies, the way a hull - or a fish - does.
 * **One big eye, and a grin full of teeth** under it. The face is what the player reads first.
 * **Devil wings** beating off its back, sharp-pointed where the bat's are scalloped, and **clawed
   feet** hanging underneath. The first pass trailed a tail behind instead, and a round body towing

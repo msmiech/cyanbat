@@ -21,9 +21,10 @@ are each worth not repeating:
   stroke edge-on, pointing at the camera, and flattens into a blade along the back. So the camera
   here sits a little above the animal: the far wing rises above it and the near wing hangs below,
   and even mid-beat there are two wings spread apart rather than one fin.
-* **The screen stretches it.** The 480x320 framebuffer is scaled to fill the display, and on a
-  20:9 phone that is about half as wide again as it is tall. Anything long gets longer. Every part
-  that says "bat" here is upright - ears, wings raised and lowered - so it survives the stretch.
+* **The screen stretched it.** The 480x320 framebuffer used to be scaled to fill the display,
+  which on a 20:9 phone drew everything about half as wide again as it is tall, so anything long
+  got longer. The game keeps its shape now - see `FrameFit` - but that is why every part that says
+  "bat" here is upright: the ears, and the wings raised and lowered.
 
 What it is recognised by, in the order the eye finds them: the ears, tall and pointed; the wings,
 with the fingers that hold them open and the scallops pulled between the fingertips; and a face -

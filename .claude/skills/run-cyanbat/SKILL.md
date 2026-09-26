@@ -66,8 +66,9 @@ Individual commands, for iterating:
 size; it cannot tell gameplay from a black frame.
 
 Use `hud` rather than `shot` whenever you need to read the score, highscore, or
-combo: the game renders into a 480x320 framebuffer that is stretched to the full
-window, so HUD text is blurry and small in a full-size capture.
+combo: the game renders into a 480x320 framebuffer that is scaled up to the window,
+so HUD text is blurry and small in a full-size capture. How it is scaled is the
+player's choice, under Settings > Display (see the gotcha on `input swipe` below).
 
 `tap` finds nodes by label through the accessibility tree, so it survives a
 different screen size — never hardcode coordinates:
@@ -131,8 +132,14 @@ so a green build says nothing about behavior. Verify on the emulator.
   wherever on the sprite it was grabbed. A press and hold (`input swipe x y x y
   1200`) also works: one `TOUCH_DOWN` is enough, and the bat flies over to it.
   That makes screenshots of a chosen position repeatable - see
-  `PlayerInputSystem`. Screen pixels map to the 480x320 framebuffer at
-  x/5 and y*320/1080.
+  `PlayerInputSystem`. Where screen pixels land depends on Settings > Display
+  (`DisplayMode`, stored as `display_mode` in the DataStore). In the default,
+  Ambient bars, and in Black bars, the framebuffer is scaled evenly to the screen's
+  full height and centered (`FrameFit`): on a 2400x1080 capture it spans x 390-2010
+  with the bars either side, and screen pixels map to it at (x - 390) / 3.375 and
+  y / 3.375. A touch on a bar still steers, toward that edge. In Stretch to fit
+  screen it fills the capture instead, at x / 5 and y / 3.375, and `hud` crops the
+  wrong corner. `pm clear` puts the default back.
 
 - **`play` finishes runs, it does not survive them.** Once the bat dies, the next
   swipe's `TOUCH_UP` dismisses `GameOverScreen` back to the menu. That is the way

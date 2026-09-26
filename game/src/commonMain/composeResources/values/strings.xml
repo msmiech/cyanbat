@@ -25,6 +25,13 @@
 
     <string name="settings_music_title">Music</string>
     <string name="settings_sound_title">Sounds</string>
+    <string name="settings_display_title">Display</string>
+    <string name="settings_display_stretch">Stretch to fit screen</string>
+    <string name="settings_display_stretch_hint">Fills the screen, but draws the game out of shape on wide screens.</string>
+    <string name="settings_display_black_bars">Black bars</string>
+    <string name="settings_display_black_bars_hint">Keeps the game in its own 3:2 shape, with black bars beside it.</string>
+    <string name="settings_display_ambient">Ambient bars</string>
+    <string name="settings_display_ambient_hint">Keeps the game in shape, and lights the bars with the colors at its edges.</string>
 
     <string name="credit_music_title">Music</string>
     <string name="credit_music_0">Waterski Me by Ozzed</string>

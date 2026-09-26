@@ -2,6 +2,7 @@ package at.smiech.cyanbat.desktop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -15,6 +16,7 @@ import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.engine.DisplayMode
 import at.smiech.engine.Haptics
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopAudio
@@ -51,6 +53,7 @@ private fun CyanBatApp(controls: ControlHandler) {
     // The stage being played, or null while the menu is up.
     var playingStage by remember { mutableStateOf<Int?>(null) }
     val settings = remember { PreferencesSettingsRepository() }
+    val displayMode by settings.displayMode.collectAsState(DisplayMode.DEFAULT)
     // One instance for the menu and every run, so the menu sees a stage unlock the moment the run
     // that earned it records it; see PreferencesStageUnlockStore.
     val stageUnlocks = remember { PreferencesStageUnlockStore() }
@@ -94,7 +97,7 @@ private fun CyanBatApp(controls: ControlHandler) {
                 game.audio.dispose()
             }
         }
-        GameSurface(game)
+        GameSurface(game, displayMode)
     } else {
         CyanBatMenu(
             MenuHost(

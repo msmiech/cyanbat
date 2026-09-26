@@ -42,26 +42,23 @@ class PointerTouchHandler(
 
     /**
      * @param rawId host pointer id; folded into a bounded slot, so ids need not be small.
-     * @param scaleX/scaleY host pixels -> framebuffer pixels.
+     * @param x/y the pointer in framebuffer pixels, already mapped from the host's view - see
+     *   [FrameFit]. Outside the framebuffer is allowed, over a bar beside it, and passed on as is.
      */
     fun onPointer(
         rawId: Long,
-        x: Float,
-        y: Float,
+        x: Int,
+        y: Int,
         pressed: Boolean,
         previouslyPressed: Boolean,
-        scaleX: Float,
-        scaleY: Float
     ) {
         val pointer = (abs(rawId) % MAX_POINTERS).toInt()
-        val scaledX = (x * scaleX).toInt()
-        val scaledY = (y * scaleY).toInt()
 
         val type = when {
             pressed && !previouslyPressed -> Input.TouchEvent.TOUCH_DOWN
             !pressed && previouslyPressed -> Input.TouchEvent.TOUCH_UP
             (pressed || treatMotionAsDrag) &&
-                    (touchX[pointer] != scaledX || touchY[pointer] != scaledY) ->
+                    (touchX[pointer] != x || touchY[pointer] != y) ->
                 Input.TouchEvent.TOUCH_DRAGGED
 
             else -> return
@@ -70,15 +67,15 @@ class PointerTouchHandler(
         if (type != Input.TouchEvent.TOUCH_DRAGGED) {
             isTouched[pointer] = type == Input.TouchEvent.TOUCH_DOWN
         }
-        touchX[pointer] = scaledX
-        touchY[pointer] = scaledY
+        touchX[pointer] = x
+        touchY[pointer] = y
 
         touchEventsBuffer.add(
             touchEventPool.newObject().apply {
                 this.type = type
                 this.pointer = pointer
-                this.x = scaledX
-                this.y = scaledY
+                this.x = x
+                this.y = y
             }
         )
     }

@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.data
 
+import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.test.runCurrent
@@ -11,9 +12,11 @@ import kotlin.test.assertTrue
 private class FakeSettingsRepository : SettingsRepository {
     val music = MutableStateFlow(true)
     val sound = MutableStateFlow(true)
+    val display = MutableStateFlow(DisplayMode.DEFAULT)
 
     override val isMusicEnabled = music
     override val isSoundEnabled = sound
+    override val displayMode = display
 
     override suspend fun setMusicEnabled(enabled: Boolean) {
         music.value = enabled
@@ -21,6 +24,10 @@ private class FakeSettingsRepository : SettingsRepository {
 
     override suspend fun setSoundEnabled(enabled: Boolean) {
         sound.value = enabled
+    }
+
+    override suspend fun setDisplayMode(mode: DisplayMode) {
+        display.value = mode
     }
 }
 
