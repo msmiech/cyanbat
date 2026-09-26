@@ -173,6 +173,8 @@ set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
 - `RunProbe` reads a handful of `GameScreen`'s private fields by reflection (`world`, `batId`,
   `offer`, `stageComplete`, `progress`, `scoring`, `bannerText`, `bannerTime`). Renaming one still
   compiles; `RunProbeTest`, which flies a few seconds of the cave, is what fails.
+- The same hosting tests `GameScreen` itself: `GameScreenTest` builds a run on a `DesktopGame`,
+  sets up a moment through `RunProbe` and the public `enmGen`, and steps it with `update`.
 
 ## Conventions
 

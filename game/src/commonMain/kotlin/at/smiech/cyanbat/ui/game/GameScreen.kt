@@ -725,7 +725,7 @@ class GameScreen(
      *
      * The run stops here rather than rolling on into a sixth minute of enemies: a boss that could
      * be beaten and then followed by more of the same would not be a boss. What is left on screen
-     * is left alone - anything still in flight flies out on its own - and the player reads their
+     * is left where it is - the world stops ticking under the overlay - and the player reads their
      * total off the overlay and taps out when they are ready.
      */
     private fun completeStage() {
@@ -739,7 +739,8 @@ class GameScreen(
         // Banked even though the run ends here: the total is what the victory screen reports, and
         // a boss worth nothing would read as a boss that did not count.
         awardExperience(XP_PER_BOSS)
-        saveHighscore()
+        // The highscore is not banked yet. This runs partway through a tick, and the score moves
+        // on before the tick is over; update banks it once it is.
         // Unlocked the moment it is earned, not when the player taps through: a player who quits
         // from the victory screen has still beaten the stage.
         nextStageId?.let { env.stageUnlocks.unlockAsync(it) }
@@ -923,6 +924,18 @@ class GameScreen(
             // Held back for the boss. The duel is fought in an open cave, because a boss pinning
             // the player against scenery they cannot outrun is a death with nothing to read in it.
             if (!enmGen.bossSpawned) obsGen.update(tick)
+
+            // The score of a won stage is banked here, once the tick that won it has resolved,
+            // rather than as the boss goes down. That happens partway through the collision pass,
+            // and the score still moves after it: the kill itself is counted, so is any later kill
+            // in the same pass, and the tick pays for being survived. The overlay shows the record
+            // and the score side by side, where a record lower than the score beside it reads as a
+            // bug. The frame's remaining ticks are dropped: from the next frame the world stops
+            // ticking under the overlay, and they would only move the score on again.
+            if (stageComplete) {
+                saveHighscore()
+                break
+            }
         }
 
         val health = world.getComponent(batId, HealthComponent::class)!!
@@ -1084,7 +1097,7 @@ class GameScreen(
 
     /**
      * Flies on to stage [id], on a fresh screen - which is the reset: a new run's score, a bat at
-     * level 1, and no power-ups. The highscore was already banked when the boss went down.
+     * level 1, and no power-ups. The highscore was already banked on the tick the boss went down.
      */
     private fun startStage(id: Int) {
         game.setScreen(GameScreen(game, env, id))
