@@ -4,6 +4,14 @@ CyanBat is a side-scrolling 2D action game, inspired by retro classics like *Gra
 arcade staples like *Flappy Bird*. It runs on **Android** and on the **desktop** (Windows, macOS
 and Linux) from a single shared codebase.
 
+<p align="center">
+  <img src="docs/gameplay/cave.gif" width="49%" alt="Stage 1, the cave: the bat picks Spread Shot at a level up, fans its fire through a wave of imps, and brings down the crimson boss">
+  <img src="docs/gameplay/forest.gif" width="49%" alt="Stage 2, the forest: wasp swarms, shielded beetles and diving owls, then the Moth Queen and her rings of fire">
+</p>
+<p align="center">
+  <sub><b>The Cave</b> and <b>The Forest</b>, start to boss, from real runs of the game; see <a href="#-gameplay-footage">how they are recorded</a>.</sub>
+</p>
+
 ## 🚀 Architecture
 
 - **Kotlin Multiplatform**: the engine and the whole game — rules, screens and menu UI — are
@@ -89,6 +97,23 @@ is `ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
 
 Assembles every module, runs lint, and runs the unit tests — ECS, math, spawn pacing, and a
 check that the MP3 service provider desktop audio depends on is actually present.
+
+## 🎬 Gameplay footage
+
+The GIFs at the top of this page are recorded rather than staged:
+
+```bash
+./gradlew :desktop:recordGameplay
+```
+
+This flies each stage from its opening seconds to its boss on an autopilot — a virtual game pad
+that reads the run's world and dodges whatever is coming — through the desktop build's own
+renderer, headless and faster than real time. Each run is then cut down to the stage's title, a
+level up, its busiest wave and the boss fight, and written to `docs/gameplay/`. Every recording is
+a different run, because the game rolls its spawns fresh each time, and a run the autopilot loses
+is flown again. Re-record after changing anything that shows on screen.
+`--args="--stages=2 --frames=build/frames"` records just the forest and also writes its frames out
+as PNGs to look through.
 
 ## 📦 Cutting a release
 
