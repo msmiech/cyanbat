@@ -1,6 +1,6 @@
 ## CyanBat privacy policy
 
-_Last updated: September 23, 2026_
+_Last updated: September 26, 2026_
 
 Welcome to CyanBat!
 
@@ -21,11 +21,13 @@ never recorded.
 
 The game keeps only the following, and only on your own device:
 
-| Data                 | Purpose                                                |
-|----------------------|--------------------------------------------------------|
-| Your high score      | Shown in the game so you have something to beat.       |
-| Music on/off         | Remembers whether you turned the background music off. |
-| Sound effects on/off | Remembers whether you turned the sound effects off.    |
+| Data                        | Purpose                                                                                          |
+|-----------------------------|--------------------------------------------------------------------------------------------------|
+| The highscore of each stage | Shown on the stage select and after each run, so you have something to beat.                     |
+| Which stages are unlocked   | Keeps a stage open once you have cleared the stage before it.                                    |
+| Music on/off                | Remembers whether you turned the background music off.                                           |
+| Sound effects on/off        | Remembers whether you turned the sound effects off.                                              |
+| Display mode                | Remembers whether the game is stretched to fill your screen or shown with black or ambient bars. |
 
 Where it is kept, and how to erase it:
 
