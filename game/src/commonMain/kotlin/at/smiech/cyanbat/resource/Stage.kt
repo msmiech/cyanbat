@@ -4,15 +4,15 @@ import at.smiech.engine.Music
 import at.smiech.engine.Pixmap
 
 /**
- * Everything a level looks and sounds like. What it *plays* like - its waves and its boss - is
- * [at.smiech.cyanbat.service.LevelDesign], looked up by the same [id].
+ * Everything a stage looks and sounds like. What it *plays* like - its waves and its boss - is
+ * [at.smiech.cyanbat.service.StageDesign], looked up by the same [id].
  *
- * @param id 1-based, and the order levels unlock in.
- * @param enemySheet the sheet every enemy of this level is drawn from.
+ * @param id 1-based, and the order stages unlock in.
+ * @param enemySheet the sheet every enemy of this stage is drawn from.
  * @param bossSheet the boss's own sheet, for a boss drawn at its own size rather than magnified
  *   off [enemySheet].
  */
-data class Level(
+data class Stage(
     val id: Int,
     val name: String,
     val background: Pixmap,

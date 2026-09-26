@@ -80,7 +80,7 @@ class EntityFactory(val world: World) {
         )
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.PLAYER))
         world.addComponent(id, HealthComponent(PLAYER_MAX_HIT_POINTS))
-        // Bars are for the two things a fight is decided between - the bat and the level's boss.
+        // Bars are for the two things a fight is decided between - the bat and the stage's boss.
         // A bar over every passing enemy would bury the game behind them.
         world.addComponent(id, HealthBarComponent(HEALTH_BAR_HEIGHT, HEALTH_BAR_OFFSET_Y))
         world.addComponent(id, PlayerControlComponent())
@@ -98,7 +98,7 @@ class EntityFactory(val world: World) {
      * One enemy of [species], at whatever strength the wave that ordered it calls for.
      *
      * [hitPoints], [damage] and [speedMultiplier] are arguments rather than constants because
-     * that is the whole of how a level ramps: the same species, sent in tougher, angrier and
+     * that is the whole of how a stage ramps: the same species, sent in tougher, angrier and
      * faster as the minutes go by. They are fixed at spawn, so enemies already on screen keep the
      * strength they arrived with when a wave turns over.
      *
@@ -177,12 +177,12 @@ class EntityFactory(val world: World) {
     }
 
     /**
-     * The level's boss: the sheet's last enemy drawn [scale] times over, with a health pool worth
+     * The stage's boss: the sheet's last enemy drawn [scale] times over, with a health pool worth
      * a fight and a gun of its own.
      *
      * It differs from [createEnemy] in three ways that matter, and each is deliberate. It is never
      * culled for leaving the frame, because it enters from the edge and a boss that could drift
-     * out of the level is a boss the player can lose rather than beat. It carries a health bar,
+     * out of the stage is a boss the player can lose rather than beat. It carries a health bar,
      * the only thing besides the bat that does, because a fight this long is unreadable without
      * one. And it holds station instead of closing, which is what [EnemyMovementType.BOSS] is for.
      */

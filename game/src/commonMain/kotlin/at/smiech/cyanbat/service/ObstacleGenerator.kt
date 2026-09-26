@@ -1,6 +1,6 @@
 package at.smiech.cyanbat.service
 
-import at.smiech.cyanbat.resource.Level
+import at.smiech.cyanbat.resource.Stage
 import kotlin.random.Random
 
 /**
@@ -14,7 +14,7 @@ class ObstacleGenerator(
     private val worldWidth: Int,
     private val worldHeight: Int,
     private val factory: EntityFactory,
-    var level: Level,
+    var stage: Stage,
     private val random: Random = Random.Default,
 ) {
     /** Zero, so the first update places an obstacle straight away, as the old generator did. */
@@ -29,9 +29,9 @@ class ObstacleGenerator(
 
         var y = 0f
         val obstaclePixmap = if (random.nextBoolean()) {
-            level.topObstacles[random.nextInt(level.topObstacles.size)]
+            stage.topObstacles[random.nextInt(stage.topObstacles.size)]
         } else {
-            level.bottomObstacles[random.nextInt(level.bottomObstacles.size)]?.also {
+            stage.bottomObstacles[random.nextInt(stage.bottomObstacles.size)]?.also {
                 y = worldHeight.toFloat() - it.height
             }
         }

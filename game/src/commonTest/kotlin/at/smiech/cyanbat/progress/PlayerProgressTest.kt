@@ -104,7 +104,7 @@ class PlayerProgressTest {
         assertEquals(0, progress.totalExperience)
     }
 
-    /** Kills pay more as the level goes on, so pressing on beats farming the opening minute. */
+    /** Kills pay more as the stage goes on, so pressing on beats farming the opening minute. */
     @Test
     fun `a kill is worth more in a later wave`() {
         val byWave = (0..4).map { PlayerProgress.experienceForKill(it) }

@@ -13,17 +13,17 @@ private val FOREST_SPECIES = setOf(
     EnemySpecies.WASP, EnemySpecies.BEETLE, EnemySpecies.SPITTER, EnemySpecies.OWL, EnemySpecies.WISP,
 )
 
-/** Level 2 as designed: what it sends, how hard, and in what order. */
-class ForestLevelTest {
+/** Stage 2 as designed: what it sends, how hard, and in what order. */
+class ForestStageTest {
 
-    private val cave = LevelProgression.forLevel(1)
-    private val forest = LevelProgression.forLevel(2)
+    private val cave = StageProgression.forStage(1)
+    private val forest = StageProgression.forStage(2)
 
-    private fun waves(level: LevelProgression) = (0 until BOSS_WAVE).map { level.waveAt(it * MINUTE) }
+    private fun waves(stage: StageProgression) = (0 until BOSS_WAVE).map { stage.waveAt(it * MINUTE) }
 
     @Test
-    fun `level 2 is the forest, five waves and the Moth Queen`() {
-        assertEquals(LevelDesign.FOREST, forest.design)
+    fun `stage 2 is the forest, five waves and the Moth Queen`() {
+        assertEquals(StageDesign.FOREST, forest.design)
         assertEquals(5, forest.design.waves.size)
         assertEquals(5, forest.bossWave)
         assertEquals(BossKind.MOTH_QUEEN, forest.design.boss)
@@ -56,7 +56,7 @@ class ForestLevelTest {
 
     /** Shields and guns are taught before they are everywhere. */
     @Test
-    fun `shields and guns ramp in over the level and never back off`() {
+    fun `shields and guns ramp in over the stage and never back off`() {
         val forestWaves = waves(forest)
 
         forestWaves.zipWithNext { earlier, later ->

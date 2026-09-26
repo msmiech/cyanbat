@@ -48,12 +48,12 @@ fun main() = application {
  */
 @Composable
 private fun CyanBatApp(controls: ControlHandler) {
-    // The level being played, or null while the menu is up.
-    var playingLevel by remember { mutableStateOf<Int?>(null) }
+    // The stage being played, or null while the menu is up.
+    var playingStage by remember { mutableStateOf<Int?>(null) }
     val settings = remember { PreferencesSettingsRepository() }
-    // One instance for the menu and every run, so the menu sees a level unlock the moment the run
-    // that earned it records it; see PreferencesLevelUnlockStore.
-    val levelUnlocks = remember { PreferencesLevelUnlockStore() }
+    // One instance for the menu and every run, so the menu sees a stage unlock the moment the run
+    // that earned it records it; see PreferencesStageUnlockStore.
+    val stageUnlocks = remember { PreferencesStageUnlockStore() }
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
     // The menu outlives any single game instance, so it owns its own Audio.
@@ -65,22 +65,22 @@ private fun CyanBatApp(controls: ControlHandler) {
     // first one.
     val menuMusic = remember { menuAudio.newMusic("menu_theme.mp3") }
 
-    val level = playingLevel
-    if (level != null) {
+    val stage = playingStage
+    if (stage != null) {
         val game = remember {
             DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, controls).also { game ->
                 val env = CyanBatEnvironment(
                     assets = GameAssets.load(game.graphics, game.audio),
                     haptics = Haptics.None,
                     highscores = PreferencesHighscoreStore(),
-                    levelUnlocks = levelUnlocks,
+                    stageUnlocks = stageUnlocks,
                     onExitToMenu = {
                         controls.releaseAll()
-                        playingLevel = null
+                        playingStage = null
                     },
                     audioSettings = audioSettings,
                 )
-                game.setScreen(GameScreen(game, env, level))
+                game.setScreen(GameScreen(game, env, stage))
             }
         }
         // A run owns its screen and its audio, and neither is needed once the player is back in
@@ -100,12 +100,12 @@ private fun CyanBatApp(controls: ControlHandler) {
             MenuHost(
                 settings = settings,
                 menuMusic = menuMusic,
-                levelUnlocks = levelUnlocks,
+                stageUnlocks = stageUnlocks,
                 // The handler spans the menu too, so an Escape pressed here would otherwise be
                 // waiting to pause the run the moment it starts.
                 onStartGame = { id ->
                     controls.releaseAll()
-                    playingLevel = id
+                    playingStage = id
                 },
                 onExit = { exitProcess(0) },
             )

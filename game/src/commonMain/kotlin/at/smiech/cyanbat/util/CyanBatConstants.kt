@@ -80,20 +80,20 @@ const val TRAIL_MIN_SCALE = 0.15f
 const val TRAIL_SEGMENT_WIDTH_FRACTION = 0.25f
 const val TRAIL_SEGMENT_HEIGHT_FRACTION = 0.25f
 
-// --- Level progression -------------------------------------------------------------------------
+// --- Stage progression -------------------------------------------------------------------------
 //
-// A level is a stack of one-minute waves ending in a boss. The numbers below are the whole
-// difficulty curve; LevelProgression does nothing but read them against the clock.
+// A stage is a stack of one-minute waves ending in a boss. The numbers below are the whole
+// difficulty curve; StageProgression does nothing but read them against the clock.
 
 // A wave is a minute because that is the unit the player already counts in - "I got to four
 // minutes" is a thing someone says about a run, "I got to wave 240 seconds" is not.
 const val WAVE_DURATION_SECONDS = 60f
 
-// Level 1's boss arrives at the five minute mark, and so on the sixth wave index.
+// Stage 1's boss arrives at the five minute mark, and so on the sixth wave index.
 const val BOSS_WAVE = 5
 
-// What each level adds over the one before it: everything scaled, spawn gaps included.
-const val LEVEL_DIFFICULTY_STEP = 0.35f
+// What each stage adds over the one before it: everything scaled, spawn gaps included.
+const val STAGE_DIFFICULTY_STEP = 0.35f
 
 // Spawn density, in seconds between arrivals. The opening is deliberately sparse - a first minute
 // the player can breathe in is what makes the fifth minute mean anything - and the floor is set
@@ -102,7 +102,7 @@ const val OPENING_SPAWN_INTERVAL_SECONDS = 2.6f
 const val MINIMUM_SPAWN_INTERVAL_SECONDS = 0.9f
 
 // How far either side of the interval a spawn may land, as a fraction of it. Without it the
-// spawns fall into a metronome and the level reads as a pattern to memorize.
+// spawns fall into a metronome and the stage reads as a pattern to memorize.
 const val SPAWN_INTERVAL_JITTER = 0.3f
 
 // Enemy toughness per wave. Health is in units of the bat's 34-damage shot, so the opening wave
@@ -119,14 +119,14 @@ const val ENEMY_DAMAGE_PER_WAVE = 6
 // shots cannot be fought at all, only dodged.
 const val ENEMY_SPEED_PER_WAVE = 0.1f
 
-// What each wave draws from - the species mix - is part of a level's design rather than its
-// difficulty, so it lives with the rest of the design in LevelDesign.
+// What each wave draws from - the species mix - is part of a stage's design rather than its
+// difficulty, so it lives with the rest of the design in StageDesign.
 
 // The boss. Its health is a fight length: at one 34-damage shot a second, 1920 points is roughly
 // 25 seconds of landed hits, which leaves room to be driven off and come back without the fight
-// resetting. Its contact damage is deliberately worse than anything else in the level.
-const val BOSS_HIT_POINTS_PER_LEVEL = 1920
-const val BOSS_DAMAGE_PER_LEVEL = 50
+// resetting. Its contact damage is deliberately worse than anything else in the stage.
+const val BOSS_HIT_POINTS_PER_STAGE = 1920
+const val BOSS_DAMAGE_PER_STAGE = 50
 
 // How much bigger the boss is drawn than the sprite sheet's enemies. Its collision box grows with
 // it, which is most of what makes it dangerous to sit next to.
@@ -136,8 +136,8 @@ const val BOSS_SPRITE_SCALE = 3f
 // its time dodging and the boss does not.
 const val BOSS_SHOT_INTERVAL_SECONDS = 1.6f
 
-// Banked for clearing the level, on top of whatever the run scored on the way.
-const val LEVEL_COMPLETE_BONUS = 10_000
+// Banked for clearing the stage, on top of whatever the run scored on the way.
+const val STAGE_COMPLETE_BONUS = 10_000
 
 // How long the wave and boss announcements stay up, in seconds.
 const val WAVE_BANNER_SECONDS = 2.2f
@@ -151,13 +151,13 @@ const val BANNER_CHAR_WIDTH = 15
 // How long the victory overlay ignores input, in seconds. Longer than the pause overlay's, because
 // the player has just been steering with a finger down and the boss went up in a blast worth
 // watching.
-const val LEVEL_COMPLETE_ARMING_SECONDS = 1.2f
+const val STAGE_COMPLETE_ARMING_SECONDS = 1.2f
 
 
 // --- The forest --------------------------------------------------------------------------------
 //
-// Level 2's enemies fly in groups, shoot back and carry shields. What each species does is in
-// EnemySpecies and which wave sends what is in LevelDesign; these are the numbers underneath.
+// Stage 2's enemies fly in groups, shoot back and carry shields. What each species does is in
+// EnemySpecies and which wave sends what is in StageDesign; these are the numbers underneath.
 
 // A shield handed out by a wave's shieldChance, as a fraction of the enemy's own health. Under
 // one, so a shielded enemy is tougher rather than twice as tough - the point is the extra shot it
@@ -201,7 +201,7 @@ const val FIRST_SHOT_JITTER = 0.6f
 
 // --- The Moth Queen ----------------------------------------------------------------------------
 //
-// Level 2's boss. Three phases, marked by her health: each one raises her shield, and she gets
+// Stage 2's boss. Three phases, marked by her health: each one raises her shield, and she gets
 // faster and calls in wasps as she goes.
 
 // Her sheet: four frames of wingbeat, drawn at 96x80 - the footprint of the cave's boss, at the
@@ -232,7 +232,7 @@ const val MOTH_QUEEN_ENRAGED_SUMMON_SECONDS = 7f
 // How much faster she flies her figure eight in the last phase.
 const val MOTH_QUEEN_ENRAGED_TEMPO = 1.6f
 
-// What one of her bolts deals, as a share of her contact damage - which at level 2 is about 67, two
+// What one of her bolts deals, as a share of her contact damage - which at stage 2 is about 67, two
 // thirds of the bat's bar. Her rings put a dozen bolts on screen at once, so each has to be a
 // setback rather than half a death: a ring bolt costs about a fifth of the bar, an aimed one - the
 // ones the player should always be dodging - a little under a third.
@@ -242,7 +242,7 @@ const val MOTH_QUEEN_FAN_DAMAGE = 0.45f
 
 // --- Experience and power-ups ------------------------------------------------------------------
 //
-// A second curve running against the level's own: the cave gets harder on a clock, the bat gets
+// A second curve running against the stage's own: the cave gets harder on a clock, the bat gets
 // stronger on kills, and a run is the race between them. Experience is per-run and is never
 // persisted - a level already bought would make the next run start halfway through this one.
 
@@ -251,10 +251,10 @@ const val MOTH_QUEEN_FAN_DAMAGE = 0.45f
 const val XP_PER_KILL = 10
 const val XP_PER_KILL_PER_WAVE = 5
 
-// Killing the level's boss, which is worth roughly a late level on its own.
+// Killing the stage's boss, which is worth roughly a late level on its own.
 const val XP_PER_BOSS = 250
 
-// What the first level up costs, and what each one after it adds. Against level 1's roughly 100
+// What the first level up costs, and what each one after it adds. Against stage 1's roughly 100
 // reachable kills this lands somewhere near ten level ups across a full run - often enough that a
 // pick matters, rare enough that the dialog is an event rather than an interruption.
 const val XP_FIRST_LEVEL = 50

@@ -9,7 +9,7 @@ import at.smiech.engine.ecs.EnemyMovementType
  *
  * @param cost how many ordinary spawns' worth of time the group buys the player. A swarm of six is
  *   one spawn event, and without this the next one would arrive as soon as a lone scout's would -
- *   so the gap after a group is stretched by its cost, and a level's density stays a density.
+ *   so the gap after a group is stretched by its cost, and a stage's density stays a density.
  */
 enum class Squad(val cost: Float) {
     SOLO(1f),
@@ -37,7 +37,7 @@ data class EnemyGun(val interval: Float, val volleys: List<Volley>)
  * and a species only scales them - so a species is the same animal in the first minute and the
  * fifth, just angrier, which is how the cave's three drones have always worked.
  *
- * @param strip which type strip of its level's sheet it animates from, the way
+ * @param strip which type strip of its stage's sheet it animates from, the way
  *   [EntityFactory.srcXOf] addresses them. The cave's and the forest's sheets both count from zero.
  * @param speedX closing speed in framebuffer pixels per tick, before the wave's multiplier.
  * @param shotVariant the colorway of `shot.png` its bolts are drawn in - the sprite's own color.
@@ -104,7 +104,7 @@ enum class EnemySpecies(
         hitPointFactor = 1.1f, damageFactor = 1.3f, armable = true, canBeShielded = true,
     ),
 
-    /** Flies in formation; later in the level, some of the formation is armed. */
+    /** Flies in formation; later in the stage, some of the formation is armed. */
     WISP(
         strip = 4, speedX = -1.7f, movement = EnemyMovementType.FORMATION, shotVariant = 5,
         squad = Squad.V_FORMATION, hitPointFactor = 0.7f, damageFactor = 0.8f,

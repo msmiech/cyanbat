@@ -29,21 +29,21 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.resources.Res
-import at.smiech.cyanbat.resources.level1_preview
-import at.smiech.cyanbat.resources.level2_preview
-import at.smiech.cyanbat.resources.level_1_description
-import at.smiech.cyanbat.resources.level_1_name
-import at.smiech.cyanbat.resources.level_2_description
-import at.smiech.cyanbat.resources.level_2_name
-import at.smiech.cyanbat.resources.level_locked
-import at.smiech.cyanbat.resources.level_select_title
+import at.smiech.cyanbat.resources.stage1_preview
+import at.smiech.cyanbat.resources.stage2_preview
+import at.smiech.cyanbat.resources.stage_1_description
+import at.smiech.cyanbat.resources.stage_1_name
+import at.smiech.cyanbat.resources.stage_2_description
+import at.smiech.cyanbat.resources.stage_2_name
+import at.smiech.cyanbat.resources.stage_locked
+import at.smiech.cyanbat.resources.stage_select_title
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.imageResource
 import org.jetbrains.compose.resources.stringResource
 
-/** One card on the level select: which level it starts, and how it is shown. */
-private data class LevelEntry(
+/** One card on the stage select: which stage it starts, and how it is shown. */
+private data class StageEntry(
     val id: Int,
     val name: StringResource,
     val description: StringResource,
@@ -53,42 +53,42 @@ private data class LevelEntry(
 /** How tall a card's preview strip is. */
 private val PREVIEW_HEIGHT = 130.dp
 
-private val LEVELS = listOf(
-    LevelEntry(1, Res.string.level_1_name, Res.string.level_1_description, Res.drawable.level1_preview),
-    LevelEntry(2, Res.string.level_2_name, Res.string.level_2_description, Res.drawable.level2_preview),
+private val STAGES = listOf(
+    StageEntry(1, Res.string.stage_1_name, Res.string.stage_1_description, Res.drawable.stage1_preview),
+    StageEntry(2, Res.string.stage_2_name, Res.string.stage_2_description, Res.drawable.stage2_preview),
 )
 
 /**
- * The level select, reached from Start Game once the player has cleared a level.
+ * The stage select, reached from Start Game once the player has cleared a stage.
  *
- * Before that there is nothing to choose between, so Start Game goes straight into level 1 and
+ * Before that there is nothing to choose between, so Start Game goes straight into stage 1 and
  * this screen is never shown - a menu with one live option and one padlock is a menu asking the
  * player to read it for no reason.
  */
 @Composable
-fun LevelSelectScreen(
+fun StageSelectScreen(
     viewModel: MainMenuViewModel,
-    onStartLevel: (Int) -> Unit,
+    onStartStage: (Int) -> Unit,
 ) {
     val highestUnlocked by viewModel.highestUnlocked.collectAsState()
-    LevelSelectContent(
+    StageSelectContent(
         highestUnlocked = highestUnlocked,
-        onStartLevel = { id ->
+        onStartStage = { id ->
             viewModel.stopMusic()
-            onStartLevel(id)
+            onStartStage(id)
         },
     )
 }
 
 @Composable
-private fun LevelSelectContent(highestUnlocked: Int, onStartLevel: (Int) -> Unit) {
+private fun StageSelectContent(highestUnlocked: Int, onStartStage: (Int) -> Unit) {
     Surface {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = stringResource(Res.string.level_select_title),
+                text = stringResource(Res.string.stage_select_title),
                 style = MaterialTheme.typography.headlineMedium,
             )
             Spacer(Modifier.height(16.dp))
@@ -96,11 +96,11 @@ private fun LevelSelectContent(highestUnlocked: Int, onStartLevel: (Int) -> Unit
                 modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                for (level in LEVELS) {
-                    LevelCard(
-                        level = level,
-                        unlocked = level.id <= highestUnlocked,
-                        onClick = { onStartLevel(level.id) },
+                for (stage in STAGES) {
+                    StageCard(
+                        stage = stage,
+                        unlocked = stage.id <= highestUnlocked,
+                        onClick = { onStartStage(stage.id) },
                         modifier = Modifier.weight(1f),
                     )
                 }
@@ -110,8 +110,8 @@ private fun LevelSelectContent(highestUnlocked: Int, onStartLevel: (Int) -> Unit
 }
 
 @Composable
-private fun LevelCard(
-    level: LevelEntry,
+private fun StageCard(
+    stage: StageEntry,
     unlocked: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
@@ -119,8 +119,8 @@ private fun LevelCard(
     Card(onClick = onClick, enabled = unlocked, modifier = modifier) {
         Box {
             Image(
-                bitmap = imageResource(level.preview),
-                contentDescription = stringResource(level.name),
+                bitmap = imageResource(stage.preview),
+                contentDescription = stringResource(stage.name),
                 // The previews are pixel art at the game's own 480x320; scaled without filtering
                 // they stay crisp instead of going soft.
                 contentScale = ContentScale.Crop,
@@ -141,13 +141,13 @@ private fun LevelCard(
         }
         Column(Modifier.padding(12.dp)) {
             Text(
-                text = stringResource(level.name),
+                text = stringResource(stage.name),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             Spacer(Modifier.height(4.dp))
             Text(
-                text = stringResource(if (unlocked) level.description else Res.string.level_locked),
+                text = stringResource(if (unlocked) stage.description else Res.string.stage_locked),
                 style = MaterialTheme.typography.bodyMedium,
             )
         }

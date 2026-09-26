@@ -6,7 +6,7 @@
 
     uv run tools/generate_forest_enemy_sprites.py
 
-Level 2 needed enemies of its own rather than the cave's drones recolored, because the forest is a
+Stage 2 needed enemies of its own rather than the cave's drones recolored, because the forest is a
 different fight: things arrive in swarms and formations, some of them shoot, and some carry a
 shield. A player has to be able to tell at a glance which of those a given sprite is going to do,
 and the only thing a 32-pixel sprite can say that fast is its silhouette.

@@ -5,7 +5,7 @@ import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.remember
 
 /** The menu destinations. */
-enum class MenuDestination { Main, LevelSelect, Settings, Credits }
+enum class MenuDestination { Main, StageSelect, Settings, Credits }
 
 /**
  * A back stack for the menu's handful of screens.

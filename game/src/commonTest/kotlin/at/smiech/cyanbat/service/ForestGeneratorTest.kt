@@ -36,10 +36,10 @@ class ForestGeneratorTest {
     private val factory = EntityFactory(world)
     private val bossPhases = mutableListOf<Int>()
 
-    /** A level that sends nothing but [species], for looking at one of them at a time. */
+    /** A stage that sends nothing but [species], for looking at one of them at a time. */
     private fun only(species: EnemySpecies, shieldChance: Float = 0f, gunChance: Float = 0f) =
-        LevelProgression(
-            design = LevelDesign(
+        StageProgression(
+            design = StageDesign(
                 waves = listOf(WaveDesign(listOf(species), shieldChance, gunChance)),
                 boss = BossKind.MOTH_QUEEN,
                 bossName = "TEST",
@@ -47,7 +47,7 @@ class ForestGeneratorTest {
             difficulty = 1.35f,
         )
 
-    private fun generator(progression: LevelProgression) = EnemyGenerator(
+    private fun generator(progression: StageProgression) = EnemyGenerator(
         xSpawnPosition = 480,
         worldHeight = 320,
         factory = factory,
@@ -208,7 +208,7 @@ class ForestGeneratorTest {
     // region the Moth Queen
 
     private fun queenFight(): Pair<EnemyGenerator, EntityId> {
-        val generator = generator(LevelProgression.forLevel(2))
+        val generator = generator(StageProgression.forStage(2))
         generator.run(5 * WAVE_DURATION_SECONDS + 1f)
         enemies().filter { it != generator.bossId }.forEach { world.removeEntity(it) }
         world.update(TICK_INITIAL, null)

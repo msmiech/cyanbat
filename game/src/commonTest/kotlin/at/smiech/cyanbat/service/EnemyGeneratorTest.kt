@@ -35,7 +35,7 @@ class EnemyGeneratorTest {
     private val wavesAnnounced = mutableListOf<Int>()
     private val bossesSpawned = mutableListOf<EntityId>()
 
-    private fun generator(progression: LevelProgression = LevelProgression.forLevel(1)) =
+    private fun generator(progression: StageProgression = StageProgression.forStage(1)) =
         EnemyGenerator(
             xSpawnPosition = WORLD_WIDTH,
             worldHeight = WORLD_HEIGHT,
@@ -193,7 +193,7 @@ class EnemyGeneratorTest {
         generator.run(5 * MINUTE + 1f)
         val boss = generator.bossId!!
 
-        val lastWave = LevelProgression.forLevel(1).waveAt(BOSS_WAVE * MINUTE - 1f)
+        val lastWave = StageProgression.forStage(1).waveAt(BOSS_WAVE * MINUTE - 1f)
         assertTrue(
             world.getComponent(
                 boss,
@@ -208,11 +208,11 @@ class EnemyGeneratorTest {
     // region the clock
 
     /**
-     * The level clock is fed from the game's fixed tick, so a paused game is a paused level. The
+     * The stage clock is fed from the game's fixed tick, so a paused game is a paused stage. The
      * generator this replaced slept on a coroutine and went on counting while the player was away.
      */
     @Test
-    fun `a generator that is not updated does not advance its level`() {
+    fun `a generator that is not updated does not advance its stage`() {
         val generator = generator()
 
         generator.run(30f)
@@ -225,11 +225,11 @@ class EnemyGeneratorTest {
     }
 
     @Test
-    fun `starting a new level puts the clock, the wave and the boss back to the beginning`() {
+    fun `starting a new stage puts the clock, the wave and the boss back to the beginning`() {
         val generator = generator()
         generator.run(5 * MINUTE + 1f)
 
-        generator.startLevel(LevelProgression.forLevel(2))
+        generator.startStage(StageProgression.forStage(2))
 
         assertEquals(0f, generator.elapsedSeconds)
         assertEquals(0, generator.currentWave.index)

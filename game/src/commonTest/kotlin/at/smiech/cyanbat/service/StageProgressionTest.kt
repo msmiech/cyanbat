@@ -16,15 +16,15 @@ private const val MINUTE = WAVE_DURATION_SECONDS
 
 private val CAVE_SPECIES = setOf(EnemySpecies.SCOUT, EnemySpecies.WEAVER, EnemySpecies.STRIKER)
 
-class LevelProgressionTest {
+class StageProgressionTest {
 
-    private val level1 = LevelProgression.forLevel(1)
+    private val stage1 = StageProgression.forStage(1)
 
     // region the shape of the curve
 
     @Test
-    fun `the opening wave is the gentlest thing in the level`() {
-        val opening = level1.waveAt(0f)
+    fun `the opening wave is the gentlest thing in the stage`() {
+        val opening = stage1.waveAt(0f)
 
         assertEquals(0, opening.index)
         assertEquals(ENEMY_BASE_HIT_POINTS, opening.hitPoints)
@@ -36,7 +36,7 @@ class LevelProgressionTest {
     /** The point of the feature: a run should get harder on every axis the longer it goes on. */
     @Test
     fun `health damage and speed all climb wave over wave`() {
-        val waves = (0 until BOSS_WAVE).map { level1.waveAt(it * MINUTE) }
+        val waves = (0 until BOSS_WAVE).map { stage1.waveAt(it * MINUTE) }
 
         waves.zipWithNext { earlier, later ->
             assertTrue(
@@ -55,8 +55,8 @@ class LevelProgressionTest {
     }
 
     @Test
-    fun `enemies arrive closer together as the level goes on`() {
-        val intervals = (0..BOSS_WAVE).map { level1.spawnIntervalAt(it * MINUTE) }
+    fun `enemies arrive closer together as the stage goes on`() {
+        val intervals = (0..BOSS_WAVE).map { stage1.spawnIntervalAt(it * MINUTE) }
 
         intervals.zipWithNext { earlier, later ->
             assertTrue(later < earlier, "the gap did not tighten: $earlier then $later")
@@ -65,10 +65,10 @@ class LevelProgressionTest {
 
     @Test
     fun `the spawn interval runs from the opening gap down to the floor`() {
-        assertEquals(OPENING_SPAWN_INTERVAL_SECONDS, level1.spawnIntervalAt(0f))
+        assertEquals(OPENING_SPAWN_INTERVAL_SECONDS, stage1.spawnIntervalAt(0f))
         assertEquals(
             MINIMUM_SPAWN_INTERVAL_SECONDS,
-            level1.spawnIntervalAt(level1.bossTimeSeconds),
+            stage1.spawnIntervalAt(stage1.bossTimeSeconds),
             0.001f
         )
     }
@@ -79,13 +79,13 @@ class LevelProgressionTest {
      * assert it never gets close.
      */
     @Test
-    fun `the spawn interval is never zero or negative however long the level runs`() {
+    fun `the spawn interval is never zero or negative however long the stage runs`() {
         val random = Random(20260911)
         for (second in 0..3_600) {
-            val interval = level1.spawnIntervalAt(second.toFloat())
+            val interval = stage1.spawnIntervalAt(second.toFloat())
             assertTrue(interval > 0f, "interval went to $interval at ${second}s")
             assertTrue(
-                level1.nextSpawnDelay(second.toFloat(), random) > 0f,
+                stage1.nextSpawnDelay(second.toFloat(), random) > 0f,
                 "delay went non-positive at ${second}s"
             )
         }
@@ -94,8 +94,8 @@ class LevelProgressionTest {
     @Test
     fun `jitter keeps spawns off a metronome without running away from the interval`() {
         val random = Random(7)
-        val interval = level1.spawnIntervalAt(30f)
-        val delays = List(50) { level1.nextSpawnDelay(30f, random) }
+        val interval = stage1.spawnIntervalAt(30f)
+        val delays = List(50) { stage1.nextSpawnDelay(30f, random) }
 
         assertTrue(delays.toSet().size > 1, "every delay came out identical")
         delays.forEach {
@@ -112,22 +112,22 @@ class LevelProgressionTest {
 
     @Test
     fun `a new wave begins on every full minute`() {
-        assertEquals(0, level1.waveIndexAt(0f))
-        assertEquals(0, level1.waveIndexAt(MINUTE - 0.1f))
-        assertEquals(1, level1.waveIndexAt(MINUTE))
-        assertEquals(3, level1.waveIndexAt(3 * MINUTE + 30f))
+        assertEquals(0, stage1.waveIndexAt(0f))
+        assertEquals(0, stage1.waveIndexAt(MINUTE - 0.1f))
+        assertEquals(1, stage1.waveIndexAt(MINUTE))
+        assertEquals(3, stage1.waveIndexAt(3 * MINUTE + 30f))
     }
 
     @Test
     fun `the wave index never runs past the boss`() {
-        assertEquals(BOSS_WAVE, level1.waveIndexAt(level1.bossTimeSeconds))
-        assertEquals(BOSS_WAVE, level1.waveIndexAt(60 * MINUTE))
+        assertEquals(BOSS_WAVE, stage1.waveIndexAt(stage1.bossTimeSeconds))
+        assertEquals(BOSS_WAVE, stage1.waveIndexAt(60 * MINUTE))
     }
 
     /** A wave that spawned the same enemies as the last one would not read as a new group. */
     @Test
     fun `consecutive waves draw from different enemy mixes`() {
-        val mixes = (0 until BOSS_WAVE).map { level1.waveAt(it * MINUTE).enemyTypes }
+        val mixes = (0 until BOSS_WAVE).map { stage1.waveAt(it * MINUTE).enemyTypes }
 
         mixes.zipWithNext { earlier, later ->
             assertNotEquals(earlier, later, "two waves in a row spawned the same mix: $earlier")
@@ -137,7 +137,7 @@ class LevelProgressionTest {
     @Test
     fun `every wave of the cave draws only from the cave's three drones`() {
         (0..BOSS_WAVE).forEach { index ->
-            val types = level1.waveAt(index * MINUTE).enemyTypes
+            val types = stage1.waveAt(index * MINUTE).enemyTypes
             assertTrue(types.isNotEmpty(), "wave $index has nothing to spawn")
             assertTrue(
                 types.all { it in CAVE_SPECIES },
@@ -151,16 +151,16 @@ class LevelProgressionTest {
     // region the boss
 
     @Test
-    fun `level 1's boss is due at five minutes and not before`() {
-        assertEquals(5 * MINUTE, level1.bossTimeSeconds)
-        assertTrue(!level1.isBossDue(5 * MINUTE - 0.1f))
-        assertTrue(level1.isBossDue(5 * MINUTE))
+    fun `stage 1's boss is due at five minutes and not before`() {
+        assertEquals(5 * MINUTE, stage1.bossTimeSeconds)
+        assertTrue(!stage1.isBossDue(5 * MINUTE - 0.1f))
+        assertTrue(stage1.isBossDue(5 * MINUTE))
     }
 
     @Test
     fun `the boss outclasses the wave that escorts it in`() {
-        val lastWave = level1.waveAt(level1.bossTimeSeconds - 1f)
-        val boss = level1.bossWave()
+        val lastWave = stage1.waveAt(stage1.bossTimeSeconds - 1f)
+        val boss = stage1.bossWave()
 
         assertTrue(boss.hitPoints > lastWave.hitPoints * 3, "the boss is not worth a fight")
         assertTrue(boss.damage > lastWave.damage)
@@ -169,26 +169,26 @@ class LevelProgressionTest {
     /** A boss health pool is only meaningful as a fight length, and the bat fires once a second. */
     @Test
     fun `the boss fight lasts long enough to be one`() {
-        assertTrue(level1.bossShotsToKill >= 20, "the boss dies in ${level1.bossShotsToKill} shots")
+        assertTrue(stage1.bossShotsToKill >= 20, "the boss dies in ${stage1.bossShotsToKill} shots")
     }
 
     // endregion
 
-    // region levels against each other
+    // region stages against each other
 
     @Test
-    fun `a later level opens harder than the one before it`() {
-        val level2 = LevelProgression.forLevel(2)
+    fun `a later stage opens harder than the one before it`() {
+        val stage2 = StageProgression.forStage(2)
 
-        assertTrue(level2.waveAt(0f).hitPoints > level1.waveAt(0f).hitPoints)
-        assertTrue(level2.waveAt(0f).damage > level1.waveAt(0f).damage)
-        assertTrue(level2.spawnIntervalAt(0f) < level1.spawnIntervalAt(0f))
+        assertTrue(stage2.waveAt(0f).hitPoints > stage1.waveAt(0f).hitPoints)
+        assertTrue(stage2.waveAt(0f).damage > stage1.waveAt(0f).damage)
+        assertTrue(stage2.spawnIntervalAt(0f) < stage1.spawnIntervalAt(0f))
     }
 
     @Test
-    fun `level 1 is the baseline, and an unknown level id does not go easier than it`() {
-        assertEquals(1f, level1.difficulty)
-        assertEquals(1f, LevelProgression.forLevel(0).difficulty)
+    fun `stage 1 is the baseline, and an unknown stage id does not go easier than it`() {
+        assertEquals(1f, stage1.difficulty)
+        assertEquals(1f, StageProgression.forStage(0).difficulty)
     }
 
     // endregion

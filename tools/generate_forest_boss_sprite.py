@@ -6,8 +6,8 @@
 
     uv run tools/generate_forest_boss_sprite.py
 
-Level 1's boss is the cave's crimson drone drawn three times over, which works because it is the
-toughest thing the cave's waves were already sending. Level 2 wanted a boss with a design of its
+Stage 1's boss is the cave's crimson drone drawn three times over, which works because it is the
+toughest thing the cave's waves were already sending. Stage 2 wanted a boss with a design of its
 own, drawn at its own size rather than magnified: at 3x a 32-pixel sprite has 3-pixel "pixels",
 which reads as coarse next to everything else on screen.
 

@@ -10,7 +10,7 @@ import at.smiech.cyanbat.service.EnemySpecies.WEAVER
 import at.smiech.cyanbat.service.EnemySpecies.WISP
 
 /**
- * One minute of a level's enemies, as designed rather than as scaled.
+ * One minute of a stage's enemies, as designed rather than as scaled.
  *
  * @param species what this wave draws from. Changing the mix every minute is what makes a new wave
  *   read as a new *group* of enemies rather than as more of the last one.
@@ -23,7 +23,7 @@ data class WaveDesign(
     val gunChance: Float = 0f,
 )
 
-/** Which boss a level ends on - a different fight, not just a different sprite. */
+/** Which boss a stage ends on - a different fight, not just a different sprite. */
 enum class BossKind {
     /** The cave's crimson drone, three times over: weaves on station and fires straight. */
     CAVE_DRONE,
@@ -36,21 +36,21 @@ enum class BossKind {
 }
 
 /**
- * What a level *is*, separate from how hard it is: its waves, its boss, and what the boss is
- * called when it arrives. [LevelProgression] reads this against the clock and scales it by the
- * level's difficulty.
+ * What a stage *is*, separate from how hard it is: its waves, its boss, and what the boss is
+ * called when it arrives. [StageProgression] reads this against the clock and scales it by the
+ * stage's difficulty.
  */
-data class LevelDesign(
+data class StageDesign(
     val waves: List<WaveDesign>,
     val boss: BossKind,
     val bossName: String,
 ) {
     companion object {
         /**
-         * Level 1. Each minute brings a group that moves in a way the last one did not, and the
+         * Stage 1. Each minute brings a group that moves in a way the last one did not, and the
          * escort in the fifth is the two that are hardest to lead.
          */
-        val CAVE = LevelDesign(
+        val CAVE = StageDesign(
             waves = listOf(
                 WaveDesign(listOf(SCOUT)),                  // scouts only, straight and readable
                 WaveDesign(listOf(SCOUT, WEAVER)),          // weavers join them
@@ -63,13 +63,13 @@ data class LevelDesign(
         )
 
         /**
-         * Level 2. Harder than the cave on every axis the cave had - it is scaled by the level's
-         * difficulty like any later level - and on three it did not: enemies come in groups, they
+         * Stage 2. Harder than the cave on every axis the cave had - it is scaled by the stage's
+         * difficulty like any later stage - and on three it did not: enemies come in groups, they
          * shoot back, and they hide behind shields. Each of those is introduced before it is
-         * combined with the others, and the shields and guns ramp in over the level rather than
+         * combined with the others, and the shields and guns ramp in over the stage rather than
          * arriving all at once.
          */
-        val FOREST = LevelDesign(
+        val FOREST = StageDesign(
             waves = listOf(
                 // A swarm to learn, and a shielded beetle to learn shields on.
                 WaveDesign(listOf(WASP, BEETLE)),
@@ -87,10 +87,10 @@ data class LevelDesign(
         )
 
         /**
-         * The design of the level with this 1-based id. Past the last one the last design repeats,
-         * scaled harder by [LevelProgression.forLevel], rather than a later level having nothing
+         * The design of the stage with this 1-based id. Past the last one the last design repeats,
+         * scaled harder by [StageProgression.forStage], rather than a later stage having nothing
          * to spawn.
          */
-        fun forLevel(id: Int): LevelDesign = if (id <= 1) CAVE else FOREST
+        fun forStage(id: Int): StageDesign = if (id <= 1) CAVE else FOREST
     }
 }

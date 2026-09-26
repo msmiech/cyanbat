@@ -22,7 +22,7 @@ veins: a little of the bat's cyan, set into the scenery.
 
 Sizes match the cave's four exactly. Obstacles take their collision box from the pixmap and the
 generator anchors the bottom ones by their height, so the forest keeps the cave's footprint and
-difficulty from scenery - what makes level 2 harder is its enemies, not bigger rocks.
+difficulty from scenery - what makes stage 2 harder is its enemies, not bigger rocks.
 """
 
 import pathlib

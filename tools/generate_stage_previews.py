@@ -2,13 +2,13 @@
 # requires-python = ">=3.9"
 # dependencies = ["pillow"]
 # ///
-"""Generate the level select's preview cards: one staged frame of each level.
+"""Generate the stage select's preview cards: one staged frame of each stage.
 
-    uv run tools/generate_level_previews.py
+    uv run tools/generate_stage_previews.py
 
 Composed from the game's own assets rather than screenshotted, so a preview can never show art the
 game no longer ships - re-run this after regenerating any of the sheets it reads. Each one is a
-full 480x320 frame, the size the game renders at, with the bat, some scenery and the level's
+full 480x320 frame, the size the game renders at, with the bat, some scenery and the stage's
 hostiles placed where they would be mid-run.
 
 Written to the shared Compose resources, where the menu picks them up on both platforms.
@@ -91,7 +91,7 @@ def forest():
 
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, build in (("level1_preview.png", cave), ("level2_preview.png", forest)):
+    for name, build in (("stage1_preview.png", cave), ("stage2_preview.png", forest)):
         image = build().convert("RGB")
         image.save(OUT / name)
         print(f"{OUT / name} ({image.width}x{image.height})")

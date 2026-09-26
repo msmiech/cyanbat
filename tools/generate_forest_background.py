@@ -2,7 +2,7 @@
 # requires-python = ">=3.9"
 # dependencies = ["pillow"]
 # ///
-"""Generate the forest the second level scrolls past: one long, seamlessly repeating strip.
+"""Generate the forest the second stage scrolls past: one long, seamlessly repeating strip.
 
     uv run tools/generate_forest_background.py
 
@@ -148,7 +148,7 @@ def trunks(count, half_width_range, rng):
     """
     Tree trunks as (center, half-width) pairs, spread evenly-ish round the strip.
 
-    Evenly rather than purely at random, so no stretch of the level is a blank wall or a picket
+    Evenly rather than purely at random, so no stretch of the stage is a blank wall or a picket
     fence: a jittered grid is the cheapest way to get "a forest" instead of "some trees".
     """
     spacing = WIDTH / count

@@ -11,7 +11,7 @@ import at.smiech.cyanbat.progress.PlayerProgress
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
-import at.smiech.cyanbat.service.LevelProgression
+import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.service.ObstacleGenerator
 import at.smiech.cyanbat.util.AURA_SURGE_VOLUME
 import at.smiech.cyanbat.util.BANNER_CHAR_WIDTH
@@ -28,7 +28,7 @@ import at.smiech.cyanbat.util.DEATH_TERMINAL_VELOCITY
 import at.smiech.cyanbat.util.HIT_FLASH_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
-import at.smiech.cyanbat.util.LEVEL_COMPLETE_ARMING_SECONDS
+import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.POWER_UP_ARMING_SECONDS
@@ -98,20 +98,20 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /**
- * One run through one level.
+ * One run through one stage.
  *
- * A run is a level: moving on to the next one builds a fresh screen, which is what resets the score,
- * the bat's experience and its power-ups. Each level is meant to be beaten from a standing start,
- * however it was reached - through the one before it or straight from the level select.
+ * A run is a stage: moving on to the next one builds a fresh screen, which is what resets the score,
+ * the bat's experience and its power-ups. Each stage is meant to be beaten from a standing start,
+ * however it was reached - through the one before it or straight from the stage select.
  *
- * @param levelId which level to fly, 1-based. An id with no level behind it flies the first.
+ * @param stageId which stage to fly, 1-based. An id with no stage behind it flies the first.
  */
 class GameScreen(
     override val game: Game,
     private val env: CyanBatEnvironment,
-    levelId: Int = 1,
+    stageId: Int = 1,
 ) : Screen {
-    var currentLevel = env.assets.level(levelId)
+    var currentStage = env.assets.stage(stageId)
 
     private val world = World()
     private val factory = EntityFactory(world)
@@ -129,42 +129,42 @@ class GameScreen(
     var tick = TICK_INITIAL
     private var tickTime = 0f
 
-    /** The difficulty curve of the level being played; see [LevelProgression]. */
-    private val progression = LevelProgression.forLevel(currentLevel.id)
+    /** The difficulty curve of the stage being played; see [StageProgression]. */
+    private val progression = StageProgression.forStage(currentStage.id)
 
     var enmGen = EnemyGenerator(
         xSpawnPosition = game.frameBufferWidth,
         worldHeight = game.frameBufferHeight,
         factory,
-        currentLevel.enemySheet,
+        currentStage.enemySheet,
         progression = progression,
         onWaveChanged = { wave -> announce("WAVE ${wave.index + 1}") },
         onBossSpawned = { announce(progression.design.bossName) },
-        bossPixmap = currentLevel.bossSheet,
+        bossPixmap = currentStage.bossSheet,
         onBossPhaseChanged = { phase -> announce(bossPhaseBanner(phase)) },
     )
     var obsGen = ObstacleGenerator(
         worldWidth = game.frameBufferWidth,
         worldHeight = game.frameBufferHeight,
         factory,
-        currentLevel
+        currentStage
     )
 
     private lateinit var g: Graphics
-    private var levelNameDisplayTime = 3.0f
+    private var stageNameDisplayTime = 3.0f
 
     /** The wave or boss announcement currently on screen, and what is left of its time. */
     private var bannerText: String? = null
     private var bannerTime = 0f
 
     /**
-     * Set when the level's boss goes down. The run is over, but won rather than lost, so the bat
+     * Set when the stage's boss goes down. The run is over, but won rather than lost, so the bat
      * stays where it is and the player reads their score off a screen they earned.
      */
-    private var levelComplete = false
+    private var stageComplete = false
 
-    /** Time before the victory overlay will accept a tap as "done"; see [handleLevelCompleteControls]. */
-    private var levelCompleteArmingTime = 0f
+    /** Time before the victory overlay will accept a tap as "done"; see [handleStageCompleteControls]. */
+    private var stageCompleteArmingTime = 0f
 
     /** Experience earned this run, and the levels it has bought. */
     private val progress = PlayerProgress()
@@ -190,7 +190,7 @@ class GameScreen(
     private var offerArmingTime = 0f
 
     /**
-     * Taps on whichever overlay is up - level up, pause, level complete. One is enough because
+     * Taps on whichever overlay is up - level up, pause, stage complete. One is enough because
      * only one of them reads the events on any frame (pause, over the level up dialog, reads them
      * first), and each [TapDetector.reset]s it as it opens.
      */
@@ -255,7 +255,7 @@ class GameScreen(
         world.addSystem(FloatingTextSystem())
 
         // Add the primary background
-        factory.createBackground(0f, currentLevel.background)
+        factory.createBackground(0f, currentStage.background)
 
         batId = factory.createBat(
             x = (game.frameBufferWidth / 3).toFloat(),
@@ -268,7 +268,7 @@ class GameScreen(
             shotIntervalSeconds = loadout.shotIntervalSeconds,
         )
 
-        startLevelMusic()
+        startStageMusic()
         initStats()
     }
 
@@ -278,7 +278,7 @@ class GameScreen(
      * Which edge leads depends on who is firing: the bat shoots to the right and the boss back to
      * the left, so each shot leaves from the side it travels toward rather than through the
      * sprite that fired it. A shot carries its shooter's damage, which is how the boss hits harder
-     * at range than anything else in the level does on contact.
+     * at range than anything else in the stage does on contact.
      */
     private fun fireShot(shooterId: EntityId) {
         val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
@@ -476,7 +476,7 @@ class GameScreen(
             val enemyDied = if (group1 == CollisionGroup.ENEMY) died1 else died2
             if (enemyDied) {
                 scoring.registerEnemyDestroyed()
-                // The boss is banked by completeLevel, which knows it was the boss. Everything
+                // The boss is banked by completeStage, which knows it was the boss. Everything
                 // else is worth what its wave is worth.
                 val enemyId = if (group1 == CollisionGroup.ENEMY) id1 else id2
                 if (enemyId != bossId) {
@@ -685,7 +685,7 @@ class GameScreen(
                 beginDeath(targetId)
                 endRun()
             }
-            if (targetId == enmGen.bossId) completeLevel()
+            if (targetId == enmGen.bossId) completeStage()
         }
         return dealt
     }
@@ -709,37 +709,37 @@ class GameScreen(
     }
 
     /**
-     * The level's boss is down, so the level is over.
+     * The stage's boss is down, so the stage is over.
      *
      * The run stops here rather than rolling on into a sixth minute of enemies: a boss that could
      * be beaten and then followed by more of the same would not be a boss. What is left on screen
      * is left alone - anything still in flight flies out on its own - and the player reads their
      * total off the overlay and taps out when they are ready.
      */
-    private fun completeLevel() {
-        if (levelComplete) return
-        levelComplete = true
-        levelCompleteArmingTime = LEVEL_COMPLETE_ARMING_SECONDS
+    private fun completeStage() {
+        if (stageComplete) return
+        stageComplete = true
+        stageCompleteArmingTime = STAGE_COMPLETE_ARMING_SECONDS
         overlayTaps.reset()
         enmGen.clearBoss()
-        scoring.awardLevelCleared()
+        scoring.awardStageCleared()
         // Banked even though the run ends here: the total is what the victory screen reports, and
         // a boss worth nothing would read as a boss that did not count.
         awardExperience(XP_PER_BOSS)
         saveHighscore()
         // Unlocked the moment it is earned, not when the player taps through: a player who quits
-        // from the victory screen has still beaten the level.
-        nextLevelId?.let { env.levelUnlocks.unlockAsync(it) }
+        // from the victory screen has still beaten the stage.
+        nextStageId?.let { env.stageUnlocks.unlockAsync(it) }
 
-        currentLevel.music.apply {
+        currentStage.music.apply {
             stop()
             isLooping = false
         }
     }
 
-    /** The level after this one, or null when this is the last. */
-    private val nextLevelId: Int?
-        get() = (currentLevel.id + 1).takeIf { env.assets.hasLevelAfter(currentLevel.id) }
+    /** The stage after this one, or null when this is the last. */
+    private val nextStageId: Int?
+        get() = (currentStage.id + 1).takeIf { env.assets.hasStageAfter(currentStage.id) }
 
     /** What a boss with phases announces on entering phase [phase]. */
     private fun bossPhaseBanner(phase: Int): String = if (phase >= 3) "QUEEN ENRAGED" else "SWARM CALLED"
@@ -817,7 +817,7 @@ class GameScreen(
         if (env.audioSettings.soundsEnabled) {
             env.assets.audio.deathSound.play(100f)
         }
-        currentLevel.music.apply {
+        currentStage.music.apply {
             stop()
             isLooping = false
         }
@@ -869,9 +869,9 @@ class GameScreen(
 
     override fun update(deltaTime: Float) {
         // Ahead of the pause controls, which would otherwise read the player's way out of a won
-        // level as a request to pause it.
-        if (levelComplete) {
-            handleLevelCompleteControls(deltaTime)
+        // stage as a request to pause it.
+        if (stageComplete) {
+            handleStageCompleteControls(deltaTime)
             return
         }
         if (handlePauseControls(deltaTime)) return
@@ -884,8 +884,8 @@ class GameScreen(
             return
         }
 
-        if (levelNameDisplayTime > 0) {
-            levelNameDisplayTime -= deltaTime
+        if (stageNameDisplayTime > 0) {
+            stageNameDisplayTime -= deltaTime
         }
         if (bannerTime > 0) {
             bannerTime -= deltaTime
@@ -898,8 +898,8 @@ class GameScreen(
             scoring.awardSurvivalTick()
             regenerate(tick)
 
-            // The level clock is the fixed tick, not the wall clock: a paused game is a paused
-            // level, and a slow frame costs the player no ground on the wave they are in.
+            // The stage clock is the fixed tick, not the wall clock: a paused game is a paused
+            // stage, and a slow frame costs the player no ground on the wave they are in.
             enmGen.update(tick)
             // Held back for the boss. The duel is fought in an open cave, because a boss pinning
             // the player against scenery they cannot outrun is a death with nothing to read in it.
@@ -927,7 +927,7 @@ class GameScreen(
         // otherwise lock the game rather than fail loudly.
         if (offer.isEmpty()) return
 
-        if (currentLevel.music.isPlaying) currentLevel.music.pause()
+        if (currentStage.music.isPlaying) currentStage.music.pause()
     }
 
     /**
@@ -988,7 +988,7 @@ class GameScreen(
         // Only if the bat is still flying: a level up banked by the shot that also killed the
         // player has no run left to go back to.
         val health = world.getComponent(batId, HealthComponent::class)
-        if (health?.alive == true) startLevelMusic()
+        if (health?.alive == true) startStageMusic()
     }
 
     /**
@@ -1034,14 +1034,14 @@ class GameScreen(
     }
 
     /**
-     * The level is won. A tap or Confirm flies on to the next level, where there is one; Back
-     * leaves for the menu, and so does a tap on the last level.
+     * The stage is won. A tap or Confirm flies on to the next stage, where there is one; Back
+     * leaves for the menu, and so does a tap on the last stage.
      *
      * Armed on a delay for the same reason the pause overlay is: the player was steering with a
      * finger down as the boss died, and the lift that follows is not them asking to leave.
      */
-    private fun handleLevelCompleteControls(deltaTime: Float) {
-        levelCompleteArmingTime -= deltaTime
+    private fun handleStageCompleteControls(deltaTime: Float) {
+        stageCompleteArmingTime -= deltaTime
 
         val input = game.input
         // Read whether or not it can act on them, so the buffer does not hoard events.
@@ -1050,20 +1050,20 @@ class GameScreen(
         val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
         val backed = controls?.consumePress(GameButton.BACK) == true
 
-        if (levelCompleteArmingTime > 0f) return
-        val next = nextLevelId
+        if (stageCompleteArmingTime > 0f) return
+        val next = nextStageId
         when {
             backed -> env.onExitToMenu()
-            (tapped || confirmed) && next != null -> startLevel(next)
+            (tapped || confirmed) && next != null -> startStage(next)
             tapped || confirmed -> env.onExitToMenu()
         }
     }
 
     /**
-     * Flies on to level [id], on a fresh screen - which is the reset: a new run's score, a bat at
+     * Flies on to stage [id], on a fresh screen - which is the reset: a new run's score, a bat at
      * level 1, and no power-ups. The highscore was already banked when the boss went down.
      */
-    private fun startLevel(id: Int) {
+    private fun startStage(id: Int) {
         game.setScreen(GameScreen(game, env, id))
     }
 
@@ -1107,12 +1107,12 @@ class GameScreen(
         if (value) {
             resumeArmingTime = RESUME_ARMING_SECONDS
             overlayTaps.reset()
-            if (currentLevel.music.isPlaying) currentLevel.music.pause()
+            if (currentStage.music.isPlaying) currentStage.music.pause()
         } else {
-            // Only the level theme: once the bat is dead the game over track owns playback, and
+            // Only the stage theme: once the bat is dead the game over track owns playback, and
             // resuming would put two tracks on top of each other.
             val health = world.getComponent(batId, HealthComponent::class)
-            if (health?.alive == true) startLevelMusic()
+            if (health?.alive == true) startStageMusic()
         }
     }
 
@@ -1155,19 +1155,19 @@ class GameScreen(
     }
 
     /**
-     * What the player gets for clearing the level: the run's total, and the way out.
+     * What the player gets for clearing the stage: the run's total, and the way out.
      *
-     * Drawn over the level rather than on a screen of its own, so the last thing they see is the
+     * Drawn over the stage rather than on a screen of its own, so the last thing they see is the
      * cave they beat with the wreckage of the boss still clearing off it.
      */
-    private fun drawLevelCompleteOverlay() {
+    private fun drawStageCompleteOverlay() {
         g.apply {
             drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-            drawString("LEVEL COMPLETE", 120, 130, 30, EngineColors.YELLOW)
-            drawString(currentLevel.name, 150, 160, 15, EngineColors.CYAN)
+            drawString("STAGE COMPLETE", 120, 130, 30, EngineColors.YELLOW)
+            drawString(currentStage.name, 150, 160, 15, EngineColors.CYAN)
             drawString("Score: ${scoring.score}", 175, 185, 20, EngineColors.WHITE)
-            if (nextLevelId != null) {
-                drawString("Tap or press Enter for level ${nextLevelId}", 135, 215, 15, EngineColors.WHITE)
+            if (nextStageId != null) {
+                drawString("Tap or press Enter for stage ${nextStageId}", 135, 215, 15, EngineColors.WHITE)
                 drawString("Back or Q for the menu", 170, 237, 15, EngineColors.WHITE)
                 drawString("Score, level and power-ups start over", 118, 262, 13, EngineColors.CYAN)
             } else {
@@ -1255,13 +1255,13 @@ class GameScreen(
         world.draw(g)
         drawStats()
         drawExperienceBar()
-        if (levelNameDisplayTime > 0) {
-            drawLevelName()
+        if (stageNameDisplayTime > 0) {
+            drawStageName()
         }
         bannerText?.takeIf { bannerTime > 0 }?.let { drawBanner(it) }
 
         if (offer.isNotEmpty()) drawPowerUpOffer()
-        if (levelComplete) drawLevelCompleteOverlay()
+        if (stageComplete) drawStageCompleteOverlay()
         if (paused) drawPauseOverlay()
     }
 
@@ -1278,7 +1278,7 @@ class GameScreen(
             val multiplier = scoring.multiplier
             val comboColor = if (multiplier > 1) EngineColors.YELLOW else EngineColors.CYAN
             drawString("Combo: x$multiplier", 5, 60, 15, comboColor)
-            // How far into the level the player is, which is the only reading they get on how
+            // How far into the stage the player is, which is the only reading they get on how
             // much harder the next minute is about to be - and on how close the boss is.
             drawString(waveLabel(), 5, 80, 15, EngineColors.CYAN)
             // The other half of that race: how much stronger the bat has got while the cave was
@@ -1297,9 +1297,9 @@ class GameScreen(
         else -> "Wave: ${enmGen.currentWave.index + 1}/${progression.bossWave}"
     }
 
-    private fun drawLevelName() {
+    private fun drawStageName() {
         g.drawString(
-            currentLevel.name,
+            currentStage.name,
             game.frameBufferWidth / 4,
             game.frameBufferHeight / 2,
             30,
@@ -1307,10 +1307,10 @@ class GameScreen(
         )
     }
 
-    /** Starts or resumes the level theme, if music is enabled. */
-    private fun startLevelMusic() {
+    /** Starts or resumes the stage theme, if music is enabled. */
+    private fun startStageMusic() {
         if (!env.audioSettings.musicEnabled) return
-        currentLevel.music.apply {
+        currentStage.music.apply {
             isLooping = true
             play()
         }
@@ -1335,7 +1335,7 @@ class GameScreen(
         if (paused) return
         val health = world.getComponent(batId, HealthComponent::class)
         if (health?.alive == true) {
-            startLevelMusic()
+            startStageMusic()
         }
     }
 

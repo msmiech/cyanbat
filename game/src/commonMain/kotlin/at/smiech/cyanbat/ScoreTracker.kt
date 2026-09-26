@@ -1,7 +1,7 @@
 package at.smiech.cyanbat
 
 import at.smiech.cyanbat.util.HITS_PER_MULTIPLIER_STEP
-import at.smiech.cyanbat.util.LEVEL_COMPLETE_BONUS
+import at.smiech.cyanbat.util.STAGE_COMPLETE_BONUS
 import at.smiech.cyanbat.util.MAX_SCORE_MULTIPLIER
 import at.smiech.cyanbat.util.POINTS_PER_HIT
 
@@ -9,7 +9,7 @@ import at.smiech.cyanbat.util.POINTS_PER_HIT
  * Scoring for a single run.
  *
  * Three sources: a point for every tick survived, a bonus for every enemy destroyed, and a lump
- * sum for clearing the level. The kill bonus scales with an unbroken run of kills, so the reward
+ * sum for clearing the stage. The kill bonus scales with an unbroken run of kills, so the reward
  * for pressing forward is losing the streak the moment the bat is hit.
  *
  * Kept apart from the game screen because it is the one part of scoring worth testing on its
@@ -19,7 +19,7 @@ class ScoreTracker(
     private val pointsPerHit: Int = POINTS_PER_HIT,
     private val hitsPerMultiplierStep: Int = HITS_PER_MULTIPLIER_STEP,
     private val maxMultiplier: Int = MAX_SCORE_MULTIPLIER,
-    private val levelCompleteBonus: Int = LEVEL_COMPLETE_BONUS,
+    private val stageCompleteBonus: Int = STAGE_COMPLETE_BONUS,
 ) {
     var score: Int = 0
         private set
@@ -64,11 +64,11 @@ class ScoreTracker(
     }
 
     /**
-     * The level's boss is down. Worth roughly three minutes of surviving on its own, so that
+     * The stage's boss is down. Worth roughly three minutes of surviving on its own, so that
      * pushing on to the boss beats farming the early waves for survival ticks.
      */
-    fun awardLevelCleared() {
-        award(levelCompleteBonus)
+    fun awardStageCleared() {
+        award(stageCompleteBonus)
     }
 
     /** Banks [points] at the run's [bonusMultiplier], keeping what is left over for next time. */
