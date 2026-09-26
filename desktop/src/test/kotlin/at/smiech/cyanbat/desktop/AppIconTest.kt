@@ -38,19 +38,36 @@ class AppIconTest {
         assertEquals(512 to 512, image.width to image.height)
     }
 
-    /** An .ico opens with a directory of its images: each one's size, 0 meaning 256, and offset. */
+    /**
+     * An .ico opens with a directory of its images: each one's size, 0 meaning 256, and offset.
+     * Up to 128px they are 32-bit bitmaps - a header giving the height doubled, then the pixels
+     * and a one-bit mask stacked - and at 256 a PNG, the layout Windows' own tools write.
+     */
     @Test
     fun `the Windows installer's icon holds every size, each the size it says`() {
         val bytes = packaged("cyanbat.ico").readBytes()
-        val header = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
-        assertEquals(1, header.getShort(2).toInt(), "cyanbat.ico is not an icon file")
-        val sizes = (0 until header.getShort(4).toInt()).map { index ->
+        val buffer = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN)
+        assertEquals(1, buffer.getShort(2).toInt(), "cyanbat.ico is not an icon file")
+        val sizes = (0 until buffer.getShort(4).toInt()).map { index ->
             val entry = 6 + 16 * index
             val size = (bytes[entry].toInt() and 0xFF).takeIf { it != 0 } ?: 256
-            val length = header.getInt(entry + 8)
-            val image = ImageIO.read(ByteArrayInputStream(bytes, header.getInt(entry + 12), length))
-            assertNotNull(image, "the ${size}px image in cyanbat.ico did not decode")
-            assertEquals(size to size, image.width to image.height)
+            val length = buffer.getInt(entry + 8)
+            val offset = buffer.getInt(entry + 12)
+            if (size == 256) {
+                val image = ImageIO.read(ByteArrayInputStream(bytes, offset, length))
+                assertNotNull(image, "the 256px image in cyanbat.ico did not decode")
+                assertEquals(256 to 256, image.width to image.height)
+            } else {
+                val header = listOf(
+                    buffer.getInt(offset),
+                    buffer.getInt(offset + 4),
+                    buffer.getInt(offset + 8),
+                    buffer.getShort(offset + 14).toInt(),
+                )
+                assertEquals(listOf(40, size, 2 * size, 32), header, "the ${size}px bitmap header")
+                val mask = (size + 31) / 32 * 4 * size
+                assertEquals(40 + size * size * 4 + mask, length, "the ${size}px bitmap's length")
+            }
             size
         }
         assertEquals(DESKTOP_SIZES, sizes.sorted())

@@ -31,7 +31,9 @@ hands the OS for its title bar and task bar. Sizes that are a whole multiple of 
 by pixel replication; the rest are area-averaged from it, never resampled.
 """
 
+import io
 import pathlib
+import struct
 import sys
 
 from PIL import Image, ImageDraw, ImageFilter
@@ -500,6 +502,51 @@ def mac_icon(picture):
     return icon
 
 
+def write_ico(path, images):
+    """
+    A Windows .ico of [images]: 32-bit bitmaps up to 128px, and a PNG at 256.
+
+    The layout Windows' own tools write, and the one the Compose plugin's default icon has, which
+    every Compose app's installer is built with. Pillow would write a PNG at every size; Windows
+    reads those too, but the bitmaps are what everything that handles an icon is sure to read.
+    """
+    entries = []
+    for image in sorted(images, key=lambda i: i.width):
+        size = image.width
+        if size >= 256:
+            data = io.BytesIO()
+            image.save(data, format="PNG")
+            entries.append((size, data.getvalue()))
+            continue
+        # A bitmap header with the height doubled, for the image and its mask stacked; then the
+        # pixels as BGRA, bottom row first; then a one-bit mask of the fully transparent pixels,
+        # each row padded to four bytes, which Windows ignores in favor of alpha but expects. Under
+        # the mask the color is black, which is what a reader that goes by the mask assumes.
+        header = struct.pack(
+            "<IiiHHIIiiII", 40, size, 2 * size, 1, 32, 0, size * size * 4, 0, 0, 0, 0
+        )
+        seen = image.getchannel("A").point(lambda a: 255 if a else 0)
+        clean = Image.composite(image, Image.new("RGBA", image.size), seen)
+        pixels = clean.transpose(Image.Transpose.FLIP_TOP_BOTTOM).tobytes("raw", "BGRA")
+        stride = (size + 31) // 32 * 4
+        alpha = image.getchannel("A").load()
+        mask = bytearray(stride * size)
+        for y in range(size):
+            row = (size - 1 - y) * stride
+            for x in range(size):
+                if alpha[x, y] == 0:
+                    mask[row + x // 8] |= 0x80 >> (x % 8)
+        entries.append((size, header + pixels + bytes(mask)))
+
+    directory = struct.pack("<HHH", 0, 1, len(entries))
+    offset = len(directory) + 16 * len(entries)
+    for size, data in entries:
+        side = size if size < 256 else 0
+        directory += struct.pack("<BBBBHHII", side, side, 0, 0, 1, 32, len(data), offset)
+        offset += len(data)
+    path.write_bytes(directory + b"".join(data for _, data in entries))
+
+
 def write_desktop():
     picture = scene()
     PACKAGING.mkdir(parents=True, exist_ok=True)
@@ -510,14 +557,8 @@ def write_desktop():
         image.save(WINDOW_ICONS / f"cyanbat_{size}.png")
     print(f"{WINDOW_ICONS} ({len(tiles)} sizes, {min(tiles)} to {max(tiles)}px)")
 
-    largest = max(DESKTOP_SIZES)
     ico = PACKAGING / "cyanbat.ico"
-    tiles[largest].save(
-        ico,
-        format="ICO",
-        sizes=[(size, size) for size in DESKTOP_SIZES],
-        append_images=[image for size, image in tiles.items() if size != largest],
-    )
+    write_ico(ico, tiles.values())
     print(f"{ico} ({len(tiles)} sizes)")
 
     png = PACKAGING / "cyanbat.png"
