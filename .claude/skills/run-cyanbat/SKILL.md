@@ -21,9 +21,14 @@ Android SDK with `platform-tools` and `emulator`, plus one AVD, for the Android 
 `uv` is used for the HUD crop (it resolves Pillow itself); without it `hud` still takes the
 screenshot and just skips the crop. The `desktop` command needs neither.
 
-The driver finds
-the SDK via `$ANDROID_HOME`, `$ANDROID_SDK_ROOT`, or `%LOCALAPPDATA%\Android\Sdk`,
-and picks the first AVD from `emulator -list-avds` (override with `$CYANBAT_AVD`).
+The driver finds the SDK via `$ANDROID_HOME`, `$ANDROID_SDK_ROOT`, or
+`%LOCALAPPDATA%\Android\Sdk`, and picks the first AVD from `emulator -list-avds` (override with
+`$CYANBAT_AVD`).
+
+A git worktree (e.g. under `.claude/worktrees/`) has no `local.properties`, since it is
+gitignored, so Gradle has no `sdk.dir`; `install` passes it the SDK it found as `ANDROID_HOME`
+instead. A bare `./gradlew` on an Android task there still fails with "SDK location not found":
+set `ANDROID_HOME`, or copy `local.properties` over from the main checkout.
 
 Verified on Windows 11 + Git Bash against `Medium_Phone` (API 37, 1080x2400). Nothing in the
 driver is Windows-specific.
@@ -93,9 +98,17 @@ Then tap Start Game on the emulator window. Useless without a display.
 ./gradlew build
 ```
 
-Assembles debug + release and runs lint. There are **no unit or instrumentation
-tests in this repo** (no `test/` or `androidTest/` source set in either module),
-so a green build says nothing about behavior. Verify on the emulator.
+Assembles debug + release, runs lint, and runs the unit tests. Those live in
+`engine/src/commonTest`, `engine/src/jvmTest`, `game/src/commonTest` and `desktop/src/test` and
+run on the JVM only; on their own:
+
+```bash
+./gradlew :engine:jvmTest :game:jvmTest :desktop:test
+```
+
+They exercise game logic headlessly - ECS systems, math, spawning, stage progression, scoring -
+so a green build still says nothing about rendering, touch input on a device, or the activity
+lifecycle, and there are no instrumentation tests. Verify those on the emulator.
 
 ## Gotchas
 
