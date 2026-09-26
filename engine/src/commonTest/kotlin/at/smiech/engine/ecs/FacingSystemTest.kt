@@ -64,7 +64,7 @@ class FacingSystemTest {
     }
 
     @Test
-    fun `travelling down points down, and up points up`() {
+    fun `travelling down points down and up points up`() {
         val down = spawn(Vector2(0f, 4f))
         val up = spawn(Vector2(0f, -4f), y = 200f)
 

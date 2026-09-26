@@ -72,7 +72,7 @@ class PlayerProgressTest {
     }
 
     @Test
-    fun `total experience counts the whole run, not the progress toward one level`() {
+    fun `total experience counts the whole run and not the progress toward one level`() {
         progress.award(XP_FIRST_LEVEL + 10)
         progress.award(5)
 

@@ -25,7 +25,7 @@ class ControlHandlerTest {
     }
 
     @Test
-    fun `up is negative and down positive, matching the framebuffer's y axis`() {
+    fun `up is negative and down positive matching the framebuffer's y axis`() {
         val handler = ControlHandler()
         handler.onDirection(Direction.UP, true)
         assertEquals(-1f, handler.moveY)
@@ -126,7 +126,7 @@ class ControlHandlerTest {
     }
 
     @Test
-    fun `releaseAll drops everything held, including an unread press`() {
+    fun `releaseAll drops everything held including an unread press`() {
         val handler = ControlHandler()
         handler.onDirection(Direction.UP, true)
         handler.onAxis(1f, 1f)

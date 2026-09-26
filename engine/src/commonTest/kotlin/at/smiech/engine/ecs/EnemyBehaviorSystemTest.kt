@@ -106,7 +106,7 @@ class EnemyBehaviorSystemTest {
     // region hover
 
     @Test
-    fun `a hoverer stops on station, then leaves`() {
+    fun `a hoverer stops on station and then leaves`() {
         val hoverer = enemy(EnemyMovementType.HOVER, x = 480f, y = 150f, holdX = 360f)
 
         run(4f)
@@ -145,7 +145,7 @@ class EnemyBehaviorSystemTest {
     }
 
     @Test
-    fun `a diver commits to where the player was, and flies straight`() {
+    fun `a diver commits to where the player was and flies straight`() {
         player(x = 60f, y = 220f)
         val diver = enemy(EnemyMovementType.DIVE, x = 360f, y = 40f, holdX = 380f)
 

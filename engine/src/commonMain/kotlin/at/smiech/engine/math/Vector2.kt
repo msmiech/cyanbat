@@ -1,5 +1,7 @@
 package at.smiech.engine.math
 
+import kotlin.jvm.JvmInline
+
 /**
  * Immutable 2D vector optimized as a value class to eliminate heap allocation.
  * Uses bit-packing to store two Floats in a single Long.

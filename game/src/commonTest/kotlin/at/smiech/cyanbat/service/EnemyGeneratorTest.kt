@@ -128,7 +128,7 @@ class EnemyGeneratorTest {
     // region waves
 
     @Test
-    fun `every full minute announces its wave, once`() {
+    fun `every full minute announces its wave exactly once`() {
         val generator = generator()
 
         generator.run(3 * MINUTE + 5f)
@@ -225,7 +225,7 @@ class EnemyGeneratorTest {
     }
 
     @Test
-    fun `starting a new stage puts the clock, the wave and the boss back to the beginning`() {
+    fun `starting a new stage puts the clock and the wave and the boss back to the beginning`() {
         val generator = generator()
         generator.run(5 * MINUTE + 1f)
 

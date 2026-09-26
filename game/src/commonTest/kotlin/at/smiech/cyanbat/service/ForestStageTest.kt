@@ -22,7 +22,7 @@ class ForestStageTest {
     private fun waves(stage: StageProgression) = (0 until BOSS_WAVE).map { stage.waveAt(it * MINUTE) }
 
     @Test
-    fun `stage 2 is the forest, five waves and the Moth Queen`() {
+    fun `stage 2 is the forest with five waves and the Moth Queen`() {
         assertEquals(StageDesign.FOREST, forest.design)
         assertEquals(5, forest.design.waves.size)
         assertEquals(5, forest.bossWave)
@@ -30,7 +30,7 @@ class ForestStageTest {
     }
 
     @Test
-    fun `the forest sends only its own enemies, and all five of them`() {
+    fun `the forest sends only its own enemies and all five of them`() {
         val sent = waves(forest).flatMap { it.enemyTypes }.toSet()
 
         assertEquals(FOREST_SPECIES, sent)
@@ -78,7 +78,7 @@ class ForestStageTest {
     }
 
     @Test
-    fun `the forest has something that shoots, something shielded, and groups`() {
+    fun `the forest has something that shoots and something shielded and groups`() {
         assertTrue(FOREST_SPECIES.any { it.gun != null }, "nothing shoots")
         assertTrue(FOREST_SPECIES.any { it.innateShield > 0f }, "nothing is shielded")
         assertTrue(FOREST_SPECIES.any { it.squad == Squad.SWARM }, "nothing swarms")
