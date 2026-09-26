@@ -2,6 +2,7 @@ package at.smiech.cyanbat.desktop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +39,10 @@ fun main() = application {
         // between the surface appearing and its focus request landing.
         onKeyEvent = controls::onComposeKeyEvent,
     ) {
+        // Every size at once, rather than through Window's icon parameter; see WindowIcon. Set from
+        // inside the content, which only composes once the window has applied that parameter -
+        // null here, which empties the list - so nothing clears the icons after this.
+        LaunchedEffect(window) { window.setIconImages(WindowIcon.images) }
         CyanBatApp(controls)
     }
 }

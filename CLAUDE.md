@@ -127,15 +127,23 @@ select's strings.
   references them; `Mp3DecodingTest` guards them.
 - Generated sound effects are WAV: `javax.sound.sampled` reads PCM natively, and SoundPool can
   `openFd` them uncompressed from the APK.
+- The launcher icon is adaptive: `mipmap-anydpi/ic_launcher.xml` over three vector layers in
+  `app/src/main/res/drawable`, which redraw the pixel art crisply at any size a launcher picks.
+- The desktop installers take `desktop/icons/cyanbat.{icns,ico,png}` through `nativeDistributions`.
+  The window hands the OS every size in `desktop/src/main/resources/icons` itself (`WindowIcon`),
+  because Compose's `icon` parameter renders one image and Windows shrinks it into noise.
+  `AppIconTest` checks both sets, since nothing else reads the installers' before a release.
 
 **The art is generated.** `tools/generate_*.py`, built on `tools/pixelart.py`, produce every
-sprite sheet, background, obstacle, stage preview, the framed title and the WAV effects. The MP3s,
-`gameover.png` and `tools/title_lettering.png` are the exceptions.
-- To change art, change the script and re-run it; never edit the PNG.
+sprite sheet, background, obstacle, stage preview, the framed title, the app icons and the WAV
+effects. The MP3s, `gameover.png` and `tools/title_lettering.png` are the exceptions.
+- To change art, change the script and re-run it; never edit its output, the icons' vector XML
+  included.
 - The scripts are deterministic: re-running an unchanged one must reproduce the committed file
   byte for byte.
 - `SpriteSheetTest` pins each sheet's dimensions and color ceiling.
-- Re-run `generate_stage_previews.py` after changing any sheet it composes.
+- Re-run `generate_stage_previews.py` and `generate_icons.py` after changing any sheet they
+  compose.
 - Palette rule: the player is cool, everything hostile is warm.
 
 ## Conventions
