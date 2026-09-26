@@ -52,7 +52,7 @@ build, install, launch, screenshot, and check persistence. See
 
 | Stage | What it throws at you |
 |---|---|
-| 1. The Cave | Five one-minute waves of drones, then a boss that weaves and fires back. |
+| 1. The Cave | Five one-minute waves of imps, then a boss that weaves and fires back. |
 | 2. The Forest | Wasp swarms, wisp formations, diving owls, hovering spitters that aim at you, and beetles behind shield bubbles - tougher and faster than the cave, ending in the three-phase Moth Queen. |
 
 Beating a stage unlocks the next, and from then on Start Game opens a stage select. Every stage is

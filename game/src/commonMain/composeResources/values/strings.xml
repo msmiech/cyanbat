@@ -12,7 +12,7 @@
 
     <string name="stage_select_title">Select Stage</string>
     <string name="stage_1_name">Stage 1: The Cave</string>
-    <string name="stage_1_description">Five waves of drones in the dark, and the drone that leads them.</string>
+    <string name="stage_1_description">Five waves of imps in the dark, and the imp that leads them.</string>
     <string name="stage_2_name">Stage 2: The Forest</string>
     <string name="stage_2_description">Swarms, formations, shields and return fire. The Moth Queen waits at the end.</string>
     <string name="stage_locked">Clear the stage before it to unlock</string>
