@@ -3,6 +3,7 @@ package at.smiech.cyanbat.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import at.smiech.cyanbat.data.SettingsRepository
+import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -16,12 +17,19 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
     val isSoundEnabled: StateFlow<Boolean> = settings.isSoundEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), true)
 
+    val displayMode: StateFlow<DisplayMode> = settings.displayMode
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), DisplayMode.DEFAULT)
+
     fun setMusicEnabled(enabled: Boolean) = viewModelScope.launch {
         settings.setMusicEnabled(enabled)
     }
 
     fun setSoundEnabled(enabled: Boolean) = viewModelScope.launch {
         settings.setSoundEnabled(enabled)
+    }
+
+    fun setDisplayMode(mode: DisplayMode) = viewModelScope.launch {
+        settings.setDisplayMode(mode)
     }
 
     private companion object {

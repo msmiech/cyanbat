@@ -18,17 +18,22 @@ import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalWindowInfo
-import androidx.compose.ui.unit.IntSize
+import at.smiech.engine.DisplayMode
 import at.smiech.engine.GameLoop
+import at.smiech.engine.impl.AmbientBars
+import at.smiech.engine.impl.FrameFit
+import at.smiech.engine.impl.drawFrameBuffer
 import at.smiech.engine.impl.onComposeKeyEvent
 import at.smiech.engine.impl.onComposePointerEvent
 
 /**
  * Renders the game's framebuffer and drives it from Compose's frame callback - the desktop
  * counterpart of the Canvas in AndroidGameActivity.
+ *
+ * @param displayMode how the framebuffer is fitted to the window, as the player set it.
  */
 @Composable
-fun GameSurface(game: DesktopGame) {
+fun GameSurface(game: DesktopGame, displayMode: DisplayMode) {
     val loop = remember(game) { GameLoop(game) }
 
     // Losing focus is desktop's onPause: it pauses the run, for the same reason Android's does -
@@ -50,8 +55,17 @@ fun GameSurface(game: DesktopGame) {
     }
 
     BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
-        val scaleX = game.frameBufferWidth.toFloat() / constraints.maxWidth
-        val scaleY = game.frameBufferHeight.toFloat() / constraints.maxHeight
+        // A window dragged to another shape is refitted, the same as a phone's screen is.
+        val fit = remember(game, displayMode, constraints.maxWidth, constraints.maxHeight) {
+            FrameFit.of(
+                displayMode,
+                game.frameBufferWidth,
+                game.frameBufferHeight,
+                constraints.maxWidth,
+                constraints.maxHeight,
+            )
+        }
+        val ambientBars = remember(game) { AmbientBars() }
 
         var frameTrigger by remember { mutableIntStateOf(0) }
 
@@ -76,12 +90,10 @@ fun GameSurface(game: DesktopGame) {
                 // arrow keys are the ones that matter: unclaimed, they move focus instead of the
                 // bat.
                 .onKeyEvent(game.controlHandler::onComposeKeyEvent)
-                .pointerInput(scaleX, scaleY) {
+                .pointerInput(fit) {
                     awaitPointerEventScope {
                         while (true) {
-                            game.touchHandler.onComposePointerEvent(
-                                awaitPointerEvent(), scaleX, scaleY
-                            )
+                            game.touchHandler.onComposePointerEvent(awaitPointerEvent(), fit)
                         }
                     }
                 }
@@ -92,9 +104,10 @@ fun GameSurface(game: DesktopGame) {
 
             // Unlike Android's cached, zero-copy Bitmap.asImageBitmap(), this copies each frame.
             // At 480x320 that is cheap enough to prefer over a Skia-backed framebuffer.
-            drawImage(
-                image = game.frameBuffer.toComposeImageBitmap(),
-                dstSize = IntSize(size.width.toInt(), size.height.toInt())
+            drawFrameBuffer(
+                game.frameBuffer.toComposeImageBitmap(),
+                fit,
+                ambientBars.takeIf { displayMode == DisplayMode.AMBIENT },
             )
         }
     }

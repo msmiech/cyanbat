@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.data
 
+import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -12,6 +13,10 @@ interface SettingsRepository {
     val isMusicEnabled: Flow<Boolean>
     val isSoundEnabled: Flow<Boolean>
 
+    /** How the game is fitted to a screen that is not its shape; [DisplayMode.DEFAULT] until set. */
+    val displayMode: Flow<DisplayMode>
+
     suspend fun setMusicEnabled(enabled: Boolean)
     suspend fun setSoundEnabled(enabled: Boolean)
+    suspend fun setDisplayMode(mode: DisplayMode)
 }

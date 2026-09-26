@@ -10,6 +10,7 @@ import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.engine.DisplayMode
 import at.smiech.engine.Screen
 import at.smiech.engine.impl.AndroidGameActivity
 import at.smiech.engine.impl.AndroidHaptics
@@ -17,6 +18,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Android host for the game. Its whole job is to build a [CyanBatEnvironment] out of platform
@@ -29,6 +31,11 @@ class CyanBatGameActivity : AndroidGameActivity() {
 
     /** Feeds the live audio settings; canceled with the activity. */
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
+
+    /** Lazily, because DataStore needs the activity's context, which a field initializer lacks. */
+    private val settings by lazy { DataStoreSettingsRepository(dataStore) }
+
+    override val displayModes: Flow<DisplayMode> get() = settings.displayMode
 
     override val frameBufferWidth: Int get() = 480
     override val frameBufferHeight: Int get() = 320
@@ -47,10 +54,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
             )
             finish()
         },
-        audioSettings = ObservedAudioSettings(
-            DataStoreSettingsRepository(dataStore),
-            activityScope
-        ),
+        audioSettings = ObservedAudioSettings(settings, activityScope),
     )
 
     override fun onDestroy() {

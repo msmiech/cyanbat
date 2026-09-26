@@ -9,6 +9,7 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.data.DataStoreStageUnlockStore
@@ -22,6 +23,8 @@ import at.smiech.engine.impl.AndroidAudio
 
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
 internal val PREFS_KEY_SOUNDS = booleanPreferencesKey("sounds_enabled")
+/** Stored by name, so reordering or adding modes cannot turn one player's choice into another. */
+internal val PREFS_KEY_DISPLAY_MODE = stringPreferencesKey("display_mode")
 internal val PREFS_KEY_HIGH_SCORE = intPreferencesKey("highscore")
 internal val PREFS_KEY_HIGHEST_STAGE = intPreferencesKey("highest_stage_unlocked")
 internal val Context.dataStore by preferencesDataStore(name = "cyanbat")

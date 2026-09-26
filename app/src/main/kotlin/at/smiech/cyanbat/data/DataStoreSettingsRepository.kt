@@ -3,8 +3,10 @@ package at.smiech.cyanbat.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import at.smiech.cyanbat.PREFS_KEY_DISPLAY_MODE
 import at.smiech.cyanbat.PREFS_KEY_MUSIC
 import at.smiech.cyanbat.PREFS_KEY_SOUNDS
+import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -19,11 +21,18 @@ class DataStoreSettingsRepository(
     override val isSoundEnabled: Flow<Boolean> =
         dataStore.data.map { it[PREFS_KEY_SOUNDS] ?: true }
 
+    override val displayMode: Flow<DisplayMode> =
+        dataStore.data.map { DisplayMode.fromName(it[PREFS_KEY_DISPLAY_MODE]) }
+
     override suspend fun setMusicEnabled(enabled: Boolean) {
         dataStore.edit { it[PREFS_KEY_MUSIC] = enabled }
     }
 
     override suspend fun setSoundEnabled(enabled: Boolean) {
         dataStore.edit { it[PREFS_KEY_SOUNDS] = enabled }
+    }
+
+    override suspend fun setDisplayMode(mode: DisplayMode) {
+        dataStore.edit { it[PREFS_KEY_DISPLAY_MODE] = mode.name }
     }
 }

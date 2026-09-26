@@ -112,7 +112,7 @@ cmd_shot() {
 }
 
 # Crop + 1:1 the score/highscore/lives overlay. The HUD is drawn into a 480x320
-# framebuffer that is stretched to the full window, so the text is small and
+# framebuffer that is scaled up to fit the window, so the text is small and
 # blurry in a full screenshot; this makes it readable.
 cmd_hud() {
   local name="${1:-hud}"
