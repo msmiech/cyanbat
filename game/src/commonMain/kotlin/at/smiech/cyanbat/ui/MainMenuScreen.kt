@@ -2,7 +2,6 @@ package at.smiech.cyanbat.ui
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
@@ -31,7 +30,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.button_credits
@@ -41,7 +39,6 @@ import at.smiech.cyanbat.resources.button_settings
 import at.smiech.cyanbat.resources.button_start_game
 import at.smiech.cyanbat.resources.dialog_help_text
 import at.smiech.cyanbat.resources.dialog_help_title
-import at.smiech.cyanbat.resources.menu_background
 import at.smiech.cyanbat.resources.title
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
@@ -120,14 +117,7 @@ private fun MainMenuContent(
     onExitClicked: () -> Unit,
 ) {
     Surface {
-        Box(Modifier.fillMaxSize()) {
-            Image(
-                modifier = Modifier.matchParentSize(),
-                contentScale = ContentScale.FillBounds,
-                painter = painterResource(Res.drawable.menu_background),
-                contentDescription = "Main menu background image"
-            )
-        }
+        FlowBackground(Modifier.fillMaxSize())
         Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
             Image(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
