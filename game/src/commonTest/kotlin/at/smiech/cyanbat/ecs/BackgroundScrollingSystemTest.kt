@@ -53,7 +53,7 @@ class BackgroundScrollingSystemTest {
     }
 
     @Test
-    fun `a tile is the size of the picture, not the size of the frame`() {
+    fun `a tile is the size of the picture and not the size of the frame`() {
         factory.createBackground(0f, strip)
 
         val tile = tiles().single()

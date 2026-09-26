@@ -52,7 +52,7 @@ class CriticalHitTest {
     }
 
     @Test
-    fun `a critical always beats an ordinary shot, however upgraded the gun is`() {
+    fun `a critical always beats an ordinary shot however upgraded the gun is`() {
         repeat(40) {
             loadout.addShotDamage(HEAVY_ROUNDS_DAMAGE)
             assertTrue(

@@ -281,7 +281,7 @@ class PowerUpTest {
      * without picking. Max everything that can be maxed and check a full offer still fills.
      */
     @Test
-    fun `an offer can always be filled, however maxed out the run is`() {
+    fun `an offer can always be filled however maxed out the run is`() {
         maxOutEveryCappedPowerUp()
 
         val offer = PowerUp.offer(loadout, Random(3))

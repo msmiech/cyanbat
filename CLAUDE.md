@@ -16,12 +16,20 @@ covers what you need to change the code.
 ./gradlew :app:lint                                      # lint exists only in :app
 ./gradlew :desktop:run                                   # play on the desktop, no emulator
 ./gradlew :app:installDebug                              # install on a running emulator
+./gradlew :engine:iosSimulatorArm64Test :game:iosSimulatorArm64Test   # the shared tests on the iOS simulator; Mac only
 uv run tools/generate_enemy_sprites.py                   # regenerate an asset; each script declares its own deps
 ```
 
-- `commonTest` runs on the JVM target only (`jvmTest`). No Android host tests or instrumentation
-  tests are configured. `:app` has plain JVM unit tests of its own (`app/src/test`), for its
-  DataStore code.
+- `commonTest` runs on the JVM (`jvmTest`) and, on a Mac, on the iOS simulator
+  (`iosSimulatorArm64Test`, which needs Xcode; on a Mac `build` runs it too). No Android host tests
+  or instrumentation tests are configured. `:app` has plain JVM unit tests of its own
+  (`app/src/test`), for its DataStore code.
+- **Off a Mac, `build` skips the iOS targets** (`kotlin.native.enableKlibsCrossCompilation=false`
+  in `gradle.properties`), so it needs no Kotlin/Native toolchain. It still compiles `commonMain`
+  as common code, so a JVM-only API there fails the build anywhere. What only Kotlin/Native
+  catches - a comma in a backticked test name, for one, which it rejects - fails in CI's `ios`
+  job, or locally with `-Pkotlin.native.enableKlibsCrossCompilation=true`, at the cost of a
+  one-time download of about 800 MB. An IDE sync downloads that toolchain regardless.
 - To run, drive and screenshot the app on an emulator, use the `run-cyanbat` skill
   (`.claude/skills/run-cyanbat/`). Its gotchas cover what trips up device testing: the game
   activity is not exported, `monkey` destroys it, and binary output needs `adb exec-out`.
@@ -35,6 +43,8 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
 `:engine` <- `:game` <- `:app` (Android) and `:desktop` (Compose Desktop). The engine and the whole
 game, menu UI included, are common code; the two platform modules only supply platform pieces.
 The few platform differences inside `:game` are `expect`/`actual` (`ui/Platform.kt`).
+`:engine` and `:game` also have iOS targets (`iosArm64`, `iosSimulatorArm64`), but there is no iOS
+app yet: the targets are there so that the shared code stays portable to one.
 
 **Two kinds of UI.** The menu - main screen, stage select, settings, credits - is shared Compose:
 `CyanBatMenu`, fed by a `MenuHost`, navigated by a hand-rolled `MenuBackStack`. The game itself is

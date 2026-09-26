@@ -154,7 +154,7 @@ class WorldTest {
 
     /** Aimed and radial enemy fire leaves through the top and bottom, which nothing used to. */
     @Test
-    fun `lifetime system reaps what leaves through the top or bottom, once it is well clear`() {
+    fun `lifetime system reaps what leaves through the top or bottom once it is well clear`() {
         val world = World()
         world.addSystem(LifetimeSystem(worldWidth = 480, worldHeight = 320))
 

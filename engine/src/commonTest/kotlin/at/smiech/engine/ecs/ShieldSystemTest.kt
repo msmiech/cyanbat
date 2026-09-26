@@ -20,7 +20,7 @@ class ShieldSystemTest {
 
     /** The rule the whole mechanic reads by: the hit that breaks a bubble is spent breaking it. */
     @Test
-    fun `a bubble takes a hit whole, even one bigger than it has left`() {
+    fun `a bubble takes a hit whole even one bigger than it has left`() {
         val shield = ShieldComponent(points = 10)
 
         assertTrue(shield.absorb(40))
@@ -84,7 +84,7 @@ class ShieldSystemTest {
     }
 
     @Test
-    fun `a recharging bubble waits out its delay, then builds back to full and no further`() {
+    fun `a recharging bubble waits out its delay then builds back to full and no further`() {
         val shield = ShieldComponent(points = 10, regenPerSecond = 5f, regenDelay = 1f)
         shielded(shield)
         shield.absorb(10)

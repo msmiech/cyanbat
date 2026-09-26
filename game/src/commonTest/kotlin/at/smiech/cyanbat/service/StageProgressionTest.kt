@@ -186,7 +186,7 @@ class StageProgressionTest {
     }
 
     @Test
-    fun `stage 1 is the baseline, and an unknown stage id does not go easier than it`() {
+    fun `stage 1 is the baseline and an unknown stage id does not go easier than it`() {
         assertEquals(1f, stage1.difficulty)
         assertEquals(1f, StageProgression.forStage(0).difficulty)
     }

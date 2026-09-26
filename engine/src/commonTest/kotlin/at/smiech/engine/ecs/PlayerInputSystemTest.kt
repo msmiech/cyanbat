@@ -112,7 +112,7 @@ class PlayerInputSystemTest {
         assertTrue(abs(expected - actual) <= tolerance, "expected $expected but was $actual")
 
     @Test
-    fun `a grab on the sprite drags it one to one, keeping the offset`() {
+    fun `a grab on the sprite drags it one to one keeping the offset`() {
         val h = Harness()
         // Down near the bat's top-left corner, well away from its center.
         h.down(110, 110)
@@ -129,7 +129,7 @@ class PlayerInputSystemTest {
     }
 
     @Test
-    fun `a grab just outside the sprite still counts, further out does not`() {
+    fun `a grab just outside the sprite still counts but further out does not`() {
         val bat = Rect.fromLTWH(100f, 100f, BAT_WIDTH, BAT_HEIGHT)
 
         val justOutside = Harness()
@@ -150,7 +150,7 @@ class PlayerInputSystemTest {
     }
 
     @Test
-    fun `a touch away from the bat flies it over at the catch-up speed, then drags it`() {
+    fun `a touch away from the bat flies it over at the catch-up speed and then drags it`() {
         val h = Harness()
         h.down(400, 300)
         h.tick()
@@ -342,7 +342,7 @@ class PlayerInputSystemTest {
     }
 
     @Test
-    fun `a held key takes the bat off the finger, and letting go hands it back`() {
+    fun `a held key takes the bat off the finger and letting go hands it back`() {
         val h = Harness()
         h.down(110, 110)
         h.tick()
