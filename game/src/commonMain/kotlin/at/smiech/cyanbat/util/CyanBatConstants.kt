@@ -148,6 +148,12 @@ const val WAVE_BANNER_SECONDS = 2.2f
 const val BANNER_FONT_SIZE = 26
 const val BANNER_CHAR_WIDTH = 15
 
+// The stage timer, top center. Centered by the width of what it draws, for the same reason the
+// banner is: always four digits and a colon, and the sans-serif face gives every digit the same
+// advance, so at this size it is 45px however the time reads. Change the two together.
+const val STAGE_TIMER_FONT_SIZE = 18
+const val STAGE_TIMER_WIDTH = 45
+
 // How long the victory overlay ignores input, in seconds. Longer than the pause overlay's, because
 // the player has just been steering with a finger down and the boss went up in a blast worth
 // watching.

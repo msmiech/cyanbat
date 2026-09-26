@@ -41,6 +41,8 @@ import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.SHOT_VOLUME
 import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
+import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
+import at.smiech.cyanbat.util.STAGE_TIMER_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
@@ -165,6 +167,16 @@ class GameScreen(
 
     /** Time before the victory overlay will accept a tap as "done"; see [handleStageCompleteControls]. */
     private var stageCompleteArmingTime = 0f
+
+    /**
+     * The stage clock at the moment the run ended, won or lost, which is where the timer stops.
+     * Null while the run is still being flown.
+     *
+     * The clock itself, [EnemyGenerator.elapsedSeconds], is not stopped by a death: the cave carries
+     * on around the bat as it falls. A timer still counting over a dead bat would be timing a run
+     * that is already over.
+     */
+    private var finalStageSeconds: Float? = null
 
     /** Experience earned this run, and the levels it has bought. */
     private val progress = PlayerProgress()
@@ -720,6 +732,7 @@ class GameScreen(
         if (stageComplete) return
         stageComplete = true
         stageCompleteArmingTime = STAGE_COMPLETE_ARMING_SECONDS
+        finalStageSeconds = enmGen.elapsedSeconds
         overlayTaps.reset()
         enmGen.clearBoss()
         scoring.awardStageCleared()
@@ -810,9 +823,10 @@ class GameScreen(
         )
     }
 
-    /** Banks the score and hands playback over to the game over track. */
+    /** Banks the score, stops the timer, and hands playback over to the game over track. */
     private fun endRun() {
         saveHighscore()
+        finalStageSeconds = enmGen.elapsedSeconds
 
         if (env.audioSettings.soundsEnabled) {
             env.assets.audio.deathSound.play(100f)
@@ -1255,11 +1269,31 @@ class GameScreen(
         if (filled > 0) g.drawRect(0, 0, filled, XP_BAR_HEIGHT, EngineColors.CYAN)
     }
 
+    /**
+     * The stage timer, top center: how long this stage has been flown, in minutes and seconds.
+     *
+     * Read off the same clock as the wave readout, so it holds still wherever the stage does - the
+     * pause overlay, the level up dialog - and stops where the run ended; see [finalStageSeconds].
+     * Level with the score, just under the experience bar, and outlined like the banner because the
+     * stalactites hang through this strip and the bat can fly up into it. White rather than the
+     * HUD's cyan, so it does not run into the bar filling above it.
+     */
+    private fun drawStageTimer() {
+        g.drawOutlinedString(
+            formatStageTime(finalStageSeconds ?: enmGen.elapsedSeconds),
+            (game.frameBufferWidth - STAGE_TIMER_WIDTH) / 2,
+            20,
+            STAGE_TIMER_FONT_SIZE,
+            EngineColors.WHITE,
+        )
+    }
+
     override fun present(deltaTime: Float) {
         g.clear(EngineColors.BLACK)
         world.draw(g)
         drawStats()
         drawExperienceBar()
+        drawStageTimer()
         if (stageNameDisplayTime > 0) {
             drawStageName()
         }
