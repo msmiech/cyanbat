@@ -28,6 +28,8 @@ import at.smiech.cyanbat.util.DEATH_TERMINAL_VELOCITY
 import at.smiech.cyanbat.util.HIT_FLASH_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
+import at.smiech.cyanbat.util.HUD_DIGIT_WIDTH
+import at.smiech.cyanbat.util.LEVEL_LABEL_WIDTH
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
@@ -41,6 +43,8 @@ import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.SHOT_VOLUME
 import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
+import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
+import at.smiech.cyanbat.util.STAGE_TIMER_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
@@ -125,6 +129,8 @@ class GameScreen(
     private val batId: EntityId
 
     private val scoring = ScoreTracker()
+
+    /** The highscore of the stage being flown, raised to this run's score whenever it is banked. */
     var highscore: Int = 0
     var tick = TICK_INITIAL
     private var tickTime = 0f
@@ -165,6 +171,16 @@ class GameScreen(
 
     /** Time before the victory overlay will accept a tap as "done"; see [handleStageCompleteControls]. */
     private var stageCompleteArmingTime = 0f
+
+    /**
+     * The stage clock at the moment the run ended, won or lost, which is where the timer stops.
+     * Null while the run is still being flown.
+     *
+     * The clock itself, [EnemyGenerator.elapsedSeconds], is not stopped by a death: the cave carries
+     * on around the bat as it falls. A timer still counting over a dead bat would be timing a run
+     * that is already over.
+     */
+    private var finalStageSeconds: Float? = null
 
     /** Experience earned this run, and the levels it has bought. */
     private val progress = PlayerProgress()
@@ -720,6 +736,7 @@ class GameScreen(
         if (stageComplete) return
         stageComplete = true
         stageCompleteArmingTime = STAGE_COMPLETE_ARMING_SECONDS
+        finalStageSeconds = enmGen.elapsedSeconds
         overlayTaps.reset()
         enmGen.clearBoss()
         scoring.awardStageCleared()
@@ -810,9 +827,10 @@ class GameScreen(
         )
     }
 
-    /** Banks the score and hands playback over to the game over track. */
+    /** Banks the score, stops the timer, and hands playback over to the game over track. */
     private fun endRun() {
         saveHighscore()
+        finalStageSeconds = enmGen.elapsedSeconds
 
         if (env.audioSettings.soundsEnabled) {
             env.assets.audio.deathSound.play(100f)
@@ -864,7 +882,7 @@ class GameScreen(
     // `highscore`.
     private fun readHighscore() = screenScope.launch {
         // Merged rather than assigned, in case this run has already beaten the stored value.
-        highscore = maxOf(highscore, env.highscores.read())
+        highscore = maxOf(highscore, env.highscores.read(currentStage.id))
     }
 
     override fun update(deltaTime: Float) {
@@ -915,7 +933,11 @@ class GameScreen(
         if (!health.alive) {
             val transform = world.getComponent(batId, TransformComponent::class)!!
             if (transform.rect.top > game.frameBufferHeight) {
-                game.setScreen(GameOverScreen(game, env))
+                // Banked again on the way out. The score can still move while the bat falls - a
+                // shot already in flight can land a kill - and the screen that follows shows the
+                // two side by side, where a record lower than the score beside it reads as a bug.
+                saveHighscore()
+                game.setScreen(GameOverScreen(game, env, scoring.score, highscore))
             }
         }
     }
@@ -1139,7 +1161,7 @@ class GameScreen(
 
         // Deliberately not on screenScope: this runs as the bat dies, moments before the screen is
         // swapped out and disposed, and the write has to survive that.
-        env.highscores.saveAsync(highscore)
+        env.highscores.saveAsync(currentStage.id, highscore)
     }
 
     /**
@@ -1160,7 +1182,8 @@ class GameScreen(
     }
 
     /**
-     * What the player gets for clearing the stage: the run's total, and the way out.
+     * What the player gets for clearing the stage: the run's total against the stage's highscore,
+     * and the way out.
      *
      * Drawn over the stage rather than on a screen of its own, so the last thing they see is the
      * cave they beat with the wreckage of the boss still clearing off it.
@@ -1168,15 +1191,18 @@ class GameScreen(
     private fun drawStageCompleteOverlay() {
         g.apply {
             drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-            drawString("STAGE COMPLETE", 120, 130, 30, EngineColors.YELLOW)
-            drawString(currentStage.name, 150, 160, 15, EngineColors.CYAN)
-            drawString("Score: ${scoring.score}", 175, 185, 20, EngineColors.WHITE)
+            drawString("STAGE COMPLETE", 120, 120, 30, EngineColors.YELLOW)
+            drawString(currentStage.name, 150, 150, 15, EngineColors.CYAN)
+            drawString("Score: ${scoring.score}", 175, 175, 20, EngineColors.WHITE)
+            // Already raised by this run if it beat the record, which is how the player can tell
+            // that it did: the two numbers match.
+            drawString("Highscore: $highscore", 175, 197, 15, EngineColors.CYAN)
             if (nextStageId != null) {
-                drawString("Tap or press Enter for stage ${nextStageId}", 135, 215, 15, EngineColors.WHITE)
-                drawString("Back or Q for the menu", 170, 237, 15, EngineColors.WHITE)
-                drawString("Score, level and power-ups start over", 118, 262, 13, EngineColors.CYAN)
+                drawString("Tap or press Enter for stage ${nextStageId}", 135, 227, 15, EngineColors.WHITE)
+                drawString("Back or Q for the menu", 170, 249, 15, EngineColors.WHITE)
+                drawString("Score, level and power-ups start over", 118, 274, 13, EngineColors.CYAN)
             } else {
-                drawString("Tap or press Enter to continue", 140, 215, 15, EngineColors.WHITE)
+                drawString("Tap or press Enter to continue", 140, 227, 15, EngineColors.WHITE)
             }
         }
     }
@@ -1255,11 +1281,31 @@ class GameScreen(
         if (filled > 0) g.drawRect(0, 0, filled, XP_BAR_HEIGHT, EngineColors.CYAN)
     }
 
+    /**
+     * The stage timer, top center: how long this stage has been flown, in minutes and seconds.
+     *
+     * Read off the same clock as the wave readout, so it holds still wherever the stage does - the
+     * pause overlay, the level up dialog - and stops where the run ended; see [finalStageSeconds].
+     * Level with the score, just under the experience bar, and outlined like the banner because the
+     * stalactites hang through this strip and the bat can fly up into it. White rather than the
+     * HUD's cyan, so it does not run into the bar filling above it.
+     */
+    private fun drawStageTimer() {
+        g.drawOutlinedString(
+            formatStageTime(finalStageSeconds ?: enmGen.elapsedSeconds),
+            (game.frameBufferWidth - STAGE_TIMER_WIDTH) / 2,
+            20,
+            STAGE_TIMER_FONT_SIZE,
+            EngineColors.WHITE,
+        )
+    }
+
     override fun present(deltaTime: Float) {
         g.clear(EngineColors.BLACK)
         world.draw(g)
         drawStats()
         drawExperienceBar()
+        drawStageTimer()
         if (stageNameDisplayTime > 0) {
             drawStageName()
         }
@@ -1272,23 +1318,34 @@ class GameScreen(
 
     /**
      * The text HUD. Health is deliberately not part of it: it rides under the bat, where the
-     * player is already looking.
+     * player is already looking. Nor is the highscore, which is a record to read between runs
+     * rather than a number to watch during one - the end screens and the stage select show it.
      */
     private fun drawStats() {
         g.apply {
             drawString("Score: ${scoring.score}", 5, 20, 15, EngineColors.CYAN)
-            drawString("Highscore: $highscore", 5, 40, 15, EngineColors.CYAN)
             // Always shown, even at x1: a multiplier the player only sees once they have
             // earned it is a mechanic they never learn exists.
             val multiplier = scoring.multiplier
             val comboColor = if (multiplier > 1) EngineColors.YELLOW else EngineColors.CYAN
-            drawString("Combo: x$multiplier", 5, 60, 15, comboColor)
+            drawString("Combo: x$multiplier", 5, 40, 15, comboColor)
             // How far into the stage the player is, which is the only reading they get on how
             // much harder the next minute is about to be - and on how close the boss is.
-            drawString(waveLabel(), 5, 80, 15, EngineColors.CYAN)
+            drawString(waveLabel(), 5, 60, 15, EngineColors.CYAN)
             // The other half of that race: how much stronger the bat has got while the cave was
-            // getting harder. The bar across the top edge is the fine detail; this is the count.
-            drawString("Level: ${progress.level}", 5, 100, 15, EngineColors.YELLOW)
+            // getting harder. The bar across the top edge is the fine detail; this is the count,
+            // in the top right corner the bar fills toward, kept the same 5px off the edge as the
+            // column on the left. Outlined, unlike that column, because the stalactites come in
+            // at this corner, and yellow on a pale stalactite does not read.
+            val level = progress.level.toString()
+            val levelWidth = LEVEL_LABEL_WIDTH + level.length * HUD_DIGIT_WIDTH
+            drawOutlinedString(
+                "Level: $level",
+                game.frameBufferWidth - 5 - levelWidth,
+                20,
+                15,
+                EngineColors.YELLOW,
+            )
         }
     }
 

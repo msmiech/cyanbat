@@ -8,9 +8,19 @@ import at.smiech.engine.Game
 import at.smiech.engine.GameButton
 import at.smiech.engine.Screen
 
+/**
+ * The run is lost: the artwork saying so, and under it what the run scored against the stage's
+ * highscore.
+ *
+ * @param score what the run that just ended scored.
+ * @param highscore the stage's highscore with this run already counted in it, so a run that set
+ *   the record shows the same number twice - which is how the player can tell that it did.
+ */
 class GameOverScreen(
     override val game: Game,
     private val env: CyanBatEnvironment,
+    private val score: Int,
+    private val highscore: Int,
 ) : Screen {
 
     /** Time before a tap or press counts as "leave"; see [GAME_OVER_ARMING_SECONDS]. */
@@ -43,6 +53,10 @@ class GameOverScreen(
         game.graphics?.let { graphics ->
             graphics.clear(EngineColors.BLACK)
             graphics.drawPixmap(env.assets.graphics.gameOver, 0, 0)
+            // In the dark band the artwork leaves under its own two lines, and aligned with each
+            // other at an x that centers a four digit score - the Graphics API cannot measure one.
+            graphics.drawString("Score: $score", 185, 270, 20, EngineColors.WHITE)
+            graphics.drawString("Highscore: $highscore", 185, 293, 15, EngineColors.CYAN)
         }
     }
 }

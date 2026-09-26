@@ -16,6 +16,7 @@
     <string name="stage_2_name">Stage 2: The Forest</string>
     <string name="stage_2_description">Swarms, formations, shields and return fire. The Moth Queen waits at the end.</string>
     <string name="stage_locked">Clear the stage before it to unlock</string>
+    <string name="stage_highscore">Highscore: %1$d</string>
 
     <string name="dialog_help_title">Help</string>
     <!-- Controls differ per platform; Platform.kt picks the one to show above the rest. -->

@@ -148,6 +148,12 @@ const val WAVE_BANNER_SECONDS = 2.2f
 const val BANNER_FONT_SIZE = 26
 const val BANNER_CHAR_WIDTH = 15
 
+// The stage timer, top center. Centered by the width of what it draws, for the same reason the
+// banner is: always four digits and a colon, and the sans-serif face gives every digit the same
+// advance, so at this size it is 45px however the time reads. Change the two together.
+const val STAGE_TIMER_FONT_SIZE = 18
+const val STAGE_TIMER_WIDTH = 45
+
 // How long the victory overlay ignores input, in seconds. Longer than the pause overlay's, because
 // the player has just been steering with a finger down and the boss went up in a blast worth
 // watching.
@@ -302,6 +308,12 @@ const val POWER_UP_ARMING_SECONDS = 0.35f
 
 // The experience bar, drawn across the very top edge where nothing else is.
 const val XP_BAR_HEIGHT = 3
+
+// The level it counts toward, right-aligned in the top right corner. Nothing here can measure a
+// string, but this one can be counted: at the HUD's 15px the label is always 42px wide, and every
+// digit after it another 8.
+const val LEVEL_LABEL_WIDTH = 42
+const val HUD_DIGIT_WIDTH = 8
 
 // The second batch of power-ups. Where the first six sharpen what the bat already does, these
 // change what it can do at all - regenerate, cheat death, shoot through things, come off the walls.

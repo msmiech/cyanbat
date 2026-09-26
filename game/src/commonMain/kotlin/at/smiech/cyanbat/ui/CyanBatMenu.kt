@@ -10,6 +10,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.resources.Res
@@ -29,6 +30,8 @@ class MenuHost(
     val menuMusic: Music?,
     /** Which stages the player can start from. The same store the game unlocks them in. */
     val stageUnlocks: StageUnlockStore,
+    /** Each stage's highscore, for the stage select. The same store the game saves them in. */
+    val highscores: HighscoreStore,
     /** Start a run on the stage with this 1-based id. */
     val onStartGame: (stageId: Int) -> Unit,
     val onExit: () -> Unit,
@@ -50,7 +53,7 @@ fun CyanBatMenu(
         // Hoisted above the destinations, so the main screen and the stage select share one - and
         // with it one menu track, which keeps playing as the player moves between them.
         val menuViewModel = viewModel {
-            MainMenuViewModel(host.settings, host.menuMusic, host.stageUnlocks)
+            MainMenuViewModel(host.settings, host.menuMusic, host.stageUnlocks, host.highscores)
         }
         when (backStack.current) {
             MenuDestination.Main -> {

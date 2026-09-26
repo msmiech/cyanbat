@@ -57,6 +57,9 @@ private fun CyanBatApp(controls: ControlHandler) {
     // One instance for the menu and every run, so the menu sees a stage unlock the moment the run
     // that earned it records it; see PreferencesStageUnlockStore.
     val stageUnlocks = remember { PreferencesStageUnlockStore() }
+    // Shared for the same reason: the stage select shows each stage's highscore, and a run that
+    // raises one has to be seen raising it.
+    val highscores = remember { PreferencesHighscoreStore() }
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
     // The menu outlives any single game instance, so it owns its own Audio.
@@ -75,7 +78,7 @@ private fun CyanBatApp(controls: ControlHandler) {
                 val env = CyanBatEnvironment(
                     assets = GameAssets.load(game.graphics, game.audio),
                     haptics = Haptics.None,
-                    highscores = PreferencesHighscoreStore(),
+                    highscores = highscores,
                     stageUnlocks = stageUnlocks,
                     onExitToMenu = {
                         controls.releaseAll()
@@ -104,6 +107,7 @@ private fun CyanBatApp(controls: ControlHandler) {
                 settings = settings,
                 menuMusic = menuMusic,
                 stageUnlocks = stageUnlocks,
+                highscores = highscores,
                 // The handler spans the menu too, so an Escape pressed here would otherwise be
                 // waiting to pause the run the moment it starts.
                 onStartGame = { id ->

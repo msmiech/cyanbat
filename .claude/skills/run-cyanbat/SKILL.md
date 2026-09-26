@@ -60,7 +60,7 @@ Individual commands, for iterating:
 .claude/skills/run-cyanbat/driver.sh hud g1        # screenshot + cropped, readable HUD
 .claude/skills/run-cyanbat/driver.sh play 45       # drive the bat with swipes for 45s
 .claude/skills/run-cyanbat/driver.sh pause-resume  # real onPause/onResume, HUD before+after
-.claude/skills/run-cyanbat/driver.sh highscore     # decode the persisted DataStore value
+.claude/skills/run-cyanbat/driver.sh highscore     # decode each stage's persisted highscore
 .claude/skills/run-cyanbat/driver.sh focus         # which activity is foreground
 .claude/skills/run-cyanbat/driver.sh logs          # crash buffer + runtime errors
 .claude/skills/run-cyanbat/driver.sh stop
@@ -70,10 +70,13 @@ Individual commands, for iterating:
 **Always look at the screenshots.** `shot` only asserts the PNG is non-trivial in
 size; it cannot tell gameplay from a black frame.
 
-Use `hud` rather than `shot` whenever you need to read the score, highscore, or
-combo: the game renders into a 480x320 framebuffer that is scaled up to the window,
-so HUD text is blurry and small in a full-size capture. How it is scaled is the
-player's choice, under Settings > Display (see the gotcha on `input swipe` below).
+Use `hud` rather than `shot` whenever you need to read the HUD - score, combo and
+wave down the left, the stage timer in the middle, the level top right. The
+highscore is not on it: the game over screen, the stage complete overlay and the
+stage select show that. The game renders into a 480x320 framebuffer that is
+scaled up to the window, so HUD text is blurry and small in a full-size capture.
+How it is scaled is the player's choice, under Settings > Display (see the
+gotcha on `input swipe` below).
 
 `tap` finds nodes by label through the accessibility tree, so it survives a
 different screen size — never hardcode coordinates:
@@ -158,9 +161,12 @@ lifecycle, and there are no instrumentation tests. Verify those on the emulator.
   swipe's `TOUCH_UP` dismisses `GameOverScreen` back to the menu. That is the way
   to exercise the highscore write path, not a way to reach late-game state.
 
-- **The highscore persists on death, or on quitting from the pause screen.**
-  `saveHighscore()` runs when the bat runs out of health and when BACK leaves a
-  paused run, so `highscore` reads stale until one of those happens.
+- **Highscores are per stage, and persist on death, on clearing the stage, or on
+  quitting from the pause screen.** `saveHighscore()` runs at each of those, so
+  `highscore` reads stale until one happens. They are stored as
+  `highscore_stage_<id>`. A bare `highscore` key is the single score from before
+  they were per stage; the app moves it onto stage 1 the first time it opens its
+  DataStore, so seeing one means that build has not been launched yet.
 
 - **BACK no longer finishes the game activity; it pauses.** A second BACK on the
   paused screen quits to the menu. So `input keyevent KEYCODE_BACK` once looks
@@ -176,7 +182,7 @@ lifecycle, and there are no instrumentation tests. Verify those on the emulator.
   persisted (DataStore key `highest_stage_unlocked`), so on a device that has ever beaten the
   cave, `start` lands on the stage select rather than in a run - follow it with
   `tap "Stage 1: The Cave"` or `tap "Stage 2: The Forest"`. `adb shell pm clear at.smiech.cyanbat`
-  resets it (and the highscore). The stage is handed to the game activity as the
+  resets it (and the highscores). The stage is handed to the game activity as the
   `at.smiech.cyanbat.STAGE_ID` extra.
 
 - **Stage 2 cannot be reached quickly by playing.** It opens only after stage 1's boss, five

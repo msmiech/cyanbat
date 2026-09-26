@@ -12,8 +12,10 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.cyanbat.data.DataStoreHighscoreStore
 import at.smiech.cyanbat.data.DataStoreStageUnlockStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
+import at.smiech.cyanbat.data.LegacyHighscoreMigration
 import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost
 import at.smiech.cyanbat.ui.rememberMenuBackStack
@@ -25,9 +27,17 @@ internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
 internal val PREFS_KEY_SOUNDS = booleanPreferencesKey("sounds_enabled")
 /** Stored by name, so reordering or adding modes cannot turn one player's choice into another. */
 internal val PREFS_KEY_DISPLAY_MODE = stringPreferencesKey("display_mode")
-internal val PREFS_KEY_HIGH_SCORE = intPreferencesKey("highscore")
+/** The single highscore kept before they were per stage; see [LegacyHighscoreMigration]. */
+internal val PREFS_KEY_LEGACY_HIGH_SCORE = intPreferencesKey("highscore")
+/** A stage's highscore is stored under this followed by its id: "highscore_stage_1". */
+internal const val PREFS_STAGE_HIGH_SCORE_PREFIX = "highscore_stage_"
+internal fun prefsKeyStageHighScore(stageId: Int) =
+    intPreferencesKey(PREFS_STAGE_HIGH_SCORE_PREFIX + stageId)
 internal val PREFS_KEY_HIGHEST_STAGE = intPreferencesKey("highest_stage_unlocked")
-internal val Context.dataStore by preferencesDataStore(name = "cyanbat")
+internal val Context.dataStore by preferencesDataStore(
+    name = "cyanbat",
+    produceMigrations = { listOf(LegacyHighscoreMigration) },
+)
 
 /**
  * Android host for the shared menu. Its job is to supply the platform pieces - DataStore-backed
@@ -57,6 +67,7 @@ class MainActivity : ComponentActivity() {
         menuMusic = audio.newMusic("menu_theme.mp3")
         val settings = DataStoreSettingsRepository(dataStore)
         val stageUnlocks = DataStoreStageUnlockStore(dataStore)
+        val highscores = DataStoreHighscoreStore(dataStore)
 
         setContent {
             // The shared back stack is host-owned so the Android back gesture can drive it;
@@ -70,6 +81,7 @@ class MainActivity : ComponentActivity() {
                     settings = settings,
                     menuMusic = menuMusic,
                     stageUnlocks = stageUnlocks,
+                    highscores = highscores,
                     onStartGame = { stageId ->
                         startActivity(
                             Intent(this, CyanBatGameActivity::class.java)
