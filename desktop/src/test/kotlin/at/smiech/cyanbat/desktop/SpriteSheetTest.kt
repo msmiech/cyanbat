@@ -62,6 +62,20 @@ class SpriteSheetTest {
         assertNoBlankFrames("explosion.png", frameWidth = 32, frames = 8)
     }
 
+    /** Four 32x29 frames of each of the cave's three imps; see `EntityFactory.srcXOf`. */
+    @Test
+    fun `the cave's sheet holds four frames of each imp`() {
+        assertEquals(32 * 4 * 3 to 29, sizeOf("enemies.png"))
+    }
+
+    /** Every beat of the bat's wings, every frame of it dying, and every one of the cave's imps. */
+    @Test
+    fun `no frame of the bat or the cave's creatures is empty`() {
+        assertNoBlankFrames("cyanBat.png", frameWidth = 45, frames = 6)
+        assertNoBlankFrames("cyanBatDeath.png", frameWidth = 45, frames = 5)
+        assertNoBlankFrames("enemies.png", frameWidth = 32, frames = 4 * 3)
+    }
+
     /** Every creature on the forest's sheet, and every beat of the Moth Queen's wings. */
     @Test
     fun `no frame of the forest's creatures is empty`() {
