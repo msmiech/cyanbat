@@ -14,7 +14,6 @@ import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.service.ObstacleGenerator
 import at.smiech.cyanbat.util.AURA_SURGE_VOLUME
-import at.smiech.cyanbat.util.BANNER_CHAR_WIDTH
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_COUNT
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_SECONDS
@@ -28,8 +27,6 @@ import at.smiech.cyanbat.util.DEATH_TERMINAL_VELOCITY
 import at.smiech.cyanbat.util.HIT_FLASH_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
-import at.smiech.cyanbat.util.HUD_DIGIT_WIDTH
-import at.smiech.cyanbat.util.LEVEL_LABEL_WIDTH
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
@@ -44,7 +41,6 @@ import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.SHOT_VOLUME
 import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
 import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
-import at.smiech.cyanbat.util.STAGE_TIMER_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
@@ -1146,8 +1142,8 @@ class GameScreen(
     private fun drawPauseOverlay() {
         g.apply {
             drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-            // No text measurement in the Graphics API, so these x offsets are eyeballed against
-            // the 480px framebuffer rather than centered properly.
+            // These x offsets are eyeballed against the 480px framebuffer rather than centered on
+            // measured widths, so a reworded line needs its x moved by hand.
             drawString("PAUSED", 186, 140, 30, EngineColors.CYAN)
             drawString("Tap or click to resume", 170, 175, 15, EngineColors.WHITE)
             drawString("Back or Q to quit", 185, 197, 15, EngineColors.WHITE)
@@ -1168,13 +1164,13 @@ class GameScreen(
      * The banner a new wave or the boss arrives on, held for [WAVE_BANNER_SECONDS].
      *
      * Outlined rather than plain, because it lands over whatever the run happens to be drawing,
-     * and centered by eye against the 480px framebuffer like the rest of the overlays here - the
-     * Graphics API has no way to measure a string.
+     * and centered on its measured width, because what it says runs from "WAVE 2" to "THE MOTH
+     * QUEEN".
      */
     private fun drawBanner(text: String) {
         g.drawOutlinedString(
             text,
-            game.frameBufferWidth / 2 - text.length * BANNER_CHAR_WIDTH / 2,
+            (game.frameBufferWidth - g.measureString(text, BANNER_FONT_SIZE)) / 2,
             game.frameBufferHeight / 3,
             BANNER_FONT_SIZE,
             EngineColors.YELLOW,
@@ -1210,11 +1206,11 @@ class GameScreen(
     /**
      * The level up dialog: what the bat just reached, and the three things it can become.
      *
-     * Cards are drawn rather than composed, because this screen owns a 480x320 framebuffer and has
-     * no text measurement to lay anything out with - every offset here is eyeballed against that
-     * frame, as the other overlays are. A card is its own tap target, and carries no number: what
-     * it does is the whole of what the player needs to read. The number keys still pick by
-     * position for anyone on a keyboard, which is a shortcut rather than the advertised way in.
+     * Cards are drawn rather than composed, because this screen owns a 480x320 framebuffer - every
+     * offset here is eyeballed against that frame, as the other overlays are. A card is its own
+     * tap target, and carries no number: what it does is the whole of what the player needs to
+     * read. The number keys still pick by position for anyone on a keyboard, which is a shortcut
+     * rather than the advertised way in.
      */
     private fun drawPowerUpOffer() {
         g.apply {
@@ -1236,34 +1232,45 @@ class GameScreen(
             drawRect(left, POWER_UP_CARD_TOP, POWER_UP_CARD_WIDTH, POWER_UP_CARD_HEIGHT, CARD_FILL)
             drawRect(left, POWER_UP_CARD_TOP, POWER_UP_CARD_WIDTH, 2, EngineColors.CYAN)
 
-            drawString(powerUp.title, left + 8, POWER_UP_CARD_TOP + 26, 14, EngineColors.CYAN)
-            // Wrapped by hand for the same reason the layout is eyeballed: nothing here can
-            // measure a string, so the description is broken on whole words at a fixed width.
-            wrapped(powerUp.description, CARD_TEXT_CHARS).forEachIndexed { line, text ->
-                drawString(
-                    text,
-                    left + 8,
-                    POWER_UP_CARD_TOP + 48 + line * 14,
-                    11,
-                    EngineColors.WHITE
-                )
-            }
+            drawString(
+                powerUp.title,
+                left + CARD_PADDING,
+                POWER_UP_CARD_TOP + 26,
+                14,
+                EngineColors.CYAN
+            )
+            // Broken on whole words by measured width rather than by counting characters: a count
+            // that fits in Arial runs off the card in the wider DejaVu Sans.
+            wrapped(powerUp.description, POWER_UP_CARD_WIDTH - 2 * CARD_PADDING, 11)
+                .forEachIndexed { line, text ->
+                    drawString(
+                        text,
+                        left + CARD_PADDING,
+                        POWER_UP_CARD_TOP + 48 + line * 14,
+                        11,
+                        EngineColors.WHITE
+                    )
+                }
         }
     }
 
-    /** Greedy word wrap at [chars] per line, which is all the card layout needs. */
-    private fun wrapped(text: String, chars: Int): List<String> {
+    /**
+     * Greedy word wrap into lines no wider than [width] at [fontSize], which is all the card layout
+     * needs.
+     */
+    private fun wrapped(text: String, width: Int, fontSize: Int): List<String> {
         val lines = mutableListOf<String>()
-        var line = StringBuilder()
+        var line = ""
         for (word in text.split(' ')) {
-            if (line.isNotEmpty() && line.length + 1 + word.length > chars) {
-                lines += line.toString()
-                line = StringBuilder()
+            val longer = if (line.isEmpty()) word else "$line $word"
+            if (line.isNotEmpty() && g.measureString(longer, fontSize) > width) {
+                lines += line
+                line = word
+            } else {
+                line = longer
             }
-            if (line.isNotEmpty()) line.append(' ')
-            line.append(word)
         }
-        if (line.isNotEmpty()) lines += line.toString()
+        if (line.isNotEmpty()) lines += line
         return lines
     }
 
@@ -1289,11 +1296,16 @@ class GameScreen(
      * Level with the score, just under the experience bar, and outlined like the banner because the
      * stalactites hang through this strip and the bat can fly up into it. White rather than the
      * HUD's cyan, so it does not run into the bar filling above it.
+     *
+     * Centered on its measured width, which holds still as the seconds tick over: the sans-serif
+     * faces it is drawn in give every digit the same advance, so every reading is as wide as the
+     * last.
      */
     private fun drawStageTimer() {
+        val time = formatStageTime(finalStageSeconds ?: enmGen.elapsedSeconds)
         g.drawOutlinedString(
-            formatStageTime(finalStageSeconds ?: enmGen.elapsedSeconds),
-            (game.frameBufferWidth - STAGE_TIMER_WIDTH) / 2,
+            time,
+            (game.frameBufferWidth - g.measureString(time, STAGE_TIMER_FONT_SIZE)) / 2,
             20,
             STAGE_TIMER_FONT_SIZE,
             EngineColors.WHITE,
@@ -1336,12 +1348,13 @@ class GameScreen(
             // getting harder. The bar across the top edge is the fine detail; this is the count,
             // in the top right corner the bar fills toward, kept the same 5px off the edge as the
             // column on the left. Outlined, unlike that column, because the stalactites come in
-            // at this corner, and yellow on a pale stalactite does not read.
-            val level = progress.level.toString()
-            val levelWidth = LEVEL_LABEL_WIDTH + level.length * HUD_DIGIT_WIDTH
+            // at this corner, and yellow on a pale stalactite does not read. Right-aligned by its
+            // measured width, because the face it comes out in, and so its width, varies by
+            // platform.
+            val level = "Level: ${progress.level}"
             drawOutlinedString(
-                "Level: $level",
-                game.frameBufferWidth - 5 - levelWidth,
+                level,
+                game.frameBufferWidth - 5 - measureString(level, 15),
                 20,
                 15,
                 EngineColors.YELLOW,
@@ -1409,8 +1422,8 @@ class GameScreen(
         /** A power-up card's panel: dark enough to read white text on, over a dimmed run. */
         const val CARD_FILL = 0xE6101820.toInt()
 
-        /** Roughly what fits on a card at 11px, counted rather than measured; see [wrapped]. */
-        const val CARD_TEXT_CHARS = 22
+        /** The room between a card's edges and its text, on the left and on the right. */
+        const val CARD_PADDING = 8
 
         /** The unfilled part of the experience bar. */
         const val XP_BAR_EMPTY = 0x80000000.toInt()

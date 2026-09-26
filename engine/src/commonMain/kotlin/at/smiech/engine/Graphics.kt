@@ -118,6 +118,19 @@ interface Graphics {
     )
 
     fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
+
+    /**
+     * The width [drawString] gives [s] at [fontSize], in framebuffer pixels. Rounded up, so that
+     * text placed by it never runs past the edge it was placed against.
+     *
+     * Text is the one thing the two platforms do not draw alike. Each draws it in its own
+     * sans-serif face - Roboto on Android; on the desktop, whatever Java's SansSerif resolves to,
+     * which is Arial on Windows and usually DejaVu Sans on Linux - and the faces disagree on
+     * widths: the HUD's "Level: 17" is 58px wide in Arial and 67px in DejaVu Sans. So text that is
+     * aligned by its right edge, centered or wrapped has to be measured, never counted out in
+     * characters.
+     */
+    fun measureString(s: String, fontSize: Int): Int
     val width: Int
     val height: Int
 }

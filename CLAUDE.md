@@ -90,9 +90,9 @@ by device.
   power-ups.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
-- In-game text (HUD, banners, overlays) is literal strings drawn at hard-coded framebuffer
-  coordinates in `GameScreen`. A longer string can knock an overlay out of line. Menu text is in
-  `composeResources/values/strings.xml`.
+- In-game text (HUD, banners, overlays) is literal strings drawn at framebuffer coordinates in
+  `GameScreen`. The overlays' coordinates are hard-coded, so a longer string can knock one out of
+  line. Menu text is in `composeResources/values/strings.xml`.
 
 **Stage content is split four ways.**
 - `Stage` (registered in `GameAssets.load`) is how a stage looks and sounds.
@@ -122,6 +122,10 @@ select's strings.
 - `AndroidGraphics` and `DesktopGraphics` must put the same pixels on the framebuffer. That goes
   down to the deliberate `- 1` in `drawPixmap`, which paints a column short and is why background
   tiles overlap by one column.
+- Text is the exception. Each backend draws it in its platform's sans-serif face (Roboto on
+  Android, Arial on Windows, usually DejaVu Sans on Linux), and the same string comes out at
+  different widths. Right-align, center or wrap text by `Graphics.measureString`, never by a count
+  of characters: a layout counted out in Arial runs off the frame in DejaVu Sans.
 - A new `Graphics` primitive needs a default implementation or both overrides, and the test fakes
   need updating.
 - Blits are nearest-neighbor.

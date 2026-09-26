@@ -16,6 +16,7 @@ import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Pixmap
 import java.io.IOException
 import java.io.InputStream
+import kotlin.math.ceil
 
 class AndroidGraphics(private var assets: AssetManager, private var frameBuffer: Bitmap) :
     Graphics {
@@ -168,6 +169,13 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
         paint.textSize = fontSize.toFloat()
         paint.color = col
         canvas.drawText(s!!, x.toFloat(), y.toFloat(), paint)
+    }
+
+    // Rounded up: Android lays text out on fractional advances, and a width rounded down would
+    // leave right-aligned text hanging a fraction of a pixel past its edge.
+    override fun measureString(s: String, fontSize: Int): Int {
+        paint.textSize = fontSize.toFloat()
+        return ceil(paint.measureText(s)).toInt()
     }
 
     override val width: Int
