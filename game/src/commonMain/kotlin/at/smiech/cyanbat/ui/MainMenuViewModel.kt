@@ -2,6 +2,7 @@ package at.smiech.cyanbat.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.engine.Music
@@ -10,7 +11,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * Menu music, the music setting, and which stages are open.
+ * Menu music, the music setting, which stages are open, and each stage's highscore.
  *
  * A plain multiplatform [ViewModel]; the old AndroidViewModel(Application) form has no KMP
  * equivalent, and the menu track now goes through the engine's [Music] abstraction rather than
@@ -23,6 +24,7 @@ class MainMenuViewModel(
     settings: SettingsRepository,
     private val menuMusic: Music?,
     stageUnlocks: StageUnlockStore,
+    highscores: HighscoreStore,
 ) : ViewModel() {
 
     val isMusicEnabled: StateFlow<Boolean> = settings.isMusicEnabled
@@ -34,6 +36,13 @@ class MainMenuViewModel(
      */
     val highestUnlocked: StateFlow<Int> = stageUnlocks.highestUnlocked
         .stateIn(viewModelScope, SharingStarted.Eagerly, 1)
+
+    /**
+     * Each stage's highscore, by stage id. Eager as well, so the stage select opens with the
+     * scores already on its cards rather than a frame of zeros ahead of them.
+     */
+    val highscores: StateFlow<Map<Int, Int>> = highscores.byStage
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
     fun startMusic() {
         if (!isMusicEnabled.value) return

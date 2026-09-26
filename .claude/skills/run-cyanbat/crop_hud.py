@@ -2,12 +2,15 @@
 # requires-python = ">=3.9"
 # dependencies = ["pillow"]
 # ///
-"""Crop the score/highscore/lives overlay out of a CyanBat screenshot.
+"""Crop the HUD out of a CyanBat screenshot.
+
+The HUD is the band across the top of the frame: score, combo and wave down the left, the stage
+timer in the middle, and the level in the top right corner.
 
 The game renders into a 480x320 framebuffer that is scaled up evenly to fit the window - with
 bars beside it on a screen wider than 3:2, above and below it on one taller - so HUD text is small
-and blurry in a full-size capture. This finds where the framebuffer landed and crops the top-left
-corner of it, where the HUD lives.
+and blurry in a full-size capture. This finds where the framebuffer landed and crops that band out
+of it.
 
 That assumes one of the display modes that keep the game's shape, Ambient bars (the default) or
 Black bars. Under Stretch to fit screen the framebuffer fills the capture and this crop is off.
@@ -24,8 +27,9 @@ from PIL import Image
 FRAME_BUFFER_WIDTH = 480
 FRAME_BUFFER_HEIGHT = 320
 
-# Fractions of the framebuffer, matching the HUD's position in it.
-HUD_WIDTH_FRACTION = 0.26
+# Fractions of the framebuffer, matching the HUD's position in it: the full width, and down to
+# the third line of the left column.
+HUD_WIDTH_FRACTION = 1.0
 HUD_HEIGHT_FRACTION = 0.21
 # Skip the status bar on Android captures.
 TOP_OFFSET_PX = 10

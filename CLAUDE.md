@@ -10,7 +10,7 @@ covers what you need to change the code.
 
 ```bash
 ./gradlew build                                          # everything CI runs: assemble, lint, unit tests
-./gradlew :engine:jvmTest :game:jvmTest :desktop:test    # just the unit tests
+./gradlew :engine:jvmTest :game:jvmTest :desktop:test :app:testDebugUnitTest   # just the unit tests
 ./gradlew :game:jvmTest --tests 'at.smiech.cyanbat.ScoreTrackerTest'   # one class
 ./gradlew :engine:jvmTest --tests '*CollisionSystem*'    # wildcards work too
 ./gradlew :app:lint                                      # lint exists only in :app
@@ -20,7 +20,8 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
 ```
 
 - `commonTest` runs on the JVM target only (`jvmTest`). No Android host tests or instrumentation
-  tests are configured.
+  tests are configured. `:app` has plain JVM unit tests of its own (`app/src/test`), for its
+  DataStore code.
 - To run, drive and screenshot the app on an emulator, use the `run-cyanbat` skill
   (`.claude/skills/run-cyanbat/`). Its gotchas cover what trips up device testing: the game
   activity is not exported, `monkey` destroys it, and binary output needs `adb exec-out`.

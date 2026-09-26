@@ -309,6 +309,12 @@ const val POWER_UP_ARMING_SECONDS = 0.35f
 // The experience bar, drawn across the very top edge where nothing else is.
 const val XP_BAR_HEIGHT = 3
 
+// The level it counts toward, right-aligned in the top right corner. Nothing here can measure a
+// string, but this one can be counted: at the HUD's 15px the label is always 42px wide, and every
+// digit after it another 8.
+const val LEVEL_LABEL_WIDTH = 42
+const val HUD_DIGIT_WIDTH = 8
+
 // The second batch of power-ups. Where the first six sharpen what the bat already does, these
 // change what it can do at all - regenerate, cheat death, shoot through things, come off the walls.
 

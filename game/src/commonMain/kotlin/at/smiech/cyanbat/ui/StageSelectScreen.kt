@@ -35,6 +35,7 @@ import at.smiech.cyanbat.resources.stage_1_description
 import at.smiech.cyanbat.resources.stage_1_name
 import at.smiech.cyanbat.resources.stage_2_description
 import at.smiech.cyanbat.resources.stage_2_name
+import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.resources.stage_locked
 import at.smiech.cyanbat.resources.stage_select_title
 import org.jetbrains.compose.resources.DrawableResource
@@ -71,8 +72,10 @@ fun StageSelectScreen(
     onStartStage: (Int) -> Unit,
 ) {
     val highestUnlocked by viewModel.highestUnlocked.collectAsState()
+    val highscores by viewModel.highscores.collectAsState()
     StageSelectContent(
         highestUnlocked = highestUnlocked,
+        highscores = highscores,
         onStartStage = { id ->
             viewModel.stopMusic()
             onStartStage(id)
@@ -81,7 +84,11 @@ fun StageSelectScreen(
 }
 
 @Composable
-private fun StageSelectContent(highestUnlocked: Int, onStartStage: (Int) -> Unit) {
+private fun StageSelectContent(
+    highestUnlocked: Int,
+    highscores: Map<Int, Int>,
+    onStartStage: (Int) -> Unit,
+) {
     Surface {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
@@ -100,6 +107,7 @@ private fun StageSelectContent(highestUnlocked: Int, onStartStage: (Int) -> Unit
                     StageCard(
                         stage = stage,
                         unlocked = stage.id <= highestUnlocked,
+                        highscore = highscores[stage.id] ?: 0,
                         onClick = { onStartStage(stage.id) },
                         modifier = Modifier.weight(1f),
                     )
@@ -109,10 +117,16 @@ private fun StageSelectContent(highestUnlocked: Int, onStartStage: (Int) -> Unit
     }
 }
 
+/**
+ * One stage: its preview, its name and, once it is open, its highscore. The score sits straight
+ * under the name rather than after the description, so it lines up across cards whose
+ * descriptions run to different lengths.
+ */
 @Composable
 private fun StageCard(
     stage: StageEntry,
     unlocked: Boolean,
+    highscore: Int,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -145,6 +159,13 @@ private fun StageCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
+            if (unlocked) {
+                Text(
+                    text = stringResource(Res.string.stage_highscore, highscore),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+            }
             Spacer(Modifier.height(4.dp))
             Text(
                 text = stringResource(if (unlocked) stage.description else Res.string.stage_locked),

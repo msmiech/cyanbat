@@ -123,7 +123,7 @@ cmd_shot() {
   log "$OUT/$name.png ($sz bytes)"
 }
 
-# Crop + 1:1 the score/highscore/lives overlay. The HUD is drawn into a 480x320
+# Crop + 1:1 the HUD along the top of the frame. It is drawn into a 480x320
 # framebuffer that is scaled up to fit the window, so the text is small and
 # blurry in a full screenshot; this makes it readable.
 cmd_hud() {
@@ -178,7 +178,11 @@ cmd_pause_resume() {
 }
 
 # --- persistence --------------------------------------------------------------
-# Preferences protobuf: 0a 10 0a 09 "highscore" 12 03 18 <varint>
+# Each stage's highscore is its own entry in the Preferences protobuf:
+#   0a <len> 0a <len> "highscore_stage_1" 12 <len> 18 <varint>
+# that is, a map entry whose key is field 1 and whose value (field 2) holds the
+# int as field 3. A bare "highscore" is the single score from before they were
+# per stage; the app moves it onto stage 1 the first time it opens the file.
 # `adb exec-out` is required - `adb shell` turns every 0x0a into 0d 0a and the
 # varint decodes to garbage (a stored 1350 reads back as 1734).
 cmd_highscore() {
@@ -188,15 +192,23 @@ cmd_highscore() {
   echo "$bytes" | awk '
     { b[NR]=$1 }
     END {
-      for (i=1; i<=NR; i++) if (b[i]==24) {           # 0x18 = field 3, varint
-        v=0; s=0
-        for (j=i+1; j<=NR; j++) {
-          v += (b[j] % 128) * (2 ^ s); s += 7
-          if (b[j] < 128) break
+      found=0; i=1
+      while (i<=NR) {                                   # one map entry per pass
+        if (b[i]!=10) { i++; continue }                 # 0x0a = an entry
+        k=i+2; next_entry=k+b[i+1]
+        if (b[k]==10) {                                 # 0x0a = its key
+          key=""
+          for (j=0; j<b[k+1]; j++) key=key sprintf("%c", b[k+2+j])
+          v=k+2+b[k+1]
+          if (key ~ /^highscore/ && b[v]==18 && b[v+2]==24) {  # 0x12 value, 0x18 int
+            n=0; s=0
+            for (j=v+3; j<=NR; j++) { n += (b[j] % 128) * (2 ^ s); s += 7; if (b[j] < 128) break }
+            print key "=" n; found=1
+          }
         }
-        print "highscore=" v; exit
+        i=next_entry
       }
-      print "highscore key not found"
+      if (!found) print "no highscore stored yet"
     }'
 }
 
