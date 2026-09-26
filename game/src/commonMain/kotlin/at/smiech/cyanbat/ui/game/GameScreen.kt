@@ -895,7 +895,12 @@ class GameScreen(
         while (tickTime > tick) {
             tickTime -= tick
             world.update(tick, game.input)
-            scoring.awardSurvivalTick()
+            // Only while the bat is still flying. The score is banked the moment it dies, but the
+            // world ticks on through the fall that follows, and a point for each of those ticks
+            // would be shown on the HUD and never saved.
+            if (world.getComponent(batId, HealthComponent::class)?.alive == true) {
+                scoring.awardSurvivalTick()
+            }
             regenerate(tick)
 
             // The stage clock is the fixed tick, not the wall clock: a paused game is a paused
