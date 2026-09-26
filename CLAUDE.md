@@ -17,6 +17,7 @@ covers what you need to change the code.
 ./gradlew :desktop:run                                   # play on the desktop, no emulator
 ./gradlew :app:installDebug                              # install on a running emulator
 ./gradlew :engine:iosSimulatorArm64Test :game:iosSimulatorArm64Test   # the shared tests on the iOS simulator; Mac only
+./gradlew :desktop:recordGameplay                        # re-record the README's GIFs in docs/gameplay
 uv run tools/generate_enemy_sprites.py                   # regenerate an asset; each script declares its own deps
 ```
 
@@ -155,6 +156,18 @@ effects. The MP3s, `gameover.png` and `tools/title_lettering.png` are the except
 - Re-run `generate_stage_previews.py` and `generate_icons.py` after changing any sheet they
   compose.
 - Palette rule: the player is cool, everything hostile is warm.
+
+**The README's GIFs are recorded, not generated.** `recordGameplay` runs the `recorder` source
+set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
+- It flies each stage in a real `DesktopGame`, headless, stepping the shared `GameLoop` on a fake
+  clock. An `Autopilot` steers through `ControlHandler.onAxis`, as a game pad would, and forecasts
+  enemies by running copies of them through the engine's own movement systems. `Montage` then cuts
+  each run to a short clip and `GifEncoder` writes it.
+- Runs are random, so unlike the art a re-recording is never byte for byte the same. Re-record after
+  a visible change.
+- `RunProbe` reads a handful of `GameScreen`'s private fields by reflection (`world`, `batId`,
+  `offer`, `stageComplete`, `progress`, `scoring`, `bannerText`, `bannerTime`). Renaming one still
+  compiles; `RunProbeTest`, which flies a few seconds of the cave, is what fails.
 
 ## Conventions
 
