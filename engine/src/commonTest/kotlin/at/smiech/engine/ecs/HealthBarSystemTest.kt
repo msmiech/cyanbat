@@ -133,6 +133,18 @@ class HealthBarSystemTest {
         assertTrue(rects.all { it.y + it.height <= WORLD_HEIGHT })
     }
 
+    /** A boss that leaves the frame mid-fight keeps its bar where the player can read it. */
+    @Test
+    fun `a pinned bar stays where it was pinned wherever its owner goes`() {
+        val id = spawn(hitPoints = 50, top = 400f, withBar = false)
+        world.addComponent(id, HealthBarComponent(pinnedTo = Rect.fromLTWH(140f, 26f, 200f, 4f)))
+
+        val rects = draw()
+
+        assertEquals(DrawnRect(140, 26, 200, 4, EngineColors.BLACK), rects[0])
+        assertEquals(DrawnRect(140, 26, 100, 4, EngineColors.RED), rects[1])
+    }
+
     @Test
     fun `health is read against its own maximum`() {
         spawn(hitPoints = 17, maxHitPoints = 34)

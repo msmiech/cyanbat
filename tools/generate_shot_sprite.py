@@ -12,10 +12,10 @@ and re-run, instead of reverse-engineering colors out of the image.
 The bolt points right, which is the only direction the *player* fires; enemy shots travel left and
 are turned by `FacingSystem`, so one drawing serves both.
 
-Seven colorways, laid out left to right and addressed the way the enemy sheet is. The player's is
+Eight colorways, laid out left to right and addressed the way the enemy sheet is. The player's is
 cyan, the next three are the cave's enemy palettes from `generate_enemy_sprites.py` - violet, amber
-and crimson - and the last three are the forest's shooters - so a shot is the same color as
-whatever fired it. That matters more than it sounds:
+and crimson - the next three are the forest's shooters, and the last is the desert's boss - so a
+shot is the same color as whatever fired it. That matters more than it sounds:
 the screen can hold the bat's shots and the boss's at once, travelling in opposite directions, and
 before this they were the same cyan bolt. Which ones were dangerous had to be worked out from
 which way they were moving.
@@ -67,6 +67,11 @@ COLORWAYS = (
     {"d": (170, 56, 20, 180), "c": (252, 140, 40, 255), "w": (255, 244, 200, 255)},
     # the Moth Queen: rose, and a touch paler than the spitter's so the two read apart mid-fight.
     {"d": (150, 50, 96, 180), "c": (240, 128, 170, 255), "w": (255, 236, 244, 255)},
+    # The desert's, from `generate_desert_boss_sprite.py`. The Sand Wyrm: molten gold, the glow in
+    # its throat. The desert's other shooters fire in colorways already here - the djinn in the
+    # spitter's magenta, the scarab in crimson, an armed hawk in flame - because each of those is
+    # the color of the thing firing it.
+    {"d": (186, 104, 20, 180), "c": (255, 204, 64, 255), "w": (255, 250, 226, 255)},
 )
 
 TRANSPARENT = (0, 0, 0, 0)

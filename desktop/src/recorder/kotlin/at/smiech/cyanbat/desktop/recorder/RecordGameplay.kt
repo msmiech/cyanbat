@@ -6,8 +6,11 @@ import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.desktop.DesktopGame
 import at.smiech.cyanbat.progress.PowerUp
+import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.service.StageDesign
+import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.engine.GameButton
@@ -45,7 +48,7 @@ import kotlin.system.exitProcess
  * Runs are not repeatable, since the game rolls its spawns on an unseeded Random, so each recording
  * is a different flight; and the autopilot can lose, in which case the stage is simply flown again.
  *
- * Options: `--out=DIR` (default docs/gameplay), `--stages=1,2`, `--attempts=N`, `--ticks-per-frame=N`
+ * Options: `--out=DIR` (default docs/gameplay), `--stages=1,2,3`, `--attempts=N`, `--ticks-per-frame=N`
  * for the GIF's frame rate, `--frames=DIR` to also write every clip frame as a PNG for a look, and
  * `--dry-run` to fly and report without recording.
  */
@@ -91,7 +94,7 @@ private const val GIVE_UP_SECONDS = 540f
 private const val CLEAN_HITS = 2
 
 /** Stage ids and the names their GIFs are written under. */
-private val STAGE_FILES = mapOf(1 to "cave", 2 to "forest")
+private val STAGE_FILES = mapOf(1 to "cave", 2 to "forest", 3 to "desert")
 
 private class Options(
     val out: File,
@@ -133,8 +136,10 @@ private suspend fun record(stageId: Int, options: Options): Boolean {
     var won = false
     var best: Result? = null
     var bestTape: Tape? = null
+    var scenery = emptyList<Float>()
     for (attempt in 1..options.attempts) {
         val flight = Flight(stageId, options.ticksPerFrame, capture = !options.dryRun)
+        scenery = flight.scenery
         val result = flight.fly()
         println("Stage $stageId, attempt $attempt: $result")
         won = won || result.won
@@ -150,18 +155,18 @@ private suspend fun record(stageId: Int, options: Options): Boolean {
     }
     val tape = bestTape ?: return won
     try {
-        write(stageId, tape, options)
+        write(stageId, tape, options, scenery)
     } finally {
         tape.close()
     }
     return true
 }
 
-private fun write(stageId: Int, tape: Tape, options: Options) {
+private fun write(stageId: Int, tape: Tape, options: Options, scenery: List<Float>) {
     val name = STAGE_FILES[stageId] ?: "stage$stageId"
     // The wave with the widest mix of enemies, where the stage shows the most of itself at once.
     val actionWave = StageDesign.forStage(stageId).waves.withIndex().maxBy { it.value.species.size }.index
-    val clips = Montage.cut(tape.moments, options.frameSeconds, actionWave)
+    val clips = Montage.cut(tape.moments, options.frameSeconds, actionWave, scenery)
     val frames = clips.flatten()
     println(
         "  clips " + clips.joinToString { "%.1f-%.1fs".format(tape.moments[it.first()].seconds, tape.moments[it.last()].seconds) } +
@@ -229,6 +234,17 @@ private class Flight(stageId: Int, private val ticksPerFrame: Int, capture: Bool
         stageId,
     )
     private val probe = RunProbe(screen)
+
+    /**
+     * Seconds of the stage clock worth a clip for how the stage looks then: for a stage whose sky
+     * goes from noon to night, the sun going down behind the dunes, the hour between the opening and
+     * the boss that the footage would otherwise skip. Nothing for a stage that looks the same
+     * throughout.
+     */
+    val scenery: List<Float> = when (assets.stage(stageId).backdrop) {
+        is Backdrop.Nightfall -> listOf(StageProgression.forStage(stageId).bossTimeSeconds * Daylight.SUNDOWN)
+        is Backdrop.Strip -> emptyList()
+    }
     private val autopilot = Autopilot(controls, FRAME_WIDTH, FRAME_HEIGHT)
     val tape: Tape? = if (capture) Tape(FRAME_WIDTH, FRAME_HEIGHT) else null
 

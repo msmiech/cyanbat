@@ -49,8 +49,8 @@ data class GameAssets(
         fun load(g: EngineGraphics, a: EngineAudio): GameAssets {
             fun pixmap(name: String) = g.newPixmap(name, PixmapFormat.ARGB8888)
 
-            // One track for both stages: there is only the one game theme, and sharing the object
-            // rather than loading it twice keeps a single player to stop and start.
+            // One track for every stage: there is only the one game theme, and sharing the object
+            // rather than loading it once a stage keeps a single player to stop and start.
             val theme = a.newMusic("game_theme.mp3")
 
             return GameAssets(
@@ -72,7 +72,7 @@ data class GameAssets(
                     Stage(
                         id = 1,
                         name = "Stage 1: The Cave",
-                        background = pixmap("background.png"),
+                        backdrop = Backdrop.Strip(pixmap("background.png")),
                         topObstacles = arrayOf(pixmap("topObstacle1.png"), pixmap("topObstacle2.png")),
                         bottomObstacles = arrayOf(
                             pixmap("bottomObstacle1.png"),
@@ -84,7 +84,7 @@ data class GameAssets(
                     Stage(
                         id = 2,
                         name = "Stage 2: The Forest",
-                        background = pixmap("forestBackground.png"),
+                        backdrop = Backdrop.Strip(pixmap("forestBackground.png")),
                         topObstacles = arrayOf(
                             pixmap("forestTopObstacle1.png"),
                             pixmap("forestTopObstacle2.png"),
@@ -96,6 +96,32 @@ data class GameAssets(
                         music = theme,
                         enemySheet = pixmap("forestEnemies.png"),
                         bossSheet = pixmap("forestBoss.png"),
+                    ),
+                    Stage(
+                        id = 3,
+                        name = "Stage 3: The Desert",
+                        backdrop = Backdrop.Nightfall(
+                            // The far band barely moves and the near one moves with the rocks
+                            // standing on it, so the three read as three distances.
+                            layers = listOf(
+                                ParallaxLayer(pixmap("desertFar.png"), top = 152, speed = 0.2f),
+                                ParallaxLayer(pixmap("desertMid.png"), top = 214, speed = 0.5f),
+                                ParallaxLayer(pixmap("desertNear.png"), top = 264, speed = 1f),
+                            ),
+                            moon = pixmap("desertMoon.png"),
+                        ),
+                        // An open sky: nothing hangs into the desert from above. What comes at the
+                        // bat from outside the frame here comes up out of the sand instead.
+                        topObstacles = emptyArray(),
+                        bottomObstacles = arrayOf(
+                            pixmap("desertObstacle1.png"),
+                            pixmap("desertObstacle2.png"),
+                            pixmap("desertObstacle3.png"),
+                            pixmap("desertObstacle4.png"),
+                        ),
+                        music = theme,
+                        enemySheet = pixmap("desertEnemies.png"),
+                        bossSheet = pixmap("desertBoss.png"),
                     ),
                 ),
             )

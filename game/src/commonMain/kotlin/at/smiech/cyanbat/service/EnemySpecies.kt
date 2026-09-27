@@ -19,6 +19,13 @@ enum class Squad(val cost: Float) {
 
     /** Five in a V, the leader at the point; see [EnemyMovementType.FORMATION]. */
     V_FORMATION(2.4f),
+
+    /**
+     * Alone, but from under the sand along the bottom edge rather than out of the right-hand one;
+     * see [EnemyMovementType.LEAP]. Costed above a loner because the cruise in is time the player
+     * spends watching it, and a leaper right behind it would arrive inside that warning.
+     */
+    BURROW(1.4f),
 }
 
 /**
@@ -49,7 +56,12 @@ data class EnemyGun(val interval: Float, val volleys: List<Volley>)
  * @param gun what it fires, for the species that always shoot.
  * @param armable whether a wave's `gunChance` can hand it a gun it would not otherwise carry.
  * @param innateShield a shield it always spawns with, as a fraction of its health. Zero for none.
+ * @param shieldRegrowth how much of that shield grows back a second, as a fraction of it, once the
+ *   enemy has gone [at.smiech.cyanbat.util.SHIELD_REGROWTH_DELAY_SECONDS] without being hit. Zero
+ *   for a shield that stays broken.
  * @param canBeShielded whether a wave's `shieldChance` can give it a shield anyway.
+ * @param facesHeading whether its sprite turns to point where it is flying. Only for the ones whose
+ *   flight is an arc - a loop, a leap - which a sprite held level would fly sideways through.
  */
 enum class EnemySpecies(
     val strip: Int,
@@ -63,7 +75,9 @@ enum class EnemySpecies(
     val gun: EnemyGun? = null,
     val armable: Boolean = false,
     val innateShield: Float = 0f,
+    val shieldRegrowth: Float = 0f,
     val canBeShielded: Boolean = false,
+    val facesHeading: Boolean = false,
 ) {
     // --- the cave, on `enemies.png` ------------------------------------------------------------
 
@@ -109,6 +123,62 @@ enum class EnemySpecies(
         strip = 4, speedX = -1.7f, movement = EnemyMovementType.FORMATION, shotVariant = 5,
         squad = Squad.V_FORMATION, hitPointFactor = 0.7f, damageFactor = 0.8f,
         collisionTolerance = 6f, armable = true, canBeShielded = true,
+    ),
+
+    // --- the desert, on `desertEnemies.png` ----------------------------------------------------
+
+    /**
+     * The desert's swarm: a cloud of locusts, faster and flimsier than the forest's wasps. Better
+     * cut through than flown round.
+     */
+    LOCUST(
+        strip = 0, speedX = -2.1f, movement = EnemyMovementType.SWARM, shotVariant = 5,
+        squad = Squad.SWARM, hitPointFactor = 0.4f, damageFactor = 0.55f, collisionTolerance = 8f,
+    ),
+
+    /** Throws a loop on its way through, turning to point along it; later in the day some are armed. */
+    HAWK(
+        strip = 1, speedX = -1.8f, movement = EnemyMovementType.LOOP, shotVariant = 5,
+        hitPointFactor = 1.0f, damageFactor = 1.2f, armable = true, canBeShielded = true,
+        facesHeading = true,
+    ),
+
+    /**
+     * The Sand Wyrm's brood. Comes in under the sand with only its ridged back showing, and leaps
+     * out at the player's height; see [EnemyMovementType.LEAP].
+     */
+    WYRMLING(
+        strip = 2, speedX = -1.6f, movement = EnemyMovementType.LEAP, shotVariant = 3,
+        squad = Squad.BURROW, hitPointFactor = 1.2f, damageFactor = 1.3f, collisionTolerance = 6f,
+        facesHeading = true,
+    ),
+
+    /**
+     * Hangs on station, drifting into the player's lane, and throws fans of three at them.
+     *
+     * Slower to fire than the spitter, because each pull is three bolts rather than one: at the
+     * spitter's pace, the djinn that pile up on station by dusk filled the frame with fire just as
+     * the Sand Wyrm came up to fight.
+     */
+    DJINN(
+        strip = 3, speedX = -1.5f, movement = EnemyMovementType.HOVER, shotVariant = 4,
+        hitPointFactor = 1.1f, damageFactor = 0.9f,
+        gun = EnemyGun(
+            3.4f,
+            listOf(Volley(ShotPattern.AIMED_FAN, count = 3, spreadDegrees = 14f, speed = 2.3f, damageFactor = 0.6f)),
+        ),
+        canBeShielded = true,
+    ),
+
+    /**
+     * The tank, and the desert's answer to the beetle: its shield grows back if it is left alone,
+     * so a scarab is one to finish once it has been started on.
+     */
+    SCARAB(
+        strip = 4, speedX = -1.0f, movement = EnemyMovementType.SURGE, shotVariant = 3,
+        hitPointFactor = 1.4f, damageFactor = 1.1f,
+        gun = EnemyGun(3.4f, listOf(Volley(ShotPattern.STRAIGHT, speed = 2.6f))),
+        innateShield = 0.6f, shieldRegrowth = 0.35f,
     ),
     ;
 

@@ -1,13 +1,18 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.service.EnemySpecies.BEETLE
+import at.smiech.cyanbat.service.EnemySpecies.DJINN
+import at.smiech.cyanbat.service.EnemySpecies.HAWK
+import at.smiech.cyanbat.service.EnemySpecies.LOCUST
 import at.smiech.cyanbat.service.EnemySpecies.OWL
+import at.smiech.cyanbat.service.EnemySpecies.SCARAB
 import at.smiech.cyanbat.service.EnemySpecies.SCOUT
 import at.smiech.cyanbat.service.EnemySpecies.SPITTER
 import at.smiech.cyanbat.service.EnemySpecies.STRIKER
 import at.smiech.cyanbat.service.EnemySpecies.WASP
 import at.smiech.cyanbat.service.EnemySpecies.WEAVER
 import at.smiech.cyanbat.service.EnemySpecies.WISP
+import at.smiech.cyanbat.service.EnemySpecies.WYRMLING
 
 /**
  * One minute of a stage's enemies, as designed rather than as scaled.
@@ -33,6 +38,13 @@ enum class BossKind {
      * she changes phase, and wasp swarms she calls in. See [MothQueenBrain].
      */
     MOTH_QUEEN,
+
+    /**
+     * The desert's Sand Wyrm: a body of ten armored parts that breaches out of the dunes in arcs
+     * aimed at the player, spits at the top of each one, and dives back under between them. Any
+     * part of it can be hit. See [SandWyrmBrain].
+     */
+    SAND_WYRM,
 }
 
 /**
@@ -87,10 +99,38 @@ data class StageDesign(
         )
 
         /**
+         * Stage 3, flown from noon to nightfall. Harder again than the forest, and it adds one new
+         * direction to watch: things come up out of the sand. The first minute is the swarm and the
+         * loop, one to cut through and one to read; the wyrmlings arrive in the second, before
+         * anything else is shooting; the djinn's fans in the third; and by dusk everything is
+         * armed, shielded, or leaping.
+         */
+        val DESERT = StageDesign(
+            waves = listOf(
+                // Noon: a cloud of locusts, and a hawk's loop to learn.
+                WaveDesign(listOf(LOCUST, HAWK)),
+                // Something comes up out of the sand, and a scarab whose shell grows back.
+                WaveDesign(listOf(WYRMLING, LOCUST, SCARAB), shieldChance = 0.1f),
+                // The golden hour: the djinn and its fans, with the hawks and the leapers for cover.
+                WaveDesign(listOf(DJINN, HAWK, WYRMLING), shieldChance = 0.2f, gunChance = 0.15f),
+                // Sunset, and everything at once.
+                WaveDesign(listOf(LOCUST, HAWK, WYRMLING, DJINN, SCARAB), shieldChance = 0.3f, gunChance = 0.25f),
+                // Dusk, and the escort: everything that leaps, loops or shoots.
+                WaveDesign(listOf(WYRMLING, DJINN, HAWK, SCARAB), shieldChance = 0.4f, gunChance = 0.35f),
+            ),
+            boss = BossKind.SAND_WYRM,
+            bossName = "THE SAND WYRM",
+        )
+
+        /**
          * The design of the stage with this 1-based id. Past the last one the last design repeats,
          * scaled harder by [StageProgression.forStage], rather than a later stage having nothing
          * to spawn.
          */
-        fun forStage(id: Int): StageDesign = if (id <= 1) CAVE else FOREST
+        fun forStage(id: Int): StageDesign = when {
+            id <= 1 -> CAVE
+            id == 2 -> FOREST
+            else -> DESERT
+        }
     }
 }

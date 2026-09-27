@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
 import at.smiech.cyanbat.util.CRITICAL_TEXT_DURATION_SECONDS
@@ -19,6 +20,15 @@ import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_WIDTH
 import at.smiech.cyanbat.util.MOTH_QUEEN_SHOT_VARIANT
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
+import at.smiech.cyanbat.util.SAND_WYRM_FRAME
+import at.smiech.cyanbat.util.SAND_WYRM_HEAD_FRAMES
+import at.smiech.cyanbat.util.SAND_WYRM_HEAD_FRAME_SECONDS
+import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAME
+import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAMES
+import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
+import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAME_SECONDS
+import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
+import at.smiech.cyanbat.util.SHIELD_REGROWTH_DELAY_SECONDS
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.SHOT_HIT_POINTS
 import at.smiech.cyanbat.util.SHOT_SPEED
@@ -34,6 +44,7 @@ import at.smiech.engine.ecs.BackgroundComponent
 import at.smiech.engine.ecs.BounceComponent
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
+import at.smiech.engine.ecs.CrossfadeComponent
 import at.smiech.engine.ecs.DamageComponent
 import at.smiech.engine.ecs.EnemyBehaviorComponent
 import at.smiech.engine.ecs.EnemyMovementType
@@ -107,6 +118,8 @@ class EntityFactory(val world: World) {
      * @param phase a per-member offset into its pattern, so a swarm does not buzz in unison.
      * @param holdX where a hovering enemy stops, or a diving one commits.
      * @param shieldPoints a shield bubble to spawn behind, or zero for none.
+     * @param shieldRegrowth how much of that shield grows back a second once it has been left alone,
+     *   as a fraction of it; see [EnemySpecies.shieldRegrowth].
      * @param gun what it fires, or null for an enemy that only rams.
      * @param firstShotDelay how long an armed enemy waits before its first volley, on top of its
      *   interval - so a formation spawned on one tick does not fire as one.
@@ -126,6 +139,7 @@ class EntityFactory(val world: World) {
         phase: Float = 0f,
         holdX: Float = 0f,
         shieldPoints: Int = 0,
+        shieldRegrowth: Float = 0f,
         gun: EnemyGun? = null,
         firstShotDelay: Float = 0f,
     ): EntityId {
@@ -166,7 +180,18 @@ class EntityFactory(val world: World) {
             world.addComponent(id, WeaponComponent(gun.interval, timeSinceLastShot = -firstShotDelay))
             world.addComponent(id, GunComponent(gun.volleys))
         }
-        if (shieldPoints > 0) world.addComponent(id, ShieldComponent(shieldPoints))
+        if (shieldPoints > 0) {
+            world.addComponent(
+                id,
+                ShieldComponent(
+                    shieldPoints,
+                    regenPerSecond = shieldPoints * shieldRegrowth,
+                    regenDelay = SHIELD_REGROWTH_DELAY_SECONDS,
+                ),
+            )
+        }
+        // Drawn facing left, as every hostile is, and turned from there to point along its arc.
+        if (species.facesHeading) world.addComponent(id, FacesVelocityComponent(HOSTILE_ARTWORK_DEGREES))
 
         world.addComponent(id, CollisionComponent(species.collisionTolerance, CollisionGroup.ENEMY))
         world.addComponent(id, HealthComponent(hitPoints))
@@ -245,6 +270,111 @@ class EntityFactory(val world: World) {
         return id
     }
 
+    /**
+     * The desert's boss: a head and a train of nine armored parts behind it, each one an entity of
+     * its own so it can be run into, shot and lit up wherever it is along the body.
+     *
+     * The head is the boss: it carries the health, the pinned health bar, the gun and the leap it
+     * flies by. The plates carry no health: a shot into one lands on the head, though only
+     * [SAND_WYRM_PLATE_SHARE] of it, so the head is the place to aim. They are placed every tick by
+     * [SandWyrmBrain] along the path the head has flown - which is why nothing but the brain may
+     * move or remove them, and why they are never culled for leaving the frame: the whole wyrm
+     * spends half the fight under it. Every part, head included, is a [BossPartComponent], which
+     * is what keeps the bat from wearing it down by being hit by it.
+     *
+     * The parts are created tail first, so each is drawn over the one behind it and the body
+     * overlaps toward the head the way plates do.
+     *
+     * @param bodyDamage what a plate deals on contact; less than the head's, see
+     *   [at.smiech.cyanbat.util.SAND_WYRM_BODY_DAMAGE].
+     * @param bar where the health bar is pinned.
+     * @return the head, then the body from the neck back to the tail.
+     */
+    fun createSandWyrm(
+        x: Float,
+        y: Float,
+        pixmap: Pixmap,
+        hitPoints: Int,
+        damage: Int,
+        bodyDamage: Int,
+        gun: EnemyGun,
+        bar: Rect,
+    ): List<EntityId> {
+        val frame = SAND_WYRM_FRAME.toFloat()
+        val body = SAND_WYRM_BODY.reversed().map { (sheetFrame, tolerance) ->
+            val id = world.createEntity()
+            world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
+            world.addComponent(id, VelocityComponent(Vector2.Zero))
+            world.addComponent(
+                id,
+                SpriteComponent(pixmap, baseSrcX = sheetFrame * SAND_WYRM_FRAME, srcWidth = SAND_WYRM_FRAME),
+            )
+            world.addComponent(id, CollisionComponent(tolerance, CollisionGroup.ENEMY))
+            world.addComponent(id, DamageComponent(bodyDamage))
+            world.addComponent(id, BossPartComponent(share = SAND_WYRM_PLATE_SHARE))
+            world.addComponent(id, LifetimeComponent(false))
+            world.addComponent(id, ZIndexComponent(12))
+            id
+        }.reversed()
+
+        val head = world.createEntity()
+        world.addComponent(head, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
+        world.addComponent(head, VelocityComponent(Vector2.Zero))
+        world.addComponent(head, SpriteComponent(pixmap, srcWidth = SAND_WYRM_FRAME))
+        world.addComponent(
+            head,
+            AnimationComponent(SAND_WYRM_FRAME, SAND_WYRM_FRAME, SAND_WYRM_HEAD_FRAMES, SAND_WYRM_HEAD_FRAME_SECONDS),
+        )
+        world.addComponent(head, FacesVelocityComponent(HOSTILE_ARTWORK_DEGREES))
+        // At rest until the brain throws it: a leap whose station can never be reached.
+        world.addComponent(head, EnemyBehaviorComponent(EnemyMovementType.LEAP, y, holdX = -Float.MAX_VALUE))
+        world.addComponent(head, ProjectileStyleComponent(SAND_WYRM_SHOT_VARIANT))
+        world.addComponent(head, CollisionComponent(SAND_WYRM_HEAD_TOLERANCE, CollisionGroup.ENEMY))
+        world.addComponent(head, HealthComponent(hitPoints))
+        world.addComponent(head, DamageComponent(damage))
+        world.addComponent(head, HealthBarComponent(pinnedTo = bar))
+        world.addComponent(head, BossPartComponent())
+        world.addComponent(head, WeaponComponent(gun.interval))
+        world.addComponent(head, GunComponent(gun.volleys))
+        world.addComponent(head, LifetimeComponent(false))
+        world.addComponent(head, ZIndexComponent(13))
+        return listOf(head) + body
+    }
+
+    /**
+     * Sand thrown up out of the ground, standing on [bottom] and centered on [centerX]: the tell
+     * before the Sand Wyrm breaches, and the breach itself.
+     *
+     * A one-shot effect like a blast, but it stays where it was thrown up rather than drifting with
+     * the scenery: the wyrm comes up where the sand boiled, and the two have to line up.
+     */
+    fun createSandPlume(centerX: Float, bottom: Float, pixmap: Pixmap, scale: Float = 1f): EntityId {
+        val size = SAND_WYRM_FRAME * scale
+        val id = world.createEntity()
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX - size / 2f, bottom - size, size, size)))
+        world.addComponent(id, VelocityComponent(Vector2.Zero))
+        world.addComponent(
+            id,
+            SpriteComponent(
+                pixmap,
+                baseSrcX = SAND_WYRM_PLUME_FRAME * SAND_WYRM_FRAME,
+                srcWidth = SAND_WYRM_FRAME,
+                srcHeight = SAND_WYRM_FRAME,
+                scale = scale,
+            ),
+        )
+        world.addComponent(
+            id,
+            AnimationComponent(
+                SAND_WYRM_FRAME, SAND_WYRM_FRAME, SAND_WYRM_PLUME_FRAMES, SAND_WYRM_PLUME_FRAME_SECONDS,
+                isLooping = false,
+            ),
+        )
+        world.addComponent(id, LifetimeComponent(true))
+        world.addComponent(id, ZIndexComponent(50))
+        return id
+    }
+
     private fun createBossEntity(
         x: Float,
         y: Float,
@@ -320,11 +450,24 @@ class EntityFactory(val world: World) {
         return id
     }
 
-    fun createObstacle(x: Float, y: Float, width: Float, height: Float, pixmap: Pixmap): EntityId {
+    /**
+     * @param keyframed whether [pixmap] holds the obstacle once per time of day, a row of [height]
+     *   apiece, for a stage whose light changes; see [at.smiech.cyanbat.ecs.NightfallSystem], which
+     *   picks the rows.
+     */
+    fun createObstacle(
+        x: Float,
+        y: Float,
+        width: Float,
+        height: Float,
+        pixmap: Pixmap,
+        keyframed: Boolean = false,
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
         world.addComponent(id, VelocityComponent(Vector2(-1f, 0f)))
-        world.addComponent(id, SpriteComponent(pixmap))
+        world.addComponent(id, SpriteComponent(pixmap, srcHeight = height.toInt()))
+        if (keyframed) world.addComponent(id, CrossfadeComponent())
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.OBSTACLE))
         world.addComponent(id, HealthComponent(DESTRUCTIBLE_HIT_POINTS))
         world.addComponent(id, LifetimeComponent(true))
@@ -595,5 +738,23 @@ class EntityFactory(val world: World) {
 
         /** Degrees to radians, for the spread on a fanned shot. */
         const val PI_OVER_180 = 0.017453292f
+
+        /** Which way every hostile's artwork points: left, toward the bat. */
+        const val HOSTILE_ARTWORK_DEGREES = 180f
+
+        /**
+         * The Sand Wyrm's body from the neck back, as the frame of its sheet each part is drawn
+         * from and how far inside that frame its hit box sits: three big plates, three middling,
+         * two small, and the tail. The tolerance grows as the plates shrink inside their frames.
+         */
+        val SAND_WYRM_BODY = listOf(
+            2 to 6f, 2 to 6f, 2 to 6f,
+            3 to 9f, 3 to 9f, 3 to 9f,
+            4 to 12f, 4 to 12f,
+            5 to 14f,
+        )
+
+        /** Its head fills most of its frame: jaws, crest and all. */
+        const val SAND_WYRM_HEAD_TOLERANCE = 8f
     }
 }

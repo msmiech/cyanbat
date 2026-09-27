@@ -42,9 +42,29 @@ data class SpriteComponent(
  * A marker: the angle itself lives on the [SpriteComponent] and the work is [FacingSystem]'s. It
  * is opt-in because most things should not do this - the bat and the enemies are drawn from
  * artwork that has an up, and spinning them to match a dodge would read as a glitch. What wants it
- * is anything whose direction of travel is the only thing its shape means, which is projectiles.
+ * is anything whose direction of travel is the only thing its shape means, which is projectiles -
+ * and the few hostiles whose flight is an arc rather than a crossing, like something leaping out of
+ * the sand, which reads as leaping only if it goes up nose first and comes down the same way.
+ *
+ * @param artworkDegrees which way the artwork points when it is drawn unturned: 0 for a shot, which
+ *   is drawn pointing right, and 180 for a hostile, which is drawn facing left. The sprite is turned
+ *   by the heading less this, so artwork facing left flies left the right way up.
  */
-class FacesVelocityComponent : Component
+class FacesVelocityComponent(val artworkDegrees: Float = 0f) : Component
+
+/**
+ * A second picture of the same sprite, from another row of its sheet, laid over the first at
+ * [alpha]. A sheet that stacks one drawing in several palettes, a row each, turns from one palette
+ * into the next through this: the sprite's own [SpriteComponent.srcY] picks the row underneath, and
+ * this the row fading in over it. Drawn by [RenderSystem], straight over the sprite it belongs to.
+ *
+ * Only for sprites drawn upright and at their own size, which is all the scenery that uses it is;
+ * a turned or magnified sprite ignores it.
+ *
+ * @param srcY where the second picture's row starts on the sheet.
+ * @param alpha how far it has come in, as 0..1. At zero nothing extra is drawn.
+ */
+data class CrossfadeComponent(var srcY: Int = 0, var alpha: Float = 0f) : Component
 
 data class AnimationComponent(
     val frameWidth: Int,
@@ -112,12 +132,17 @@ data class DamageComponent(val amount: Int, val isCritical: Boolean = false) : C
  * @param offsetY gap between the bottom of the entity and the top of the bar.
  * @param fullColor the filled part, drawn from the left edge rightwards.
  * @param emptyColor the spent part, and so the whole bar once health runs out.
+ * @param pinnedTo where on screen to draw it instead, for something that spends part of its fight
+ *   off the frame: a bar that followed it would leave with it, and the one thing a long fight has to
+ *   show at all times is how far through it the player is. [offsetY] is ignored for a pinned bar,
+ *   and [height] is the rectangle's own.
  */
 data class HealthBarComponent(
     val height: Float = 3f,
     val offsetY: Float = 2f,
     val fullColor: Int = EngineColors.RED,
     val emptyColor: Int = EngineColors.BLACK,
+    val pinnedTo: Rect? = null,
 ) : Component
 
 /**
@@ -262,6 +287,22 @@ enum class EnemyMovementType {
 
     /** A boss that holds station by tracing a figure eight around [EnemyBehaviorComponent.holdX]. */
     BOSS_FIGURE_EIGHT,
+
+    /**
+     * Cruises in along [EnemyBehaviorComponent.initialY] - just under the bottom edge, with only
+     * its back showing above the sand - until it reaches [EnemyBehaviorComponent.holdX], then
+     * leaps. The leap is thrown once, aimed so its apex is the player's height at that instant,
+     * and after that it is gravity's: it arcs over and falls back out through the bottom. The
+     * cruise is the tell, and a leap that is never steered can always be flown out from under.
+     */
+    LEAP,
+
+    /**
+     * Flies in to [EnemyBehaviorComponent.holdX], throws one full loop - up and over the top and
+     * back down through where it started - and then carries on out at speed. The loop is where it
+     * is hard to read; the straight lines either side of it are where it can be lined up and shot.
+     */
+    LOOP,
 }
 
 /**

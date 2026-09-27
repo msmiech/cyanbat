@@ -83,6 +83,13 @@ class SpriteSheetTest {
         assertNoBlankFrames("forestBoss.png", frameWidth = 96, frames = 4)
     }
 
+    /** Every creature on the desert's sheet, and every part of the Sand Wyrm and its sand. */
+    @Test
+    fun `no frame of the desert's creatures is empty`() {
+        assertNoBlankFrames("desertEnemies.png", frameWidth = 32, frames = 4 * 5)
+        assertNoBlankFrames("desertBoss.png", frameWidth = 48, frames = 10)
+    }
+
     private fun assertNoBlankFrames(name: String, frameWidth: Int, frames: Int) {
         val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
         for (frame in 0 until frames) {
@@ -97,12 +104,13 @@ class SpriteSheetTest {
     }
 
     /**
-     * Seven colorways of one 24x12 bolt: the player's, one per cave enemy type, then the forest's
-     * spitter, wisp and Moth Queen; see `EnemySpecies.shotVariant`.
+     * Eight colorways of one 24x12 bolt: the player's, one per cave enemy type, then the forest's
+     * spitter, wisp and Moth Queen, and the Sand Wyrm's; see `EnemySpecies.shotVariant` and
+     * `SAND_WYRM_SHOT_VARIANT`.
      */
     @Test
     fun `the shot sheet holds a colorway per shooter`() {
-        assertEquals(24 * 7 to 12, sizeOf("shot.png"))
+        assertEquals(24 * 8 to 12, sizeOf("shot.png"))
     }
 
     @Test
@@ -133,6 +141,42 @@ class SpriteSheetTest {
     @Test
     fun `the forest strip meets itself`() {
         assertTiles("forestBackground.png")
+    }
+
+    /**
+     * The desert's three bands, each four keyframes of one strip stacked from noon to night; see
+     * `Daylight.KEYFRAMES` and `GameAssets`, which places them. The far and middle bands are two
+     * framebuffers wide rather than three: they scroll slower, so they take no less time to repeat.
+     */
+    @Test
+    fun `the desert's bands hold four keyframes of their strips`() {
+        assertEquals(960 to 116 * KEYFRAMES, sizeOf("desertFar.png"))
+        assertEquals(960 to 90 * KEYFRAMES, sizeOf("desertMid.png"))
+        assertEquals(1440 to 57 * KEYFRAMES, sizeOf("desertNear.png"))
+        assertEquals(24 to 24, sizeOf("desertMoon.png"))
+    }
+
+    /** Every band tiles, in every light: the pyramids, the palms and the stones wrap round too. */
+    @Test
+    fun `the desert's bands meet themselves`() {
+        assertTiles("desertFar.png")
+        assertTiles("desertMid.png")
+        assertTiles("desertNear.png")
+    }
+
+    /** A keyframe left empty would crossfade the ground into nothing at that hour. */
+    @Test
+    fun `no keyframe of the desert's scenery is empty`() {
+        for (name in DESERT_KEYFRAMED) {
+            val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
+            val rowHeight = image.height / KEYFRAMES
+            for (row in 0 until KEYFRAMES) {
+                val opaque = (row * rowHeight until (row + 1) * rowHeight).sumOf { y ->
+                    (0 until image.width).count { x -> (image.getRGB(x, y) ushr 24) != 0 }
+                }
+                assertTrue(opaque > 0, "keyframe $row of $name is blank")
+            }
+        }
     }
 
     private fun assertTiles(name: String) {
@@ -172,6 +216,18 @@ class SpriteSheetTest {
         assertEquals(32 * 4 * 5 to 29, sizeOf("forestEnemies.png"))
     }
 
+    /** Five types of four 32x29 frames, like the forest's; see `EnemySpecies.strip`. */
+    @Test
+    fun `the desert's enemy sheet holds five strips of four frames`() {
+        assertEquals(32 * 4 * 5 to 29, sizeOf("desertEnemies.png"))
+    }
+
+    /** The head twice, three plates, the tail and four frames of sand; see `SAND_WYRM_FRAME`. */
+    @Test
+    fun `the Sand Wyrm's sheet holds its parts and its sand`() {
+        assertEquals(48 * 10 to 48, sizeOf("desertBoss.png"))
+    }
+
     /** Four 96x80 frames; see `MOTH_QUEEN_FRAME_WIDTH`. */
     @Test
     fun `the Moth Queen's sheet holds four frames`() {
@@ -190,6 +246,18 @@ class SpriteSheetTest {
         assertEquals(38 to 57, sizeOf("topObstacle2.png"))
         assertEquals(76 to 50, sizeOf("bottomObstacle1.png"))
         assertEquals(96 to 54, sizeOf("bottomObstacle2.png"))
+    }
+
+    /**
+     * The desert keeps the cave's four footprints too - all four standing, under its open sky -
+     * each drawn in the four lights of its day, one above the other.
+     */
+    @Test
+    fun `the desert's obstacles keep the cave's footprints in every light`() {
+        assertEquals(41 to 46 * KEYFRAMES, sizeOf("desertObstacle1.png"))
+        assertEquals(38 to 57 * KEYFRAMES, sizeOf("desertObstacle2.png"))
+        assertEquals(76 to 50 * KEYFRAMES, sizeOf("desertObstacle3.png"))
+        assertEquals(96 to 54 * KEYFRAMES, sizeOf("desertObstacle4.png"))
     }
 
     /** The forest keeps the cave's footprints, so its scenery is exactly as hard to fly through. */
@@ -227,18 +295,37 @@ class SpriteSheetTest {
             "forestTopObstacle2.png",
             "forestBottomObstacle1.png",
             "forestBottomObstacle2.png",
+            "desertEnemies.png",
+            "desertBoss.png",
+            "desertMoon.png",
         )) {
-            val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
-            val colors = buildSet {
-                for (y in 0 until image.height) {
-                    for (x in 0 until image.width) add(image.getRGB(x, y))
-                }
-            }
-            assertTrue(
-                colors.size <= MAX_COLORS,
-                "$name has ${colors.size} colors, which means it has been resampled rather than drawn",
-            )
+            assertFlat(name, 0 until sizeOf(name).second)
         }
+    }
+
+    /**
+     * The same claim for the scenery drawn in four lights, made of each light on its own: a sheet
+     * of four pictures carries four palettes, but each picture is as flat as any other.
+     */
+    @Test
+    fun `the desert's scenery is flat in every light`() {
+        for (name in DESERT_KEYFRAMED) {
+            val rowHeight = sizeOf(name).second / KEYFRAMES
+            for (row in 0 until KEYFRAMES) assertFlat(name, row * rowHeight until (row + 1) * rowHeight)
+        }
+    }
+
+    private fun assertFlat(name: String, rows: IntRange) {
+        val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
+        val colors = buildSet {
+            for (y in rows) {
+                for (x in 0 until image.width) add(image.getRGB(x, y))
+            }
+        }
+        assertTrue(
+            colors.size <= MAX_COLORS,
+            "$name has ${colors.size} colors in rows $rows, which means it has been resampled rather than drawn",
+        )
     }
 
     private companion object {
@@ -247,5 +334,14 @@ class SpriteSheetTest {
          * creatures' ramps at about three dozen colors - and far below a resized photograph.
          */
         const val MAX_COLORS = 48
+
+        /** Noon, the golden hour, sunset and night; see `Daylight.KEYFRAMES`. */
+        const val KEYFRAMES = 4
+
+        /** The desert's scenery, drawn once in each of the [KEYFRAMES] and stacked. */
+        val DESERT_KEYFRAMED = listOf(
+            "desertFar.png", "desertMid.png", "desertNear.png",
+            "desertObstacle1.png", "desertObstacle2.png", "desertObstacle3.png", "desertObstacle4.png",
+        )
     }
 }

@@ -2,6 +2,7 @@ package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.util.BOSS_SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
+import at.smiech.cyanbat.util.BURROW_SHOWING
 import at.smiech.cyanbat.util.FIRST_SHOT_JITTER
 import at.smiech.cyanbat.util.FORMATION_RANKS
 import at.smiech.cyanbat.util.FORMATION_RANK_SPACING_X
@@ -9,6 +10,12 @@ import at.smiech.cyanbat.util.FORMATION_RANK_SPACING_Y
 import at.smiech.cyanbat.util.GROUP_EDGE_MARGIN
 import at.smiech.cyanbat.util.HOLD_X_MAX_FRACTION
 import at.smiech.cyanbat.util.HOLD_X_MIN_FRACTION
+import at.smiech.cyanbat.util.SAND_WYRM_BAR_HEIGHT
+import at.smiech.cyanbat.util.SAND_WYRM_BAR_TOP
+import at.smiech.cyanbat.util.SAND_WYRM_BAR_WIDTH
+import at.smiech.cyanbat.util.SAND_WYRM_BODY_DAMAGE
+import at.smiech.cyanbat.util.SAND_WYRM_FRAME
+import at.smiech.cyanbat.util.SAND_WYRM_HEAD_DAMAGE
 import at.smiech.cyanbat.util.SWARM_SIZE
 import at.smiech.cyanbat.util.SWARM_SIZE_MAX
 import at.smiech.cyanbat.util.SWARM_SIZE_PER_TWO_WAVES
@@ -18,6 +25,7 @@ import at.smiech.cyanbat.util.WAVE_SHIELD_FRACTION
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.EnemyMovementType
 import at.smiech.engine.ecs.EntityId
+import at.smiech.engine.math.Rect
 import kotlin.math.PI
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -69,8 +77,9 @@ class EnemyGenerator(
     var bossSpawned = false
         private set
 
-    /** The boss's own logic, for a boss that has any; see [MothQueenBrain]. */
-    private var bossBrain: MothQueenBrain? = null
+    /** The boss's own logic, for a boss that has any; see [MothQueenBrain] and [SandWyrmBrain]. */
+    var bossBrain: BossBrain? = null
+        private set
 
     private var timeUntilNextSpawn = progression.nextSpawnDelay(0f, random)
 
@@ -139,6 +148,7 @@ class EnemyGenerator(
             Squad.SOLO -> spawnSolo(species, wave)
             Squad.SWARM -> spawnSwarm(species, wave)
             Squad.V_FORMATION -> spawnFormation(species, wave)
+            Squad.BURROW -> spawnBurrowed(species, wave)
         }
         return species.squad.cost
     }
@@ -182,6 +192,14 @@ class EnemyGenerator(
         }
     }
 
+    /**
+     * In along the bottom edge from the right, under the sand with only its back showing, to leap
+     * from its station; see [at.smiech.engine.ecs.EnemyMovementType.LEAP].
+     */
+    private fun spawnBurrowed(species: EnemySpecies, wave: EnemyWave, x: Float = xSpawnPosition.toFloat()) {
+        spawn(species, wave, x = x, laneY = worldHeight - BURROW_SHOWING)
+    }
+
     /** A center for a group's path, far enough from the edges that its sway stays on screen. */
     private fun groupLane(): Float =
         GROUP_EDGE_MARGIN + random.nextFloat() * (worldHeight - 2f * GROUP_EDGE_MARGIN)
@@ -213,7 +231,7 @@ class EnemyGenerator(
             species.armable && wave.gunChance > 0f && random.nextFloat() < wave.gunChance
         }
         val holdX = when (species.movement) {
-            EnemyMovementType.HOVER, EnemyMovementType.DIVE ->
+            EnemyMovementType.HOVER, EnemyMovementType.DIVE, EnemyMovementType.LEAP, EnemyMovementType.LOOP ->
                 xSpawnPosition * (HOLD_X_MIN_FRACTION + random.nextFloat() * (HOLD_X_MAX_FRACTION - HOLD_X_MIN_FRACTION))
             else -> 0f
         }
@@ -233,6 +251,8 @@ class EnemyGenerator(
             phase = phase,
             holdX = holdX,
             shieldPoints = shieldPoints,
+            // Only a shell of its own grows back. One a wave handed out is spent once it is spent.
+            shieldRegrowth = if (species.innateShield > 0f) species.shieldRegrowth else 0f,
             gun = gun,
             firstShotDelay = gun?.let { it.interval * FIRST_SHOT_JITTER * random.nextFloat() } ?: 0f,
         )
@@ -276,6 +296,39 @@ class EnemyGenerator(
                     )
                 }
             }
+
+            BossKind.SAND_WYRM -> {
+                val sheet = requireNotNull(bossPixmap) { "The Sand Wyrm needs its own sheet" }
+                val ids = factory.createSandWyrm(
+                    // Under the sand to the right of the frame's middle; its brain buries it
+                    // properly and picks where it first comes up.
+                    x = xSpawnPosition * 0.7f,
+                    y = worldHeight + SAND_WYRM_FRAME.toFloat(),
+                    pixmap = sheet,
+                    hitPoints = wave.hitPoints,
+                    damage = (wave.damage * SAND_WYRM_HEAD_DAMAGE).roundToInt().coerceAtLeast(1),
+                    bodyDamage = (wave.damage * SAND_WYRM_BODY_DAMAGE).roundToInt().coerceAtLeast(1),
+                    gun = SandWyrmBrain.HUNTING_GUN,
+                    bar = Rect.fromLTWH(
+                        (xSpawnPosition - SAND_WYRM_BAR_WIDTH) / 2f,
+                        SAND_WYRM_BAR_TOP.toFloat(),
+                        SAND_WYRM_BAR_WIDTH.toFloat(),
+                        SAND_WYRM_BAR_HEIGHT.toFloat(),
+                    ),
+                )
+                bossBrain = SandWyrmBrain(
+                    factory.world,
+                    factory,
+                    sheet,
+                    headId = ids.first(),
+                    parts = ids.drop(1),
+                    frameWidth = xSpawnPosition,
+                    frameHeight = worldHeight,
+                    onSummon = ::summonWyrmlings,
+                    onPhaseChanged = onBossPhaseChanged,
+                )
+                ids.first()
+            }
         }
         bossId = id
         onBossSpawned(id)
@@ -293,7 +346,20 @@ class EnemyGenerator(
         spawnSwarm(EnemySpecies.WASP, escort, centerY)
     }
 
+    /**
+     * Wyrmlings the Sand Wyrm has called up: its own brood, at the strength of the wave that
+     * escorted it in, coming in under the sand like any other - spaced out, so each one's back is
+     * its own warning rather than two arriving as one.
+     */
+    private fun summonWyrmlings(count: Int) {
+        val escort = progression.waveAt(progression.bossTimeSeconds - 1f)
+        repeat(count) { spawnBurrowed(EnemySpecies.WYRMLING, escort, x = xSpawnPosition + it * SUMMON_SPACING) }
+    }
+
     private companion object {
+        /** How far apart, along the sand, wyrmlings called up together start out. */
+        const val SUMMON_SPACING = 90f
+
         /**
          * The enemy's collision box is a little narrower than its 32px frame, which is what the
          * original game used and what keeps a near miss reading as a miss.

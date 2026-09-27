@@ -12,6 +12,8 @@ import kotlin.math.roundToInt
  *   where there is one, since that is the pick whose effect shows at once;
  * - the busiest stretch from the stage's most varied wave on, by enemies on screen and blasts,
  *   preferring one the bat comes through without a hit;
+ * - for a stage whose look changes with its clock, the hours that show it changing - the desert's
+ *   sunset, between its noon opening and its boss's night;
  * - the boss arriving under its banner;
  * - the boss going down, and the stage complete overlay after it.
  *
@@ -28,6 +30,7 @@ object Montage {
     private const val ARRIVAL_LEAD_SECONDS = 0.2f
     private const val ARRIVAL_SECONDS = 2.2f
     private const val FINALE_LEAD_SECONDS = 2.8f
+    private const val SCENERY_SECONDS = 2.4f
 
     /** Clips closer than this are not worth a cut; the two run into one. */
     private const val MERGE_GAP_SECONDS = 1.5f
@@ -42,8 +45,15 @@ object Montage {
      * @param actionWave the first wave to take the action from: the stage's most varied, where
      *   every kind of enemy it has is in the air at once. Later waves count too, since they only
      *   get busier on the way to the boss.
+     * @param scenery seconds of the stage clock worth a clip for how the stage looks then, each
+     *   starting there. Empty for a stage that looks the same from start to finish.
      */
-    fun cut(moments: List<Moment>, frameSeconds: Float, actionWave: Int): List<List<Int>> {
+    fun cut(
+        moments: List<Moment>,
+        frameSeconds: Float,
+        actionWave: Int,
+        scenery: List<Float> = emptyList(),
+    ): List<List<Int>> {
         fun frames(seconds: Float) = (seconds / frameSeconds).roundToInt()
         val last = moments.lastIndex
         val bossAt = moments.indexOfFirst { it.bossSpawned }
@@ -60,8 +70,13 @@ object Montage {
         val action = listOfNotNull(wanted.firstOrNull()?.let { it..wanted.last() }, waves)
             .firstNotNullOfOrNull { busiest(moments, outside(it, levelUp), frames(ACTION_SECONDS)) }
 
+        val views = scenery.mapNotNull { seconds ->
+            val start = waves.firstOrNull { moments[it].seconds >= seconds && !moments[it].offer }
+            start?.let { it..later(moments, it, frames(SCENERY_SECONDS)).coerceAtMost(waves.last) }
+        }
+
         val clips = merge(
-            listOfNotNull(opening, levelUp, action, arrival, finale).sortedBy { it.first },
+            (listOfNotNull(opening, levelUp, action, arrival, finale) + views).sortedBy { it.first },
             frames(MERGE_GAP_SECONDS),
         )
         return clips.map { clip -> clip.filter { !moments[it].offer || (levelUp != null && it in levelUp) } }

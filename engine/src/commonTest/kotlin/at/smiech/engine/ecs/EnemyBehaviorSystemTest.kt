@@ -207,4 +207,94 @@ class EnemyBehaviorSystemTest {
     }
 
     // endregion
+
+    // region leap
+
+    /** Just under the bottom of a 320 high frame, with its back showing above the sand. */
+    private fun leaper(holdX: Float = 300f) =
+        enemy(EnemyMovementType.LEAP, x = 480f, y = 310f, holdX = holdX, baseSpeedX = -1.6f)
+
+    /** The back cutting through the sand is the warning, so it has to stay at one height. */
+    @Test
+    fun `a leaper cruises in along the sand before it leaps`() {
+        val leaper = leaper()
+
+        run(1.5f)
+
+        assertEquals(310f, rectOf(leaper).top, 0.5f, "it left the sand before its station")
+        assertTrue(rectOf(leaper).left < 480f, "it never came in")
+        assertEquals(0, behaviorOf(leaper).state)
+    }
+
+    @Test
+    fun `a leap tops out at the player's height and comes back down`() {
+        player(x = 60f, y = 130f) // centered at 150
+        val leaper = leaper()
+        val centers = mutableListOf<Float>()
+
+        repeat((6f / TICK).toInt()) {
+            world.update(TICK, null)
+            centers += rectOf(leaper).centerY
+        }
+
+        assertEquals(150f, centers.min(), 8f, "the apex missed the player's height")
+        assertTrue(centers.last() > 330f, "it never fell back into the sand: ${centers.last()}")
+    }
+
+    /** Aimed once, like a dive: the arc is thrown, not steered. */
+    @Test
+    fun `a leap is not steered once it is thrown`() {
+        val player = player(x = 60f, y = 130f)
+        val leaper = leaper(holdX = 490f)
+        run(0.1f)
+        val launched = velocityOf(leaper)
+
+        world.getComponent(player, TransformComponent::class)!!.rect = Rect.fromLTWH(60f, 20f, 45f, 40f)
+        world.update(TICK, null)
+
+        assertEquals(launched.x, velocityOf(leaper).x, "a thrown leap changed course")
+        assertTrue(velocityOf(leaper).y > launched.y, "gravity is not pulling it back")
+    }
+
+    @Test
+    fun `a leap never reaches past the top of the frame`() {
+        player(x = 60f, y = -30f)
+        val leaper = leaper()
+        var highest = Float.MAX_VALUE
+
+        repeat((6f / TICK).toInt()) {
+            world.update(TICK, null)
+            highest = minOf(highest, rectOf(leaper).top)
+        }
+
+        assertTrue(highest >= 40f, "it cleared the top of the frame: $highest")
+    }
+
+    // endregion
+
+    // region loop
+
+    @Test
+    fun `a looper comes out of its loop where it went in and flies on`() {
+        val looper = enemy(EnemyMovementType.LOOP, x = 330f, y = 150f, holdX = 320f, baseSpeedX = -1.7f)
+        run(0.2f)
+        assertEquals(1, behaviorOf(looper).state, "it never started its loop")
+        val entry = rectOf(looper)
+        val tops = mutableListOf<Float>()
+
+        repeat((1.8f / TICK).toInt()) {
+            world.update(TICK, null)
+            tops += rectOf(looper).top
+        }
+
+        assertTrue(entry.top - tops.min() > 60f, "it never climbed over the top of a loop")
+        assertEquals(entry.top, rectOf(looper).top, 6f, "it came out of the loop on another line")
+        assertEquals(entry.left, rectOf(looper).left, 6f, "it came out of the loop somewhere else")
+
+        run(0.5f)
+        assertEquals(2, behaviorOf(looper).state)
+        assertTrue(rectOf(looper).left < entry.left - 40f, "it did not carry on out")
+    }
+
+    // endregion
 }

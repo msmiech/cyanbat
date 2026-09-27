@@ -31,10 +31,13 @@ import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.stage1_preview
 import at.smiech.cyanbat.resources.stage2_preview
+import at.smiech.cyanbat.resources.stage3_preview
 import at.smiech.cyanbat.resources.stage_1_description
 import at.smiech.cyanbat.resources.stage_1_name
 import at.smiech.cyanbat.resources.stage_2_description
 import at.smiech.cyanbat.resources.stage_2_name
+import at.smiech.cyanbat.resources.stage_3_description
+import at.smiech.cyanbat.resources.stage_3_name
 import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.resources.stage_locked
 import at.smiech.cyanbat.resources.stage_select_title
@@ -57,6 +60,7 @@ private val PREVIEW_HEIGHT = 130.dp
 private val STAGES = listOf(
     StageEntry(1, Res.string.stage_1_name, Res.string.stage_1_description, Res.drawable.stage1_preview),
     StageEntry(2, Res.string.stage_2_name, Res.string.stage_2_description, Res.drawable.stage2_preview),
+    StageEntry(3, Res.string.stage_3_name, Res.string.stage_3_description, Res.drawable.stage3_preview),
 )
 
 /**
@@ -99,8 +103,10 @@ private fun StageSelectContent(
                 style = MaterialTheme.typography.headlineMedium,
             )
             Spacer(Modifier.height(16.dp))
+            // Wide enough that each of three cards keeps about the width each of two had, so a
+            // preview strip is still a picture of the stage rather than a sliver of it.
             Row(
-                modifier = Modifier.widthIn(max = 720.dp).fillMaxWidth(),
+                modifier = Modifier.widthIn(max = 1000.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 for (stage in STAGES) {

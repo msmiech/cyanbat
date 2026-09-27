@@ -468,3 +468,93 @@ const val DEATH_PUFF_INTERVAL_SECONDS = 0.22f
 // How big those blasts are against the full-size one an enemy gets. Small - they are pieces coming
 // off, and a full blast every fifth of a second would bury the sprite they are meant to be leaving.
 const val DEATH_PUFF_SCALE = 0.55f
+
+
+// --- The desert --------------------------------------------------------------------------------
+//
+// Stage 3 is flown from noon to nightfall; what the sky does is in Daylight. Its enemies loop, leap
+// out of the sand and grow their shells back - what each species does is in EnemySpecies, and these
+// are the numbers underneath.
+
+// How long a shell that grows back has to go untouched before it starts to: long enough that a
+// player keeping up fire on a scarab never sees it happen, short enough that one left alone does.
+const val SHIELD_REGROWTH_DELAY_SECONDS = 2.5f
+
+// How much of something coming in under the sand shows above the bottom edge: its ridged back, and
+// nothing else. Enough to see coming the whole way in, too little to be mistaken for flying.
+const val BURROW_SHOWING = 11f
+
+
+// --- The Sand Wyrm -----------------------------------------------------------------------------
+//
+// Stage 3's boss: ten armored parts, head first, that breach out of the dunes in arcs and dive back
+// under. Every part is its own entity, so it can be hit, rammed and flashed anywhere along its
+// length; what lands on the body lands on the head, which carries the health.
+
+// Every part of it is drawn in a square frame this size on its sheet, and so is the sand it throws
+// up. The parts get smaller toward the tail inside their frames, rather than being scaled down,
+// which would make their pixels uneven.
+const val SAND_WYRM_FRAME = 48
+
+// Its jaws working, two frames on a slow beat.
+const val SAND_WYRM_HEAD_FRAMES = 2
+const val SAND_WYRM_HEAD_FRAME_SECONDS = 0.16f
+
+// The spray of sand a breach throws up, four frames from the sheet's seventh.
+const val SAND_WYRM_PLUME_FRAME = 6
+const val SAND_WYRM_PLUME_FRAMES = 4
+const val SAND_WYRM_PLUME_FRAME_SECONDS = 0.07f
+
+// How far apart its parts sit along the path the head has flown, in framebuffer pixels. A little
+// under a part's own width, so the plates overlap and it reads as one body rather than a string of
+// beads.
+const val SAND_WYRM_SPACING = 19f
+
+// How long it stays under between breaches, less once it is enraged; and how much of that the sand
+// spends boiling where it is about to come up - the warning, which is never shorter than this.
+const val SAND_WYRM_BURROW_SECONDS = 2.1f
+const val SAND_WYRM_ENRAGED_BURROW_SECONDS = 1.3f
+const val SAND_WYRM_TELL_SECONDS = 1.1f
+
+// How fast it crosses the frame on a breach, before the leap's own forward push. Faster enraged.
+const val SAND_WYRM_BREACH_SPEED = 1.5f
+const val SAND_WYRM_ENRAGED_BREACH_SPEED = 1.9f
+
+// The health fractions at which it changes phase: it starts calling up its brood at the first,
+// and is enraged at the second.
+const val SAND_WYRM_PHASE_2_AT = 0.66f
+const val SAND_WYRM_PHASE_3_AT = 0.33f
+
+// What its head and its body deal on contact, as shares of the boss damage its stage scales to -
+// 85 at stage 3, most of the bat's bar.
+//
+// The head is set against the Moth Queen's, about 64 against her 67. Her contact is a risk the
+// player takes by closing in; the wyrm's is its attack, aimed at the player on every breach. It is
+// the harder fight for its health, its armor and the way it moves, not for hitting harder.
+//
+// The body is lower again. It is two hundred pixels long and takes a second to pour past a point,
+// and the bat's mercy window runs out twice in that, so one pass that is not dodged lands the head
+// and two plates.
+const val SAND_WYRM_HEAD_DAMAGE = 0.75f
+const val SAND_WYRM_BODY_DAMAGE = 0.3f
+
+// How much of a shot into one of its plates carries through to the head, which takes the whole of
+// what hits it. The plates are armor: at full weight a late run's spread lands every shot of its fan
+// on the body, a piercing shot lands on every plate it passes through, and the wyrm went down in
+// seconds - faster than the forest's Moth Queen against the same bat. At half, the head is worth
+// aiming for and the body is still worth hitting.
+const val SAND_WYRM_PLATE_SHARE = 0.5f
+
+// What its spit deals, as a share of the head's contact damage: an aimed bolt a little under a
+// third of the bat's bar and a ring bolt about a fifth, the Moth Queen's own.
+const val SAND_WYRM_SPIT_DAMAGE = 0.45f
+const val SAND_WYRM_RING_DAMAGE = 0.3f
+
+// The colorway of shot.png its spit is drawn in: molten gold, like the glow in its throat.
+const val SAND_WYRM_SHOT_VARIANT = 7
+
+// Its health bar, pinned under the stage timer rather than hung under the head: the head spends
+// half the fight under the sand, and a bar that went with it would go too.
+const val SAND_WYRM_BAR_WIDTH = 200
+const val SAND_WYRM_BAR_TOP = 25
+const val SAND_WYRM_BAR_HEIGHT = 4

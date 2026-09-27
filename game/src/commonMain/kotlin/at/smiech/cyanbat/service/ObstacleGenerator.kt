@@ -4,7 +4,8 @@ import at.smiech.cyanbat.resource.Stage
 import kotlin.random.Random
 
 /**
- * Drops a stalactite or stalagmite into the cave at random intervals.
+ * Drops a stalactite or stalagmite into the cave at random intervals - or whatever hangs from the
+ * top of the stage being flown and stands on its floor.
  *
  * Timed off the caller's fixed tick, as [EnemyGenerator] is, rather than off the wall clock. It
  * used to wait on a GlobalScope coroutine, whose countdown ran on while the game was paused and
@@ -27,12 +28,18 @@ class ObstacleGenerator(
         // Anywhere from one interval to two, the spread the old generator used.
         timeUntilNextObstacle = OBSTACLE_INTERVAL_SECONDS * (1f + random.nextFloat())
 
+        // A sheet drawn in several times of day holds each as a row of its own, so an obstacle is
+        // as tall as one row of it, not as the whole sheet.
+        val keyframes = stage.obstacleKeyframes
         var y = 0f
+        // A stage with an open sky has nothing to hang from the top, and a roll for the top places
+        // nothing at all rather than a second obstacle on the ground: the ground keeps the density
+        // every other stage has, and the sky is left clear.
         val obstaclePixmap = if (random.nextBoolean()) {
-            stage.topObstacles[random.nextInt(stage.topObstacles.size)]
+            stage.topObstacles.takeIf { it.isNotEmpty() }?.let { it[random.nextInt(it.size)] }
         } else {
             stage.bottomObstacles[random.nextInt(stage.bottomObstacles.size)]?.also {
-                y = worldHeight.toFloat() - it.height
+                y = worldHeight.toFloat() - it.height / keyframes
             }
         }
 
@@ -41,8 +48,9 @@ class ObstacleGenerator(
                 worldWidth.toFloat(),
                 y,
                 it.width.toFloat(),
-                it.height.toFloat(),
-                it
+                (it.height / keyframes).toFloat(),
+                it,
+                keyframed = keyframes > 1,
             )
         }
     }
