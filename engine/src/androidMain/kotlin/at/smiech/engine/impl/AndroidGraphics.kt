@@ -17,6 +17,7 @@ import at.smiech.engine.Pixmap
 import java.io.IOException
 import java.io.InputStream
 import kotlin.math.ceil
+import kotlin.math.roundToInt
 
 class AndroidGraphics(private var assets: AssetManager, private var frameBuffer: Bitmap) :
     Graphics {
@@ -36,6 +37,9 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
      */
     private val silhouettePaint = Paint().apply { isFilterBitmap = false }
     private var silhouetteRgb = 0
+
+    /** Paint for [drawPixmapFaded]: nothing but an alpha, and no filtering. */
+    private val fadePaint = Paint().apply { isFilterBitmap = false }
 
     override fun newPixmap(filename: String, format: PixmapFormat): Pixmap {
         val config: Bitmap.Config =
@@ -159,6 +163,37 @@ class AndroidGraphics(private var assets: AssetManager, private var frameBuffer:
         dstRect.right = x + dstWidth - 1
         dstRect.bottom = y + dstHeight - 1
         canvas.drawBitmap((pixmap as AndroidPixmap).bitmap!!, srcRect, dstRect, silhouettePaint)
+    }
+
+    override fun drawPixmapSilhouette(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int,
+        srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int, color: Int,
+        rotationDegrees: Float
+    ) = canvas.withRotation(rotationDegrees, x + dstWidth / 2f, y + dstHeight / 2f) {
+        drawPixmapSilhouette(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, color)
+    }
+
+    /**
+     * The plain blit through a paint carrying the alpha, with the same `- 1` edges. Nearest-neighbor
+     * is set on the paint for the reason [silhouettePaint] gives.
+     */
+    override fun drawPixmapFaded(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int,
+        srcWidth: Int, srcHeight: Int, alpha: Float
+    ) {
+        val steps = (alpha.coerceIn(0f, 1f) * 255f).roundToInt()
+        if (steps <= 0) return
+        fadePaint.alpha = steps
+
+        srcRect.left = srcX
+        srcRect.top = srcY
+        srcRect.right = srcX + srcWidth - 1
+        srcRect.bottom = srcY + srcHeight - 1
+        dstRect.left = x
+        dstRect.top = y
+        dstRect.right = x + srcWidth - 1
+        dstRect.bottom = y + srcHeight - 1
+        canvas.drawBitmap((pixmap as AndroidPixmap).bitmap!!, srcRect, dstRect, fadePaint)
     }
 
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) {

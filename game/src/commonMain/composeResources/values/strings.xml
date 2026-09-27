@@ -15,6 +15,8 @@
     <string name="stage_1_description">Five waves of imps in the dark, and the imp that leads them.</string>
     <string name="stage_2_name">Stage 2: The Forest</string>
     <string name="stage_2_description">Swarms, formations, shields and return fire. The Moth Queen waits at the end.</string>
+    <string name="stage_3_name">Stage 3: The Desert</string>
+    <string name="stage_3_description">Flown from noon into nightfall, with things leaping out of the sand. The Sand Wyrm rises after dark.</string>
     <string name="stage_locked">Clear the stage before it to unlock</string>
     <string name="stage_highscore">Highscore: %1$d</string>
 
@@ -22,7 +24,7 @@
     <!-- Controls differ per platform; Platform.kt picks the one to show above the rest. -->
     <string name="dialog_help_controls_touch">• Fly: drag CyanBat with your finger. A keyboard or controller works too.\n• Pause: swipe or press Back. Back again quits to the menu.</string>
     <string name="dialog_help_controls_desktop">• Fly: drag CyanBat with the mouse, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.</string>
-    <string name="dialog_help_text">• Shoot: CyanBat fires automatically. Shoot enemies and obstacles, and avoid touching them or their shots.\n• Health: every hit drains the bar under the bat. When it is empty, the run is over.\n• Score: points come from surviving and from kills. Kills in a row raise the multiplier (up to x8), and taking a hit resets it.\n• Stage up: kills earn experience. Each new stage lets you pick one of three power-ups.\n• Waves: a tougher wave arrives every minute. After five, the boss appears. Defeat it to clear the stage for a big bonus.\n• Stages: clearing the cave opens the forest, where enemies swarm, fly in formation, shoot back and hide behind shields. The first shot at a shield pops it. Each stage starts fresh: score, stage and power-ups begin again.</string>
+    <string name="dialog_help_text">• Shoot: CyanBat fires automatically. Shoot enemies and obstacles, and avoid touching them or their shots.\n• Health: every hit drains the bar under the bat. When it is empty, the run is over.\n• Score: points come from surviving and from kills. Kills in a row raise the multiplier (up to x8), and taking a hit resets it.\n• Level up: kills earn experience. Each new level lets you pick one of three power-ups.\n• Waves: a tougher wave arrives every minute. After five, the boss appears. Defeat it to clear the stage for a big bonus.\n• Stages: clearing the cave opens the forest, where enemies swarm, fly in formation, shoot back and hide behind shields. The first shot at a shield pops it. Clearing the forest opens the desert, flown from noon into night, where things leap out of the sand and scarab shells grow back if they are left alone. Each stage starts fresh: score, level and power-ups begin again.</string>
 
     <string name="settings_music_title">Music</string>
     <string name="settings_sound_title">Sounds</string>

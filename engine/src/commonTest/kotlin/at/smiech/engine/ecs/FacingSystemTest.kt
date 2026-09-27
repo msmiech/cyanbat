@@ -29,13 +29,14 @@ class FacingSystemTest {
         velocity: Vector2,
         x: Float = 100f,
         y: Float = 100f,
-        faces: Boolean = true
+        faces: Boolean = true,
+        artworkDegrees: Float = 0f,
     ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, 24f, 12f)))
         world.addComponent(id, VelocityComponent(velocity))
         world.addComponent(id, SpriteComponent(BlankPixmap()))
-        if (faces) world.addComponent(id, FacesVelocityComponent())
+        if (faces) world.addComponent(id, FacesVelocityComponent(artworkDegrees))
         return id
     }
 
@@ -132,5 +133,37 @@ class FacingSystemTest {
         tick()
 
         assertTrue(angleOf(id) > first, "the sprite did not follow the velocity down")
+    }
+
+    /** A hostile is drawn facing left, so flying left is its own orientation. */
+    @Test
+    fun `artwork facing left flies left unturned`() {
+        val id = spawn(Vector2(-2f, 0f), artworkDegrees = 180f)
+
+        tick()
+
+        assertEquals(0f, angleOf(id))
+    }
+
+    /**
+     * Something leaping up and to the left goes nose first: its left-facing head is turned up,
+     * which is clockwise, and never flipped upside down to point the way a right-facing sprite would.
+     */
+    @Test
+    fun `artwork facing left climbs nose first`() {
+        val id = spawn(Vector2(-2f, -2f), artworkDegrees = 180f)
+
+        tick()
+
+        assertEquals(45f, angleOf(id), 0.01f)
+    }
+
+    @Test
+    fun `artwork facing left comes down nose first`() {
+        val id = spawn(Vector2(-2f, 2f), artworkDegrees = 180f)
+
+        tick()
+
+        assertEquals(-45f, angleOf(id), 0.01f)
     }
 }

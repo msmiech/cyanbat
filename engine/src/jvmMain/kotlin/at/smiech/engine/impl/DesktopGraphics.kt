@@ -9,6 +9,7 @@ import java.awt.Font
 import java.awt.RenderingHints
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
+import kotlin.math.roundToInt
 
 /**
  * [Graphics] drawing into an offscreen [BufferedImage] framebuffer, mirroring the Android
@@ -177,6 +178,52 @@ class DesktopGraphics(
             srcX, srcY, srcX + srcWidth - 1, srcY + srcHeight - 1,
             null
         )
+        g2d.composite = restore
+    }
+
+    /** Turned the way the rotated [drawPixmap] is: on the canvas, about the center of the box. */
+    override fun drawPixmapSilhouette(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        color: Int,
+        rotationDegrees: Float,
+    ) {
+        val saved = g2d.transform
+        g2d.rotate(
+            Math.toRadians(rotationDegrees.toDouble()),
+            x + dstWidth / 2.0,
+            y + dstHeight / 2.0,
+        )
+        drawPixmapSilhouette(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, color)
+        g2d.transform = saved
+    }
+
+    /**
+     * An [AlphaComposite] over the plain blit, so the `- 1` edges come with it. The alpha is rounded
+     * to the 256 steps Android's paint takes, so the two backends blend by the same amount.
+     */
+    override fun drawPixmapFaded(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        alpha: Float,
+    ) {
+        val steps = (alpha.coerceIn(0f, 1f) * 255f).roundToInt()
+        if (steps <= 0) return
+        val restore = g2d.composite
+        g2d.composite = AlphaComposite.getInstance(AlphaComposite.SRC_OVER, steps / 255f)
+        drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight)
         g2d.composite = restore
     }
 

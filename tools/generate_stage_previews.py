@@ -89,9 +89,96 @@ def forest():
     return scene
 
 
+# The desert's sky is drawn by the game rather than painted, so its card draws it the way the game
+# does: bands of color blended between two of `Daylight`'s keyframes - these are its golden hour and
+# its sunset, zenith to horizon - with the sun going down behind the dunes. Keep them in step with
+# `Daylight.SKY` if that changes.
+GOLDEN_HOUR = ((0xD4, 0x9A, 0x6C), (0xEE, 0xAA, 0x66), (0xFA, 0xC0, 0x70), (0xFF, 0xD6, 0x86))
+SUNSET = ((0x84, 0x4A, 0x6E), (0xD6, 0x68, 0x5C), (0xF6, 0x8C, 0x4C), (0xFF, 0xB2, 0x54))
+SKY_STOPS = (0.0, 0.4, 0.75, 1.0)
+HORIZON = 236
+BAND = 3
+
+# The desert's scenery is drawn in four lights, stacked; the card is lit by the third, sunset.
+SUNSET_ROW = 2
+KEYFRAMES = 4
+
+
+def mix(a, b, t):
+    return tuple(round(x + (y - x) * t) for x, y in zip(a, b))
+
+
+def sky_color(height, toward_sunset):
+    stops = [mix(g, s, toward_sunset) for g, s in zip(GOLDEN_HOUR, SUNSET)]
+    for i in range(len(SKY_STOPS) - 1):
+        if height <= SKY_STOPS[i + 1] or i == len(SKY_STOPS) - 2:
+            t = (height - SKY_STOPS[i]) / (SKY_STOPS[i + 1] - SKY_STOPS[i])
+            return mix(stops[i], stops[i + 1], max(0.0, min(1.0, t)))
+
+
+def keyframe(name, row, x=0, width=None):
+    sheet = load(name)
+    height = sheet.height // KEYFRAMES
+    width = width or sheet.width
+    return sheet.crop((x, row * height, x + width, (row + 1) * height))
+
+
+def turned(sprite, clockwise):
+    """A sprite turned the way the game turns one: clockwise, about its center, nearest-neighbor."""
+    return sprite.rotate(-clockwise, resample=Image.NEAREST, expand=True)
+
+
+def desert():
+    scene = Image.new("RGBA", (WIDTH, HEIGHT))
+    draw = ImageDraw.Draw(scene)
+    for top in range(0, HEIGHT, BAND):
+        color = sky_color((top + BAND / 2) / HORIZON, 0.75)
+        draw.rectangle((0, top, WIDTH, top + BAND - 1), fill=color + (255,))
+
+    # The sun, low and swollen, inside the three rings of halo the game gives it.
+    sun_x, sun_y, radius = 372, 216, 19
+    sun = (255, 150, 72)
+    halo = Image.new("RGBA", scene.size, (0, 0, 0, 0))
+    halo_draw = ImageDraw.Draw(halo)
+    for ring, alpha in ((3.4, 0.1), (2.4, 0.16), (1.6, 0.26)):
+        r = radius * ring
+        halo_draw.ellipse((sun_x - r, sun_y - r, sun_x + r, sun_y + r), fill=sun + (round(255 * alpha * 0.95),))
+        scene.alpha_composite(halo)
+        halo = Image.new("RGBA", scene.size, (0, 0, 0, 0))
+        halo_draw = ImageDraw.Draw(halo)
+    draw.ellipse((sun_x - radius, sun_y - radius, sun_x + radius, sun_y + radius), fill=sun + (255,))
+    core = radius * 0.72
+    draw.ellipse((sun_x - core, sun_y - core, sun_x + core, sun_y + core), fill=mix(sun, (255, 255, 255), 0.55) + (255,))
+
+    for name, top, x in (("desertFar.png", 152, 120), ("desertMid.png", 214, 300), ("desertNear.png", 264, 700)):
+        scene.alpha_composite(keyframe(name, SUNSET_ROW, x, WIDTH), (0, top))
+
+    obelisk = keyframe("desertObstacle2.png", SUNSET_ROW)
+    scene.alpha_composite(obelisk, (318, HEIGHT - obelisk.height))
+    wall = keyframe("desertObstacle4.png", SUNSET_ROW)
+    scene.alpha_composite(wall, (24, HEIGHT - wall.height))
+
+    sheet = load("desertEnemies.png")
+    # A wyrmling leaping nose first out of the sand, a hawk over the top of its loop, a cloud of
+    # locusts, and a djinn throwing a fan of fire at the bat.
+    scene.alpha_composite(turned(enemy(sheet, 2, 1), 38), (236, 176))
+    scene.alpha_composite(turned(enemy(sheet, 1, 1), 150), (330, 56))
+    for i, (x, y) in enumerate(((388, 132), (410, 120), (404, 148), (430, 136), (426, 160), (448, 146))):
+        scene.alpha_composite(enemy(sheet, 0, i % 4), (x, y))
+    scene.alpha_composite(enemy(sheet, 3, 0), (286, 100))
+    # Its fan, flying left and spreading, as the game turns enemy fire to face where it goes.
+    bolt = frame(load("shot.png"), 24, 4).transpose(Image.FLIP_LEFT_RIGHT)
+    for x, y, tilt in ((244, 94, 14), (238, 110, 0), (244, 126, -14)):
+        scene.alpha_composite(turned(bolt, tilt), (x, y))
+    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1), (96, 140))
+    shot(scene, 0, 150, 154)
+    shot(scene, 0, 205, 154)
+    return scene
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, build in (("stage1_preview.png", cave), ("stage2_preview.png", forest)):
+    for name, build in (("stage1_preview.png", cave), ("stage2_preview.png", forest), ("stage3_preview.png", desert)):
         image = build().convert("RGB")
         image.save(OUT / name)
         print(f"{OUT / name} ({image.width}x{image.height})")

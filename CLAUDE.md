@@ -81,7 +81,8 @@ by device.
   (`WeaponSystem`, `TrailSystem`, `DeathSystem`, `CollisionSystem`).
 - **System order is load-bearing.** It is set, with a comment per placement, in `GameScreen`'s
   `init`; read it before adding a system.
-- Sprite rotation is cosmetic. Collision boxes always stay axis-aligned.
+- Sprite rotation is cosmetic. Collision boxes always stay axis-aligned. Hostile art faces left,
+  so something that turns to face its heading carries `FacesVelocityComponent(180f)`.
 
 **A run.** `GameScreen` is one run of one stage.
 - Pause, the level-up offer and "stage complete" are state inside it rather than separate
@@ -96,13 +97,34 @@ by device.
   `composeResources/values/strings.xml`.
 
 **Stage content is split four ways.**
-- `Stage` (registered in `GameAssets.load`) is how a stage looks and sounds.
+- `Stage` (registered in `GameAssets.load`) is how a stage looks and sounds. Its `Backdrop` is
+  either a `Strip` (the cave, the forest: one tiled image) or a `Nightfall` (the desert: a sky the
+  game draws, going from noon to night on the stage clock, over parallax bands of ground).
 - `StageDesign` is its waves and boss; `StageDesign.forStage` maps a stage id to its design.
 - `StageProgression` turns seconds elapsed into the current wave's stats, scaled up per stage.
 - `EnemyGenerator` owns only the clock and the dice, and spawns through `EntityFactory`.
 
-Adding a stage touches all four, plus new generators in `tools/`, a preview card, and the stage
-select's strings.
+Adding a stage touches all four, plus new generators in `tools/`, a preview card, the stage
+select's strings, and the recorder's `STAGE_FILES`.
+
+**The desert's day.** `Daylight` is a pure function of how far through its day the stage is -
+`Daylight.position`, elapsed time over the boss's arrival - and says what the sky, sun, moon and
+stars look like then. `NightfallSystem` draws it, first in the system order, and puts every entity
+carrying a `CrossfadeComponent` (the desert's obstacles) in the same light.
+- Scenery lit by the day is drawn once per `Daylight.KEYFRAMES` entry (noon, golden hour, sunset,
+  night), stacked top to bottom on its sheet, and crossfaded between neighbors with
+  `drawPixmapFaded`. A generator writes the shapes once as materials and each keyframe as a palette,
+  so the rows cannot drift apart.
+- The sun the player can see sets on the right, so the desert's scenery is lit from the right; the
+  night palettes turn that round, to the moon on the left.
+
+**Bosses with a body.** The Sand Wyrm is a head plus nine plates, each an entity, laid by
+`SandWyrmBrain` along the path the head has flown. Every part carries a `BossPartComponent`: a
+shot that hits a part lands on the head, which carries the health (a plate passes on only its
+`share` of it); the bat flying into it lands nothing. The brain holds the plates' ids for the whole fight, which is safe only because nothing
+else moves, culls or kills them; `GameScreen` removes them when the boss dies. Its health bar is
+pinned to the screen (`HealthBarComponent.pinnedTo`), because the head spends half the fight under
+the sand.
 
 **Player progression** is per run and never persisted:
 - `PlayerProgress` tracks experience and the bat's level.
@@ -178,7 +200,7 @@ set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
 
 ## Conventions
 
-- **"Stage" vs "level".** The cave and the forest are *stages*. "Level" only ever means the bat's
+- **"Stage" vs "level".** The cave, the forest and the desert are *stages*. "Level" only ever means the bat's
   experience level, which buys power-ups. Keep the two apart in code, comments and on-screen text.
   The cave enemies are drawn as imps, but some internal names still say drone
   (`BossKind.CAVE_DRONE`).

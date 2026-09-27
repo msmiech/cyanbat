@@ -3,12 +3,17 @@ package at.smiech.cyanbat.ui.game
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.ScoreTracker
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
+import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.GunComponent
+import at.smiech.cyanbat.ecs.NightfallSystem
 import at.smiech.cyanbat.ecs.ShotPattern
 import at.smiech.cyanbat.ecs.Volley
 import at.smiech.cyanbat.progress.PlayerLoadout
 import at.smiech.cyanbat.progress.PlayerProgress
 import at.smiech.cyanbat.progress.PowerUp
+import at.smiech.cyanbat.resource.Backdrop
+import at.smiech.cyanbat.scenery.Daylight
+import at.smiech.cyanbat.service.BossKind
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.StageProgression
@@ -227,6 +232,21 @@ class GameScreen(
         game.graphics?.let { g = it }
 
         // Setup Systems
+        // A sky that turns from day to night is the back of the picture, so it goes first: every
+        // system after it draws on top. Its update puts the obstacles in the same light on the same
+        // tick, and reads the stage clock as it stands after the tick before, which is where the
+        // generator leaves it.
+        val backdrop = currentStage.backdrop
+        if (backdrop is Backdrop.Nightfall) {
+            world.addSystem(
+                NightfallSystem(
+                    backdrop,
+                    game.frameBufferWidth,
+                    game.frameBufferHeight,
+                    dayPosition = { Daylight.position(enmGen.elapsedSeconds, progression.bossTimeSeconds) },
+                )
+            )
+        }
         world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight))
         // Before the movement it feeds: the gravity it adds this tick is the gravity this tick
         // moves by, rather than arriving one frame late.
@@ -266,8 +286,9 @@ class GameScreen(
         world.addSystem(HealthBarSystem(game.frameBufferHeight))
         world.addSystem(FloatingTextSystem())
 
-        // Add the primary background
-        factory.createBackground(0f, currentStage.background)
+        // A strip is the first tile of the scrolling scenery, which BackgroundScrollingSystem keeps
+        // topped up from here. A sky needs nothing laid down: its system draws it whole.
+        if (backdrop is Backdrop.Strip) factory.createBackground(0f, backdrop.pixmap)
 
         batId = factory.createBat(
             x = (game.frameBufferWidth / 3).toFloat(),
@@ -488,10 +509,11 @@ class GameScreen(
             val enemyDied = if (group1 == CollisionGroup.ENEMY) died1 else died2
             if (enemyDied) {
                 scoring.registerEnemyDestroyed()
-                // The boss is banked by completeStage, which knows it was the boss. Everything
-                // else is worth what its wave is worth.
+                // The boss is banked by completeStage, which knows it was the boss - and a part of
+                // its body going down is the boss going down. Everything else is worth what its
+                // wave is worth.
                 val enemyId = if (group1 == CollisionGroup.ENEMY) id1 else id2
-                if (enemyId != bossId) {
+                if (enemyId != bossId && !isBossPart(enemyId)) {
                     awardExperience(PlayerProgress.experienceForKill(enmGen.currentWave.index))
                 }
             }
@@ -593,9 +615,20 @@ class GameScreen(
             return false
         }
 
-        if (absorbedByShield(id, amount)) return false
+        // A shot that hits a part of a boss's body lands on the boss, and is shown - number and
+        // flash - on the part it hit, which is where the player was aiming. The bat flying into it
+        // lands nothing. The body sweeping over the bat is the boss's attack, and every tick of the
+        // overlap, part by part, would otherwise hand the boss a hit: one pass through the bat
+        // would cost it a third of its health. See [BossPartComponent].
+        val part = world.getComponent(id, BossPartComponent::class)
+        if (part != null && collisionGroupOf(dealtBy) != CollisionGroup.PLAYER_PROJECTILE) return false
+        val target = if (part != null) enmGen.bossId ?: return false else id
+        // A plate is armor and passes on only its share; see [BossPartComponent.share].
+        val landing = if (part != null) (amount * part.share).roundToInt().coerceAtLeast(1) else amount
 
-        val dealt = applyDamage(id, amount)
+        if (absorbedByShield(target, landing)) return false
+
+        val dealt = applyDamage(target, landing)
         if (dealt > 0 && collisionGroupOf(id) == CollisionGroup.ENEMY) {
             // Read off whatever landed the blow, not off the amount: a crit is a property of the
             // shot, and comparing the number against some threshold would call a heavily upgraded
@@ -604,12 +637,14 @@ class GameScreen(
             lightUp(id)
         }
 
-        val died = dealt > 0 && world.getComponent(id, HealthComponent::class)?.alive == false
+        val died = dealt > 0 && world.getComponent(target, HealthComponent::class)?.alive == false
         // What is left behind depends on what died; see [burst], which is also what decides that
         // most things leave nothing at all.
-        if (died) burst(id)
+        if (died) burst(target)
         return died
     }
+
+    private fun isBossPart(id: EntityId): Boolean = world.hasComponent(id, BossPartComponent::class)
 
     /**
      * Lets [id]'s shield take a hit of [amount], if it has one up, and says so over the enemy in
@@ -734,6 +769,7 @@ class GameScreen(
         stageCompleteArmingTime = STAGE_COMPLETE_ARMING_SECONDS
         finalStageSeconds = enmGen.elapsedSeconds
         overlayTaps.reset()
+        explodeBossBody()
         enmGen.clearBoss()
         scoring.awardStageCleared()
         // Banked even though the run ends here: the total is what the victory screen reports, and
@@ -751,12 +787,34 @@ class GameScreen(
         }
     }
 
+    /**
+     * A boss with a body goes up all along it, not only where the killing blow landed: every part
+     * bursts where it is and is taken off. Only its brain ever removed them, and the brain goes with
+     * the boss, so this is the one other place that does.
+     */
+    private fun explodeBossBody() {
+        for (part in world.query(BossPartComponent::class, TransformComponent::class)) {
+            // The boss itself went up where the killing blow landed, and the health cull takes it.
+            if (part == enmGen.bossId) continue
+            val rect = world.getComponent(part, TransformComponent::class)?.rect ?: continue
+            // Only the ones in sight: a part still under the sand has nothing to show for it.
+            if (rect.bottom > 0f && rect.top < game.frameBufferHeight) {
+                val blast = env.assets.graphics.explosion
+                factory.createExplosion(rect.centerX, rect.centerY, blast, rect.height / blast.height * BODY_BLAST_SCALE)
+            }
+            world.removeEntity(part)
+        }
+    }
+
     /** The stage after this one, or null when this is the last. */
     private val nextStageId: Int?
         get() = (currentStage.id + 1).takeIf { env.assets.hasStageAfter(currentStage.id) }
 
     /** What a boss with phases announces on entering phase [phase]. */
-    private fun bossPhaseBanner(phase: Int): String = if (phase >= 3) "QUEEN ENRAGED" else "SWARM CALLED"
+    private fun bossPhaseBanner(phase: Int): String = when (progression.design.boss) {
+        BossKind.SAND_WYRM -> if (phase >= 3) "WYRM ENRAGED" else "THE BROOD RISES"
+        else -> if (phase >= 3) "QUEEN ENRAGED" else "SWARM CALLED"
+    }
 
     /** Puts [text] up over the run for [WAVE_BANNER_SECONDS], replacing whatever was there. */
     private fun announce(text: String) {
@@ -1361,25 +1419,26 @@ class GameScreen(
      * The text HUD. Health is deliberately not part of it: it rides under the bat, where the
      * player is already looking. Nor is the highscore, which is a record to read between runs
      * rather than a number to watch during one - the end screens and the stage select show it.
+     *
+     * Every line of it is outlined. The cave and the forest are dark enough for plain cyan, but
+     * the desert flies under a bleached noon sky, where cyan on pale yellow all but disappears.
      */
     private fun drawStats() {
         g.apply {
-            drawString("Score: ${scoring.score}", 5, 20, 15, EngineColors.CYAN)
+            drawOutlinedString("Score: ${scoring.score}", 5, 20, 15, EngineColors.CYAN)
             // Always shown, even at x1: a multiplier the player only sees once they have
             // earned it is a mechanic they never learn exists.
             val multiplier = scoring.multiplier
             val comboColor = if (multiplier > 1) EngineColors.YELLOW else EngineColors.CYAN
-            drawString("Combo: x$multiplier", 5, 40, 15, comboColor)
+            drawOutlinedString("Combo: x$multiplier", 5, 40, 15, comboColor)
             // How far into the stage the player is, which is the only reading they get on how
             // much harder the next minute is about to be - and on how close the boss is.
-            drawString(waveLabel(), 5, 60, 15, EngineColors.CYAN)
+            drawOutlinedString(waveLabel(), 5, 60, 15, EngineColors.CYAN)
             // The other half of that race: how much stronger the bat has got while the cave was
             // getting harder. The bar across the top edge is the fine detail; this is the count,
             // in the top right corner the bar fills toward, kept the same 5px off the edge as the
-            // column on the left. Outlined, unlike that column, because the stalactites come in
-            // at this corner, and yellow on a pale stalactite does not read. Right-aligned by its
-            // measured width, because the face it comes out in, and so its width, varies by
-            // platform.
+            // column on the left. Right-aligned by its measured width, because the face it comes
+            // out in, and so its width, varies by platform.
             val level = "Level: ${progress.level}"
             drawOutlinedString(
                 level,
@@ -1401,9 +1460,13 @@ class GameScreen(
         else -> "Wave: ${enmGen.currentWave.index + 1}/${progression.bossWave}"
     }
 
-    /** The stage's name, across the middle of the frame for the opening seconds of the run. */
+    /**
+     * The stage's name, across the middle of the frame for the opening seconds of the run. Outlined
+     * like the banners, because the desert opens at noon, and yellow on its pale sky does not read.
+     */
     private fun drawStageName() {
-        drawCentered(currentStage.name, game.frameBufferHeight / 2, 30, EngineColors.YELLOW)
+        val name = currentStage.name
+        g.drawOutlinedString(name, centeredX(name, 30), game.frameBufferHeight / 2, 30, EngineColors.YELLOW)
     }
 
     /** Starts or resumes the stage theme, if music is enabled. */
@@ -1453,5 +1516,11 @@ class GameScreen(
         const val XP_BAR_EMPTY = 0x80000000.toInt()
 
         const val DEGREES_PER_RADIAN = 57.29578f
+
+        /**
+         * How big each part of a boss's body goes up, against the part itself. Under one: ten of
+         * them go off at once, and at full size they would be a single wall of fire.
+         */
+        const val BODY_BLAST_SCALE = 0.85f
     }
 }

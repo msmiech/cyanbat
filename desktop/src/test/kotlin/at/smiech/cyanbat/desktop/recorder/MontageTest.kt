@@ -88,6 +88,17 @@ class MontageTest {
         assertTrue(arrival.size >= (2f / frameSeconds).toInt())
     }
 
+    /** An hour like the desert's sunset, which none of the other clips would land on. */
+    @Test
+    fun `a stage whose look changes is shown at the hours asked for`() {
+        val withScenery = Montage.cut(run, frameSeconds, actionWave = 3, scenery = listOf(250f)).flatten()
+
+        val shown = withScenery.filter { run[it].seconds in 250f..252.4f }
+        assertTrue(shown.size >= (2f / frameSeconds).toInt(), "the sunset got ${shown.size} frames")
+        assertTrue(frames.none { run[it].seconds in 250f..252.4f }, "the sunset was shown without being asked for")
+        assertEquals(withScenery.sorted().distinct(), withScenery)
+    }
+
     @Test
     fun `the action is the busiest stretch of the most varied wave`() {
         val busy = run.indices.filter { run[it].enemies == 12 }

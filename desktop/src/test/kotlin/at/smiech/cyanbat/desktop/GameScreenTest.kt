@@ -5,18 +5,27 @@ import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.desktop.recorder.RunProbe
+import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.DAMAGE_PER_HIT
+import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
+import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Haptics
+import at.smiech.engine.ecs.CollisionComponent
+import at.smiech.engine.ecs.CollisionGroup
+import at.smiech.engine.ecs.EntityId
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.TransformComponent
+import at.smiech.engine.math.Rect
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlin.math.roundToInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -90,8 +99,107 @@ class GameScreenTest {
         }
     }
 
+    /**
+     * The Sand Wyrm's body is ten entities, and only its head carries health: a shot into a plate
+     * has to land on the head, or most of the fight's shots would be wasted - but only part of it,
+     * because the plates are armor and the head is the place to aim.
+     */
+    @Test
+    fun `a shot into a plate lands part of its damage on the wyrm, and into the head all of it`() = wyrmFight {
+        val world = probe.world
+        val health = world.getComponent(head, HealthComponent::class)!!
+
+        // The tail: the part with the most empty frame around it, so a shot at its middle meets
+        // nothing else of the body.
+        val tail = world.query(BossPartComponent::class).maxBy {
+            world.getComponent(it, CollisionComponent::class)!!.tolerance
+        }
+        val beforeTail = health.hitPoints
+        shootInto(world.getComponent(tail, TransformComponent::class)!!.rect.centerY, at = tail)
+        assertEquals((DAMAGE_PER_HIT * SAND_WYRM_PLATE_SHARE).roundToInt(), beforeTail - health.hitPoints)
+
+        // High on the head, clear of the plate that hangs below it.
+        val beforeHead = health.hitPoints
+        shootInto(world.getComponent(head, TransformComponent::class)!!.rect.top + 12f, at = head)
+        assertEquals(DAMAGE_PER_HIT, beforeHead - health.hitPoints)
+    }
+
+    /** One of the bat's shots, just short of [at]'s middle at the height [y], and a tick to land. */
+    private fun WyrmFight.shootInto(y: Float, at: EntityId? = null) {
+        val world = probe.world
+        val target = at ?: world.query(BossPartComponent::class).first { it != head }
+        val rect = world.getComponent(target, TransformComponent::class)!!.rect
+        val shot = assets.graphics.shot
+        EntityFactory(world).createShot(
+            x = rect.centerX - SHOT_FRAME_WIDTH,
+            y = y - shot.height / 2f,
+            width = SHOT_FRAME_WIDTH.toFloat(),
+            height = shot.height.toFloat(),
+            pixmap = shot,
+            isPlayer = true,
+        )
+        screen.update(TICK_INITIAL * 1.5f)
+    }
+
+    /**
+     * Its body sweeping through the bat is how it hits. Were the bat's own contact damage to land on
+     * it for every tick of the overlap, every blow the wyrm landed would cost it a slice of its bar.
+     */
+    @Test
+    fun `the bat flying into the Sand Wyrm hurts the bat and not the wyrm`() = wyrmFight {
+        val world = probe.world
+        val wyrm = world.getComponent(head, HealthComponent::class)!!
+        val bat = world.getComponent(probe.batId, HealthComponent::class)!!
+        val wyrmBefore = wyrm.hitPoints
+        val batBefore = bat.hitPoints
+        val batRect = world.getComponent(probe.batId, TransformComponent::class)!!.rect
+        world.getComponent(head, TransformComponent::class)!!.rect =
+            Rect.fromLTWH(batRect.left, batRect.top, batRect.width, batRect.height)
+
+        screen.update(TICK_INITIAL * 1.5f)
+
+        assertTrue(bat.hitPoints < batBefore, "the wyrm flew through the bat without hurting it")
+        assertEquals(wyrmBefore, wyrm.hitPoints, "the wyrm was hurt by landing a blow")
+    }
+
+    /** A desert run at its boss: the screen, what the probe reads of it, its assets, and the wyrm's head. */
+    private class WyrmFight(val screen: GameScreen, val probe: RunProbe, val assets: GameAssets, val head: EntityId)
+
+    /** A desert run straight at its boss, with the escort cleared away. */
+    private fun wyrmFight(test: WyrmFight.() -> Unit) {
+        val game = DesktopGame(480, 320)
+        val assets = GameAssets.load(game.graphics, game.audio)
+        val screen = GameScreen(
+            game,
+            CyanBatEnvironment(
+                assets = assets,
+                haptics = Haptics.None,
+                highscores = RecordingHighscores(),
+                stageUnlocks = StageUnlockStore.InMemory(),
+                onExitToMenu = {},
+                audioSettings = Silent,
+            ),
+            DESERT,
+        )
+        try {
+            val probe = RunProbe(screen)
+            screen.enmGen.update(StageProgression.forStage(DESERT).bossTimeSeconds)
+            val head = assertNotNull(screen.enmGen.bossId, "the wyrm should have arrived")
+            val world = probe.world
+            for (id in world.query(CollisionComponent::class)) {
+                val group = world.getComponent(id, CollisionComponent::class)?.group
+                if (group == CollisionGroup.ENEMY && !world.hasComponent(id, BossPartComponent::class)) world.removeEntity(id)
+            }
+            WyrmFight(screen, probe, assets, head).test()
+        } finally {
+            screen.dispose()
+            game.audio.dispose()
+        }
+    }
+
     private companion object {
         const val CAVE = 1
+        const val DESERT = 3
     }
 }
 

@@ -45,13 +45,13 @@ class MothQueenBrain(
     private val bossId: EntityId,
     private val onSummon: () -> Unit = {},
     private val onPhaseChanged: (Int) -> Unit = {},
-) {
+) : BossBrain {
     var phase = 1
         private set
 
     private var summonTimer = 0f
 
-    fun update(deltaTime: Float) {
+    override fun update(deltaTime: Float) {
         val health = world.getComponent(bossId, HealthComponent::class) ?: return
         if (!health.alive) return
 

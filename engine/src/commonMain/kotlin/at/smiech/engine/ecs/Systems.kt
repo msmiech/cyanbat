@@ -91,6 +91,32 @@ private const val FIGURE_EIGHT_Y = 64f
 private const val FIGURE_EIGHT_FREQUENCY = 0.7f
 private const val FIGURE_EIGHT_TRACKING = 0.06f
 
+/**
+ * A leap. Gravity is in pixels per tick, per second, like [DeathThroesComponent.gravity], and set so
+ * a leap from the sand to mid-frame and back takes about two and a half seconds - long enough to see
+ * it coming down. The apex is kept below [LEAP_HIGHEST_TOP] from the top of the frame, so a player
+ * hugging the ceiling is not simply out of reach, and above [LEAP_LEAST_RISE] from where it left,
+ * so a player hugging the ground still gets a leap rather than a hop. With no player to aim at it
+ * rises [LEAP_BLIND_RISE].
+ */
+private const val LEAP_GRAVITY = 4.8f
+private const val LEAP_HIGHEST_TOP = 48f
+private const val LEAP_LEAST_RISE = 70f
+private const val LEAP_BLIND_RISE = 150f
+private const val LEAP_FORWARD_FACTOR = 1.25f
+
+/**
+ * A loop: how much faster than its cruise it flies the circle, and how long one turn takes. At the
+ * forest's closing speeds that is a circle of about forty pixels' radius - big enough to read as a
+ * loop rather than a wobble, small enough to stay on screen from any lane.
+ */
+private const val LOOP_SPEED_FACTOR = 1.6f
+private const val LOOP_SECONDS = 1.8f
+private const val LOOP_LEAVE_FACTOR = 1.5f
+
+private const val PI_F = 3.1415927f
+private const val TWO_PI_F = 6.2831855f
+
 /** Stages of the patterns that have them; see [EnemyBehaviorComponent.state]. */
 private const val STAGE_APPROACH = 0
 private const val STAGE_HOLD = 1
@@ -190,7 +216,70 @@ class EnemyBehaviorSystem : GameSystem() {
                 EnemyMovementType.DIVE -> dive(transform, velocity, behavior)
                 EnemyMovementType.FORMATION -> formation(transform, velocity, behavior)
                 EnemyMovementType.BOSS_FIGURE_EIGHT -> figureEight(transform, velocity, behavior)
+                EnemyMovementType.LEAP -> leap(transform, velocity, behavior, deltaTime)
+                EnemyMovementType.LOOP -> loop(transform, velocity, behavior)
             }
+        }
+    }
+
+    private fun leap(
+        transform: TransformComponent,
+        velocity: VelocityComponent,
+        behavior: EnemyBehaviorComponent,
+        deltaTime: Float,
+    ) {
+        val rect = transform.rect
+        if (behavior.state == STAGE_APPROACH) {
+            if (rect.left > behavior.holdX) {
+                // Held to its lane rather than left to drift, so the back showing above the sand
+                // stays the same height all the way in: that sliver is the whole of the warning.
+                velocity.velocity = Vector2(behavior.baseSpeedX, (behavior.initialY - rect.top) * 0.2f)
+                return
+            }
+            enter(behavior, STAGE_COMMITTED)
+            velocity.velocity = Vector2(behavior.baseSpeedX * LEAP_FORWARD_FACTOR, launchSpeed(rect, deltaTime))
+            return
+        }
+        // Committed, and gravity's from here: nothing about the arc is steered.
+        velocity.velocity = velocity.velocity.copy(y = velocity.velocity.y + LEAP_GRAVITY * deltaTime)
+    }
+
+    /**
+     * The upward speed that tops out with the enemy's middle at the player's, under [LEAP_GRAVITY]
+     * applied once a tick. Worked out on the tick's own step rather than as a continuous throw,
+     * because that is how it will actually fly: a step at a time, each one a little slower.
+     */
+    private fun launchSpeed(rect: Rect, deltaTime: Float): Float {
+        val gravityPerTick = LEAP_GRAVITY * deltaTime
+        val wanted = if (targetY.isNaN()) LEAP_BLIND_RISE else rect.centerY - targetY
+        val rise = wanted.coerceIn(LEAP_LEAST_RISE, (rect.top - LEAP_HIGHEST_TOP).coerceAtLeast(LEAP_LEAST_RISE))
+        // A throw of v a tick, slowing by g a tick, climbs v + (v - g) + ... which comes to
+        // v²/2g + v/2. Solved for v.
+        val speed = -gravityPerTick / 2f + sqrt(gravityPerTick * gravityPerTick / 4f + 2f * gravityPerTick * rise)
+        return -speed
+    }
+
+    private fun loop(
+        transform: TransformComponent,
+        velocity: VelocityComponent,
+        behavior: EnemyBehaviorComponent,
+    ) {
+        val rect = transform.rect
+        when (behavior.state) {
+            STAGE_APPROACH -> if (rect.left <= behavior.holdX) enter(behavior, STAGE_HOLD)
+            STAGE_HOLD -> if (behavior.stateTime >= LOOP_SECONDS) enter(behavior, STAGE_COMMITTED)
+        }
+
+        velocity.velocity = when (behavior.state) {
+            STAGE_APPROACH -> Vector2(behavior.baseSpeedX, sin(behavior.elapsedTime * 2.5f + behavior.phase) * 0.3f)
+            STAGE_HOLD -> {
+                // Heading round from due left, climbing first: left, up, right along the top, down,
+                // and left again, so it comes out of the loop on the line it went in on.
+                val heading = PI_F + TWO_PI_F * behavior.stateTime / LOOP_SECONDS
+                val speed = -behavior.baseSpeedX * LOOP_SPEED_FACTOR
+                Vector2(speed * cos(heading), speed * sin(heading))
+            }
+            else -> Vector2(behavior.baseSpeedX * LOOP_LEAVE_FACTOR, 0f)
         }
     }
 
@@ -464,8 +553,20 @@ class FacingSystem : GameSystem() {
             // rather than snapping to zero - which for a bullet shape would be a visible flick.
             if (velocity.x == 0f && velocity.y == 0f) return@forEach
 
-            sprites.require(id).rotationDegrees = atan2(velocity.y, velocity.x) * DEGREES_PER_RADIAN
+            val heading = atan2(velocity.y, velocity.x) * DEGREES_PER_RADIAN
+            sprites.require(id).rotationDegrees = normalized(heading - facings.require(id).artworkDegrees)
         }
+    }
+
+    /**
+     * Into -180..180, so artwork that faces left and is flying left sits at zero, the same as any
+     * sprite that was never turned, rather than at a full turn that only draws the same.
+     */
+    private fun normalized(degrees: Float): Float {
+        var turned = degrees % 360f
+        if (turned > 180f) turned -= 360f
+        if (turned <= -180f) turned += 360f
+        return turned
     }
 
     private companion object {
@@ -519,6 +620,7 @@ class RenderSystem : GameSystem() {
     private lateinit var sprites: ComponentMapper<SpriteComponent>
     private lateinit var zIndices: ComponentMapper<ZIndexComponent>
     private lateinit var flashes: ComponentMapper<HitFlashComponent>
+    private lateinit var crossfades: ComponentMapper<CrossfadeComponent>
 
     /**
      * Draw order, rebuilt every frame into the same buffer.
@@ -536,6 +638,7 @@ class RenderSystem : GameSystem() {
         sprites = world.mapper(SpriteComponent::class)
         zIndices = world.mapper(ZIndexComponent::class)
         flashes = world.mapper(HitFlashComponent::class)
+        crossfades = world.mapper(CrossfadeComponent::class)
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
@@ -583,29 +686,49 @@ class RenderSystem : GameSystem() {
                     dstWidth, dstHeight,
                 )
 
-                else -> graphics.drawPixmap(
-                    sprite.pixmap, left, top,
-                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
-                )
+                else -> {
+                    graphics.drawPixmap(
+                        sprite.pixmap, left, top,
+                        sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                    )
+                    // Straight over its own sprite and nothing else, for the same reason the flash
+                    // below is drawn here: anything later in the order has to cover both pictures.
+                    val crossfade = crossfades[id]
+                    if (crossfade != null && crossfade.alpha > 0f) {
+                        graphics.drawPixmapFaded(
+                            sprite.pixmap, left, top,
+                            sprite.srcX, crossfade.srcY, sprite.srcWidth, sprite.srcHeight,
+                            crossfade.alpha,
+                        )
+                    }
+                }
             }
 
             // Straight over the frame just drawn, while this sprite is still the top of the
             // picture. That is the whole reason the flash is drawn here rather than in a system of
             // its own - see HitFlashSystem.
             //
-            // Drawn upright even when the sprite above it was turned: the only thing in the game
-            // that rotates is a projectile, and a projectile is spent by what it hits rather than
-            // hurt by it, so nothing that flashes also has an angle. Give something rotating a
-            // flash and this is the line that will need a rotated blit behind it.
+            // Turned with the sprite when the sprite is turned. For a long time only projectiles
+            // turned, and a projectile is spent by what it hits rather than hurt by it; now a boss
+            // whose body bends along its path does both, and an upright flash over a turned segment
+            // lights up a shape that is not there.
             val flash = flashes[id] ?: continue
             val strength = flash.strength
             if (strength <= 0f) continue
-            graphics.drawPixmapSilhouette(
-                sprite.pixmap, left, top,
-                sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
-                dstWidth, dstHeight,
-                EngineColors.scaleAlpha(flash.color, strength),
-            )
+            val color = EngineColors.scaleAlpha(flash.color, strength)
+            if (sprite.rotationDegrees != 0f) {
+                graphics.drawPixmapSilhouette(
+                    sprite.pixmap, left, top,
+                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                    dstWidth, dstHeight, color, sprite.rotationDegrees,
+                )
+            } else {
+                graphics.drawPixmapSilhouette(
+                    sprite.pixmap, left, top,
+                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                    dstWidth, dstHeight, color,
+                )
+            }
         }
     }
 }
@@ -849,13 +972,18 @@ class HealthBarSystem(private val worldHeight: Int) : GameSystem() {
     override fun draw(world: World, graphics: Graphics) {
         world.forEach(transforms, healths, bars) { id ->
             val bar = bars.require(id)
-            val rect = transforms.require(id).rect
-            val height = bar.height.toInt()
+            val pinned = bar.pinnedTo
+            val rect = pinned ?: transforms.require(id).rect
+            val height = (pinned?.height ?: bar.height).toInt()
             val width = rect.width.toInt()
             if (width <= 0 || height <= 0) return@forEach
 
             val x = rect.left.toInt()
-            val y = (rect.bottom + bar.offsetY).toInt().coerceAtMost(worldHeight - height)
+            val y = if (pinned != null) {
+                pinned.top.toInt()
+            } else {
+                (rect.bottom + bar.offsetY).toInt().coerceAtMost(worldHeight - height)
+            }
 
             graphics.drawRect(x, y, width, height, bar.emptyColor)
             val filled = (width * healths.require(id).fraction).roundToInt()

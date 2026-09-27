@@ -52,6 +52,32 @@ interface Graphics {
     fun drawPixmap(pixmap: Pixmap, x: Int, y: Int)
 
     /**
+     * The plain blit laid over whatever is already there at [alpha] of its opacity, where alpha runs
+     * 0..1, so what was drawn before still shows through.
+     *
+     * What a crossfade is made of. One picture drawn, and then another of the same shape over it at
+     * [alpha], lands exactly that far between the two - which is how a desert strip drawn in the
+     * palettes of several times of day turns from one into the next without a palette ever being
+     * computed at run time.
+     *
+     * A default rather than an abstract method, so a test double does not have to learn it: this
+     * shows the picture outright once it is at least half faded in, which is right at both ends and
+     * wrong in between. Both real backends override it with a true blend.
+     */
+    fun drawPixmapFaded(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        alpha: Float,
+    ) {
+        if (alpha >= 0.5f) drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight)
+    }
+
+    /**
      * The same blit stretched into a [dstWidth] by [dstHeight] box, nearest-neighbor on both
      * platforms so a magnified sprite stays pixel art instead of turning to mush.
      *
@@ -116,6 +142,27 @@ interface Graphics {
         dstHeight: Int,
         color: Int,
     )
+
+    /**
+     * [drawPixmapSilhouette] turned [rotationDegrees] clockwise about the center of its box, the way
+     * the rotated [drawPixmap] turns a sprite: a flash on a sprite that is itself drawn turned has
+     * to be turned with it, or it lights up a shape the sprite is not.
+     *
+     * Defaults to the upright silhouette, which is all a test double needs. Both backends turn it.
+     */
+    fun drawPixmapSilhouette(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        color: Int,
+        rotationDegrees: Float,
+    ) = drawPixmapSilhouette(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, color)
 
     fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
 

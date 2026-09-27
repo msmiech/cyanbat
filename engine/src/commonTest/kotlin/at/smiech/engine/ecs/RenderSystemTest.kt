@@ -27,12 +27,16 @@ private data class DrawnSprite(
     val rotationDegrees: Float = 0f,
 )
 
-/** One hit flash: whose silhouette was filled, and with what. */
-private data class DrawnFlash(val tag: String, val color: Int)
+/** One hit flash: whose silhouette was filled, with what, and turned how far. */
+private data class DrawnFlash(val tag: String, val color: Int, val rotationDegrees: Float = 0f)
+
+/** One faded blit: whose, from which row of its sheet, and how far faded in. */
+private data class DrawnFade(val tag: String, val srcY: Int, val alpha: Float)
 
 private class RecordingGraphics : Graphics {
     val sprites = mutableListOf<DrawnSprite>()
     val flashes = mutableListOf<DrawnFlash>()
+    val fades = mutableListOf<DrawnFade>()
     val drawn: List<String> get() = sprites.map { it.tag }
 
     /**
@@ -47,6 +51,24 @@ private class RecordingGraphics : Graphics {
         val tag = (pixmap as TaggedPixmap).tag
         flashes += DrawnFlash(tag, color)
         sprites += DrawnSprite("$tag:flash", dstWidth, dstHeight)
+    }
+
+    override fun drawPixmapSilhouette(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
+        dstWidth: Int, dstHeight: Int, color: Int, rotationDegrees: Float
+    ) {
+        val tag = (pixmap as TaggedPixmap).tag
+        flashes += DrawnFlash(tag, color, rotationDegrees)
+        sprites += DrawnSprite("$tag:flash", dstWidth, dstHeight, rotationDegrees)
+    }
+
+    override fun drawPixmapFaded(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
+        alpha: Float
+    ) {
+        val tag = (pixmap as TaggedPixmap).tag
+        fades += DrawnFade(tag, srcY, alpha)
+        sprites += DrawnSprite("$tag:fade", srcWidth, srcHeight)
     }
 
     override fun drawPixmap(
@@ -248,6 +270,44 @@ class RenderSystemTest {
         world.addComponent(lit, HitFlashComponent(duration = 0.1f, color = FLASH, remaining = 0f))
 
         assertContentEquals(listOf("enemy"), drawnOrder())
+    }
+
+    /**
+     * A segment of a boss whose body bends along its path is turned and can be hit. An upright
+     * flash over it would light up the shape it would have had unturned.
+     */
+    @Test
+    fun `a flash on a turned sprite is turned with it`() {
+        val lit = spawn("segment")
+        world.getComponent(lit, SpriteComponent::class)!!.rotationDegrees = 35f
+        world.addComponent(lit, HitFlashComponent(duration = 0.1f, color = FLASH))
+
+        val graphics = RecordingGraphics().also { world.draw(it) }
+
+        assertEquals(35f, graphics.flashes.single().rotationDegrees)
+    }
+
+    // --- crossfade -------------------------------------------------------------------
+
+    /** Straight over its own sprite, so anything layered above covers both pictures. */
+    @Test
+    fun `a crossfade lays the second row straight over its own sprite`() {
+        val rock = spawn("rock", zIndex = 5)
+        world.addComponent(rock, CrossfadeComponent(srcY = 30, alpha = 0.4f))
+        spawn("enemy", zIndex = 10)
+
+        val graphics = RecordingGraphics().also { world.draw(it) }
+
+        assertContentEquals(listOf("rock", "rock:fade", "enemy"), graphics.drawn)
+        assertEquals(DrawnFade("rock", 30, 0.4f), graphics.fades.single())
+    }
+
+    @Test
+    fun `a crossfade that has not begun draws nothing extra`() {
+        val rock = spawn("rock")
+        world.addComponent(rock, CrossfadeComponent(srcY = 30, alpha = 0f))
+
+        assertContentEquals(listOf("rock"), drawnOrder())
     }
 
     private companion object {
