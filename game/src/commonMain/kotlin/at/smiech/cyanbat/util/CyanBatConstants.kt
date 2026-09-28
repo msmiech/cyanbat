@@ -122,10 +122,10 @@ const val ENEMY_SPEED_PER_WAVE = 0.1f
 // What each wave draws from - the species mix - is part of a stage's design rather than its
 // difficulty, so it lives with the rest of the design in StageDesign.
 
-// The boss. Its health is a fight length: at one 34-damage shot a second, 1920 points is roughly
-// 25 seconds of landed hits, which leaves room to be driven off and come back without the fight
+// The boss. Its health is a fight length: at one 34-damage shot a second, 2560 points is roughly
+// 30 seconds of landed hits, which leaves room to be driven off and come back without the fight
 // resetting. Its contact damage is deliberately worse than anything else in the stage.
-const val BOSS_HIT_POINTS_PER_STAGE = 1920
+const val BOSS_HIT_POINTS_PER_STAGE = 2560
 const val BOSS_DAMAGE_PER_STAGE = 50
 
 // How much bigger the boss is drawn than the sprite sheet's enemies. Its collision box grows with
