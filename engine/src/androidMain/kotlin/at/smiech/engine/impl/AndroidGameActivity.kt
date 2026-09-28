@@ -27,6 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.core.graphics.createBitmap
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import at.smiech.engine.Audio
 import at.smiech.engine.DisplayMode
 import at.smiech.engine.Game
@@ -83,6 +86,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                 Color.TRANSPARENT, Color.TRANSPARENT
             )
         )
+        hideStatusBar()
 
         val frameBuffer = createBitmap(frameBufferWidth, frameBufferHeight, Bitmap.Config.RGB_565)
         val touchHandler = PointerTouchHandler()
@@ -184,6 +188,25 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         // than come back to a bat flying on a key nobody is pressing.
         controlHandler.releaseAll()
         currentScreen?.pause()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        // Before Android 11 a hidden status bar is a view flag, and the system clears it when the
+        // player leaves the window, so hide it again whenever focus comes back.
+        if (hasFocus) hideStatusBar()
+    }
+
+    /**
+     * Hides the status bar for the whole run, because its clock and icons sat over the HUD's top
+     * row. A swipe down from the top edge shows it for a moment, and then it hides again by
+     * itself. The navigation bar stays, because Back is how the player pauses.
+     */
+    private fun hideStatusBar() {
+        WindowCompat.getInsetsController(window, window.decorView).run {
+            systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            hide(WindowInsetsCompat.Type.statusBars())
+        }
     }
 
     /**
