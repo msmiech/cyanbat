@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.desktop.recorder
 
+import java.awt.image.IndexColorModel
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
 import javax.imageio.ImageIO
@@ -70,6 +71,33 @@ class GifEncoderTest {
         )
     }
 
+    /**
+     * The gameplay reel moves from one stage's palette to the next. A frame on another palette has
+     * to show in its colors, even where its indices are the same as the frame's before it.
+     */
+    @Test
+    fun `frames on another palette read back in its colors`() {
+        val other = IntArray(220) { 0xFFFFFF - it * 0x010203 }
+        val first = noise(4)
+        val nudged = first.copyOf().also { bump(it, 70, 30) }
+        val last = noise(5)
+        val bytes = ByteArrayOutputStream().also { out ->
+            GifEncoder(out, width, height, palette).apply {
+                addFrame(first, 4)
+                addFrame(first, 4, other)
+                addFrame(nudged, 4, other)
+                addFrame(last, 4, palette)
+                finish()
+            }
+        }.toByteArray()
+
+        val expected = listOf(first to palette, first to other, nudged to other, last to palette)
+            .map { (frame, colors) -> IntArray(frame.size) { colors[frame[it].toInt() and 0xFF] } }
+        val decoded = decodeColors(bytes)
+        assertEquals(expected.size, decoded.size)
+        expected.zip(decoded).forEach { (want, got) -> assertContentEquals(want, got) }
+    }
+
     private fun encode(frames: List<Pair<ByteArray, Int>>): ByteArray {
         val out = ByteArrayOutputStream()
         val gif = GifEncoder(out, width, height, palette)
@@ -102,6 +130,34 @@ class GifEncoderTest {
                 }
             }
             canvas.copyOf() to control.getAttribute("delayTime").toInt()
+        }
+    }
+
+    /** Every stored frame composited over the ones before it, as RGB, each in its own palette. */
+    private fun decodeColors(bytes: ByteArray): List<IntArray> {
+        val reader = ImageIO.getImageReadersByFormatName("gif").next()
+        reader.input = ImageIO.createImageInputStream(ByteArrayInputStream(bytes))
+        val canvas = IntArray(width * height)
+        return (0 until reader.getNumImages(true)).map { i ->
+            val image = reader.read(i)
+            val colors = image.colorModel as IndexColorModel
+            val metadata = reader.getImageMetadata(i)
+            val descriptor = child(metadata, "ImageDescriptor")
+            val control = child(metadata, "GraphicControlExtension")
+            val left = descriptor.getAttribute("imageLeftPosition").toInt()
+            val top = descriptor.getAttribute("imageTopPosition").toInt()
+            val transparent = if (control.getAttribute("transparentColorFlag") == "TRUE") {
+                control.getAttribute("transparentColorIndex").toInt()
+            } else {
+                -1
+            }
+            for (y in 0 until image.height) {
+                for (x in 0 until image.width) {
+                    val index = image.raster.getSample(x, y, 0)
+                    if (index != transparent) canvas[(top + y) * width + left + x] = colors.getRGB(index) and 0xFFFFFF
+                }
+            }
+            canvas.copyOf()
         }
     }
 

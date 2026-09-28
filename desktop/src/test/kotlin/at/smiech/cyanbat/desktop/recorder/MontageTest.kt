@@ -104,4 +104,41 @@ class MontageTest {
         val busy = run.indices.filter { run[it].enemies == 12 }
         assertTrue(busy.all { it in frames })
     }
+
+    /** The forest's share of the reel: its title, its busiest stretch and its boss arriving. */
+    @Test
+    fun `a stage shown in glimpses shows its boss arriving and nothing after`() {
+        val glimpses = Montage.cut(
+            run,
+            frameSeconds,
+            actionWave = 3,
+            coverage = Coverage(actionSeconds = 2.4f, arrivalSeconds = 1.6f),
+        ).flatten()
+
+        assertEquals(glimpses.sorted().distinct(), glimpses)
+        assertTrue(glimpses.none { run[it].offer || run[it].complete }, "a dialog or the overlay was shown")
+        val boss = glimpses.filter { run[it].bossSpawned }.map { run[it].seconds }
+        assertTrue(boss.isNotEmpty() && boss.all { it <= 301.6f + frameSeconds }, "the boss was shown at $boss")
+        assertTrue(glimpses.size < frames.size / 2, "${glimpses.size} frames of glimpses, ${frames.size} of the whole")
+    }
+
+    /** The desert's: its boss stays out of the footage, however far the tape runs. */
+    @Test
+    fun `a boss kept hidden never appears`() {
+        val teaser = Coverage(scenerySeconds = 2f)
+        val fromWhole = Montage.cut(run, frameSeconds, actionWave = 3, scenery = listOf(250f), coverage = teaser)
+            .flatten()
+        // The recorder stops the tape before such a boss arrives, so this is the tape it cuts.
+        val fromShort = Montage.cut(
+            run.takeWhile { !it.bossSpawned },
+            frameSeconds,
+            actionWave = 3,
+            scenery = listOf(250f),
+            coverage = teaser,
+        ).flatten()
+
+        assertEquals(fromWhole, fromShort)
+        assertTrue(fromWhole.none { run[it].bossSpawned || run[it].offer }, "the boss or a dialog was shown")
+        assertTrue(fromWhole.count { run[it].seconds in 250f..252f } >= (1.8f / frameSeconds).toInt(), "no sunset")
+    }
 }

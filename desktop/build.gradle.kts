@@ -14,7 +14,7 @@ sourceSets {
     // The same asset files the Android app packages; here they ride along as classpath resources.
     main { resources.srcDir(rootProject.file("assets")) }
 
-    // The recorder behind the README's gameplay GIFs; see recordGameplay below. Its own source
+    // The recorder behind the README's gameplay GIF; see recordGameplay below. Its own source
     // set, so none of it ships in the app, but built on the app's classes and classpath, so it
     // hosts the game exactly as the window does.
     val recorder = create("recorder") {
@@ -41,11 +41,12 @@ dependencies {
     implementation(libs.kotlinx.coroutines.swing)
 }
 
-// Flies both stages on an autopilot, headless and faster than real time, and writes a GIF of
-// each to docs/gameplay. Arguments pass through: --args="--stages=2 --frames=build/frames".
+// Flies every stage on an autopilot, headless and faster than real time, and writes one reel of
+// them to docs/gameplay.gif. Arguments pass through:
+// --args="--stages=2 --out=build/forest.gif --frames=build/frames".
 tasks.register<JavaExec>("recordGameplay") {
     group = "documentation"
-    description = "Records the README's gameplay GIFs by flying each stage on an autopilot."
+    description = "Records the README's gameplay GIF by flying each stage on an autopilot."
     classpath = sourceSets["recorder"].runtimeClasspath
     mainClass = "at.smiech.cyanbat.desktop.recorder.RecordGameplayKt"
     workingDir = rootDir

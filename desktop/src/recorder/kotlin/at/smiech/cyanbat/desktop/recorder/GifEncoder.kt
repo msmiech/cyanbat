@@ -6,10 +6,9 @@ import java.io.OutputStream
 /**
  * Writes an animated, endlessly looping GIF of palette-indexed frames.
  *
- * Written by hand rather than through ImageIO because that is where the file size goes. All frames
- * share one global palette, so none carries a color table of its own. A frame identical to the one
- * before it is not stored at all - the one before it is shown for longer - and every other frame
- * after the first is stored as only the rectangle that changed.
+ * Written by hand rather than through ImageIO because that is where the file size goes. A frame
+ * identical to the one before it is not stored at all - the one before it is shown for longer - and
+ * every other frame after the first is stored as only the rectangle that changed.
  *
  * Inside that rectangle, pixels that did not change can be left transparent, so the frame beneath
  * shows through. That is a large saving over a still overlay and a loss over the scrolling scenery,
@@ -17,27 +16,32 @@ import java.io.OutputStream
  * compression feeds on. So each frame is compressed a few ways - every unchanged pixel transparent,
  * only long runs of them, none - and whichever comes out smallest is the one written.
  *
+ * Frames index the palette the encoder is made with, which is written once, as the file's global
+ * color table, unless they are handed one of their own. A frame on another palette carries it as a
+ * color table of its own. That costs 768 bytes a frame, but a reel of several stages would otherwise
+ * squeeze every stage's colors into one palette, and each stage fills one by itself.
+ *
  * @param palette RGB colors, at most [MAX_COLORS]. The index after the last one is transparency.
  */
 class GifEncoder(
     private val out: OutputStream,
     private val width: Int,
     private val height: Int,
-    palette: IntArray,
+    private val palette: IntArray,
 ) {
-    private val transparent = palette.size.toByte()
-
     /** The last frame handed in, held back until the next one says how long it stays up. */
     private var pending: ByteArray? = null
+    private var pendingPalette = palette
     private var pendingDelay = 0
 
     /** What the viewer is looking at before [pending] is drawn over it, or null for nothing. */
     private var shown: ByteArray? = null
+    private var shownPalette = palette
 
     private val lzw = LzwEncoder()
 
     init {
-        require(palette.size <= MAX_COLORS) { "At most $MAX_COLORS colors, one index is transparency" }
+        requireFits(palette)
         out.write("GIF89a".toByteArray(Charsets.US_ASCII))
         writeShort(width)
         writeShort(height)
@@ -45,28 +49,28 @@ class GifEncoder(
         out.write(0xF7)
         out.write(0) // background color index
         out.write(0) // no aspect ratio
-        for (i in 0 until TABLE_SIZE) {
-            val rgb = if (i < palette.size) palette[i] else 0
-            out.write(rgb shr 16 and 0xFF)
-            out.write(rgb shr 8 and 0xFF)
-            out.write(rgb and 0xFF)
-        }
+        writeColorTable(palette)
         // NETSCAPE2.0: loop forever.
         out.write(byteArrayOf(0x21, 0xFF.toByte(), 0x0B))
         out.write("NETSCAPE2.0".toByteArray(Charsets.US_ASCII))
         out.write(byteArrayOf(0x03, 0x01, 0x00, 0x00, 0x00))
     }
 
-    /** Adds a whole frame of palette indices, shown for [delayCentiseconds]. */
-    fun addFrame(pixels: ByteArray, delayCentiseconds: Int) {
+    /**
+     * Adds a whole frame of indices into [palette], shown for [delayCentiseconds]. Frames on the
+     * same palette are expected to hand in the same array, which is how a change of palette is told.
+     */
+    fun addFrame(pixels: ByteArray, delayCentiseconds: Int, palette: IntArray = this.palette) {
         require(pixels.size == width * height)
+        requireFits(palette)
         val previous = pending
-        if (previous != null && previous.contentEquals(pixels)) {
+        if (previous != null && pendingPalette === palette && previous.contentEquals(pixels)) {
             pendingDelay += delayCentiseconds
             return
         }
         flushPending()
         pending = pixels.copyOf()
+        pendingPalette = palette
         pendingDelay = delayCentiseconds
     }
 
@@ -80,12 +84,15 @@ class GifEncoder(
     private fun flushPending() {
         val frame = pending ?: return
         val base = shown
-        if (base == null) {
+        // An index means another color on another palette, so a frame that changes palettes cannot
+        // be told apart from the one before it by its indices; it is written whole.
+        if (base == null || pendingPalette !== shownPalette) {
             writeFrame(0, 0, width, height, pendingDelay, useTransparency = false, lzw.encode(frame))
         } else {
             writeChanges(frame, base)
         }
         shown = frame
+        shownPalette = pendingPalette
         pending = null
     }
 
@@ -110,6 +117,7 @@ class GifEncoder(
         val boxWidth = right - left + 1
         val boxHeight = bottom - top + 1
 
+        val transparent = pendingPalette.size.toByte()
         var best: ByteArray? = null
         var bestTransparent = false
         for (minRun in TRANSPARENT_RUNS) {
@@ -156,7 +164,7 @@ class GifEncoder(
         out.write(byteArrayOf(0x21, 0xF9.toByte(), 0x04))
         out.write((1 shl 2) or (if (useTransparency) 1 else 0))
         writeShort(delay)
-        out.write(if (useTransparency) transparent.toInt() and 0xFF else 0)
+        out.write(if (useTransparency) pendingPalette.size else 0)
         out.write(0)
 
         out.write(0x2C)
@@ -164,15 +172,33 @@ class GifEncoder(
         writeShort(top)
         writeShort(frameWidth)
         writeShort(frameHeight)
-        out.write(0) // no local color table, not interlaced
+        if (pendingPalette === palette) {
+            out.write(0) // no local color table, not interlaced
+        } else {
+            out.write(0x87) // a 256-entry local color table (size field 7), not interlaced
+            writeColorTable(pendingPalette)
+        }
 
         out.write(imageData)
+    }
+
+    /** [colors] padded out to a full 256-entry table, as three bytes each. */
+    private fun writeColorTable(colors: IntArray) {
+        for (i in 0 until TABLE_SIZE) {
+            val rgb = if (i < colors.size) colors[i] else 0
+            out.write(rgb shr 16 and 0xFF)
+            out.write(rgb shr 8 and 0xFF)
+            out.write(rgb and 0xFF)
+        }
     }
 
     private fun writeShort(value: Int) {
         out.write(value and 0xFF)
         out.write(value shr 8 and 0xFF)
     }
+
+    private fun requireFits(colors: IntArray) =
+        require(colors.size <= MAX_COLORS) { "At most $MAX_COLORS colors, one index is transparency" }
 
     companion object {
         /** Real colors a palette may hold; the 256th index is spent on transparency. */
