@@ -47,11 +47,6 @@ class ScoreTracker(
      */
     private var remainder: Float = 0f
 
-    /** Surviving is worth something on its own; this is the original score. */
-    fun awardSurvivalTick() {
-        award(1)
-    }
-
     /** Extends the streak first, so a kill scores at the multiplier it just earned. */
     fun registerEnemyDestroyed() {
         hitStreak++

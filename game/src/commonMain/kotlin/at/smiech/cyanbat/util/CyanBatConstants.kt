@@ -249,7 +249,7 @@ const val MOTH_QUEEN_FAN_DAMAGE = 0.45f
 // What a kill is worth, scaled by the wave it came from so that pressing on beats farming the
 // opening minute, where enemies die to a single shot.
 const val XP_PER_KILL = 10
-const val XP_PER_KILL_PER_WAVE = 5
+const val XP_PER_KILL_PER_WAVE = 6
 
 // Killing the stage's boss, which is worth roughly a late level on its own.
 const val XP_PER_BOSS = 250

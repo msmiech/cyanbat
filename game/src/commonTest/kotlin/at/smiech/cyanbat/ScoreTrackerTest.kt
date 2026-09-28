@@ -21,13 +21,6 @@ class ScoreTrackerTest {
     }
 
     @Test
-    fun `surviving still scores a point per tick`() {
-        val scoring = tracker()
-        repeat(5) { scoring.awardSurvivalTick() }
-        assertEquals(5, scoring.score)
-    }
-
-    @Test
     fun `a kill pays the base rate while the streak is short`() {
         val scoring = tracker()
         scoring.registerEnemyDestroyed()
@@ -97,7 +90,6 @@ class ScoreTrackerTest {
     fun `reset clears the run`() {
         val scoring = tracker()
         repeat(4) { scoring.registerEnemyDestroyed() }
-        repeat(4) { scoring.awardSurvivalTick() }
 
         scoring.reset()
 
@@ -132,43 +124,6 @@ class ScoreTrackerTest {
         }.score
 
         assertEquals(plain * 2, boosted)
-    }
-
-    /**
-     * The one that would be easy to get wrong. Surviving pays a single point a tick, so a ten
-     * percent bonus on it is a tenth of a point: rounded per award it would vanish every time and
-     * the power-up would do nothing at all on the largest source of score in the game.
-     */
-    @Test
-    fun `a bonus smaller than a point still pays over time`() {
-        val scoring = ScoreTracker()
-        scoring.bonusMultiplier = 1.1f
-
-        repeat(1_000) { scoring.awardSurvivalTick() }
-
-        assertEquals(1_100, scoring.score)
-    }
-
-    @Test
-    fun `no bonus leaves the score exactly as it was`() {
-        val scoring = ScoreTracker()
-
-        repeat(1_000) { scoring.awardSurvivalTick() }
-
-        assertEquals(1_000, scoring.score, "an unmodified run must score what it always did")
-    }
-
-    @Test
-    fun `reset drops the part-earned point along with the score`() {
-        val scoring = ScoreTracker()
-        scoring.bonusMultiplier = 1.5f
-        scoring.awardSurvivalTick()
-
-        scoring.reset()
-        scoring.bonusMultiplier = 1f
-        scoring.awardSurvivalTick()
-
-        assertEquals(1, scoring.score, "a carried remainder survived the reset")
     }
 
     // endregion

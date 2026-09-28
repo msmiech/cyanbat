@@ -62,7 +62,7 @@ class RunProbeTest {
             }
 
             assertEquals(true, probe.world.getComponent(probe.batId, HealthComponent::class)?.alive)
-            assertTrue(probe.score > 0, "surviving scores from the first tick")
+            assertEquals(probe.score, 0, "surviving scores from the first tick")
             assertEquals(1, probe.level)
             assertTrue(probe.offer.isEmpty())
             assertFalse(probe.stageComplete)
