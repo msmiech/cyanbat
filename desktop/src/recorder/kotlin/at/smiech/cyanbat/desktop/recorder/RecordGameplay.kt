@@ -35,10 +35,13 @@ import kotlin.math.roundToLong
 import kotlin.system.exitProcess
 
 /**
- * Records the README's gameplay GIFs: flies each stage from its opening seconds to its boss on the
- * [Autopilot], and cuts the run down to a short clip of each part of it.
+ * Records the README's gameplay GIF: flies each stage on the [Autopilot], cuts each run down to a
+ * few short clips, and strings the stages together into one reel, in play order.
  *
  *     ./gradlew :desktop:recordGameplay
+ *
+ * The reel gives away less of each stage than of the one before, so it shows what the game is
+ * without playing through it for anyone; [STAGE_COVERAGE] says how much.
  *
  * Everything on screen is the game's own: the run is a [GameScreen] in a [DesktopGame], driven by
  * the shared [GameLoop] and drawn by the desktop graphics into its 480x320 framebuffer, which is
@@ -48,17 +51,21 @@ import kotlin.system.exitProcess
  * Runs are not repeatable, since the game rolls its spawns on an unseeded Random, so each recording
  * is a different flight; and the autopilot can lose, in which case the stage is simply flown again.
  *
- * Options: `--out=DIR` (default docs/gameplay), `--stages=1,2,3`, `--attempts=N`, `--ticks-per-frame=N`
- * for the GIF's frame rate, `--frames=DIR` to also write every clip frame as a PNG for a look, and
- * `--dry-run` to fly and report without recording.
+ * Options: `--out=FILE` (default docs/gameplay.gif), `--stages=1,2,3`, `--attempts=N`,
+ * `--ticks-per-frame=N` for the GIF's frame rate, `--frames=DIR` to also write every frame of the
+ * reel as a PNG for a look, and `--dry-run` to fly and report without recording.
  */
 fun main(args: Array<String>) {
     val options = Options.parse(args)
+    val reel = mutableListOf<Footage>()
     val failed = runBlocking(Dispatchers.Main) {
-        options.stages.filterNot { record(it, options) }
+        options.stages.filterNot { film(it, options, reel) }
     }
-    if (failed.isNotEmpty()) {
-        System.err.println("No recording for stage(s) ${failed.joinToString()}: the autopilot never cleared them")
+    when {
+        // A reel missing a stage would quietly replace a whole one, so there is none.
+        failed.isNotEmpty() ->
+            System.err.println("No reel written: the autopilot never got through stage(s) ${failed.joinToString()}")
+        !options.dryRun -> write(reel, options)
     }
     // The run's coroutines and the Swing event thread would otherwise keep the JVM up.
     exitProcess(if (failed.isEmpty()) 0 else 1)
@@ -90,11 +97,21 @@ private const val OUTRO_SECONDS = 2.6f
 /** A stage still running this long is not going to be won; its boss arrives at five minutes. */
 private const val GIVE_UP_SECONDS = 540f
 
-/** The most hits a win may take and still be the one recorded; see [record]. */
+/** The most hits a run may take and still be the one recorded; see [film]. */
 private const val CLEAN_HITS = 2
 
-/** Stage ids and the names their GIFs are written under. */
-private val STAGE_FILES = mapOf(1 to "cave", 2 to "forest", 3 to "desert")
+/**
+ * The stages in the reel, in play order, and how much of each it shows: less of each than of the
+ * one before, so a player who has watched it still has most of the game to find. The cave is shown
+ * whole, from its title to its boss going down. The forest gets three glimpses: its title, its
+ * busiest stretch and the Moth Queen arriving. The desert gets two, its title at noon and the sun
+ * going down, and its boss is never shown: the Sand Wyrm is left for the player to find.
+ */
+private val STAGE_COVERAGE = mapOf(
+    1 to Coverage.WHOLE,
+    2 to Coverage(actionSeconds = 2.4f, arrivalSeconds = 1.6f),
+    3 to Coverage(scenerySeconds = 2.0f),
+)
 
 private class Options(
     val out: File,
@@ -112,9 +129,13 @@ private class Options(
                 require(arg.startsWith("--")) { "Unknown argument $arg" }
                 arg.removePrefix("--").substringBefore('=') to arg.substringAfter('=', "")
             }
+            val stages = values["stages"]?.split(',')?.map { it.trim().toInt() } ?: STAGE_COVERAGE.keys.toList()
+            require(stages.all { it in STAGE_COVERAGE }) {
+                "The reel has no place for stage(s) ${(stages - STAGE_COVERAGE.keys).joinToString()}"
+            }
             return Options(
-                out = File(values["out"]?.takeIf { it.isNotEmpty() } ?: "docs/gameplay"),
-                stages = values["stages"]?.split(',')?.map { it.trim().toInt() } ?: STAGE_FILES.keys.toList(),
+                out = File(values["out"]?.takeIf { it.isNotEmpty() } ?: "docs/gameplay.gif"),
+                stages = stages,
                 attempts = values["attempts"]?.toInt() ?: 8,
                 ticksPerFrame = values["ticks-per-frame"]?.toInt() ?: DEFAULT_TICKS_PER_FRAME,
                 frames = values["frames"]?.let(::File),
@@ -125,26 +146,36 @@ private class Options(
 }
 
 /**
- * Flies [stageId] until a run wins cleanly, then writes its GIF. False if every attempt was lost.
+ * One stage's part of the reel: its clips, back to back, as indices into a palette of its own.
+ *
+ * Each stage gets its own because each fills one by itself - the cave's, the forest's and the
+ * desert's colors have little in common - and one palette cut down to hold all three would show.
+ */
+private class Footage(val palette: Palette, val frames: List<ByteArray>)
+
+/**
+ * Flies [stageId] until a run gets cleanly as far as its footage needs, then cuts that footage and
+ * adds it to [reel]. False if every attempt fell short.
  *
  * Clean means taking no more than [CLEAN_HITS] hits: the footage is there to show the game, and a
- * bat that keeps getting clipped mostly shows the autopilot. When no win is that clean, the
+ * bat that keeps getting clipped mostly shows the autopilot. When no run is that clean, the
  * cleanest one is used. A dry run records nothing and flies every attempt, as a measure of how
- * often the autopilot wins.
+ * often the autopilot gets through.
  */
-private suspend fun record(stageId: Int, options: Options): Boolean {
-    var won = false
+private suspend fun film(stageId: Int, options: Options, reel: MutableList<Footage>): Boolean {
+    val coverage = STAGE_COVERAGE.getValue(stageId)
+    var reached = false
     var best: Result? = null
     var bestTape: Tape? = null
     var scenery = emptyList<Float>()
     for (attempt in 1..options.attempts) {
-        val flight = Flight(stageId, options.ticksPerFrame, capture = !options.dryRun)
+        val flight = Flight(stageId, coverage, options.ticksPerFrame, capture = !options.dryRun)
         scenery = flight.scenery
         val result = flight.fly()
         println("Stage $stageId, attempt $attempt: $result")
-        won = won || result.won
+        reached = reached || result.reached
         val tape = flight.tape ?: continue
-        if (result.won && (best == null || result.hits < best.hits)) {
+        if (result.reached && (best == null || result.hits < best.hits)) {
             bestTape?.close()
             best = result
             bestTape = tape
@@ -153,62 +184,85 @@ private suspend fun record(stageId: Int, options: Options): Boolean {
             tape.close()
         }
     }
-    val tape = bestTape ?: return won
+    val tape = bestTape ?: return reached
     try {
-        write(stageId, tape, options, scenery)
+        reel += cut(stageId, coverage, tape, options, scenery)
     } finally {
         tape.close()
     }
     return true
 }
 
-private fun write(stageId: Int, tape: Tape, options: Options, scenery: List<Float>) {
-    val name = STAGE_FILES[stageId] ?: "stage$stageId"
+private fun cut(stageId: Int, coverage: Coverage, tape: Tape, options: Options, scenery: List<Float>): Footage {
     // The wave with the widest mix of enemies, where the stage shows the most of itself at once.
     val actionWave = StageDesign.forStage(stageId).waves.withIndex().maxBy { it.value.species.size }.index
-    val clips = Montage.cut(tape.moments, options.frameSeconds, actionWave, scenery)
+    val clips = Montage.cut(tape.moments, options.frameSeconds, actionWave, scenery, coverage)
     val frames = clips.flatten()
-    println(
-        "  clips " + clips.joinToString { "%.1f-%.1fs".format(tape.moments[it.first()].seconds, tape.moments[it.last()].seconds) } +
-            " of the stage clock, ${frames.size} frames"
-    )
 
     val builder = Palette.Builder()
     for (i in frames) builder.add(tape.pixels(i))
     val palette = builder.build()
+    println(
+        "  clips " + clips.joinToString { "%.1f-%.1fs".format(tape.moments[it.first()].seconds, tape.moments[it.last()].seconds) } +
+            " of the stage clock, ${frames.size} frames, ${palette.colors.size} colors"
+    )
+    return Footage(palette, frames.map { palette.indicesOf(tape.pixels(it)) })
+}
 
-    options.out.mkdirs()
-    val file = File(options.out, "$name.gif")
+private fun write(reel: List<Footage>, options: Options) {
+    val file = options.out
+    file.absoluteFile.parentFile.mkdirs()
     // GIF delays are whole centiseconds. Rounding the running total rather than each frame keeps
-    // the clip at the game's own speed on average, whatever the frame length.
+    // the reel at the game's own speed on average, whatever the frame length.
     val frameCentiseconds = options.frameSeconds * 100f
+    var n = 0
     file.outputStream().buffered().use { out ->
-        val gif = GifEncoder(out, FRAME_WIDTH, FRAME_HEIGHT, palette.colors)
-        frames.forEachIndexed { n, i ->
-            val delay = ((n + 1) * frameCentiseconds).roundToInt() - (n * frameCentiseconds).roundToInt()
-            gif.addFrame(palette.indicesOf(tape.pixels(i)), delay)
+        val gif = GifEncoder(out, FRAME_WIDTH, FRAME_HEIGHT, reel.first().palette.colors)
+        for (footage in reel) {
+            for (frame in footage.frames) {
+                val delay = ((n + 1) * frameCentiseconds).roundToInt() - (n * frameCentiseconds).roundToInt()
+                gif.addFrame(frame, delay, footage.palette.colors)
+                n++
+            }
         }
         gif.finish()
     }
-    println("  wrote ${file.path}: ${file.length() / 1024} KB, ${palette.colors.size} colors")
+    println("Wrote ${file.path}: ${file.length() / 1024} KB, $n frames, %.1fs".format(n * options.frameSeconds))
 
     options.frames?.let { dir ->
-        val stageDir = File(dir, name).apply { mkdirs() }
+        dir.mkdirs()
         val image = BufferedImage(FRAME_WIDTH, FRAME_HEIGHT, BufferedImage.TYPE_INT_RGB)
-        frames.forEachIndexed { n, i ->
-            image.setRGB(0, 0, FRAME_WIDTH, FRAME_HEIGHT, tape.pixels(i), 0, FRAME_WIDTH)
-            ImageIO.write(image, "png", File(stageDir, "%04d.png".format(n)))
+        var written = 0
+        for (footage in reel) {
+            val colors = footage.palette.colors
+            for (frame in footage.frames) {
+                // In the colors the GIF shows, which are the frame's own unless its palette overflowed.
+                val pixels = IntArray(frame.size) { colors[frame[it].toInt() and 0xFF] }
+                image.setRGB(0, 0, FRAME_WIDTH, FRAME_HEIGHT, pixels, 0, FRAME_WIDTH)
+                ImageIO.write(image, "png", File(dir, "%04d.png".format(written++)))
+            }
         }
     }
 }
 
-private class Result(val won: Boolean, val seconds: Float, val level: Int, val score: Int, val hits: Int, val reason: String) {
-    override fun toString() =
-        "${if (won) "won" else "lost ($reason)"} at %.1fs, level $level, score $score, $hits hits taken".format(seconds)
+/**
+ * How a flight ended. [reached] is whether it got as far as its stage's footage needs, which for a
+ * stage not shown whole is short of winning it.
+ */
+private class Result(
+    val reached: Boolean,
+    val seconds: Float,
+    val level: Int,
+    val score: Int,
+    val hits: Int,
+    val outcome: String,
+) {
+    override fun toString() = "$outcome at %.1fs, level $level, score $score, $hits hits taken".format(seconds)
 }
 
 /**
- * One run of one stage, from a fresh [GameScreen] to the boss going down or the bat doing so.
+ * One run of one stage, from a fresh [GameScreen] to as far as the stage's [coverage] needs - the
+ * boss going down, its arrival, or the last moment before it - or to the bat going down first.
  *
  * The host is the desktop's own [DesktopGame], so the frames are drawn exactly as the game window
  * draws them; only its surroundings are stand-ins. Scores and unlocks go nowhere, so recording
@@ -217,7 +271,12 @@ private class Result(val won: Boolean, val seconds: Float, val level: Int, val s
  * The loop steps a tick at a time and the autopilot steers before every step, the way a player's
  * hand is on the stick for every frame; every [ticksPerFrame]th step is recorded.
  */
-private class Flight(stageId: Int, private val ticksPerFrame: Int, capture: Boolean) {
+private class Flight(
+    stageId: Int,
+    private val coverage: Coverage,
+    private val ticksPerFrame: Int,
+    capture: Boolean,
+) {
     private val controls = ControlHandler()
     private val game = DesktopGame(FRAME_WIDTH, FRAME_HEIGHT, controls)
     private val assets = GameAssets.load(game.graphics, game.audio)
@@ -264,10 +323,13 @@ private class Flight(stageId: Int, private val ticksPerFrame: Int, capture: Bool
         var clock = STEP_NANOS
         loop.frame(clock) // the first frame only starts the loop's clock
 
-        val outroFrames = (OUTRO_SECONDS / (TICK_INITIAL * ticksPerFrame)).roundToInt()
+        val frameSeconds = TICK_INITIAL * ticksPerFrame
+        val outroFrames = (OUTRO_SECONDS / frameSeconds).roundToInt()
         var completeFrames = 0
         var health = batHealth()
         var hits = 0
+        var bossArrivedAt = -1f
+        val enmGen = screen.enmGen
 
         try {
             while (true) {
@@ -286,17 +348,26 @@ private class Flight(stageId: Int, private val ticksPerFrame: Int, capture: Bool
                     }
                 }
 
+                // A boss the footage keeps hidden is never taped, not even the frame it arrives on.
+                if (enmGen.bossSpawned && !coverage.showsBoss) return result(true, hits, "flown to the boss")
+
                 val now = batHealth()
                 val hit = now < health
                 if (hit) hits++
                 health = now
                 tape?.add((game.frameBuffer.raster.dataBuffer as DataBufferInt).data, moment(hit, landed))
                 landed = null
+                if (enmGen.bossSpawned && bossArrivedAt < 0f) bossArrivedAt = enmGen.elapsedSeconds
 
                 when {
                     game.currentScreen !== screen || now <= 0f -> return result(false, hits, "shot down")
-                    probe.stageComplete && ++completeFrames >= outroFrames -> return result(true, hits, "")
-                    screen.enmGen.elapsedSeconds > GIVE_UP_SECONDS -> return result(false, hits, "out of time")
+                    probe.stageComplete && ++completeFrames >= outroFrames -> return result(true, hits, "won")
+                    // A frame past the arrival clip, on the stage clock, which stops for dialogs just
+                    // as the clip's own count of frames skips them.
+                    !coverage.finale && bossArrivedAt >= 0f &&
+                        enmGen.elapsedSeconds - bossArrivedAt > coverage.arrivalSeconds + frameSeconds ->
+                        return result(true, hits, "flown through the boss's arrival")
+                    enmGen.elapsedSeconds > GIVE_UP_SECONDS -> return result(false, hits, "out of time")
                 }
             }
         } finally {
@@ -327,8 +398,8 @@ private class Flight(stageId: Int, private val ticksPerFrame: Int, capture: Bool
         }
     }
 
-    private fun result(won: Boolean, hits: Int, reason: String) =
-        Result(won, screen.enmGen.elapsedSeconds, probe.level, probe.score, hits, reason)
+    private fun result(reached: Boolean, hits: Int, outcome: String) =
+        Result(reached, screen.enmGen.elapsedSeconds, probe.level, probe.score, hits, outcome)
 
     private fun batHealth(): Float {
         val health = probe.world.getComponent(probe.batId, HealthComponent::class) ?: return 0f

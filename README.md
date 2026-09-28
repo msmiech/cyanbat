@@ -5,12 +5,10 @@ arcade staples like *Flappy Bird*. It runs on **Android** and on the **desktop**
 and Linux) from a single shared codebase.
 
 <p align="center">
-  <img src="docs/gameplay/cave.gif" width="32%" alt="Stage 1, the cave: the bat picks Spread Shot at a level up, fans its fire through a wave of imps, and brings down the crimson boss">
-  <img src="docs/gameplay/forest.gif" width="32%" alt="Stage 2, the forest: wasp swarms, shielded beetles and diving owls, then the Moth Queen and her rings of fire">
-  <img src="docs/gameplay/desert.gif" width="32%" alt="Stage 3, the desert: locust clouds and looping hawks under a noon sun that sets as the waves go by, then the Sand Wyrm breaching out of the dunes under the stars">
+  <img src="docs/gameplay.gif" alt="Stage 1, the cave: the bat fans its fire through a wave of imps, picks Spread Shot at a level up and brings down the Caco Imp. Then glimpses of stage 2, the forest, with its wasp swarms and shielded beetles, up to the moment the Moth Queen arrives, and of stage 3, the desert, at noon and as the sun goes down">
 </p>
 <p align="center">
-  <sub><b>The Cave</b>, <b>The Forest</b> and <b>The Desert</b>, start to boss, from real runs of the game; see <a href="#-gameplay-footage">how they are recorded</a>.</sub>
+  <sub><b>The Cave</b> from start to boss, then glimpses of <b>The Forest</b> and <b>The Desert</b>, from real runs of the game; see <a href="#-gameplay-footage">how it is recorded</a>.</sub>
 </p>
 
 ## 🚀 Architecture
@@ -108,20 +106,23 @@ Elsewhere they are skipped, which spares Linux and Windows builds the Kotlin/Nat
 
 ## 🎬 Gameplay footage
 
-The GIFs at the top of this page are recorded rather than staged:
+The GIF at the top of this page is recorded rather than staged:
 
 ```bash
 ./gradlew :desktop:recordGameplay
 ```
 
-This flies each stage from its opening seconds to its boss on an autopilot — a virtual game pad
-that reads the run's world and dodges whatever is coming — through the desktop build's own
-renderer, headless and faster than real time. Each run is then cut down to the stage's title, a
-level up, its busiest wave and the boss fight, and written to `docs/gameplay/`. Every recording is
-a different run, because the game rolls its spawns fresh each time, and a run the autopilot loses
-is flown again. Re-record after changing anything that shows on screen.
-`--args="--stages=3 --frames=build/frames"` records just the desert and also writes its frames out
-as PNGs to look through.
+This flies each stage on an autopilot — a virtual game pad that reads the run's world and dodges
+whatever is coming — through the desktop build's own renderer, headless and faster than real time.
+Each run is then cut down to a few short clips, and the stages are strung together into one reel,
+`docs/gameplay.gif`. Each stage gives away less than the one before, so the footage leaves the
+later stages to be discovered: the cave from its title through a level up and its busiest wave to
+the boss going down; the forest in glimpses, up to the moment its boss arrives; the desert in fewer
+still, and never its boss. Every recording is a different run, because the game rolls its spawns
+fresh each time, and a run the autopilot loses is flown again. Re-record after changing anything
+that shows on screen. `--args="--stages=3 --out=build/desert.gif --frames=build/frames"` records
+just the desert's part, away from the README's copy, and also writes its frames out as PNGs to look
+through.
 
 ## 📦 Cutting a release
 

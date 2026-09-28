@@ -1,10 +1,11 @@
 package at.smiech.cyanbat.desktop.recorder
 
 /**
- * The colors of one clip as a single GIF palette, and the lookup that maps its frames onto it.
+ * The colors of one stage's footage as a single GIF palette, and the lookup that maps its frames
+ * onto it.
  *
- * Exact whenever the clip has few enough colors, which pixel art usually does: each background is a
- * dozen colors. What pushes a clip over is blending - the dimmed overlays, the fading wake and damage
+ * Exact whenever the footage has few enough colors, which pixel art usually does: each background is
+ * a dozen colors. What pushes it over is blending - the dimmed overlays, the fading wake and damage
  * numbers - and then the palette is cut down by median cut, weighted by how often each color is
  * used, and every color maps to its nearest entry. Never dithered: dither is noise, and noise is
  * what a pixel-art GIF can least afford, to the eye and in bytes.
