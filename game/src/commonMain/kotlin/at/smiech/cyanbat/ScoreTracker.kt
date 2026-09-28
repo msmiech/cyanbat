@@ -2,15 +2,14 @@ package at.smiech.cyanbat
 
 import at.smiech.cyanbat.util.HITS_PER_MULTIPLIER_STEP
 import at.smiech.cyanbat.util.STAGE_COMPLETE_BONUS
-import at.smiech.cyanbat.util.MAX_SCORE_MULTIPLIER
 import at.smiech.cyanbat.util.POINTS_PER_HIT
 
 /**
  * Scoring for a single run.
  *
- * Three sources: a point for every tick survived, a bonus for every enemy destroyed, and a lump
- * sum for clearing the stage. The kill bonus scales with an unbroken run of kills, so the reward
- * for pressing forward is losing the streak the moment the bat is hit.
+ * Two sources: a bonus for every enemy destroyed, and a lump sum for clearing the stage. The kill
+ * bonus scales with an unbroken run of kills, so the reward for pressing forward is losing the
+ * streak the moment the bat is hit.
  *
  * Kept apart from the game screen because it is the one part of scoring worth testing on its
  * own - the screen itself needs a live Game and asset set.
@@ -18,7 +17,6 @@ import at.smiech.cyanbat.util.POINTS_PER_HIT
 class ScoreTracker(
     private val pointsPerHit: Int = POINTS_PER_HIT,
     private val hitsPerMultiplierStep: Int = HITS_PER_MULTIPLIER_STEP,
-    private val maxMultiplier: Int = MAX_SCORE_MULTIPLIER,
     private val stageCompleteBonus: Int = STAGE_COMPLETE_BONUS,
 ) {
     var score: Int = 0
@@ -28,9 +26,13 @@ class ScoreTracker(
     var hitStreak: Int = 0
         private set
 
-    /** One step per [hitsPerMultiplierStep] unbroken kills, capped so it cannot run away. */
+    /**
+     * One step per [hitsPerMultiplierStep] unbroken kills, with no ceiling. A long streak is the
+     * hardest thing in the game to keep, and a number that stops climbing is a reason to stop
+     * caring about it.
+     */
     val multiplier: Int
-        get() = (1 + hitStreak / hitsPerMultiplierStep).coerceAtMost(maxMultiplier)
+        get() = 1 + hitStreak / hitsPerMultiplierStep
 
     /**
      * Everything scored is multiplied by this, for the power-ups that pay in points. Set by the
@@ -41,9 +43,9 @@ class ScoreTracker(
     /**
      * Points earned but too small to bank yet.
      *
-     * Surviving pays a single point a tick, so a ten percent bonus on it is a tenth of a point:
-     * rounded per award it would vanish every time and the power-up would do nothing at all on the
-     * largest source of score in the game. Carrying the remainder is what makes it pay.
+     * A bonus of a few percent on a kill comes to a fraction of a point, and rounded away on every
+     * award it would add up to less than the power-up promised. Carrying the remainder is what
+     * makes it pay in full.
      */
     private var remainder: Float = 0f
 
@@ -59,18 +61,23 @@ class ScoreTracker(
     }
 
     /**
-     * The stage's boss is down. Worth roughly three minutes of surviving on its own, so that
-     * pushing on to the boss beats farming the early waves for survival ticks.
+     * The stage's boss is down. Worth two hundred kills at the base rate on its own, so that pushing
+     * on to the boss beats farming the early waves.
      */
     fun awardStageCleared() {
         award(stageCompleteBonus)
     }
 
-    /** Banks [points] at the run's [bonusMultiplier], keeping what is left over for next time. */
+    /**
+     * Banks [points] at the run's [bonusMultiplier], keeping what is left over for next time.
+     *
+     * Held at the largest score there is rather than wrapping round to a negative one. No run comes
+     * near it, but with the multiplier uncapped nothing but the length of a streak says so.
+     */
     private fun award(points: Int) {
         val earned = points * bonusMultiplier + remainder
         val banked = earned.toInt()
-        score += banked
+        score = (score.toLong() + banked).coerceAtMost(Int.MAX_VALUE.toLong()).toInt()
         remainder = earned - banked
     }
 

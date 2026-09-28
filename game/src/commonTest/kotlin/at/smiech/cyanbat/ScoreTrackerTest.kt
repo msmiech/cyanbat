@@ -9,7 +9,6 @@ class ScoreTrackerTest {
     private fun tracker() = ScoreTracker(
         pointsPerHit = 10,
         hitsPerMultiplierStep = 3,
-        maxMultiplier = 4,
     )
 
     @Test
@@ -54,10 +53,18 @@ class ScoreTrackerTest {
     }
 
     @Test
-    fun `the multiplier is capped`() {
+    fun `the multiplier has no ceiling`() {
         val scoring = tracker()
-        repeat(100) { scoring.registerEnemyDestroyed() }
-        assertEquals(4, scoring.multiplier)
+        repeat(300) { scoring.registerEnemyDestroyed() }
+        assertEquals(101, scoring.multiplier)
+    }
+
+    /** Nowhere near reachable in play, but with no cap nothing but the length of a streak says so. */
+    @Test
+    fun `the score stops at the largest there is rather than wrapping round`() {
+        val scoring = ScoreTracker(pointsPerHit = Int.MAX_VALUE / 2, hitsPerMultiplierStep = 3)
+        repeat(3) { scoring.registerEnemyDestroyed() }
+        assertEquals(Int.MAX_VALUE, scoring.score)
     }
 
     @Test
@@ -110,7 +117,7 @@ class ScoreTrackerTest {
         repeat(3) { scoring.registerEnemyDestroyed() }
         assertEquals(2, scoring.multiplier, "three kills should be the first step")
         repeat(100) { scoring.registerEnemyDestroyed() }
-        assertEquals(8, scoring.multiplier, "and it should cap at eight")
+        assertEquals(35, scoring.multiplier, "and it should keep climbing, past where it used to stop at eight")
     }
 
     // region the Bounty Hunter bonus

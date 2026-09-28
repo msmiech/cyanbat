@@ -42,9 +42,8 @@ class GameScreenTest {
 
     /**
      * The boss goes down partway through a tick's collision pass, and the score moves on after
-     * that: the kill itself is counted once the pass has hurt both sides, and the tick still pays
-     * for being survived. A record banked as the boss died came out below the score the victory
-     * overlay shows it beside.
+     * that: the kill itself is counted once the pass has hurt both sides. A record banked as the
+     * boss died came out below the score the victory overlay shows it beside.
      */
     @Test
     fun `a stage won on a record banks the score the overlay shows`() {

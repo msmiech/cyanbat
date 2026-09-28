@@ -131,6 +131,9 @@ class GameScreen(
 
     private val scoring = ScoreTracker()
 
+    /** The burning combo readout in the HUD; see [ComboMeter]. */
+    private val comboMeter = ComboMeter()
+
     /** The highscore of the stage being flown, raised to this run's score whenever it is banked. */
     var highscore: Int = 0
     var tick = TICK_INITIAL
@@ -979,8 +982,9 @@ class GameScreen(
         while (tickTime > tick) {
             tickTime -= tick
             world.update(tick, game.input)
-
             regenerate(tick)
+            // After the world, so a kill or a hit in this tick's collisions shows on this tick.
+            comboMeter.update(tick, scoring.hitStreak, scoring.multiplier)
 
             // The stage clock is the fixed tick, not the wall clock: a paused game is a paused
             // stage, and a slow frame costs the player no ground on the wave they are in.
@@ -991,11 +995,11 @@ class GameScreen(
 
             // The score of a won stage is banked here, once the tick that won it has resolved,
             // rather than as the boss goes down. That happens partway through the collision pass,
-            // and the score still moves after it: the kill itself is counted, so is any later kill
-            // in the same pass, and the tick pays for being survived. The overlay shows the record
-            // and the score side by side, where a record lower than the score beside it reads as a
-            // bug. The frame's remaining ticks are dropped: from the next frame the world stops
-            // ticking under the overlay, and they would only move the score on again.
+            // and the score still moves after it: the kill itself is counted, and so is any later
+            // kill in the same pass. The overlay shows the record and the score side by side, where
+            // a record lower than the score beside it reads as a bug. The frame's remaining ticks
+            // are dropped: from the next frame the world stops ticking under the overlay, and they
+            // would only move the score on again.
             if (stageComplete) {
                 saveHighscore()
                 break
@@ -1430,16 +1434,16 @@ class GameScreen(
      * the desert flies under a bleached noon sky, where cyan on pale yellow all but disappears.
      */
     private fun drawStats() {
+        // Always shown, even at x1: a multiplier the player only sees once they have earned it is
+        // a mechanic they never learn exists. Drawn first, because its fire reaches up behind the
+        // lines above it, and last in the column, because the hotter it burns the bigger its count
+        // grows, and down there it grows into nothing else.
+        comboMeter.draw(g, 5, COMBO_BASELINE)
         g.apply {
             drawOutlinedString("Score: ${scoring.score}", 5, 20, 15, EngineColors.CYAN)
-            // Always shown, even at x1: a multiplier the player only sees once they have
-            // earned it is a mechanic they never learn exists.
-            val multiplier = scoring.multiplier
-            val comboColor = if (multiplier > 1) EngineColors.YELLOW else EngineColors.CYAN
-            drawOutlinedString("Combo: x$multiplier", 5, 40, 15, comboColor)
             // How far into the stage the player is, which is the only reading they get on how
             // much harder the next minute is about to be - and on how close the boss is.
-            drawOutlinedString(waveLabel(), 5, 60, 15, EngineColors.CYAN)
+            drawOutlinedString(waveLabel(), 5, 40, 15, EngineColors.CYAN)
             // The other half of that race: how much stronger the bat has got while the cave was
             // getting harder. The bar across the top edge is the fine detail; this is the count,
             // in the top right corner the bar fills toward, kept the same 5px off the edge as the
@@ -1526,6 +1530,13 @@ class GameScreen(
 
         /** The unfilled part of the experience bar. */
         const val XP_BAR_EMPTY = 0x80000000.toInt()
+
+        /**
+         * The combo readout's line, under the score and the wave. Further below the wave than the
+         * wave is below the score, because the count swells upward as the streak climbs and it
+         * needs the room to do it without touching the line above.
+         */
+        const val COMBO_BASELINE = 66
 
         const val DEGREES_PER_RADIAN = 57.29578f
 

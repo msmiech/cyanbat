@@ -25,15 +25,45 @@ const val RESUME_ARMING_SECONDS = 0.35f
 // that lift is not them asking to leave.
 const val GAME_OVER_ARMING_SECONDS = 0.8f
 
-// Scoring. Surviving pays 1 point per tick (~52/second), so a kill at the base rate is worth
-// about a second of survival and a maxed-out streak roughly eight.
+// Scoring. Only kills score, and every unbroken run of 3 steps the multiplier up by one, with no
+// ceiling: a streak of thirty kills pays x11 a kill, and one of a hundred x34.
 //
 // The step is 3 because that is what play actually supports: watching a run, a life tends to
 // yield two or three kills before the bat is clipped. At five the multiplier essentially never
 // appeared. Raise it to make combos rarer.
 const val POINTS_PER_HIT = 50
 const val HITS_PER_MULTIPLIER_STEP = 3
-const val MAX_SCORE_MULTIPLIER = 8
+
+// The combo readout; see ComboMeter and ComboHeat. Its title is drawn at the HUD's size, and its
+// count grows from there by COMBO_COUNT_GROWTH a doubling of the multiplier, up to
+// COMBO_COUNT_MAX_SIZE, which is as big as it gets without crowding the wave readout above it.
+const val COMBO_FONT_SIZE = 15
+const val COMBO_COUNT_GROWTH = 3f
+const val COMBO_COUNT_MAX_SIZE = 25
+
+// How much of a step's pop the count swells by at its start, and the title on a new rung. The pop
+// eases back over COMBO_POP_SECONDS: long enough to catch the eye, over before the next kill.
+const val COMBO_POP_SECONDS = 0.35f
+const val COMBO_POP_GROWTH = 0.5f
+const val COMBO_TITLE_POP_GROWTH = 0.3f
+
+// The fire on it, as the heat it is stoked to along the tops of the letters; its flames stand about
+// as many cells tall as their heat, a cell two pixels square. The least fire is what the first step
+// gets, so it is visibly alight; the most is what SUPERNOVA gets, and reaches up past the wave
+// readout without swallowing the score.
+const val COMBO_FLAME_MIN_HEAT = 4
+const val COMBO_FLAME_MAX_HEAT = 11
+const val COMBO_MIN_FLAME_STRENGTH = 0.2f
+
+// A step flares the fire by COMBO_FLARE_HEAT, a kill by COMBO_KILL_FLARE of that, and either dies
+// back over COMBO_FLARE_SECONDS.
+const val COMBO_FLARE_HEAT = 5f
+const val COMBO_KILL_FLARE = 0.4f
+const val COMBO_FLARE_SECONDS = 0.5f
+
+// Past the last named rung the fire cycles through every color on the ladder and back, this many
+// times a second at SUPERNOVA's multiplier, and as many again for every doubling of it.
+const val COMBO_SUPERNOVA_CYCLES_PER_SECOND = 0.35f
 
 // Health. The bat used to have three lives, so one hit cost a third of everything it had; a third
 // of a 100 point bar is 34, which keeps the run exactly as survivable as it was - three hits and
