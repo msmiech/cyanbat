@@ -71,7 +71,7 @@ data class StageDesign(
                 WaveDesign(listOf(WEAVER, STRIKER)),        // the boss escort
             ),
             boss = BossKind.CAVE_DRONE,
-            bossName = "FINAL BOSS",
+            bossName = "THE CACO IMP",
         )
 
         /**
