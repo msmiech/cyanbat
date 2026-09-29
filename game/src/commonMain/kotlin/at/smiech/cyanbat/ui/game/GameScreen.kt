@@ -16,8 +16,8 @@ import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.service.BossKind
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
-import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.service.ObstacleGenerator
+import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.util.AURA_SURGE_VOLUME
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_COUNT
@@ -32,7 +32,6 @@ import at.smiech.cyanbat.util.DEATH_TERMINAL_VELOCITY
 import at.smiech.cyanbat.util.HIT_FLASH_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
-import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.POWER_UP_ARMING_SECONDS
@@ -45,6 +44,7 @@ import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.SHOT_VOLUME
 import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
+import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
@@ -130,6 +130,9 @@ class GameScreen(
     private val batId: EntityId
 
     private val scoring = ScoreTracker()
+
+    /** The burning combo readout in the HUD; see [ComboMeter]. */
+    private val comboMeter = ComboMeter()
 
     /** The highscore of the stage being flown, raised to this run's score whenever it is banked. */
     var highscore: Int = 0
@@ -243,7 +246,12 @@ class GameScreen(
                     backdrop,
                     game.frameBufferWidth,
                     game.frameBufferHeight,
-                    dayPosition = { Daylight.position(enmGen.elapsedSeconds, progression.bossTimeSeconds) },
+                    dayPosition = {
+                        Daylight.position(
+                            enmGen.elapsedSeconds,
+                            progression.bossTimeSeconds
+                        )
+                    },
                 )
             )
         }
@@ -624,7 +632,8 @@ class GameScreen(
         if (part != null && collisionGroupOf(dealtBy) != CollisionGroup.PLAYER_PROJECTILE) return false
         val target = if (part != null) enmGen.bossId ?: return false else id
         // A plate is armor and passes on only its share; see [BossPartComponent.share].
-        val landing = if (part != null) (amount * part.share).roundToInt().coerceAtLeast(1) else amount
+        val landing =
+            if (part != null) (amount * part.share).roundToInt().coerceAtLeast(1) else amount
 
         if (absorbedByShield(target, landing)) return false
 
@@ -800,7 +809,12 @@ class GameScreen(
             // Only the ones in sight: a part still under the sand has nothing to show for it.
             if (rect.bottom > 0f && rect.top < game.frameBufferHeight) {
                 val blast = env.assets.graphics.explosion
-                factory.createExplosion(rect.centerX, rect.centerY, blast, rect.height / blast.height * BODY_BLAST_SCALE)
+                factory.createExplosion(
+                    rect.centerX,
+                    rect.centerY,
+                    blast,
+                    rect.height / blast.height * BODY_BLAST_SCALE
+                )
             }
             world.removeEntity(part)
         }
@@ -968,13 +982,9 @@ class GameScreen(
         while (tickTime > tick) {
             tickTime -= tick
             world.update(tick, game.input)
-            // Only while the bat is still flying. The score is banked the moment it dies, but the
-            // world ticks on through the fall that follows, and a point for each of those ticks
-            // would be shown on the HUD and never saved.
-            if (world.getComponent(batId, HealthComponent::class)?.alive == true) {
-                scoring.awardSurvivalTick()
-            }
             regenerate(tick)
+            // After the world, so a kill or a hit in this tick's collisions shows on this tick.
+            comboMeter.update(tick, scoring.hitStreak, scoring.multiplier)
 
             // The stage clock is the fixed tick, not the wall clock: a paused game is a paused
             // stage, and a slow frame costs the player no ground on the wave they are in.
@@ -985,11 +995,11 @@ class GameScreen(
 
             // The score of a won stage is banked here, once the tick that won it has resolved,
             // rather than as the boss goes down. That happens partway through the collision pass,
-            // and the score still moves after it: the kill itself is counted, so is any later kill
-            // in the same pass, and the tick pays for being survived. The overlay shows the record
-            // and the score side by side, where a record lower than the score beside it reads as a
-            // bug. The frame's remaining ticks are dropped: from the next frame the world stops
-            // ticking under the overlay, and they would only move the score on again.
+            // and the score still moves after it: the kill itself is counted, and so is any later
+            // kill in the same pass. The overlay shows the record and the score side by side, where
+            // a record lower than the score beside it reads as a bug. The frame's remaining ticks
+            // are dropped: from the next frame the world stops ticking under the overlay, and they
+            // would only move the score on again.
             if (stageComplete) {
                 saveHighscore()
                 break
@@ -1424,16 +1434,16 @@ class GameScreen(
      * the desert flies under a bleached noon sky, where cyan on pale yellow all but disappears.
      */
     private fun drawStats() {
+        // Always shown, even at x1: a multiplier the player only sees once they have earned it is
+        // a mechanic they never learn exists. Drawn first, because its fire reaches up behind the
+        // lines above it, and last in the column, because the hotter it burns the bigger its count
+        // grows, and down there it grows into nothing else.
+        comboMeter.draw(g, 5, COMBO_BASELINE)
         g.apply {
             drawOutlinedString("Score: ${scoring.score}", 5, 20, 15, EngineColors.CYAN)
-            // Always shown, even at x1: a multiplier the player only sees once they have
-            // earned it is a mechanic they never learn exists.
-            val multiplier = scoring.multiplier
-            val comboColor = if (multiplier > 1) EngineColors.YELLOW else EngineColors.CYAN
-            drawOutlinedString("Combo: x$multiplier", 5, 40, 15, comboColor)
             // How far into the stage the player is, which is the only reading they get on how
             // much harder the next minute is about to be - and on how close the boss is.
-            drawOutlinedString(waveLabel(), 5, 60, 15, EngineColors.CYAN)
+            drawOutlinedString(waveLabel(), 5, 40, 15, EngineColors.CYAN)
             // The other half of that race: how much stronger the bat has got while the cave was
             // getting harder. The bar across the top edge is the fine detail; this is the count,
             // in the top right corner the bar fills toward, kept the same 5px off the edge as the
@@ -1466,7 +1476,13 @@ class GameScreen(
      */
     private fun drawStageName() {
         val name = currentStage.name
-        g.drawOutlinedString(name, centeredX(name, 30), game.frameBufferHeight / 2, 30, EngineColors.YELLOW)
+        g.drawOutlinedString(
+            name,
+            centeredX(name, 30),
+            game.frameBufferHeight / 2,
+            30,
+            EngineColors.YELLOW
+        )
     }
 
     /** Starts or resumes the stage theme, if music is enabled. */
@@ -1514,6 +1530,13 @@ class GameScreen(
 
         /** The unfilled part of the experience bar. */
         const val XP_BAR_EMPTY = 0x80000000.toInt()
+
+        /**
+         * The combo readout's line, under the score and the wave. Further below the wave than the
+         * wave is below the score, because the count swells upward as the streak climbs and it
+         * needs the room to do it without touching the line above.
+         */
+        const val COMBO_BASELINE = 66
 
         const val DEGREES_PER_RADIAN = 57.29578f
 

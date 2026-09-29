@@ -9,7 +9,6 @@ class ScoreTrackerTest {
     private fun tracker() = ScoreTracker(
         pointsPerHit = 10,
         hitsPerMultiplierStep = 3,
-        maxMultiplier = 4,
     )
 
     @Test
@@ -18,13 +17,6 @@ class ScoreTrackerTest {
         assertEquals(0, scoring.score)
         assertEquals(0, scoring.hitStreak)
         assertEquals(1, scoring.multiplier)
-    }
-
-    @Test
-    fun `surviving still scores a point per tick`() {
-        val scoring = tracker()
-        repeat(5) { scoring.awardSurvivalTick() }
-        assertEquals(5, scoring.score)
     }
 
     @Test
@@ -61,10 +53,18 @@ class ScoreTrackerTest {
     }
 
     @Test
-    fun `the multiplier is capped`() {
+    fun `the multiplier has no ceiling`() {
         val scoring = tracker()
-        repeat(100) { scoring.registerEnemyDestroyed() }
-        assertEquals(4, scoring.multiplier)
+        repeat(300) { scoring.registerEnemyDestroyed() }
+        assertEquals(101, scoring.multiplier)
+    }
+
+    /** Nowhere near reachable in play, but with no cap nothing but the length of a streak says so. */
+    @Test
+    fun `the score stops at the largest there is rather than wrapping round`() {
+        val scoring = ScoreTracker(pointsPerHit = Int.MAX_VALUE / 2, hitsPerMultiplierStep = 3)
+        repeat(3) { scoring.registerEnemyDestroyed() }
+        assertEquals(Int.MAX_VALUE, scoring.score)
     }
 
     @Test
@@ -97,7 +97,6 @@ class ScoreTrackerTest {
     fun `reset clears the run`() {
         val scoring = tracker()
         repeat(4) { scoring.registerEnemyDestroyed() }
-        repeat(4) { scoring.awardSurvivalTick() }
 
         scoring.reset()
 
@@ -118,7 +117,7 @@ class ScoreTrackerTest {
         repeat(3) { scoring.registerEnemyDestroyed() }
         assertEquals(2, scoring.multiplier, "three kills should be the first step")
         repeat(100) { scoring.registerEnemyDestroyed() }
-        assertEquals(8, scoring.multiplier, "and it should cap at eight")
+        assertEquals(35, scoring.multiplier, "and it should keep climbing, past where it used to stop at eight")
     }
 
     // region the Bounty Hunter bonus
@@ -132,43 +131,6 @@ class ScoreTrackerTest {
         }.score
 
         assertEquals(plain * 2, boosted)
-    }
-
-    /**
-     * The one that would be easy to get wrong. Surviving pays a single point a tick, so a ten
-     * percent bonus on it is a tenth of a point: rounded per award it would vanish every time and
-     * the power-up would do nothing at all on the largest source of score in the game.
-     */
-    @Test
-    fun `a bonus smaller than a point still pays over time`() {
-        val scoring = ScoreTracker()
-        scoring.bonusMultiplier = 1.1f
-
-        repeat(1_000) { scoring.awardSurvivalTick() }
-
-        assertEquals(1_100, scoring.score)
-    }
-
-    @Test
-    fun `no bonus leaves the score exactly as it was`() {
-        val scoring = ScoreTracker()
-
-        repeat(1_000) { scoring.awardSurvivalTick() }
-
-        assertEquals(1_000, scoring.score, "an unmodified run must score what it always did")
-    }
-
-    @Test
-    fun `reset drops the part-earned point along with the score`() {
-        val scoring = ScoreTracker()
-        scoring.bonusMultiplier = 1.5f
-        scoring.awardSurvivalTick()
-
-        scoring.reset()
-        scoring.bonusMultiplier = 1f
-        scoring.awardSurvivalTick()
-
-        assertEquals(1, scoring.score, "a carried remainder survived the reset")
     }
 
     // endregion

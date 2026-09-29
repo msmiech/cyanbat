@@ -7,6 +7,7 @@ import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.desktop.DesktopGame
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.POINTS_PER_HIT
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Haptics
 import at.smiech.engine.ecs.HealthComponent
@@ -62,7 +63,10 @@ class RunProbeTest {
             }
 
             assertEquals(true, probe.world.getComponent(probe.batId, HealthComponent::class)?.alive)
-            assertTrue(probe.score > 0, "surviving scores from the first tick")
+            // Only kills score, each a whole number of POINTS_PER_HIT: a point a tick for surviving,
+            // as there used to be, would leave some over. Not zero outright, because an early imp
+            // can be shot down inside the few seconds flown here.
+            assertEquals(0, probe.score % POINTS_PER_HIT, "a score of ${probe.score} is not a whole number of kills")
             assertEquals(1, probe.level)
             assertTrue(probe.offer.isEmpty())
             assertFalse(probe.stageComplete)

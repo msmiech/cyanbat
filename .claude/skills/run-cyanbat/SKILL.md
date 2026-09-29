@@ -70,8 +70,8 @@ Individual commands, for iterating:
 **Always look at the screenshots.** `shot` only asserts the PNG is non-trivial in
 size; it cannot tell gameplay from a black frame.
 
-Use `hud` rather than `shot` whenever you need to read the HUD - score, combo and
-wave down the left, the stage timer in the middle, the level top right. The
+Use `hud` rather than `shot` whenever you need to read the HUD - score, wave and
+combo down the left, the stage timer in the middle, the level top right. The
 highscore is not on it: the game over screen, the stage complete overlay and the
 stage select show that. The game renders into a 480x320 framebuffer that is
 scaled up to the window, so HUD text is blurry and small in a full-size capture.

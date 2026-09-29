@@ -410,9 +410,13 @@ class Autopilot(
         /** How near the last choice a candidate has to be to count as keeping to it. */
         const val KEEP_RADIUS = 30f
 
-        /** The score, combo and wave readouts down the top left of the frame. */
+        /**
+         * The score, wave and combo readouts down the top left of the frame. The combo is the lowest
+         * of them, and the widest once it burns, but in Arial it keeps within 115 pixels of the edge
+         * as long as its count has two digits.
+         */
         const val HUD_RIGHT = 115f
-        const val HUD_BOTTOM = 66f
+        const val HUD_BOTTOM = 72f
 
         /*
          * How the plan trades all of that off. A hit outweighs everything, and keeping clear comes

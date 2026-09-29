@@ -4,7 +4,7 @@
 # ///
 """Crop the HUD out of a CyanBat screenshot.
 
-The HUD is the band across the top of the frame: score, combo and wave down the left, the stage
+The HUD is the band across the top of the frame: score, wave and combo down the left, the stage
 timer in the middle, and the level in the top right corner.
 
 The game renders into a 480x320 framebuffer that is scaled up evenly to fit the window - with
@@ -27,10 +27,10 @@ from PIL import Image
 FRAME_BUFFER_WIDTH = 480
 FRAME_BUFFER_HEIGHT = 320
 
-# Fractions of the framebuffer, matching the HUD's position in it: the full width, and down to
-# the third line of the left column.
+# Fractions of the framebuffer, matching the HUD's position in it: the full width, and down past
+# the third line of the left column, the combo, whose count swells as the streak climbs.
 HUD_WIDTH_FRACTION = 1.0
-HUD_HEIGHT_FRACTION = 0.21
+HUD_HEIGHT_FRACTION = 0.24
 # Skip the status bar on Android captures.
 TOP_OFFSET_PX = 10
 
