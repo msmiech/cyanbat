@@ -8,6 +8,7 @@ import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.ecs.NightfallSystem
 import at.smiech.cyanbat.ecs.ShotPattern
 import at.smiech.cyanbat.ecs.Volley
+import at.smiech.cyanbat.music.MusicDirector
 import at.smiech.cyanbat.progress.PlayerLoadout
 import at.smiech.cyanbat.progress.PlayerProgress
 import at.smiech.cyanbat.progress.PowerUp
@@ -56,6 +57,7 @@ import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
 import at.smiech.engine.Graphics
+import at.smiech.engine.LayeredMusic
 import at.smiech.engine.Screen
 import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.ecs.AnimationComponent
@@ -149,9 +151,15 @@ class GameScreen(
         currentStage.enemySheet,
         progression = progression,
         onWaveChanged = { wave -> announce("WAVE ${wave.index + 1}") },
-        onBossSpawned = { announce(progression.design.bossName) },
+        onBossSpawned = {
+            announce(progression.design.bossName)
+            director?.onBossArrived()
+        },
         bossPixmap = currentStage.bossSheet,
-        onBossPhaseChanged = { phase -> announce(bossPhaseBanner(phase)) },
+        onBossPhaseChanged = { phase ->
+            announce(bossPhaseBanner(phase))
+            director?.onBossPhaseChanged()
+        },
     )
     var obsGen = ObstacleGenerator(
         worldWidth = game.frameBufferWidth,
@@ -159,6 +167,16 @@ class GameScreen(
         factory,
         currentStage
     )
+
+    /**
+     * The stage's music, opened the first time it is played - which for a run with music turned
+     * off is never, so that run reads no stems at all. Its own, not shared through the assets,
+     * because it goes with the run: disposing the screen disposes it.
+     */
+    private var music: LayeredMusic? = null
+
+    /** Turns the run into the music's layers; see [MusicDirector]. Opened with [music]. */
+    private var director: MusicDirector? = null
 
     private lateinit var g: Graphics
     private var stageNameDisplayTime = 3.0f
@@ -714,6 +732,7 @@ class GameScreen(
             if (control.hitCooldown > 0f) return 0
             control.hitCooldown = loadout.hitCooldownSeconds
             scoring.registerPlayerHit()
+            director?.onPlayerHit()
 
             // The flat cut comes off first and the armor scales what survives it, so the two
             // stack the way a player would expect rather than one swallowing the other. Rounded up
@@ -790,10 +809,9 @@ class GameScreen(
         // from the victory screen has still beaten the stage.
         nextStageId?.let { env.stageUnlocks.unlockAsync(it) }
 
-        currentStage.music.apply {
-            stop()
-            isLooping = false
-        }
+        // Wound down rather than stopped: the bed plays on under the overlay, so the stage the
+        // player has just won does not fall silent around them.
+        director?.onStageCleared()
     }
 
     /**
@@ -904,10 +922,7 @@ class GameScreen(
         if (env.audioSettings.soundsEnabled) {
             env.assets.audio.deathSound.play(100f)
         }
-        currentStage.music.apply {
-            stop()
-            isLooping = false
-        }
+        music?.pause()
         if (env.audioSettings.musicEnabled) {
             env.assets.audio.gameOverMusic.play()
         }
@@ -955,6 +970,10 @@ class GameScreen(
     }
 
     override fun update(deltaTime: Float) {
+        // Ahead of everything that returns early. The music plays on under the level up dialog
+        // and the victory overlay, and what it does there - muffled, winding down - is the point.
+        steerMusic(deltaTime)
+
         // Ahead of the pause controls, which would otherwise read the player's way out of a won
         // stage as a request to pause it.
         if (stageComplete) {
@@ -1025,13 +1044,20 @@ class GameScreen(
         offer = PowerUp.offer(loadout)
         offerArmingTime = POWER_UP_ARMING_SECONDS
         overlayTaps.reset()
+        // The music is not paused for this. It plays on under a muffle while the offer is up,
+        // which [steerMusic] reads off the offer itself; an empty one - which the uncapped
+        // power-ups rule out - is never shown, and so never muffles anything either.
+    }
 
-        // A dialog with nothing to choose between would trap the run. Two of the power-ups scale
-        // without a ceiling so this cannot happen, but a future one that forgets to say so would
-        // otherwise lock the game rather than fail loudly.
-        if (offer.isEmpty()) return
-
-        if (currentStage.music.isPlaying) currentStage.music.pause()
+    /** Hands the director where the run stands, once a frame; see [MusicDirector]. */
+    private fun steerMusic(deltaTime: Float) {
+        director?.update(
+            deltaTime,
+            waveIndex = enmGen.currentWave.index,
+            comboMultiplier = scoring.multiplier,
+            bossFight = enmGen.bossSpawned,
+            suspended = offer.isNotEmpty(),
+        )
     }
 
     /**
@@ -1088,11 +1114,6 @@ class GameScreen(
         applyLoadout()
         offer = emptyList()
         announce(powerUp.title)
-
-        // Only if the bat is still flying: a level up banked by the shot that also killed the
-        // player has no run left to go back to.
-        val health = world.getComponent(batId, HealthComponent::class)
-        if (health?.alive == true) startStageMusic()
     }
 
     /**
@@ -1211,7 +1232,7 @@ class GameScreen(
         if (value) {
             resumeArmingTime = RESUME_ARMING_SECONDS
             overlayTaps.reset()
-            if (currentStage.music.isPlaying) currentStage.music.pause()
+            music?.pause()
         } else {
             // Only the stage theme: once the bat is dead the game over track owns playback, and
             // resuming would put two tracks on top of each other.
@@ -1485,12 +1506,18 @@ class GameScreen(
         )
     }
 
-    /** Starts or resumes the stage theme, if music is enabled. */
+    /** Starts or resumes the stage's music, if music is enabled, opening it the first time. */
     private fun startStageMusic() {
         if (!env.audioSettings.musicEnabled) return
-        currentStage.music.apply {
-            isLooping = true
-            play()
+        (music ?: openStageMusic())?.play()
+    }
+
+    private fun openStageMusic(): LayeredMusic? {
+        val audio = game.audio ?: return null
+        val score = currentStage.music
+        return audio.newLayeredMusic(score.stems, score.grid).also {
+            music = it
+            director = MusicDirector(it, score.grid, progression.bossWave, progression.difficulty)
         }
     }
 
@@ -1519,6 +1546,11 @@ class GameScreen(
 
     override fun dispose() {
         screenScope.cancel()
+        // Flying on to the next stage builds a fresh screen, which opens that stage's music; this
+        // one's has to go, or the two would play over each other.
+        music?.dispose()
+        music = null
+        director = null
     }
 
     private companion object {

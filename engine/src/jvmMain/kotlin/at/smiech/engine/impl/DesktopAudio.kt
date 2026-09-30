@@ -1,7 +1,9 @@
 package at.smiech.engine.impl
 
 import at.smiech.engine.Audio
+import at.smiech.engine.LayeredMusic
 import at.smiech.engine.Music
+import at.smiech.engine.MusicGrid
 import at.smiech.engine.Sound
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
@@ -16,8 +18,9 @@ import kotlin.math.log10
  * Desktop [Audio] built on javax.sound.sampled.
  *
  * The JDK only decodes WAV/AIFF/AU; the mp3spi + jlayer service providers on the classpath add
- * MP3, which is what all of this game's audio is. Nothing here is MP3-specific - it goes through
- * AudioSystem, so the SPI does the work.
+ * MP3, which is what the menu and game over tracks are. Nothing here is MP3-specific - it goes
+ * through AudioSystem, so the SPI does the work. Layered music is the exception: its stems are
+ * decoded by the shared [StemMixer], not by AudioSystem; see [Audio.newLayeredMusic].
  *
  * @param assetStream opens an asset by filename; each call must return a fresh stream, since
  *   decoding consumes it and looping re-reads from the start.
@@ -25,6 +28,7 @@ import kotlin.math.log10
 class DesktopAudio(private val assetStream: (String) -> InputStream) : Audio {
     private val music = mutableListOf<Music>()
     private val sounds = mutableListOf<Sound>()
+    private val layered = mutableListOf<LayeredMusic>()
 
     override fun newMusic(filename: String): Music =
         DesktopMusic { assetStream(filename) }.also { music.add(it) }
@@ -32,11 +36,19 @@ class DesktopAudio(private val assetStream: (String) -> InputStream) : Audio {
     override fun newSound(filename: String): Sound =
         DesktopSound(decodeToPcm(assetStream(filename))).also { sounds.add(it) }
 
+    override fun newLayeredMusic(stems: List<String>, grid: MusicGrid): LayeredMusic {
+        val clips = stems.map { name -> ImaAdpcmClip.parse(assetStream(name).use { it.readBytes() }) }
+        return DesktopLayeredMusic(StemMixer(clips, grid)) { layered.remove(it) }.also { layered.add(it) }
+    }
+
     override fun dispose() {
         music.forEach { it.dispose() }
         sounds.forEach { it.dispose() }
+        // A copy, because each one takes itself off the list as it goes.
+        layered.toList().forEach { it.dispose() }
         music.clear()
         sounds.clear()
+        layered.clear()
     }
 }
 

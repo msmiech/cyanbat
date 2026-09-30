@@ -1,0 +1,198 @@
+package at.smiech.cyanbat.music
+
+import at.smiech.engine.LayeredMusic
+import at.smiech.engine.MusicGrid
+import at.smiech.engine.Quantum
+import kotlin.test.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
+
+/** Records what the director asks of the music, and plays nothing. */
+private class RecordingMusic : LayeredMusic {
+    data class Order(val layer: MusicLayer, val level: Float, val quantum: Quantum, val fadeBeats: Float)
+
+    val orders = mutableListOf<Order>()
+    var muffled = 0f
+    var loudness = 1f
+
+    fun level(layer: MusicLayer): Float = orders.lastOrNull { it.layer == layer }?.level ?: 0f
+
+    fun playing(): Set<MusicLayer> = MusicLayer.entries.filter { level(it) > 0f }.toSet()
+
+    override val layerCount = MusicLayer.entries.size
+    override val isPlaying = true
+    override fun play() = Unit
+    override fun pause() = Unit
+    override fun setLayerLevel(layer: Int, level: Float, quantum: Quantum, fadeBeats: Float) {
+        orders += Order(MusicLayer.entries[layer], level, quantum, fadeBeats)
+    }
+
+    override fun setMuffle(amount: Float) {
+        muffled = amount
+    }
+
+    override fun setVolume(volume: Float) {
+        loudness = volume
+    }
+
+    override fun dispose() = Unit
+}
+
+class MusicDirectorTest {
+
+    /** 120 beats a minute in four: a bar is two seconds. */
+    private val grid = MusicGrid(beatsPerMinute = 120.0, beatsPerBar = 4)
+    private val music = RecordingMusic()
+
+    private fun director(difficulty: Float = 1f) =
+        MusicDirector(music, grid, bossWave = 5, difficulty = difficulty)
+
+    private fun MusicDirector.fly(
+        waveIndex: Int = 0,
+        combo: Int = 1,
+        boss: Boolean = false,
+        suspended: Boolean = false,
+        seconds: Float = 0.016f,
+    ) = update(seconds, waveIndex, combo, boss, suspended)
+
+    @Test
+    fun `the cave opens on its bed alone`() {
+        director().fly()
+        assertEquals(setOf(MusicLayer.BED), music.playing())
+    }
+
+    /** The combo is the player's own doing, so they should hear it: and hear losing it. */
+    @Test
+    fun `a streak brings the pulse in and a hit takes it away`() {
+        val director = director()
+        director.fly(combo = 2)
+        assertEquals(setOf(MusicLayer.BED, MusicLayer.PULSE), music.playing())
+        assertEquals(Quantum.BEAT, music.orders.last { it.layer == MusicLayer.PULSE }.quantum)
+
+        director.onPlayerHit()
+        director.fly(combo = 1)
+        assertEquals(setOf(MusicLayer.BED), music.playing())
+    }
+
+    @Test
+    fun `the drums come in with the last wave whatever the streak`() {
+        director().fly(waveIndex = 4, combo = 1)
+        assertEquals(setOf(MusicLayer.BED, MusicLayer.PULSE, MusicLayer.DRIVE), music.playing())
+    }
+
+    @Test
+    fun `the melody is earned`() {
+        val director = director()
+        director.fly(waveIndex = 2, combo = 4)
+        assertEquals(0f, music.level(MusicLayer.LEAD), "a streak of 9 in the third wave is not enough")
+        director.fly(waveIndex = 2, combo = 5)
+        assertEquals(1f, music.level(MusicLayer.LEAD), "one of 12 is")
+    }
+
+    @Test
+    fun `a harder stage opens with its pulse already moving`() {
+        director(difficulty = 1.7f).fly()
+        assertEquals(setOf(MusicLayer.BED, MusicLayer.PULSE), music.playing())
+    }
+
+    @Test
+    fun `the heavy layer is kept for the boss`() {
+        director(difficulty = 1.7f).fly(waveIndex = 4, combo = 40)
+        assertEquals(0f, music.level(MusicLayer.FURY))
+        assertEquals(1f, music.level(MusicLayer.LEAD))
+    }
+
+    /** Doom's entrance: the music drops out from under the banner and comes back all at once. */
+    @Test
+    fun `the boss drops the music to its bed and slams back in on a downbeat`() {
+        val director = director()
+        director.fly(waveIndex = 4, combo = 3)
+        director.onBossArrived()
+        director.fly(waveIndex = 5, boss = true)
+        assertEquals(setOf(MusicLayer.BED), music.playing(), "the drop")
+
+        val dropped = music.orders.size
+        director.fly(waveIndex = 5, boss = true, seconds = 2.1f)
+        assertEquals(MusicLayer.entries.toSet(), music.playing(), "the slam")
+        val slam = music.orders.drop(dropped)
+        assertTrue(slam.all { it.quantum == Quantum.BAR }, "on the bar: $slam")
+    }
+
+    @Test
+    fun `a boss phase gets the same entrance`() {
+        val director = director()
+        director.fly(waveIndex = 5, boss = true)
+        assertEquals(MusicLayer.entries.toSet(), music.playing())
+
+        director.onBossPhaseChanged()
+        director.fly(waveIndex = 5, boss = true)
+        assertEquals(setOf(MusicLayer.BED), music.playing())
+        director.fly(waveIndex = 5, boss = true, seconds = 2.1f)
+        assertEquals(MusicLayer.entries.toSet(), music.playing())
+    }
+
+    /** SSX's hang time: the run holds still, and the music carries on under a muffle. */
+    @Test
+    fun `the level up dialog muffles the music without dropping a layer`() {
+        val director = director()
+        director.fly(waveIndex = 4)
+        val before = music.playing()
+
+        director.fly(waveIndex = 4, suspended = true)
+        assertEquals(before, music.playing())
+        assertTrue(music.muffled > 0.5f && music.loudness < 1f, "muffle ${music.muffled}, volume ${music.loudness}")
+
+        director.fly(waveIndex = 4)
+        assertEquals(0f, music.muffled)
+        assertEquals(1f, music.loudness)
+    }
+
+    @Test
+    fun `a hit is a thud that clears in about half a second`() {
+        val director = director()
+        director.onPlayerHit()
+        director.fly(seconds = 0f)
+        assertTrue(music.muffled > 0.5f, "muffle on the hit: ${music.muffled}")
+        director.fly(seconds = 0.25f)
+        assertTrue(music.muffled in 0.01f..0.5f, "muffle a moment later: ${music.muffled}")
+        director.fly(seconds = 0.25f)
+        assertEquals(0f, music.muffled)
+    }
+
+    @Test
+    fun `a won stage winds down to its bed`() {
+        val director = director()
+        director.fly(waveIndex = 5, boss = true)
+        director.onStageCleared()
+        director.fly(waveIndex = 5, boss = true)
+
+        assertEquals(setOf(MusicLayer.BED), music.playing())
+        val fades = music.orders.filter { it.level == 0f }.map { it.fadeBeats }.toSet()
+        assertEquals(setOf(2f), fades, "wound down, not cut")
+        assertTrue(music.muffled > 0f)
+    }
+
+    @Test
+    fun `a level is ordered when it changes and not every frame`() {
+        val director = director()
+        director.fly(combo = 2)
+        val after = music.orders.size
+        repeat(10) { director.fly(combo = 2) }
+        assertEquals(after, music.orders.size)
+    }
+
+    @Test
+    fun `the intensity floor rises evenly across the waves`() {
+        val floors = (0..4).map { MusicDirector.intensity(it, bossWave = 5, comboMultiplier = 1, difficulty = 1f) }
+        for (i in 1 until floors.size) {
+            assertEquals(0.1f, floors[i] - floors[i - 1], 1e-4f)
+        }
+    }
+
+    @Test
+    fun `a streak past the last step adds nothing more`() {
+        val atCap = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 5, difficulty = 1f)
+        val beyond = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 34, difficulty = 1f)
+        assertEquals(atCap, beyond)
+    }
+}

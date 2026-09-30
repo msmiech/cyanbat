@@ -3,6 +3,7 @@ package at.smiech.cyanbat.resource
 import at.smiech.engine.Audio as EngineAudio
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Music
+import at.smiech.engine.MusicGrid
 import at.smiech.engine.Pixmap
 import at.smiech.engine.Sound
 import at.smiech.engine.Graphics as EngineGraphics
@@ -49,10 +50,6 @@ data class GameAssets(
         fun load(g: EngineGraphics, a: EngineAudio): GameAssets {
             fun pixmap(name: String) = g.newPixmap(name, PixmapFormat.ARGB8888)
 
-            // One track for every stage: there is only the one game theme, and sharing the object
-            // rather than loading it once a stage keeps a single player to stop and start.
-            val theme = a.newMusic("game_theme.mp3")
-
             return GameAssets(
                 graphics = Graphics(
                     bat = pixmap("cyanBat.png"),
@@ -78,7 +75,8 @@ data class GameAssets(
                             pixmap("bottomObstacle1.png"),
                             pixmap("bottomObstacle2.png"),
                         ),
-                        music = theme,
+                        // In 12/8: four beats a bar, each a dotted quarter of three rolling eighths.
+                        music = StageMusic("cave", MusicGrid(beatsPerMinute = 63.0, beatsPerBar = 4)),
                         enemySheet = pixmap("enemies.png"),
                     ),
                     Stage(
@@ -93,7 +91,7 @@ data class GameAssets(
                             pixmap("forestBottomObstacle1.png"),
                             pixmap("forestBottomObstacle2.png"),
                         ),
-                        music = theme,
+                        music = StageMusic("forest", MusicGrid(beatsPerMinute = 98.0, beatsPerBar = 4)),
                         enemySheet = pixmap("forestEnemies.png"),
                         bossSheet = pixmap("forestBoss.png"),
                     ),
@@ -119,7 +117,7 @@ data class GameAssets(
                             pixmap("desertObstacle3.png"),
                             pixmap("desertObstacle4.png"),
                         ),
-                        music = theme,
+                        music = StageMusic("desert", MusicGrid(beatsPerMinute = 105.0, beatsPerBar = 4)),
                         enemySheet = pixmap("desertEnemies.png"),
                         bossSheet = pixmap("desertBoss.png"),
                     ),
