@@ -137,7 +137,9 @@ the sand.
 **Layered music.** A stage's music is one piece cut into five stems, one per `MusicLayer` (bed,
 pulse, drive, lead, fury), mixed live the way Doom 2016 and SSX 3 score their action.
 - `MusicDirector` (`:game`) decides what plays. The wave raises a floor and the combo builds on
-  it, compared against each layer's threshold; fury is the boss's alone. A hit is a thud (a
+  it, compared against each layer's threshold. The combo counts in rungs of the HUD's heat ladder
+  (`ComboHeat.rung`), not steps of the multiplier, so a new title on the readout and a new layer
+  land together; fury is the boss's, or a SUPERNOVA streak's. A hit is a thud (a
   muffle and a dip), the level-up dialog holds the music under a muffle instead of pausing it, the
   boss and each boss phase get a one-bar drop and a slam on the downbeat, and a won stage winds
   down to its bed. `GameScreen` feeds it at the very top of `update`, ahead of every early return,

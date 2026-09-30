@@ -83,10 +83,33 @@ class MusicDirectorTest {
     @Test
     fun `the melody is earned`() {
         val director = director()
-        director.fly(waveIndex = 2, combo = 4)
-        assertEquals(0f, music.level(MusicLayer.LEAD), "a streak of 9 in the third wave is not enough")
         director.fly(waveIndex = 2, combo = 5)
-        assertEquals(1f, music.level(MusicLayer.LEAD), "one of 12 is")
+        assertEquals(0f, music.level(MusicLayer.LEAD), "BLAZING in the third wave is not enough")
+        director.fly(waveIndex = 2, combo = 6)
+        assertEquals(1f, music.level(MusicLayer.LEAD), "SCORCHING is")
+    }
+
+    @Test
+    fun `the last wave gives the melody to any fire at all`() {
+        val director = director()
+        director.fly(waveIndex = 4, combo = 1)
+        assertEquals(0f, music.level(MusicLayer.LEAD))
+        director.fly(waveIndex = 4, combo = 2)
+        assertEquals(1f, music.level(MusicLayer.LEAD))
+    }
+
+    /**
+     * The music climbs the HUD's heat ladder, not the multiplier: a new title on the combo readout
+     * is a step, and a step of the multiplier that does not reach one is not.
+     */
+    @Test
+    fun `the combo is heard a rung of its fire at a time`() {
+        fun at(combo: Int) = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = combo, difficulty = 1f)
+        assertEquals(at(2), at(3), "x3 is still HOT")
+        assertTrue(at(4) > at(3), "x4 is BLAZING")
+        assertEquals(at(4), at(5), "x5 is still BLAZING")
+        assertTrue(at(6) > at(5), "x6 is SCORCHING")
+        assertTrue(at(9) > at(8), "x9 is INFERNO")
     }
 
     @Test
@@ -97,9 +120,23 @@ class MusicDirectorTest {
 
     @Test
     fun `the heavy layer is kept for the boss`() {
-        director(difficulty = 1.7f).fly(waveIndex = 4, combo = 40)
-        assertEquals(0f, music.level(MusicLayer.FURY))
+        director(difficulty = 1.7f).fly(waveIndex = 4, combo = 34)
+        assertEquals(0f, music.level(MusicLayer.FURY), "WHITE HOT is not enough")
         assertEquals(1f, music.level(MusicLayer.LEAD))
+    }
+
+    /** The one rung past INFERNO the music still answers, since the multiplier has no ceiling. */
+    @Test
+    fun `a streak gone supernova calls the heavy layer in on a downbeat`() {
+        val director = director()
+        director.fly(waveIndex = 1, combo = 35)
+        val fury = music.orders.last { it.layer == MusicLayer.FURY }
+        assertEquals(1f, fury.level)
+        assertEquals(Quantum.BAR, fury.quantum)
+
+        director.onPlayerHit()
+        director.fly(waveIndex = 1, combo = 1)
+        assertEquals(0f, music.level(MusicLayer.FURY), "and a hit puts it out")
     }
 
     /** Doom's entrance: the music drops out from under the banner and comes back all at once. */
@@ -190,9 +227,11 @@ class MusicDirectorTest {
     }
 
     @Test
-    fun `a streak past the last step adds nothing more`() {
-        val atCap = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 5, difficulty = 1f)
-        val beyond = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 34, difficulty = 1f)
-        assertEquals(atCap, beyond)
+    fun `a streak past INFERNO adds no more layers`() {
+        val inferno = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 9, difficulty = 1f)
+        val whiteHot = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 34, difficulty = 1f)
+        val supernova = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 300, difficulty = 1f)
+        assertEquals(inferno, whiteHot)
+        assertEquals(inferno, supernova)
     }
 }

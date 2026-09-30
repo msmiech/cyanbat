@@ -25,9 +25,10 @@ and Linux) from a single shared codebase.
 - **Sub-pixel precision**: geometry is float-based, and the frame loop clamps its delta so a
   resume cannot fast-forward the simulation.
 - **Adaptive music**: each stage's music is five stems mixed live, in the manner of Doom 2016 and
-  SSX 3. The waves raise a floor and the combo builds on it, a layer at a time and always on the
-  beat; a hit knocks the music back with a thud, the level-up dialog holds it under a muffle, and
-  the boss arrives on a drop to silence and a slam back in on the downbeat. The stems are IMA
+  SSX 3. The waves raise a floor and the combo's fire builds on it, each rung it climbs - HOT,
+  BLAZING, SCORCHING, INFERNO - bringing a layer in on the beat, and a streak gone SUPERNOVA
+  bringing in the boss's own; a hit knocks the music back with a thud, the level-up dialog holds
+  it under a muffle, and the boss arrives on a drop to silence and a slam back in on the downbeat. The stems are IMA
   ADPCM, decoded by the shared engine, so they line up to the sample on every platform.
 
 ## 📁 Project structure
