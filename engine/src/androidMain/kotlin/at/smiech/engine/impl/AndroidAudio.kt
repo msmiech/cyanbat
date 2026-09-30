@@ -6,7 +6,9 @@ import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
 import at.smiech.engine.Audio
+import at.smiech.engine.LayeredMusic
 import at.smiech.engine.Music
+import at.smiech.engine.MusicGrid
 import at.smiech.engine.Sound
 import java.io.IOException
 
@@ -14,6 +16,7 @@ class AndroidAudio(activity: Activity) : Audio {
     private var assets: AssetManager
     private var soundPool: SoundPool
     private val musicInstances = mutableListOf<Music>()
+    private val layeredInstances = mutableListOf<LayeredMusic>()
 
     override fun newMusic(filename: String): Music {
         return try {
@@ -34,9 +37,24 @@ class AndroidAudio(activity: Activity) : Audio {
         }
     }
 
+    override fun newLayeredMusic(stems: List<String>, grid: MusicGrid): LayeredMusic {
+        val clips = stems.map { name ->
+            try {
+                ImaAdpcmClip.parse(assets.open(name).use { it.readBytes() })
+            } catch (exc: IOException) {
+                throw RuntimeException("Music stem <$name> not found! $exc")
+            }
+        }
+        return AndroidLayeredMusic(StemMixer(clips, grid)) { layeredInstances.remove(it) }
+            .also { layeredInstances.add(it) }
+    }
+
     override fun dispose() {
         musicInstances.forEach { it.dispose() }
         musicInstances.clear()
+        // A copy, because each one takes itself off the list as it goes.
+        layeredInstances.toList().forEach { it.dispose() }
+        layeredInstances.clear()
         soundPool.release()
     }
 

@@ -3,10 +3,11 @@ package at.smiech.cyanbat.service
 import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.ParallaxLayer
 import at.smiech.cyanbat.resource.Stage
+import at.smiech.cyanbat.resource.StageMusic
 import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.engine.Graphics
-import at.smiech.engine.Music
+import at.smiech.engine.MusicGrid
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CrossfadeComponent
@@ -23,17 +24,6 @@ private class Sheet(override val width: Int, override val height: Int) : Pixmap 
     override fun dispose() = Unit
 }
 
-private object Silence : Music {
-    override fun play() = Unit
-    override fun stop() = Unit
-    override fun pause() = Unit
-    override fun setVolume(volume: Float) = Unit
-    override val isPlaying = false
-    override val isStopped = true
-    override var isLooping = false
-    override fun dispose() = Unit
-}
-
 /** Where the scenery goes, and how big it is, on a stage with a ceiling and on one without. */
 class ObstacleGeneratorTest {
 
@@ -47,7 +37,7 @@ class ObstacleGeneratorTest {
         backdrop = Backdrop.Nightfall(listOf(ParallaxLayer(Sheet(960, 400), top = 150, speed = 1f)), Sheet(24, 24)),
         topObstacles = emptyArray(),
         bottomObstacles = arrayOf(Sheet(38, 57 * keyframes), Sheet(96, 54 * keyframes)),
-        music = Silence,
+        music = StageMusic("test", MusicGrid(beatsPerMinute = 120.0, beatsPerBar = 4)),
         enemySheet = Sheet(640, 29),
     )
 

@@ -104,9 +104,9 @@ by device.
 - `StageProgression` turns seconds elapsed into the current wave's stats, scaled up per stage.
 - `EnemyGenerator` owns only the clock and the dice, and spawns through `EntityFactory`.
 
-Adding a stage touches all four, plus new generators in `tools/`, a preview card, the stage
-select's strings, and the recorder's `STAGE_COVERAGE`, which says how much of the stage the
-README's reel shows.
+Adding a stage touches all four, plus new generators in `tools/` (its music among them, with a
+`StageMusic` in `GameAssets`), a preview card, the stage select's strings, and the recorder's
+`STAGE_COVERAGE`, which says how much of the stage the README's reel shows.
 
 **The desert's day.** `Daylight` is a pure function of how far through its day the stage is -
 `Daylight.position`, elapsed time over the boss's arrival - and says what the sky, sun, moon and
@@ -133,6 +133,32 @@ the sand.
   guarantee it can always be filled.
 - `PlayerLoadout` holds the stats the picks derive.
 - `ScoreTracker` carries fractional points between awards.
+
+**Layered music.** A stage's music is one piece cut into five stems, one per `MusicLayer` (bed,
+pulse, drive, lead, fury), mixed live the way Doom 2016 and SSX 3 score their action.
+- `MusicDirector` (`:game`) decides what plays. The wave raises a floor and the combo builds on
+  it, compared against each layer's threshold. The combo counts in rungs of the HUD's heat ladder
+  (`ComboHeat.rung`), not steps of the multiplier, so a new title on the readout and a new layer
+  land together; fury is the boss's, or a SUPERNOVA streak's. A hit is a thud (a
+  muffle and a dip), the level-up dialog holds the music under a muffle instead of pausing it, the
+  boss and each boss phase get a one-bar drop and a slam on the downbeat, and a won stage winds
+  down to its bed. `GameScreen` feeds it at the very top of `update`, ahead of every early return,
+  because the music carries on under the overlays. Pause pauses it; death hands over to the game
+  over MP3.
+- `StemMixer` (`:engine`, common) decodes the stems as it mixes and lands every change on the
+  music's grid (`MusicGrid`, `Quantum`): a layer coming in is all the way up on the beat, one
+  going out plays out its beat first. It also runs the muffle, a swept low-pass.
+  `DesktopLayeredMusic` and `AndroidLayeredMusic` are only threads pulling frames from it into a
+  `SourceDataLine` or an `AudioTrack`.
+- Two threads touch the mixer, and there are no locks, which common code could not take anyway.
+  The game thread only calls the setters, which swap in immutable orders; the audio thread owns
+  the rest. Every stem is decoded every chunk, heard or not: a stem's place in the music is how far
+  it has been read.
+- `GameScreen` opens its stage's music the first time it plays it and disposes it with itself, so
+  a run with music off never reads the stems and the next stage's run does not play over this one.
+- The grid is declared twice, in the stage's generator and in its `StageMusic` in `GameAssets`.
+  `MusicStemTest` holds them together: every stem whole bars at the declared tempo, and every
+  stem's length dividing the longest, so the layers stay in step however long the run goes.
 
 **Input.**
 - `PointerTouchHandler` handles touch. On desktop, mouse motion counts as a drag.
@@ -162,8 +188,12 @@ the sand.
 - CMP 1.12 does not copy those resources into the APK. The `StageComposeResources` task in
   `app/build.gradle.kts` works around that; without it the app crashes on the first
   `painterResource`.
-- Music is MP3, which the desktop decodes through the mp3spi/jlayer service providers. No code
-  references them; `Mp3DecodingTest` guards them.
+- The menu and game over tracks and the death sound are MP3, which the desktop decodes through the
+  mp3spi/jlayer service providers. No code references them; `Mp3DecodingTest` guards them.
+- Stage music is not MP3. Its stems are IMA ADPCM WAVs in `assets/music/`, decoded in common code
+  (`ImaAdpcmClip`), because a platform MP3 decoder pads and trims a file's ends its own way, and
+  stems a few milliseconds apart flam on every drum hit. They are 22.05 kHz stereo, a quarter of
+  their PCM size.
 - Generated sound effects are WAV: `javax.sound.sampled` reads PCM natively, and SoundPool can
   `openFd` them uncompressed from the APK.
 - The launcher icon is adaptive: `mipmap-anydpi/ic_launcher.xml` over three vector layers in
@@ -175,7 +205,8 @@ the sand.
 
 **The art is generated.** `tools/generate_*.py`, built on `tools/pixelart.py`, produce every
 sprite sheet, background, obstacle, stage preview, the framed title, the app icons and the WAV
-effects. The MP3s, `gameover.png` and `tools/title_lettering.png` are the exceptions.
+effects; `tools/generate_*_music.py`, built on `tools/musicsynth.py`, produce the stage music. The
+MP3s, `gameover.png` and `tools/title_lettering.png` are the exceptions.
 - To change art, change the script and re-run it; never edit its output, the icons' vector XML
   included.
 - The scripts are deterministic: re-running an unchanged one must reproduce the committed file
@@ -184,6 +215,13 @@ effects. The MP3s, `gameover.png` and `tools/title_lettering.png` are the except
 - Re-run `generate_stage_previews.py` and `generate_icons.py` after changing any sheet they
   compose.
 - Palette rule: the player is cool, everything hostile is warm.
+- The music scripts are scores - which notes, on which instrument, when - and `musicsynth.py` is
+  the band. Everything in it is circular: a note, a reverb tail or an echo that runs past the end
+  of a loop carries on at its start, so a stem has no seam. They pin numpy and scipy, because
+  floating-point results are only byte for byte on the same versions. A stage's stems are levelled
+  as a set, so the balance between the layers is the score's; change a part's level in its script.
+- Nobody can hear a stem from its numbers. After changing a score, listen to it: the stems are
+  ordinary WAVs, and a run in the game is the real test.
 
 **The README's GIF is recorded, not generated.** `recordGameplay` runs the `recorder` source
 set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
