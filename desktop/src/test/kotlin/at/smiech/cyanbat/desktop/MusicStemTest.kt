@@ -21,11 +21,15 @@ import kotlin.test.assertTrue
  * crashes: every layer just comes in a little off the beat, a little further off each time round.
  *
  * So this reads every stage's stems the way the game does and holds them to their grid: whole bars
- * long, every one dividing the longest, so the layers stay in step however long a run goes on.
+ * long, every one dividing the longest, so the layers stay in step however long a run goes on. The
+ * menu's and the game over's tracks, which are generated the same way, are held to the same format.
  */
 class MusicStemTest {
 
     private val stages: List<Stage> = DesktopGame(480, 320).let { GameAssets.load(it.graphics, it.audio).stages }
+
+    /** The music that is not layered, from `tools/generate_menu_music.py` and `generate_game_over_music.py`. */
+    private val tracks = listOf("music/menu.wav", "music/game_over.wav")
 
     private fun clip(name: String): ImaAdpcmClip {
         val stream = javaClass.getResourceAsStream("/$name")
@@ -42,13 +46,11 @@ class MusicStemTest {
     }
 
     @Test
-    fun `stems are stereo at the output rate`() {
-        for (stage in stages) {
-            for (name in stage.music.stems) {
-                val stem = clip(name)
-                assertEquals(OUTPUT_RATE, stem.sampleRate, "$name's sample rate")
-                assertEquals(2, stem.channels, "$name's channels")
-            }
+    fun `stems and tracks are stereo at the output rate`() {
+        for (name in stages.flatMap { it.music.stems } + tracks) {
+            val stem = clip(name)
+            assertEquals(OUTPUT_RATE, stem.sampleRate, "$name's sample rate")
+            assertEquals(2, stem.channels, "$name's channels")
         }
     }
 
@@ -82,21 +84,19 @@ class MusicStemTest {
     }
 
     /**
-     * Something in every stem, and nothing pinned at full scale: the stems are levelled as a set so
+     * Something in every stem, and nothing pinned at full scale: the stems are leveled as a set so
      * that even the full mix only rarely reaches the mixer's soft clip, so a single stem that clips
      * on its own was not written by the generator.
      */
     @Test
-    fun `stems carry sound without clipping`() {
-        for (stage in stages) {
-            for (name in stage.music.stems) {
-                val stem = clip(name)
-                val samples = FloatArray(stem.frames * 2).also { stem.cursor().read(it, 0, stem.frames) }
-                val rms = sqrt(samples.sumOf { (it * it).toDouble() } / samples.size)
-                val peak = samples.maxOf { abs(it) }
-                assertTrue(rms > 0.01, "$name is nearly silent: rms $rms")
-                assertTrue(peak < 0.99, "$name reaches full scale: peak $peak")
-            }
+    fun `stems and tracks carry sound without clipping`() {
+        for (name in stages.flatMap { it.music.stems } + tracks) {
+            val stem = clip(name)
+            val samples = FloatArray(stem.frames * 2).also { stem.cursor().read(it, 0, stem.frames) }
+            val rms = sqrt(samples.sumOf { (it * it).toDouble() } / samples.size)
+            val peak = samples.maxOf { abs(it) }
+            assertTrue(rms > 0.01, "$name is nearly silent: rms $rms")
+            assertTrue(peak < 0.99, "$name reaches full scale: peak $peak")
         }
     }
 

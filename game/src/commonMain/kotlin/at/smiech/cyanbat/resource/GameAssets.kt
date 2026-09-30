@@ -60,7 +60,8 @@ data class GameAssets(
                     shot = pixmap("shot.png"),
                 ),
                 audio = Audio(
-                    gameOverMusic = a.newMusic("game_over.mp3"),
+                    // Generated like the stages' music, by tools/generate_game_over_music.py.
+                    gameOverMusic = a.newMusic("music/game_over.wav"),
                     deathSound = a.newSound("deathSound.mp3"),
                     auraSurgeSound = a.newSound("auraSurge.wav"),
                     shotSound = a.newSound("shotFire.wav"),

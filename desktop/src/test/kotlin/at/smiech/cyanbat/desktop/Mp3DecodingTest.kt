@@ -9,22 +9,18 @@ import kotlin.test.assertTrue
 /**
  * Guards desktop audio's one fragile dependency.
  *
- * The JDK ships decoders for WAV, AIFF and AU only. The menu and game over music and the death
- * sound are MP3, which play on desktop solely because the mp3spi/jlayer service providers are on
- * the classpath and
- * register themselves with `AudioSystem`. That registration is invisible - nothing references
- * those libraries in code - so dropping the dependency, or a shading or module change that stops
- * the SPI being discovered, would break audio silently at runtime rather than at compile time.
+ * The JDK ships decoders for WAV, AIFF and AU only. The death sound is MP3, which plays on desktop
+ * solely because the mp3spi/jlayer service providers are on the classpath and register themselves
+ * with `AudioSystem`. That registration is invisible - nothing references those libraries in code
+ * - so dropping the dependency, or a shading or module change that stops the SPI being discovered,
+ * would break audio silently at runtime rather than at compile time. The music is not MP3; see
+ * `MusicStemTest`.
  *
  * These tests fail loudly instead.
  */
 class Mp3DecodingTest {
 
-    private val audioAssets = listOf(
-        "deathSound.mp3",
-        "game_over.mp3",
-        "menu_theme.mp3",
-    )
+    private val audioAssets = listOf("deathSound.mp3")
 
     /**
      * The aura surge is the one asset here the JDK can decode on its own, and it is WAV precisely
@@ -64,8 +60,7 @@ class Mp3DecodingTest {
                         false
                     )
                     AudioSystem.getAudioInputStream(target, encoded).use { pcm ->
-                        // Read a slice rather than the whole track: menu_theme.mp3 alone is 3.4 MB
-                        // encoded and far larger decoded, and a short read proves the codec ran.
+                        // Read a slice rather than the whole file: a short read proves the codec ran.
                         val decoded = pcm.readNBytes(DECODE_PROBE_BYTES)
                         assertTrue(
                             decoded.isNotEmpty(),
