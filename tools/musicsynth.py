@@ -41,17 +41,18 @@ MUSIC_DIR = pathlib.Path(__file__).resolve().parent.parent / "assets" / "music"
 
 # The layers every stage's music is cut into, bottom up: the game's MusicLayer, and the order the
 # stems are handed to its mixer.
-LAYERS = ("bed", "pulse", "drive", "lead", "fury")
+LAYERS = ("bed", "pulse", "drive", "lead", "boom", "roll", "chop", "fury")
 
 # The game's mixer passes everything under this share of full scale straight through and rounds
 # off what goes over it (StemMixer's CLIP_KNEE).
 MIXER_KNEE = 0.9
 
-# How much of the full mix, every layer up, may go past the knee: one sample in ten thousand. The
+# How much of the full mix, every layer up, may go past the knee: one sample in a thousand. The
 # loudest moments of a mix are a few peaks of different stems landing together, and levelling the
-# whole set so that even those stay under the knee costs every other moment a couple of decibels.
-# Rounded off by the mixer, a peak that rare is not heard.
-PAST_KNEE = 1e-4
+# whole set so that even those stay under the knee costs every other moment a couple of decibels -
+# more with every layer the ladder grows. Every layer is only up at the height of a fight, a boss or
+# a streak gone supernova, where a peak the mixer rounds off is lost in the noise.
+PAST_KNEE = 1e-3
 
 NOTE_NAMES = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 
