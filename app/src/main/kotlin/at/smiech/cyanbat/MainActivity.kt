@@ -51,7 +51,7 @@ class MainActivity : ComponentActivity() {
 
     /**
      * Created once per activity rather than inside [setContent]. That lambda recomposes whenever
-     * the back stack changes, and a track built there prepared a fresh MediaPlayer on every trip
+     * the back stack changes, and a track built there read and set up a fresh player on every trip
      * into Settings or Credits - none of which the menu ever played.
      */
     private lateinit var menuMusic: Music
@@ -64,7 +64,7 @@ class MainActivity : ComponentActivity() {
         requestWindowFeature(Window.FEATURE_NO_TITLE)
 
         audio = AndroidAudio(this)
-        menuMusic = audio.newMusic("menu_theme.mp3")
+        menuMusic = audio.newMusic("music/menu.wav")
         val settings = DataStoreSettingsRepository(dataStore)
         val stageUnlocks = DataStoreStageUnlockStore(dataStore)
         val highscores = DataStoreHighscoreStore(dataStore)

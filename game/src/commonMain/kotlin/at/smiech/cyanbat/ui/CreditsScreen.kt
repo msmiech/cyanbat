@@ -19,8 +19,6 @@ import at.smiech.cyanbat.resources.credit_gameframework_0
 import at.smiech.cyanbat.resources.credit_gameframework_1
 import at.smiech.cyanbat.resources.credit_gameframework_title
 import at.smiech.cyanbat.resources.credit_music_0
-import at.smiech.cyanbat.resources.credit_music_1
-import at.smiech.cyanbat.resources.credit_music_2
 import at.smiech.cyanbat.resources.credit_music_title
 import at.smiech.cyanbat.resources.credits_headline
 import org.jetbrains.compose.resources.stringResource
@@ -43,8 +41,6 @@ fun CreditsScreen() {
                 style = MaterialTheme.typography.titleMedium
             )
             Text(stringResource(Res.string.credit_music_0))
-            Text(stringResource(Res.string.credit_music_1))
-            Text(stringResource(Res.string.credit_music_2))
             Spacer(Modifier.height(16.dp))
 
             Text(

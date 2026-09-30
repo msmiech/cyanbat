@@ -134,22 +134,28 @@ the sand.
 - `PlayerLoadout` holds the stats the picks derive.
 - `ScoreTracker` carries fractional points between awards.
 
-**Layered music.** A stage's music is one piece cut into five stems, one per `MusicLayer` (bed,
-pulse, drive, lead, fury), mixed live the way Doom 2016 and SSX 3 score their action.
+**Layered music.** A stage's music is one piece cut into eight stems, one per `MusicLayer` (bed,
+pulse, drive, lead, boom, roll, chop, fury), mixed live the way Doom 2016 and SSX 3 score their
+action. Past the tune the layers are a trap beat growing under the stage's own instruments: 808s
+(boom), rolling hi-hats (roll) and chopped voices (chop).
 - `MusicDirector` (`:game`) decides what plays. The wave raises a floor and the combo builds on
   it, compared against each layer's threshold. The combo counts in rungs of the HUD's heat ladder
-  (`ComboHeat.rung`), not steps of the multiplier, so a new title on the readout and a new layer
-  land together; fury is the boss's, or a SUPERNOVA streak's. A hit is a thud (a
+  (`ComboHeat.rung`), not steps of the multiplier, every rung up to SUPERNOVA, so a new title on
+  the readout and a new layer land together. Under the tune the thresholds are two rungs apart,
+  over it one; fury is the boss's, or a SUPERNOVA streak's. A hit is a thud (a
   muffle and a dip), the level-up dialog holds the music under a muffle instead of pausing it, the
   boss and each boss phase get a one-bar drop and a slam on the downbeat, and a won stage winds
   down to its bed. `GameScreen` feeds it at the very top of `update`, ahead of every early return,
   because the music carries on under the overlays. Pause pauses it; death hands over to the game
-  over MP3.
+  over's track.
 - `StemMixer` (`:engine`, common) decodes the stems as it mixes and lands every change on the
   music's grid (`MusicGrid`, `Quantum`): a layer coming in is all the way up on the beat, one
   going out plays out its beat first. It also runs the muffle, a swept low-pass.
   `DesktopLayeredMusic` and `AndroidLayeredMusic` are only threads pulling frames from it into a
   `SourceDataLine` or an `AudioTrack`.
+- The menu's and the game over's music go through the same mixer: `Audio.newMusic` is one stem at
+  full level (`TrackMusic`), looping or played once. A track that does not loop stops at its end
+  (`StemMixer.isLooping`, `hasEnded`) and starts from the top when played again.
 - Two threads touch the mixer, and there are no locks, which common code could not take anyway.
   The game thread only calls the setters, which swap in immutable orders; the audio thread owns
   the rest. Every stem is decoded every chunk, heard or not: a stem's place in the music is how far
@@ -188,12 +194,12 @@ pulse, drive, lead, fury), mixed live the way Doom 2016 and SSX 3 score their ac
 - CMP 1.12 does not copy those resources into the APK. The `StageComposeResources` task in
   `app/build.gradle.kts` works around that; without it the app crashes on the first
   `painterResource`.
-- The menu and game over tracks and the death sound are MP3, which the desktop decodes through the
-  mp3spi/jlayer service providers. No code references them; `Mp3DecodingTest` guards them.
-- Stage music is not MP3. Its stems are IMA ADPCM WAVs in `assets/music/`, decoded in common code
-  (`ImaAdpcmClip`), because a platform MP3 decoder pads and trims a file's ends its own way, and
-  stems a few milliseconds apart flam on every drum hit. They are 22.05 kHz stereo, a quarter of
-  their PCM size.
+- The death sound is MP3, which the desktop decodes through the mp3spi/jlayer service providers.
+  No code references them; `Mp3DecodingTest` guards it.
+- Music is not MP3. The stages' stems and the menu's and game over's tracks are IMA ADPCM WAVs in
+  `assets/music/`, decoded in common code (`ImaAdpcmClip`), because a platform MP3 decoder pads
+  and trims a file's ends its own way: stems a few milliseconds apart flam on every drum hit, and
+  a loop gets a gap. They are 22.05 kHz stereo, a quarter of their PCM size.
 - Generated sound effects are WAV: `javax.sound.sampled` reads PCM natively, and SoundPool can
   `openFd` them uncompressed from the APK.
 - The launcher icon is adaptive: `mipmap-anydpi/ic_launcher.xml` over three vector layers in
@@ -205,8 +211,8 @@ pulse, drive, lead, fury), mixed live the way Doom 2016 and SSX 3 score their ac
 
 **The art is generated.** `tools/generate_*.py`, built on `tools/pixelart.py`, produce every
 sprite sheet, background, obstacle, stage preview, the framed title, the app icons and the WAV
-effects; `tools/generate_*_music.py`, built on `tools/musicsynth.py`, produce the stage music. The
-MP3s, `gameover.png` and `tools/title_lettering.png` are the exceptions.
+effects; `tools/generate_*_music.py`, built on `tools/musicsynth.py`, produce all of the music.
+The death sound's MP3, `gameover.png` and `tools/title_lettering.png` are the exceptions.
 - To change art, change the script and re-run it; never edit its output, the icons' vector XML
   included.
 - The scripts are deterministic: re-running an unchanged one must reproduce the committed file
@@ -218,8 +224,12 @@ MP3s, `gameover.png` and `tools/title_lettering.png` are the exceptions.
 - The music scripts are scores - which notes, on which instrument, when - and `musicsynth.py` is
   the band. Everything in it is circular: a note, a reverb tail or an echo that runs past the end
   of a loop carries on at its start, so a stem has no seam. They pin numpy and scipy, because
-  floating-point results are only byte for byte on the same versions. A stage's stems are levelled
+  floating-point results are only byte for byte on the same versions. A stage's stems are leveled
   as a set, so the balance between the layers is the score's; change a part's level in its script.
+  The menu's and game over's tracks are leveled to a loudness (`write_track`), set against the
+  stages' mixes.
+- The game over's track plays once, so its script renders it with room past its end and cuts it
+  there; the circular tools would otherwise wrap its last gong round onto its first beat.
 - Nobody can hear a stem from its numbers. After changing a score, listen to it: the stems are
   ordinary WAVs, and a run in the game is the real test.
 

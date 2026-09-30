@@ -95,6 +95,8 @@ class AndroidLayeredMusic(
                             sounding = true
                         }
                         write(track, pcm)
+                        // Music that does not loop stops itself at its end, as if paused there.
+                        if (mixer.hasEnded) wantPlaying = false
                     }
 
                     sounding -> {

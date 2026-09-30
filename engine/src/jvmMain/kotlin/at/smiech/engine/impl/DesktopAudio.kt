@@ -11,45 +11,43 @@ import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.Clip
 import javax.sound.sampled.FloatControl
-import javax.sound.sampled.SourceDataLine
 import kotlin.math.log10
 
 /**
  * Desktop [Audio] built on javax.sound.sampled.
  *
- * The JDK only decodes WAV/AIFF/AU; the mp3spi + jlayer service providers on the classpath add
- * MP3, which is what the menu and game over tracks are. Nothing here is MP3-specific - it goes
- * through AudioSystem, so the SPI does the work. Layered music is the exception: its stems are
- * decoded by the shared [StemMixer], not by AudioSystem; see [Audio.newLayeredMusic].
+ * Sounds go through AudioSystem. The JDK only decodes WAV/AIFF/AU; the mp3spi + jlayer service
+ * providers on the classpath add MP3, which is what the death sound is. Nothing here is
+ * MP3-specific - the SPI does the work. Music is the exception: every piece of it is decoded by the
+ * shared [StemMixer], not by AudioSystem; see [Audio.newMusic] and [Audio.newLayeredMusic].
  *
  * @param assetStream opens an asset by filename; each call must return a fresh stream, since
- *   decoding consumes it and looping re-reads from the start.
+ *   decoding consumes it.
  */
 class DesktopAudio(private val assetStream: (String) -> InputStream) : Audio {
-    private val music = mutableListOf<Music>()
     private val sounds = mutableListOf<Sound>()
     private val layered = mutableListOf<LayeredMusic>()
 
-    override fun newMusic(filename: String): Music =
-        DesktopMusic { assetStream(filename) }.also { music.add(it) }
+    override fun newMusic(filename: String): Music = TrackMusic.of(clip(filename), ::play)
 
     override fun newSound(filename: String): Sound =
         DesktopSound(decodeToPcm(assetStream(filename))).also { sounds.add(it) }
 
-    override fun newLayeredMusic(stems: List<String>, grid: MusicGrid): LayeredMusic {
-        val clips = stems.map { name -> ImaAdpcmClip.parse(assetStream(name).use { it.readBytes() }) }
-        return DesktopLayeredMusic(StemMixer(clips, grid)) { layered.remove(it) }.also { layered.add(it) }
-    }
+    override fun newLayeredMusic(stems: List<String>, grid: MusicGrid): LayeredMusic =
+        play(StemMixer(stems.map(::clip), grid))
 
     override fun dispose() {
-        music.forEach { it.dispose() }
         sounds.forEach { it.dispose() }
         // A copy, because each one takes itself off the list as it goes.
         layered.toList().forEach { it.dispose() }
-        music.clear()
         sounds.clear()
         layered.clear()
     }
+
+    private fun clip(name: String): ImaAdpcmClip = ImaAdpcmClip.parse(assetStream(name).use { it.readBytes() })
+
+    private fun play(mixer: StemMixer): LayeredMusic =
+        DesktopLayeredMusic(mixer) { layered.remove(it) }.also { layered.add(it) }
 }
 
 /** Decoded PCM audio, held in memory. */
@@ -105,144 +103,5 @@ internal class DesktopSound(pcm: PcmBuffer) : Sound {
 
     override fun dispose() {
         clip?.close()
-    }
-}
-
-/**
- * Streamed track, played on a daemon thread so it never holds the JVM open.
- *
- * Looping reopens the stream at EOF rather than seeking, because the decoded stream is forward
- * only.
- *
- * Each playback thread is stamped with a generation, and only the current one may touch the
- * shared state. [stop] cannot wait for its thread - a line write blocks and is not interruptible -
- * so a [play] right behind it starts a new thread while the old one is still unwinding. Without
- * the stamp the old thread saw the flags the new play had just reset and either kept writing,
- * doubling the track, or ran its cleanup and stopped the new one.
- */
-class DesktopMusic(private val openStream: () -> InputStream) : Music {
-    private val lock = Any()
-    private var line: SourceDataLine? = null
-    private var thread: Thread? = null
-
-    /** Bumped by every [play] that starts a thread and by every [stop]. */
-    @Volatile private var generation = 0
-
-    @Volatile private var playing = false
-    @Volatile private var stopped = true
-    @Volatile private var disposed = false
-    @Volatile private var volume = 1f
-
-    override var isLooping: Boolean = false
-
-    override val isPlaying: Boolean get() = playing
-    override val isStopped: Boolean get() = stopped
-
-    override fun play() {
-        synchronized(lock) {
-            if (disposed || playing) return
-            playing = true
-            // Paused rather than stopped: the thread is still there, waiting to carry on.
-            if (!stopped && thread?.isAlive == true) return
-            stopped = false
-            val current = ++generation
-            thread = Thread({ pump(current) }, "cyanbat-music").apply {
-                isDaemon = true
-                start()
-            }
-        }
-    }
-
-    override fun pause() {
-        synchronized(lock) {
-            playing = false
-            line?.stop()
-        }
-    }
-
-    override fun stop() {
-        synchronized(lock) {
-            playing = false
-            stopped = true
-            generation++
-            thread?.interrupt()
-            thread = null
-        }
-    }
-
-    override fun setVolume(volume: Float) {
-        this.volume = volume.coerceIn(0f, 1f)
-        applyVolume()
-    }
-
-    override fun dispose() {
-        synchronized(lock) {
-            disposed = true
-            stop()
-            line?.close()
-            line = null
-        }
-    }
-
-    private fun isCurrent(stamp: Int) = stamp == generation && !disposed
-
-    private fun applyVolume() {
-        setLineVolume(line?.getControl(FloatControl.Type.MASTER_GAIN) as? FloatControl, volume)
-    }
-
-    private fun pump(stamp: Int) {
-        try {
-            do {
-                val pcm = decodeToPcm(openStream())
-                val out = AudioSystem.getSourceDataLine(pcm.format).apply {
-                    open(pcm.format)
-                    start()
-                }
-                try {
-                    synchronized(lock) {
-                        if (!isCurrent(stamp)) return
-                        line = out
-                    }
-                    applyVolume()
-
-                    var offset = 0
-                    val chunk = 4096
-                    while (offset < pcm.bytes.size && isCurrent(stamp)) {
-                        if (!playing) {
-                            Thread.sleep(PAUSE_POLL_MILLIS)
-                            continue
-                        }
-                        if (!out.isRunning) out.start()
-                        val len = minOf(chunk, pcm.bytes.size - offset)
-                        offset += out.write(pcm.bytes, offset, len)
-                    }
-                    // Let a track that ran to its end finish sounding; one that was stopped is
-                    // cut off at once.
-                    if (isCurrent(stamp)) out.drain()
-                } finally {
-                    synchronized(lock) { if (line === out) line = null }
-                    out.close()
-                }
-            } while (isLooping && isCurrent(stamp))
-        } catch (_: InterruptedException) {
-            Thread.currentThread().interrupt()
-        } catch (exc: Exception) {
-            // A missing codec or an unavailable mixer must not take the game down with it.
-            System.err.println("CyanBat: music playback stopped - $exc")
-        } finally {
-            // Only the current thread speaks for the track. A superseded one finishing must not
-            // mark a newer playback as stopped.
-            synchronized(lock) {
-                if (stamp == generation) {
-                    playing = false
-                    stopped = true
-                    thread = null
-                }
-            }
-        }
-    }
-
-    private companion object {
-        const val PAUSE_POLL_MILLIS = 50L
     }
 }

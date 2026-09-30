@@ -226,12 +226,65 @@ class MusicDirectorTest {
         }
     }
 
+    /** Every title the HUD's fire climbs through, HOT to SUPERNOVA, is a step up for the music. */
     @Test
-    fun `a streak past INFERNO adds no more layers`() {
-        val inferno = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 9, difficulty = 1f)
-        val whiteHot = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 34, difficulty = 1f)
-        val supernova = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = 300, difficulty = 1f)
-        assertEquals(inferno, whiteHot)
-        assertEquals(inferno, supernova)
+    fun `every rung of the fire is a step up to SUPERNOVA and no further`() {
+        fun at(combo: Int) = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = combo, difficulty = 1f)
+        val rungs = listOf(1, 2, 4, 6, 9, 13, 18, 25, 35)
+        for ((lower, higher) in rungs.zipWithNext()) {
+            assertTrue(at(higher) > at(lower), "x$higher climbs past x$lower")
+        }
+        assertEquals(at(35), at(300), "past SUPERNOVA the multiplier climbs on alone")
+    }
+
+    @Test
+    fun `the first wave's melody waits for HELLFIRE`() {
+        val director = director()
+        director.fly(waveIndex = 0, combo = 12)
+        assertEquals(0f, music.level(MusicLayer.LEAD), "INFERNO is not enough")
+        director.fly(waveIndex = 0, combo = 13)
+        assertEquals(1f, music.level(MusicLayer.LEAD), "HELLFIRE is")
+    }
+
+    /** Over the tune the layers come a rung apart: the hotter the fire, the more each rung brings. */
+    @Test
+    fun `the 808s and the rolls and the chopped voices come in a rung apart`() {
+        val director = director()
+        director.fly(waveIndex = 1, combo = 9)
+        assertEquals(
+            setOf(MusicLayer.BED, MusicLayer.PULSE, MusicLayer.DRIVE, MusicLayer.LEAD),
+            music.playing(),
+            "INFERNO in the second wave brings the melody",
+        )
+        director.fly(waveIndex = 1, combo = 13)
+        assertEquals(1f, music.level(MusicLayer.BOOM), "HELLFIRE, the 808s")
+        assertEquals(0f, music.level(MusicLayer.ROLL))
+        director.fly(waveIndex = 1, combo = 18)
+        assertEquals(1f, music.level(MusicLayer.ROLL), "BLUE FLAME, the rolling hats")
+        assertEquals(0f, music.level(MusicLayer.CHOP))
+        director.fly(waveIndex = 1, combo = 25)
+        assertEquals(1f, music.level(MusicLayer.CHOP), "WHITE HOT, the chopped voices")
+        assertEquals(0f, music.level(MusicLayer.FURY), "and still nothing of the boss's")
+    }
+
+    @Test
+    fun `a streak gone supernova has the whole piece playing whatever the wave`() {
+        director().fly(waveIndex = 0, combo = 35)
+        assertEquals(MusicLayer.entries.toSet(), music.playing())
+    }
+
+    /** A hit takes the streak, and the whole trap beat it had built goes with it. */
+    @Test
+    fun `a hit strips the trap beat back to the floor`() {
+        val director = director()
+        director.fly(waveIndex = 4, combo = 25)
+        assertEquals(1f, music.level(MusicLayer.CHOP))
+        val beforeHit = music.orders.size
+
+        director.onPlayerHit()
+        director.fly(waveIndex = 4, combo = 1)
+        assertEquals(setOf(MusicLayer.BED, MusicLayer.PULSE, MusicLayer.DRIVE), music.playing())
+        val falls = music.orders.drop(beforeHit).filter { it.level == 0f }.map { it.layer }.toSet()
+        assertEquals(setOf(MusicLayer.LEAD, MusicLayer.BOOM, MusicLayer.ROLL, MusicLayer.CHOP), falls)
     }
 }

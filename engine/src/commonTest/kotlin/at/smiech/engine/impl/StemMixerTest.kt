@@ -164,6 +164,51 @@ class StemMixerTest {
         assertEquals(0.125f, out[50], 0.002f)
     }
 
+    /** The game over's track: once through, then silence, and a platform told it can stop. */
+    @Test
+    fun `music that does not loop plays to its end and then falls silent`() {
+        val mixer = quarterLevel()
+        mixer.isLooping = false
+        mixer.setLayerLevel(0, 1f, Quantum.IMMEDIATE, 0f)
+        val out = render(mixer, 64000 + 5000)
+
+        assertEquals(0.25f, out[63999], 0.001f, "the last frame still sounds")
+        assertTrue(out.drop(64000).all { it == 0f }, "and nothing after it")
+        assertTrue(mixer.hasEnded)
+    }
+
+    @Test
+    fun `music that has ended starts again from the top`() {
+        fun marked() = ImaAdpcmClip.parse(
+            imaAdpcmWav(ShortArray(8000) { (if (it < 100) 16000 else 4000).toShort() }, channels = 1, sampleRate = rate)
+        )
+        val mixer = StemMixer(listOf(marked()), grid)
+        mixer.isLooping = false
+        mixer.setLayerLevel(0, 1f, Quantum.IMMEDIATE, 0f)
+        render(mixer, 9000)
+        assertTrue(mixer.hasEnded)
+
+        mixer.fadeTransport(on = true)
+        val again = render(mixer, 7000)
+        assertTrue(!mixer.hasEnded, "playing once more")
+        assertEquals(16000 / 32768f, again[90], 0.01f, "from its first frames")
+        assertEquals(4000 / 32768f, again[500], 0.01f)
+    }
+
+    /** A loop told to stop looping finishes the time round it is in rather than stopping dead. */
+    @Test
+    fun `a loop told not to loop stops at the end of the time round it is in`() {
+        val mixer = StemMixer(listOf(constantClip(8192, frames = 8000, sampleRate = rate)), grid)
+        mixer.setLayerLevel(0, 1f, Quantum.IMMEDIATE, 0f)
+        render(mixer, 20000)
+        mixer.isLooping = false
+        val out = render(mixer, 8000)
+
+        // Frame 0 of this render is frame 20000 of the music, 4000 short of its third time round.
+        assertEquals(0.25f, out[3999], 0.001f)
+        assertEquals(0f, out[4000])
+    }
+
     /** What a platform waits on before it pauses its device, so the pause does not click. */
     @Test
     fun `the transport fades out to silence and back`() {

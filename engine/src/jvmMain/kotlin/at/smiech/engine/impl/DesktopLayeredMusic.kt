@@ -96,6 +96,8 @@ class DesktopLayeredMusic(
                             sounding = true
                         }
                         write(line, pcm, bytes)
+                        // Music that does not loop stops itself at its end, as if paused there.
+                        if (mixer.hasEnded) wantPlaying = false
                     }
 
                     sounding -> {

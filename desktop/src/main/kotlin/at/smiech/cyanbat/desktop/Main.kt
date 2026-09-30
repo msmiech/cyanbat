@@ -74,7 +74,7 @@ private fun CyanBatApp(controls: ControlHandler) {
     // Out here rather than in the menu branch, which leaves composition for every run: a track
     // remembered there was rebuilt on each return, while the menu's ViewModel went on holding the
     // first one.
-    val menuMusic = remember { menuAudio.newMusic("menu_theme.mp3") }
+    val menuMusic = remember { menuAudio.newMusic("music/menu.wav") }
 
     val stage = playingStage
     if (stage != null) {

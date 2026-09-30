@@ -16,10 +16,12 @@ import kotlin.math.max
  * the Doom 2016 and Eternal idea: the music is only as intense as the fighting.
  *
  * The combo is heard on the same ladder the HUD's readout burns up ([ComboHeat]): each rung it
- * names - HOT, BLAZING, SCORCHING, INFERNO - is a step of the music, and the steps between rungs
- * are not, so a new title flaring on screen and a new layer arriving are one event. The ladder has
- * no top and neither does the multiplier, but the music runs out of layers; the one thing past
- * INFERNO it still answers is a streak gone SUPERNOVA, which calls in the boss's own heavy layer.
+ * names, from HOT to SUPERNOVA, is a step of the music, and the steps between rungs are not, so a
+ * new title flaring on screen and a new layer arriving are one event. The steps come closer
+ * together as the fire climbs: under the tune a layer takes two rungs, over it one, so the hottest
+ * streaks get a trap beat's 808s, rolling hats and chopped voices a rung apart. SUPERNOVA calls in
+ * the boss's own heavy layer on top. Past it the multiplier climbs on, but the music has nothing
+ * left to add.
  *
  * Then there is what the music does at the edges of the action, which is SSX 3's idea: a hit is a
  * thud, the music ducking under a low-pass for a moment the way it does when a rider wipes out;
@@ -158,9 +160,10 @@ class MusicDirector(
          *
          * The floor rises evenly across the waves before the boss - [WAVE_RISE] over the whole
          * stage - and sits higher on a harder stage, so stage 3 opens with its bass already moving.
-         * Each rung of the combo's heat ladder adds [COMBO_STEP] on top, up to [COMBO_RUNGS] of
-         * them: HOT at a streak of 3, BLAZING at 9, SCORCHING at 15 and INFERNO at 24. Past that a
-         * longer streak is more points, and a hotter fire on the HUD, but not more layers.
+         * Each rung of the combo's heat ladder adds [COMBO_STEP] on top, all [COMBO_RUNGS] of them:
+         * HOT at a streak of 3, BLAZING at 9, SCORCHING at 15, INFERNO at 24, HELLFIRE at 36,
+         * BLUE FLAME at 51, WHITE HOT at 72 and SUPERNOVA at 102. Past that a longer streak is more
+         * points, and a faster fire on the HUD, but not more music.
          */
         fun intensity(waveIndex: Int, bossWave: Int, comboMultiplier: Int, difficulty: Float): Float {
             val progress = if (bossWave <= 1) 1f else (waveIndex.toFloat() / (bossWave - 1)).coerceIn(0f, 1f)
@@ -173,14 +176,21 @@ class MusicDirector(
          * Where each layer comes in. Tuned against stage 1, whose first wave is the bed alone: HOT
          * brings the pulse in, and SCORCHING the drums, which by the last wave are in without any
          * streak at all. The melody is the reward for a fire that keeps burning, and gets easier
-         * to earn as the stage goes on - INFERNO in the second wave, SCORCHING in the third,
-         * BLAZING in the fourth, and any fire at all in the last. The boss brings everything.
+         * to earn as the stage goes on - HELLFIRE in the first wave, INFERNO in the second,
+         * SCORCHING in the third, BLAZING in the fourth, and any fire at all in the last.
+         *
+         * Over the melody the layers are a rung apart. In the first wave BLUE FLAME brings the
+         * 808s, WHITE HOT the rolling hats, and SUPERNOVA the chopped voices; in the last, BLAZING,
+         * SCORCHING and INFERNO do. The boss brings everything.
          */
         fun threshold(layer: MusicLayer): Float = when (layer) {
             MusicLayer.BED -> 0f
             MusicLayer.PULSE -> 0.2f
             MusicLayer.DRIVE -> 0.4f
             MusicLayer.LEAD -> 0.6f
+            MusicLayer.BOOM -> 0.7f
+            MusicLayer.ROLL -> 0.8f
+            MusicLayer.CHOP -> 0.9f
             // The boss's, or a supernova streak's; never the intensity's.
             MusicLayer.FURY -> Float.MAX_VALUE
         }
@@ -190,8 +200,8 @@ class MusicDirector(
         private const val PER_DIFFICULTY = 0.3f
         private const val COMBO_STEP = 0.1f
 
-        /** The rungs the music climbs with the HUD: up to INFERNO, the fourth. */
-        private const val COMBO_RUNGS = 4
+        /** The rungs the music climbs with the HUD: every one it names, up to SUPERNOVA. */
+        private val COMBO_RUNGS = ComboHeat.rung(ComboHeat.SUPERNOVA)
 
         /** Sums of tenths do not always land on a tenth in floating point. */
         private const val EPSILON = 1e-4f

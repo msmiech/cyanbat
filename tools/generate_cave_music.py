@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = ["numpy==2.5.3", "scipy==1.18.1"]
 # ///
-"""Generate the cave's music, as the five stems the game layers.
+"""Generate the cave's music, as the eight stems the game layers.
 
     uv run tools/generate_cave_music.py
 
@@ -10,8 +10,9 @@ The first stage, and the calmest of the three: a campfire before the journey rat
 The model is the kind of music a camp at the edge of the wilds gets in an old action RPG - a
 fingerpicked nylon guitar, rolling and a little melancholy, ringing on open strings in a cave that
 gives it back - pushed a step toward adventure: a gallop under it once the fight picks up, and a
-tune that climbs. The notes are this script's own; only the instrumentation and the mood are
-borrowed.
+tune that climbs. As the fight heats up a trap beat grows under the guitar, from a sub under the
+bass to 808s sliding between the chords, rolling hi-hats and chopped voices. The notes are this
+script's own; only the instrumentation and the mood are borrowed.
 
 E minor in 12/8, four dotted-quarter beats a bar at 63 of them a minute. The eight-bar progression
 walks up from the tonic to a major IV - the Dorian lift, which is where the adventure is - and back
@@ -22,18 +23,26 @@ down to the dominant:
 The layers, bottom up:
 
 * bed   - the guitar's arpeggios and a soft string pad, with the odd drip of water. Eight bars.
-* pulse - a fingered bass walking the progression, a frame drum on beats one and three, a shaker.
-* drive - a galloping strummed guitar, a marching kit, tom fills into the turnaround.
+* pulse - a fingered bass walking the progression over a sub, a frame drum on beats one and three,
+          a shaker.
+* drive - a galloping strummed guitar, a marching kit with a clap on its backbeat, tom fills into
+          the turnaround.
 * lead  - the tune, on a warm flute: sixteen bars, a phrase and its answer, the answer climbing to
           the major third over the IV chord.
-* fury  - for the boss: taiko, low brass driving the roots, a choir. Eight bars.
+* boom  - 808s: long on the one, an octave's pop on the third beat, sliding into each bar's root.
+* roll  - hi-hats in sixteenths of the lilt, rolling in thirty-seconds into every other bar, and a
+          snare roll and a cymbal swelling into the top. Four bars.
+* chop  - a voice chopped into a hook under the flute: the chord's notes thrown out in the 12/8
+          lilt, stuttering into the halfway point and the turnaround.
+* fury  - for the boss: taiko, low brass driving the roots, distorted 808s, a choir. Eight bars.
 """
 
 import numpy as np
 
 from musicsynth import (
-    AH, OH, Piece, bell, cymbal, dark, eq, echo, held, highpass, hz, jingles, kick, lowpass, mallet,
-    membrane, notes, peak, pluck, reverb, reverb_ir, saturate, saw, shaker, snare, vowel, write_stems,
+    AH, OH, Piece, bell, chop, clap, cymbal, dark, eight08, eq, echo, held, highpass, hz, jingles,
+    kick, lowpass, mallet, membrane, notes, peak, pluck, reverb, reverb_ir, saturate, saw, shaker,
+    snare, swell, trap_hat, vowel, write_stems,
 )
 
 PIECE = Piece("cave", bpm=63, beats_per_bar=4, seed=20260929)
@@ -170,6 +179,15 @@ def render_pulse():
     bass.audio = eq(bass.audio, highpass(36), peak(160, 3.0, 1.0), peak(700, 2.0, 1.0), lowpass(3000))
     loop.mix(bass, 0.9)
 
+    # A sub under the bass's first note of the bar: the floor the 808s will stand on later. Dice of
+    # its own, so the bass and the drums play exactly as they did without it.
+    sub = PIECE.loop(8)
+    sub_rng = PIECE.rng(20)
+    for bar in range(8):
+        sub.add(eight08(hz(PROGRESSION[bar][2][0]), PIECE.seconds(2) - 0.05, sub_rng, punch=3, decay=1.0,
+                        drive=1.3, click=0), bar * 4)
+    loop.mix(sub, 0.28)
+
     drums = PIECE.loop(8)
     for bar in range(8):
         for eighth, velocity in ((0, 1.0), (6, 0.85), (11, 0.35)):
@@ -230,6 +248,14 @@ def render_drive():
     kit.add(cymbal(rng, velocity=0.5), 0, pan=0.3)
     kit.audio = saturate(kit.audio, 1.5)
     loop.mix(kit, 1.1)
+
+    # A drum machine's clap stacked on the snare's backbeat.
+    claps = PIECE.loop(8)
+    clap_rng = PIECE.rng(30)
+    for bar in range(8):
+        for beat in (1, 3):
+            claps.add(clap(clap_rng, velocity=0.8), bar * 4 + beat, pan=-0.1)
+    loop.mix(claps, 0.3)
 
     loop.audio += reverb(loop.audio, cave_room(PIECE.rng(100))) * 0.2
     return loop
@@ -315,7 +341,126 @@ def render_fury():
     drums.audio = saturate(drums.audio, 1.5)
     loop.mix(drums, 0.9)
 
+    # 808s driven until they growl, on the first and third beats and sliding into the next root: an
+    # octave over the boom's, so the two do not pile up in the sub.
+    growl = PIECE.loop(8)
+    growl_rng = PIECE.rng(50)
+    for bar in range(8):
+        root = PROGRESSION[bar][2][0]
+        following = PROGRESSION[(bar + 1) % 8][2][0]
+        for beat, beats, slides in ((0, 1.9, False), (2, 1 + EIGHTH, False), (3 + 2 * EIGHTH, EIGHTH, True)):
+            target = hz(following) if slides and following != root else None
+            growl.add(eight08(hz(root + 12), PIECE.seconds(beats) - 0.01, growl_rng, slide_to=target and target * 2, slide=0.12,
+                              decay=1.2, drive=5.0), bar * 4 + beat)
+    growl.audio = eq(growl.audio, highpass(60), lowpass(2500))
+    loop.mix(growl, 0.3)
+
     loop.audio += reverb(loop.audio, cave_room(PIECE.rng(100))) * 0.28
+    return loop
+
+
+def trap_bass(midi, seconds, rng, slide_to=None, velocity=1.0):
+    """The boom's 808: long, sliding, and buzzing enough on top to come through a phone's speaker."""
+    return eight08(hz(midi), seconds, rng, slide_to=slide_to, slide=0.18, decay=1.6, drive=2.6, presence=1.0,
+                   velocity=velocity)
+
+
+def render_boom():
+    rng = PIECE.rng(6)
+    loop = PIECE.loop(8)
+
+    bass = PIECE.loop(8)
+    for bar in range(8):
+        root = PROGRESSION[bar][2][0]
+        following = PROGRESSION[(bar + 1) % 8][2][0]
+        # In eighths: long on the one, a pickup into the third beat, the octave on it, and a last
+        # note slid into the next bar's root.
+        for eighth, eighths, interval, slides in ((0, 5, 0, False), (5, 1, 0, False), (6, 3, 12, False),
+                                                  (9, 3, 0, True)):
+            target = hz(following) if slides and following != root else None
+            bass.add(trap_bass(root + interval, PIECE.seconds(eighths * EIGHTH) - 0.01, rng, slide_to=target,
+                               velocity=1.0 if eighth == 0 else 0.85), bar * 4 + eighth * EIGHTH)
+    bass.audio = eq(bass.audio, highpass(30), lowpass(3000))
+    loop.mix(bass, 0.8)
+
+    kicks = PIECE.loop(8)
+    for bar in range(8):
+        for eighth in (0, 6):
+            kicks.add(kick(rng, low=50, high=150, seconds=0.14, velocity=0.8), bar * 4 + eighth * EIGHTH)
+    loop.mix(kicks, 0.45)
+
+    loop.audio += reverb(loop.audio, cave_room(PIECE.rng(100))) * 0.08
+    return loop
+
+
+def render_roll():
+    rng = PIECE.rng(7)
+    loop = PIECE.loop(4)
+    sixteenth = EIGHTH / 2
+
+    hats = PIECE.loop(4)
+    for bar in range(4):
+        base = bar * 4
+        for beat in range(4):
+            if beat == 3 and bar % 2 == 1:
+                # Thirty-seconds over the last beat, climbing into the next bar.
+                for i in range(12):
+                    along = i / 11
+                    hats.add(trap_hat(rng, pitch=1 + 0.25 * along, velocity=0.3 + 0.4 * along),
+                             base + beat + i * sixteenth / 2, pan=0.35)
+                continue
+            for i in range(6):
+                at = base + beat + i * sixteenth
+                if beat == 1 and i == 4 and bar % 2 == 0:
+                    hats.add(trap_hat(rng, open_=True, velocity=0.5), at, pan=0.35)
+                    continue
+                accent = 0.6 if i == 0 else 0.45 if i % 2 == 0 else 0.3
+                hats.add(trap_hat(rng, velocity=accent * (1 + 0.08 * rng.standard_normal())), at, pan=0.35,
+                         nudge_seconds=0.002 * rng.standard_normal())
+    loop.mix(hats, 8.9)
+
+    # The snare rolls into the top of the loop, sixteenths and then thirty-seconds, with a cymbal
+    # swelling under it.
+    for i in range(6):
+        loop.add(snare(rng, velocity=0.3 + 0.05 * i), 14 + i * sixteenth, pan=-0.2, gain=3.0)
+    for i in range(12):
+        loop.add(snare(rng, seconds=0.1, velocity=0.45 + 0.04 * i), 15 + i * sixteenth / 2, pan=-0.2, gain=3.0)
+    rising = swell(cymbal(rng, seconds=1.2, velocity=0.45))
+    loop.add(rising, 16 - rising.shape[0] / PIECE.samples_per_beat, pan=0.3, gain=3.0)
+
+    loop.audio = eq(loop.audio, highpass(150))
+    loop.audio += reverb(loop.audio, cave_room(PIECE.rng(100))) * 0.15
+    return loop
+
+
+# The chopped voice, bar by bar: (eighth, note, length in eighths, vowel). Under the flute, in the
+# octave below it, and stuttering into the halfway point and into the turnaround.
+CHOPS = [
+    [(0, "E4", 1, AH), (2, "G4", 1, AH), (3, "B4", 2, AH), (6, "A4", 1, OH), (7, "G4", 1, OH), (9, "E4", 2, AH)],
+    [(0, "F#4", 1, AH), (2, "A4", 1, AH), (3, "D5", 2, AH), (6, "A4", 1, OH), (7, "F#4", 1, OH), (9, "D4", 2, AH)],
+    [(0, "G4", 1, AH), (2, "B4", 1, AH), (3, "D5", 2, AH), (6, "B4", 1, OH), (7, "A4", 1, OH), (9, "G4", 2, AH)],
+    [(0, "A4", 1, AH), (2, "C#5", 1, AH), (3, "E5", 2, AH), (6, "C#5", 1, OH), (7, "B4", 1, OH),
+     (9, "A4", 1, AH), (10, "A4", 1, AH), (11, "A4", 1, AH)],
+    [(0, "G4", 1, AH), (2, "C5", 1, AH), (3, "E5", 2, AH), (6, "D5", 1, OH), (7, "C5", 1, OH), (9, "G4", 2, AH)],
+    [(0, "B4", 1, AH), (2, "D5", 1, AH), (3, "G5", 2, AH), (6, "D5", 1, OH), (7, "B4", 1, OH), (9, "G4", 2, AH)],
+    [(0, "A4", 1, AH), (2, "C5", 1, AH), (3, "E5", 2, AH), (6, "C5", 1, OH), (7, "B4", 1, OH), (9, "A4", 2, AH)],
+    [(0, "B4", 1, AH), (1, "B4", 1, AH), (2, "B4", 1, AH), (3, "D#5", 2, AH), (6, "A4", 1, OH),
+     (7, "F#4", 1, OH), (9, "D#4", 1, AH), (10, "F#4", 1, AH), (11, "A4", 1, AH)],
+]
+
+
+def render_chop():
+    rng = PIECE.rng(8)
+    loop = PIECE.loop(8)
+    for bar, phrase in enumerate(CHOPS):
+        for eighth, name, eighths, formants in phrase:
+            longer = eighths > 1
+            loop.add(chop(hz(notes(name)[0]), PIECE.seconds(eighths * EIGHTH) * 0.85, rng, formants,
+                          into=OH if longer else None, scoop=70 if longer else 0, fall=200 if longer else 0),
+                     bar * 4 + eighth * EIGHTH, pan=0.4 if eighth % 3 else -0.3, gain=0.9)
+    loop.audio = eq(loop.audio, highpass(220), peak(2800, 2.0, 1.0))
+    loop.audio += echo(loop.audio, PIECE.seconds(2 * EIGHTH), PIECE.seconds(1.0), 0.3, 2200) * 0.25
+    loop.audio += reverb(loop.audio, cave_room(PIECE.rng(100))) * 0.25
     return loop
 
 
@@ -325,6 +470,9 @@ def main() -> int:
         "pulse": render_pulse(),
         "drive": render_drive(),
         "lead": render_lead(),
+        "boom": render_boom(),
+        "roll": render_roll(),
+        "chop": render_chop(),
         "fury": render_fury(),
     })
     return 0

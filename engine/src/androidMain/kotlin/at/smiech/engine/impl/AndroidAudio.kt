@@ -12,20 +12,16 @@ import at.smiech.engine.MusicGrid
 import at.smiech.engine.Sound
 import java.io.IOException
 
+/**
+ * Android [Audio]: sounds through a [SoundPool], and every piece of music through the shared
+ * [StemMixer], played on an `AudioTrack`; see [Audio.newMusic] and [Audio.newLayeredMusic].
+ */
 class AndroidAudio(activity: Activity) : Audio {
     private var assets: AssetManager
     private var soundPool: SoundPool
-    private val musicInstances = mutableListOf<Music>()
     private val layeredInstances = mutableListOf<LayeredMusic>()
 
-    override fun newMusic(filename: String): Music {
-        return try {
-            val afd = assets.openFd(filename)
-            AndroidMusic(afd).also { musicInstances.add(it) }
-        } catch (exc: IOException) {
-            throw RuntimeException("Music-file <$filename> not found! $exc")
-        }
-    }
+    override fun newMusic(filename: String): Music = TrackMusic.of(clip(filename), ::play)
 
     override fun newSound(filename: String): Sound {
         return try {
@@ -37,26 +33,25 @@ class AndroidAudio(activity: Activity) : Audio {
         }
     }
 
-    override fun newLayeredMusic(stems: List<String>, grid: MusicGrid): LayeredMusic {
-        val clips = stems.map { name ->
-            try {
-                ImaAdpcmClip.parse(assets.open(name).use { it.readBytes() })
-            } catch (exc: IOException) {
-                throw RuntimeException("Music stem <$name> not found! $exc")
-            }
-        }
-        return AndroidLayeredMusic(StemMixer(clips, grid)) { layeredInstances.remove(it) }
-            .also { layeredInstances.add(it) }
-    }
+    override fun newLayeredMusic(stems: List<String>, grid: MusicGrid): LayeredMusic =
+        play(StemMixer(stems.map(::clip), grid))
 
     override fun dispose() {
-        musicInstances.forEach { it.dispose() }
-        musicInstances.clear()
         // A copy, because each one takes itself off the list as it goes.
         layeredInstances.toList().forEach { it.dispose() }
         layeredInstances.clear()
         soundPool.release()
     }
+
+    private fun clip(name: String): ImaAdpcmClip =
+        try {
+            ImaAdpcmClip.parse(assets.open(name).use { it.readBytes() })
+        } catch (exc: IOException) {
+            throw RuntimeException("Music <$name> not found! $exc")
+        }
+
+    private fun play(mixer: StemMixer): LayeredMusic =
+        AndroidLayeredMusic(mixer) { layeredInstances.remove(it) }.also { layeredInstances.add(it) }
 
     init {
         activity.volumeControlStream = AudioManager.STREAM_MUSIC

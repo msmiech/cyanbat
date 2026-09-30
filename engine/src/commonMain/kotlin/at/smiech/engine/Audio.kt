@@ -1,7 +1,13 @@
 package at.smiech.engine
 
 interface Audio {
+    /**
+     * A piece of music played straight through, from an IMA ADPCM WAV like the stems of
+     * [newLayeredMusic], and decoded in common code the way they are: so it loops without a gap and
+     * sounds the same on every platform. See [Music].
+     */
     fun newMusic(filename: String): Music
+
     fun newSound(filename: String): Sound
 
     /**

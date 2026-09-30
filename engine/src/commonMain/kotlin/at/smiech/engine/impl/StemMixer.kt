@@ -26,6 +26,10 @@ import kotlin.math.tanh
  *
  * Every stem is decoded on every chunk, heard or not, because a stem's place in the music is how
  * far it has been read: one skipped while it was silent would come back out of step.
+ *
+ * Music loops unless it is told not to; see [isLooping]. A piece of one stem played once - the game
+ * over's - goes through here too, so that every piece of music the game plays is decoded the same
+ * way on every platform.
  */
 class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     init {
@@ -43,6 +47,17 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     private val cursors = stems.map { it.cursor() }
     private val layers = Array(layerCount) { Layer() }
 
+    /** Once through the music: its longest stem, which every shorter one divides. */
+    private val length = stems.maxOf { it.frames }.toLong()
+
+    /**
+     * Game thread. Whether the music goes round again at its end, as layered music always does, or
+     * stops there, as a track the game plays once does; see [hasEnded]. Turned off while the music
+     * is going round, it stops at the end of the time through that it is in.
+     */
+    @Volatile
+    var isLooping = true
+
     // Written by the game thread, read by the audio thread.
     @Volatile
     private var orders: Array<Order?> = arrayOfNulls(layerCount)
@@ -55,6 +70,13 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
 
     /** Frames rendered since the top. The grid is counted from here, as the stems are. */
     var position = 0L
+        private set
+
+    /**
+     * Audio thread. True once music that does not loop has played to its end. From there it renders
+     * silence, and the next [fadeTransport] on starts it again from the top.
+     */
+    var hasEnded = false
         private set
 
     private var muffle = 0f
@@ -97,8 +119,11 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
      * Audio thread. Fades the output to silence, or back up from it, over a few milliseconds, so a
      * pause does not cut a waveform off halfway and click. The music's own position runs on
      * through the fade, and a platform pauses its device once [isSilenced] says it can.
+     *
+     * Music that has played to its end starts again from the top when it is faded back on.
      */
     fun fadeTransport(on: Boolean) {
+        if (on && hasEnded) rewind()
         transportTarget = if (on) 1f else 0f
     }
 
@@ -118,17 +143,30 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     private fun renderChunk(out: ShortArray, offset: Int, count: Int) {
         takeOrders()
 
+        // Music that does not loop plays up to the end of the time through it is in; whatever is
+        // left of the chunk after that, and every chunk after it, is silence.
+        val audible = when {
+            hasEnded -> 0
+            isLooping -> count
+            else -> {
+                val untilEnd = length - position % length
+                if (untilEnd <= count) hasEnded = true
+                minOf(untilEnd, count.toLong()).toInt()
+            }
+        }
+
         mix.fill(0f, 0, count * 2)
         for (index in layers.indices) {
-            cursors[index].read(stem, 0, count)
+            if (audible == 0) break
+            cursors[index].read(stem, 0, audible)
             val layer = layers[index]
-            if (layer.isSilentThrough(position, position + count)) continue
-            for (f in 0 until count) {
+            if (layer.isSilentThrough(position, position + audible)) continue
+            for (f in 0 until audible) {
                 val gain = layer.gainAt(position + f)
                 mix[2 * f] += stem[2 * f] * gain
                 mix[2 * f + 1] += stem[2 * f + 1] * gain
             }
-            layer.settle(position + count)
+            layer.settle(position + audible)
         }
 
         // Glided once a chunk and interpolated across it, so a caller setting these once a frame
@@ -185,6 +223,23 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
             layer.seen = order
             schedule(layer, order)
         }
+    }
+
+    /**
+     * Takes every stem back to its first frame, and the grid back with them. Each layer holds the
+     * level it had, and its latest order is put on the grid again, counted from the new top.
+     */
+    private fun rewind() {
+        for (index in layers.indices) {
+            val layer = layers[index]
+            val level = layer.gainAt(position)
+            layer.current = Ramp(0L, 0L, level, level)
+            layer.pending = null
+            layer.seen = null
+            cursors[index].rewind()
+        }
+        position = 0L
+        hasEnded = false
     }
 
     /**

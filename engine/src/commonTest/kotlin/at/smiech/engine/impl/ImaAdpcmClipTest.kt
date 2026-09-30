@@ -6,6 +6,7 @@ import kotlin.math.log10
 import kotlin.math.sin
 import kotlin.math.sqrt
 import kotlin.test.Test
+import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
@@ -38,6 +39,19 @@ class ImaAdpcmClipTest {
         val snr = 10 * log10(signal / noise)
         // Four bits a sample buys roughly what 8-bit PCM would, on a tone this plain.
         assertTrue(snr > 30.0, "round trip SNR was $snr dB")
+    }
+
+    /** What a track played once needs to be played again: the top of the clip, from anywhere in it. */
+    @Test
+    fun `a rewound cursor reads the clip from its first frame again`() {
+        val rate = 8000
+        val clip = ImaAdpcmClip.parse(imaAdpcmWav(sine(1234, 330.0, rate), channels = 1, sampleRate = rate))
+        val cursor = clip.cursor()
+        val first = FloatArray(200).also { cursor.read(it, 0, 100) }
+        cursor.read(FloatArray(1800), 0, 900)
+        cursor.rewind()
+        val again = FloatArray(200).also { cursor.read(it, 0, 100) }
+        assertContentEquals(first, again)
     }
 
     /**

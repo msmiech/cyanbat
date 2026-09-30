@@ -37,9 +37,7 @@
     <string name="settings_display_ambient_hint">Keeps the game in shape, and lights the bars with the colors at its edges.</string>
 
     <string name="credit_music_title">Music</string>
-    <string name="credit_music_0">Waterski Me by Ozzed</string>
-    <string name="credit_music_1">A Well Worked Analogy by Ozzed</string>
-    <string name="credit_music_2">The Final End by Ozzed</string>
+    <string name="credit_music_0">Original music, composed and synthesized in code for CyanBat</string>
     <string name="credit_gameframework_title">Game Framework</string>
     <string name="credit_gameframework_0">Based on Beginning Android Games by Mario Zechner and Robert Green</string>
     <string name="credit_gameframework_1">Implementation by Robert Grüneis</string>

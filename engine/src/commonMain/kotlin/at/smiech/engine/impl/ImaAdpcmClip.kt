@@ -60,6 +60,13 @@ class ImaAdpcmClip private constructor(
             }
         }
 
+        /** Back to the first frame, as if the cursor had just been made. */
+        fun rewind() {
+            blockIndex = -1
+            framesInBlock = 0
+            frameInBlock = 0
+        }
+
         private fun nextBlock() {
             blockIndex++
             if (blockIndex * framesPerBlock >= frames) blockIndex = 0

@@ -4,8 +4,9 @@ The stage music is generated rather than recorded, for the same reason the art i
 can regenerate is a piece nobody can rearrange. The scripts next to this one are the scores -
 which notes, on which instrument, when - and this is the band and the studio.
 
-Each piece is cut into stems, one per layer of the game's layered music, and every stem is a loop.
-That shapes everything here:
+A stage's piece is cut into stems, one per layer of the game's layered music, and every stem is a
+loop. The menu's theme is one loop, and the game over's lament one track the game plays once. That
+shapes everything here:
 
 * **Everything is circular.** A note that rings past the end of its loop carries on at the start,
   and so do the reverb and the echo; filters are applied as their steady-state response to a signal
@@ -40,17 +41,18 @@ MUSIC_DIR = pathlib.Path(__file__).resolve().parent.parent / "assets" / "music"
 
 # The layers every stage's music is cut into, bottom up: the game's MusicLayer, and the order the
 # stems are handed to its mixer.
-LAYERS = ("bed", "pulse", "drive", "lead", "fury")
+LAYERS = ("bed", "pulse", "drive", "lead", "boom", "roll", "chop", "fury")
 
 # The game's mixer passes everything under this share of full scale straight through and rounds
 # off what goes over it (StemMixer's CLIP_KNEE).
 MIXER_KNEE = 0.9
 
-# How much of the full mix, every layer up, may go past the knee: one sample in ten thousand. The
-# loudest moments of a mix are a few peaks of different stems landing together, and levelling the
-# whole set so that even those stay under the knee costs every other moment a couple of decibels.
-# Rounded off by the mixer, a peak that rare is not heard.
-PAST_KNEE = 1e-4
+# How much of the full mix, every layer up, may go past the knee: one sample in a thousand. The
+# loudest moments of a mix are a few peaks of different stems landing together, and leveling the
+# whole set so that even those stay under the knee costs every other moment a couple of decibels -
+# more with every layer the ladder grows. Every layer is only up at the height of a fight, a boss or
+# a streak gone supernova, where a peak the mixer rounds off is lost in the noise.
+PAST_KNEE = 1e-3
 
 NOTE_NAMES = {"C": 0, "D": 2, "E": 4, "F": 5, "G": 7, "A": 9, "B": 11}
 
@@ -658,6 +660,108 @@ def cymbal(rng, *, seconds=1.6, velocity=1.0):
     return fade_edges(_normalized(_normalized(wash) + 0.15 * _normalized(ring)) * velocity, attack=0.0005)
 
 
+def swell(sound: np.ndarray, release: float = 0.01) -> np.ndarray:
+    """[sound] played backwards: a cymbal or a voice that grows out of nothing and stops dead.
+    Lay it in so that it ends where it should land, [len] before the beat it leads into."""
+    return fade_edges(sound[..., ::-1], attack=0.002, release=release)
+
+
+# --- The trap kit -------------------------------------------------------------------------------
+#
+# What a drum machine brings to the older instruments above: the 808 played as a bass and sliding
+# between its notes, hi-hats ticking and rolling faster than any hand could, and voices chopped out
+# of a sung line and played as an instrument. Used over the stages' own instruments rather than in
+# place of them.
+
+
+# The six square waves a TR-808 mixes for its cymbal and hi-hats, in hertz: clashing on purpose,
+# since what is left of them after a band-pass is metal.
+_METAL_HZ = (205.3, 304.4, 369.6, 522.7, 540.0, 800.0)
+
+
+def eight08(f0: float, seconds: float, rng: np.random.Generator, *, slide_to: float | None = None,
+            slide: float = 0.12, punch: float = 9.0, decay: float = 1.6, drive: float = 2.5,
+            click: float = 0.15, presence: float = 0.0, velocity: float = 1.0) -> np.ndarray:
+    """An 808: the drum machine's long kick, tuned and played as a bass. Mono.
+
+    It lands [punch] semitones sharp and falls onto its note within a few hundredths of a second,
+    which is the thump; rings on, dying away over [decay]; and is driven through a soft clipper
+    until it grows some overtones. With [slide_to] it glides into that frequency over its last
+    [slide] seconds - the slide trap bass lines are made of. [seconds] is how long it is held.
+
+    The note itself is lower than a phone's speaker reaches, and so are the overtones a soft clip
+    grows, so an 808 meant to be heard there rides [presence] of a hard-driven copy of itself with
+    its lows taken out: the buzz a trap mix puts on its 808s so that they come through small
+    speakers.
+    """
+    held_for = seconds_to_samples(seconds)
+    n = held_for + seconds_to_samples(0.015)
+    t = np.arange(n) / RENDER_RATE
+    semitones = punch * np.exp(-t / 0.018)
+    if slide_to is not None:
+        begin = max(0, held_for - seconds_to_samples(slide))
+        along = np.clip((np.arange(n) - begin) / max(held_for - begin, 1), 0.0, 1.0)
+        semitones = semitones + 12 * np.log2(slide_to / f0) * (0.5 - 0.5 * np.cos(np.pi * along))
+    body = np.sin(2 * np.pi * np.cumsum(f0 * 2 ** (semitones / 12)) / RENDER_RATE)
+    level = np.exp(-t / decay)
+    level[held_for:] *= 0.5 * (1 + np.cos(np.pi * np.arange(n - held_for) / (n - held_for)))
+    tone = np.tanh(drive * body * level) / np.tanh(drive)
+    if presence:
+        grit = np.tanh(8.0 * body * level) / np.tanh(8.0)
+        tone = tone + presence * one_shot_filter(grit, np.vstack((highpass(250), lowpass(2500))))
+    if click:
+        k = seconds_to_samples(0.003)
+        tick = one_shot_filter(noise(k, rng), bandpass(1000, 5000)) * np.exp(-np.arange(k) / (k / 3))
+        tone[:k] += click * _normalized(tick)
+    return fade_edges(tone * velocity, attack=0.0015, release=0.004)
+
+
+def trap_hat(rng: np.random.Generator, *, open_: bool = False, pitch: float = 1.0,
+             velocity: float = 1.0) -> np.ndarray:
+    """A drum machine's hi-hat: the six squares of [_METAL_HZ] and a little hiss, band-passed down to
+    their fizz. Tighter than [hat], the tick trap hats roll in; [pitch] moves the whole cluster, for
+    a roll that climbs. Mono."""
+    seconds = 0.16 if open_ else 0.022
+    n = seconds_to_samples(seconds * 4 + 0.01)
+    t = np.arange(n) / RENDER_RATE
+    metal = np.zeros(n)
+    for f in _METAL_HZ:
+        f *= pitch
+        metal += read_table(wavetable(harmonics(f, square)), np.full(n, f), phase=rng.random())
+    metal = one_shot_filter(metal, bandpass(5000, 9800))
+    hiss = one_shot_filter(noise(n, rng), bandpass(5500, 9800))
+    body = (_normalized(metal) + 0.6 * _normalized(hiss)) * _decay(n, seconds)
+    return fade_edges(_normalized(body) * velocity, attack=0.0002)
+
+
+def chop(f0: float, seconds: float, rng: np.random.Generator, formants=AH, *, into=None,
+         scoop: float = 0.0, fall: float = 0.0, air: float = 0.1, velocity: float = 1.0) -> np.ndarray:
+    """A slice of a sung vowel, the way a sampler chops one out of a vocal: it starts and stops dead
+    instead of breathing in and out. Mono.
+
+    It can [scoop] up into its note from that many cents below, [fall] off it by that many cents as
+    it ends, and turn [into] a second vowel on the way.
+    """
+    n = seconds_to_samples(seconds)
+    t = np.arange(n) / RENDER_RATE
+    cents = -scoop * np.exp(-t / 0.035)
+    if fall:
+        tail = min(0.09, seconds * 0.5)
+        cents = cents - fall * np.clip((t - (seconds - tail)) / tail, 0, 1) ** 2
+    freq = f0 * 2 ** (cents / 1200)
+    phase = rng.random()
+    voice = read_table(wavetable(harmonics(f0, vowel(f0, formants))), freq, phase)
+    if into is not None:
+        other = read_table(wavetable(harmonics(f0, vowel(f0, into))), freq, phase)
+        morph = t / seconds
+        voice = voice * (1 - morph) + other * morph
+    if air:
+        breath = one_shot_filter(noise(n, rng), bandpass(1200, 5000))
+        voice = voice + air * breath / max(np.std(breath), 1e-9) * 0.25
+    body = voice * (0.8 + 0.2 * np.exp(-t / 0.05))
+    return fade_edges(body * velocity, attack=0.002, release=0.012)
+
+
 # --- Writing it out ----------------------------------------------------------------------------
 
 
@@ -816,10 +920,25 @@ def _db(x: float) -> str:
     return f"{20 * np.log10(max(x, 1e-9)):6.1f} dB"
 
 
+def loudness(audio: np.ndarray) -> float:
+    """How loud a loop at [OUTPUT_RATE] sounds, in decibels: its level through the K-weighting of
+    ITU-R BS.1770, near enough - a high-pass under 38 Hz and a four-decibel lift over 1.7 kHz.
+
+    Not its RMS, because a track heavy with 808s puts most of its energy where ears hear least, and
+    one leveled by its RMS comes out sounding quieter than its neighbors.
+    """
+    freqs = np.fft.rfftfreq(audio.shape[-1], 1 / OUTPUT_RATE)
+    ratio = freqs / 38.13
+    under = ratio ** 2 / np.sqrt((1 - ratio ** 2) ** 2 + (ratio / 0.5003) ** 2)
+    lift = np.sqrt((1 + (10 ** (4 / 20) * freqs / 1682.0) ** 2) / (1 + (freqs / 1682.0) ** 2))
+    weighted = np.fft.irfft(np.fft.rfft(audio) * under * lift, n=audio.shape[-1])
+    return 10 * np.log10(max(np.mean(weighted ** 2), 1e-18))
+
+
 def write_stems(piece: Piece, stems: dict[str, Loop]):
     """Brings a piece's stems down to the output rate, levels them as a set, and writes them.
 
-    Levelled as a set, not one by one: the balance between the layers is part of the music, so all
+    Leveled as a set, not one by one: the balance between the layers is part of the music, so all
     of them are scaled by the one factor that brings the full mix up to the mixer's knee; see
     [PAST_KNEE].
     """
@@ -832,7 +951,7 @@ def write_stems(piece: Piece, stems: dict[str, Loop]):
 
     # Nothing under 30 Hz reaches a listener on anything the game runs on, and it would take
     # headroom from everything that does. The peaks are tamed stem by stem for the same reason: the
-    # set is levelled by the full mix's loudest moment, and a drum hit that stands far above the
+    # set is leveled by the full mix's loudest moment, and a drum hit that stands far above the
     # rest would keep everything else quiet.
     outputs = {
         layer: to_output_rate(tame(filter_loop(loop.audio, highpass(30))))
@@ -852,3 +971,38 @@ def write_stems(piece: Piece, stems: dict[str, Loop]):
               f"  {path.stat().st_size / 1024:7.0f} KiB")
     rms = np.sqrt(np.mean((full * scale) ** 2))
     print(f"  full mix rms {_db(rms)}, peak {np.max(np.abs(full * scale)):.2f} of full scale")
+
+
+def write_track(piece: Piece, loop: Loop, *, loudness_db: float, end_beat: float | None = None):
+    """Brings a piece that is not layered - the menu's, the game over's - down to the output rate,
+    levels it, and writes it as `music/<piece name>.wav`.
+
+    Leveled to a [loudness] rather than to the mixer's knee, because it plays on its own: to
+    [loudness_db] over its whole length, set against the stages' mixes so that the menu is no louder
+    than a fight. Its peaks still have to clear the knee, and the level comes down if they would not.
+
+    A track the game plays once rather than loops is cut at [end_beat], once its last sound has rung
+    out, with a moment's fade so it cannot end on a click. Everything here is circular, so the loop
+    it was rendered in needs room past that beat: whatever rang on past the loop's end would come
+    round again at its start.
+    """
+    audio = to_output_rate(tame(filter_loop(loop.audio, highpass(30))))
+    if end_beat is not None:
+        end = int(round(piece.at(end_beat))) * OUTPUT_RATE // RENDER_RATE
+        fade = int(0.3 * OUTPUT_RATE)
+        audio = audio[:, :end].copy()
+        audio[:, -fade:] *= np.cos(np.linspace(0, np.pi / 2, fade)) ** 2
+    scale = 10 ** ((loudness_db - loudness(audio)) / 20)
+    loudest = np.quantile(np.abs(audio * scale), 1 - PAST_KNEE)
+    if loudest > MIXER_KNEE:
+        print(f"  {piece.name}: held {_db(MIXER_KNEE / loudest).strip()} under {loudness_db} dB, to clear the knee")
+        scale *= MIXER_KNEE / loudest
+
+    MUSIC_DIR.mkdir(parents=True, exist_ok=True)
+    path = MUSIC_DIR / f"{piece.name}.wav"
+    write_ima_adpcm(path, audio * scale)
+    rms = np.sqrt(np.mean((audio * scale) ** 2))
+    print(f"{piece.name}: {piece.bpm} BPM, {piece.beats_per_bar} beats a bar"
+          f"{', played once' if end_beat is not None else ''}")
+    print(f"  {path.name:22} {audio.shape[1] / OUTPUT_RATE:6.2f} s  loudness {loudness(audio * scale):5.1f} dB"
+          f"  rms {_db(rms)}  peak {_db(np.max(np.abs(audio * scale)))}  {path.stat().st_size / 1024:7.0f} KiB")
