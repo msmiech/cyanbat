@@ -48,7 +48,7 @@ LAYERS = ("bed", "pulse", "drive", "lead", "boom", "roll", "chop", "fury")
 MIXER_KNEE = 0.9
 
 # How much of the full mix, every layer up, may go past the knee: one sample in a thousand. The
-# loudest moments of a mix are a few peaks of different stems landing together, and levelling the
+# loudest moments of a mix are a few peaks of different stems landing together, and leveling the
 # whole set so that even those stay under the knee costs every other moment a couple of decibels -
 # more with every layer the ladder grows. Every layer is only up at the height of a fight, a boss or
 # a streak gone supernova, where a peak the mixer rounds off is lost in the noise.
