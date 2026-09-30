@@ -6,10 +6,9 @@
 
     uv run tools/generate_menu_music.py
 
-The title screen is the dark before the flight. The model is an eighties horror score's synths
-played by a 16-bit console - a pulse in the low synths like a heartbeat, a few haunting notes over
-it, an arpeggio that will not stop turning - with a trap beat's 808s and hi-hats underneath once it
-gets going. The notes are this script's own.
+The title screen is the dark before the flight: dark synths on a 16-bit console, a pulse in the
+low ones like a heartbeat, a few haunting notes over it, an arpeggio that will not stop turning,
+and a trap beat's 808s and hi-hats underneath once it gets going.
 
 C minor at 70 BPM in 4/4. The eight-bar progression is a line cliché: the bass falls a half step at
 a time under a minor chord that holds still, so the chord darkens bar by bar without moving -

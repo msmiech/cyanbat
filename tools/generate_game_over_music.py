@@ -6,10 +6,9 @@
 
     uv run tools/generate_game_over_music.py
 
-The run is over and the bat goes down to the underworld. The model is the sound of the ancient world
-as a film would score it now - a double pipe keening over a lyre, bronze gongs, a choir of low men's
-voices - with dark electronics snarling under it and a trap beat's 808s and hi-hats, all played by
-a 16-bit console. The notes are this script's own.
+The run is over and the bat goes down to the underworld: a double pipe keening over a lyre, bronze
+gongs and a choir of low men's voices, with dark electronics snarling under them and a trap beat's
+808s and hi-hats, all played by a 16-bit console.
 
 C Phrygian at 60 BPM in 4/4: the minor mode with a flat second, the half step over the tonic that
 makes a lament. The choir moves from an open fifth to the minor tonic, falls onto the flat second,

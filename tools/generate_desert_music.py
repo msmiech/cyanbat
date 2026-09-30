@@ -9,9 +9,8 @@
 The last stage is flown from noon into night over a desert with something under the sand. The
 model is the music of a desert palace's inner rooms in an old action RPG - a plucked lute, a
 buzzing drone, goblet drums and finger cymbals, a reed flute winding through a scale with a gap in
-it - with a trap beat rising under the drums as the fight heats up, 808s booming on the doums the
-way ancient instruments and 808s meet in a film score today. As with the other two, the notes are
-this script's own.
+it - with a trap beat rising under the drums as the fight heats up, 808s booming on the doums. As
+with the other two, the notes are this script's own.
 
 A in the Hijaz mode - A, B-flat, C-sharp, D, E, F, G - whose step and a half between the second
 and third degrees is the sound of the whole piece. 105 BPM in 4/4, on the maqsum rhythm, the
