@@ -681,14 +681,18 @@ _METAL_HZ = (205.3, 304.4, 369.6, 522.7, 540.0, 800.0)
 
 def eight08(f0: float, seconds: float, rng: np.random.Generator, *, slide_to: float | None = None,
             slide: float = 0.12, punch: float = 9.0, decay: float = 1.6, drive: float = 2.5,
-            click: float = 0.15, velocity: float = 1.0) -> np.ndarray:
+            click: float = 0.15, presence: float = 0.0, velocity: float = 1.0) -> np.ndarray:
     """An 808: the drum machine's long kick, tuned and played as a bass. Mono.
 
     It lands [punch] semitones sharp and falls onto its note within a few hundredths of a second,
     which is the thump; rings on, dying away over [decay]; and is driven through a soft clipper
-    hard enough to grow the overtones a phone's speaker can play, since the note itself is lower
-    than most of them reach. With [slide_to] it glides into that frequency over its last [slide]
-    seconds - the slide trap bass lines are made of. [seconds] is how long it is held.
+    until it grows some overtones. With [slide_to] it glides into that frequency over its last
+    [slide] seconds - the slide trap bass lines are made of. [seconds] is how long it is held.
+
+    The note itself is lower than a phone's speaker reaches, and so are the overtones a soft clip
+    grows, so an 808 meant to be heard there rides [presence] of a hard-driven copy of itself with
+    its lows taken out: the buzz a trap mix puts on its 808s so that they come through small
+    speakers.
     """
     held_for = seconds_to_samples(seconds)
     n = held_for + seconds_to_samples(0.015)
@@ -702,6 +706,9 @@ def eight08(f0: float, seconds: float, rng: np.random.Generator, *, slide_to: fl
     level = np.exp(-t / decay)
     level[held_for:] *= 0.5 * (1 + np.cos(np.pi * np.arange(n - held_for) / (n - held_for)))
     tone = np.tanh(drive * body * level) / np.tanh(drive)
+    if presence:
+        grit = np.tanh(8.0 * body * level) / np.tanh(8.0)
+        tone = tone + presence * one_shot_filter(grit, np.vstack((highpass(250), lowpass(2500))))
     if click:
         k = seconds_to_samples(0.003)
         tick = one_shot_filter(noise(k, rng), bandpass(1000, 5000)) * np.exp(-np.arange(k) / (k / 3))

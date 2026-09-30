@@ -210,9 +210,14 @@ def render_gongs(rng):
     return loop
 
 
+def boom(f0, seconds, rng, **shape):
+    """The 808s under the lament: driven, with the buzz that carries them through a phone's speaker."""
+    return eight08(f0, seconds, rng, drive=3.0, presence=0.8, **shape)
+
+
 def render_808s(rng):
     loop = PIECE.loop(BARS)
-    loop.add(eight08(hz(notes("C2")[0]), PIECE.seconds(3.8), rng, decay=2.2, drive=3.0, punch=10), 0)
+    loop.add(boom(hz(notes("C2")[0]), PIECE.seconds(3.8), rng, decay=2.2, punch=10), 0)
     for bar in range(1, 5):
         root = notes(ROOTS[bar])[0]
         following = notes(ROOTS[bar + 1])[0] if bar + 1 < len(ROOTS) else root
@@ -220,16 +225,14 @@ def render_808s(rng):
             # The cadence: the flat second held, slid down onto the tonic, and carried on there
             # without a fresh thump.
             tonic = hz(notes("C2")[0])
-            loop.add(eight08(hz(root), PIECE.seconds(2), rng, slide_to=tonic, slide=0.3, decay=1.8, drive=3.0),
-                     bar * 4)
-            loop.add(eight08(tonic, PIECE.seconds(2) - 0.05, rng, punch=0, click=0, decay=1.2, drive=3.0,
-                             velocity=0.6), bar * 4 + 2)
+            loop.add(boom(hz(root), PIECE.seconds(2), rng, slide_to=tonic, slide=0.3, decay=1.8), bar * 4)
+            loop.add(boom(tonic, PIECE.seconds(2) - 0.05, rng, punch=0, click=0, decay=1.2, velocity=0.6), bar * 4 + 2)
             continue
         for step, sixteenths, slides in ((0, 6, False), (6, 2, False), (8, 4, False), (12, 4, True)):
             target = hz(following) if slides and following != root else None
-            loop.add(eight08(hz(root), PIECE.seconds(sixteenths * STEP) - 0.01, rng, slide_to=target, slide=0.2,
-                             decay=1.5, drive=3.0, velocity=1.0 if step == 0 else 0.8), bar * 4 + step * STEP)
-    loop.add(eight08(hz(notes("C2")[0]), PIECE.seconds(2.5), rng, decay=0.9, drive=3.0, punch=10), 20)
+            loop.add(boom(hz(root), PIECE.seconds(sixteenths * STEP) - 0.01, rng, slide_to=target, slide=0.2, decay=1.5,
+                          velocity=1.0 if step == 0 else 0.8), bar * 4 + step * STEP)
+    loop.add(boom(hz(notes("C2")[0]), PIECE.seconds(2.5), rng, decay=0.9, punch=10), 20)
     loop.audio = eq(loop.audio, highpass(30), lowpass(3000))
     return loop
 

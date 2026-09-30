@@ -354,6 +354,12 @@ def render_fury():
     return loop
 
 
+def trap_bass(midi, seconds, rng, slide_to=None, velocity=1.0):
+    """The boom's 808: long, sliding, and buzzing enough on top to come through a phone's speaker."""
+    return eight08(hz(midi), seconds, rng, slide_to=slide_to, slide=0.1, decay=1.4, drive=2.6, presence=1.0,
+                   velocity=velocity)
+
+
 def render_boom():
     rng = PIECE.rng(6)
     loop = PIECE.loop(8)
@@ -366,9 +372,8 @@ def render_boom():
         for step, sixteenths, interval, slides in ((0, 6, 0, False), (6, 2, 12, False), (8, 3, 0, False),
                                                    (11, 3, 0, False), (14, 2, 0, True)):
             target = hz(following) if slides and following != root else None
-            bass.add(eight08(hz(root + interval), PIECE.seconds(sixteenths * STEP) - 0.01, rng, slide_to=target,
-                             slide=0.1, decay=1.4, drive=2.6, velocity=1.0 if step in (0, 8) else 0.85),
-                     bar * 4 + step * STEP)
+            bass.add(trap_bass(root + interval, PIECE.seconds(sixteenths * STEP) - 0.01, rng, slide_to=target,
+                               velocity=1.0 if step in (0, 8) else 0.85), bar * 4 + step * STEP)
     bass.audio = eq(bass.audio, highpass(30), lowpass(3000))
     loop.mix(bass, 0.75)
 

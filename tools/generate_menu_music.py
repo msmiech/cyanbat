@@ -304,6 +304,12 @@ def render_whispers(rng):
     return loop
 
 
+def trap_bass(midi, seconds, rng, slide_to=None, slide=0.16, decay=1.4, velocity=1.0):
+    """The beat's 808: sliding down the bass line, and buzzing enough on top to come through a phone."""
+    return eight08(hz(midi), seconds, rng, slide_to=slide_to, slide=slide, decay=decay, drive=2.6, presence=0.8,
+                   velocity=velocity)
+
+
 def render_808s(rng):
     loop = PIECE.loop(BARS)
     for bar in range(BEAT_AT, SETTLE_AT):
@@ -313,13 +319,12 @@ def render_808s(rng):
         for step, sixteenths, interval, slides in ((0, 6, 0, False), (6, 2, 0, False), (8, 2, 12, False),
                                                    (10, 6, 0, True)):
             target = hz(following) if slides and following != root and bar + 1 < SETTLE_AT else None
-            loop.add(eight08(hz(root + interval), PIECE.seconds(sixteenths * STEP) - 0.01, rng, slide_to=target,
-                             slide=0.16, decay=1.4, drive=2.6, velocity=1.0 if step == 0 else 0.85),
-                     bar * 4 + step * STEP)
+            loop.add(trap_bass(root + interval, PIECE.seconds(sixteenths * STEP) - 0.01, rng, slide_to=target,
+                               velocity=1.0 if step == 0 else 0.85), bar * 4 + step * STEP)
     # The beat stops as the ghost settles, and the last 808 dives an octave on its way out.
     root = notes(PROGRESSION[SETTLE_AT % 8][2])[0]
-    loop.add(eight08(hz(root), PIECE.seconds(4), rng, slide_to=hz(root - 12), slide=PIECE.seconds(3.5),
-                     decay=2.2, drive=2.6, velocity=0.9), SETTLE_AT * 4)
+    loop.add(trap_bass(root, PIECE.seconds(4), rng, slide_to=hz(root - 12), slide=PIECE.seconds(3.5), decay=2.2,
+                       velocity=0.9), SETTLE_AT * 4)
     loop.audio = eq(loop.audio, highpass(30), lowpass(3500))
     return loop
 
