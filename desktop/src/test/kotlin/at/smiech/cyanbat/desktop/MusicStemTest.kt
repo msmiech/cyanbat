@@ -22,14 +22,15 @@ import kotlin.test.assertTrue
  *
  * So this reads every stage's stems the way the game does and holds them to their grid: whole bars
  * long, every one dividing the longest, so the layers stay in step however long a run goes on. The
- * menu's and the game over's tracks, which are generated the same way, are held to the same format.
+ * menu's, the game over's and the victory's tracks, which are generated the same way, are held to
+ * the same format.
  */
 class MusicStemTest {
 
     private val stages: List<Stage> = DesktopGame(480, 320).let { GameAssets.load(it.graphics, it.audio).stages }
 
-    /** The music that is not layered, from `tools/generate_menu_music.py` and `generate_game_over_music.py`. */
-    private val tracks = listOf("music/menu.wav", "music/game_over.wav")
+    /** The music that is not layered, from `tools/generate_{menu,game_over,victory}_music.py`. */
+    private val tracks = listOf("music/menu.wav", "music/game_over.wav", GameAssets.VICTORY_MUSIC)
 
     private fun clip(name: String): ImaAdpcmClip {
         val stream = javaClass.getResourceAsStream("/$name")

@@ -12,6 +12,7 @@ import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.service.StageDesign
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.engine.GameButton
 import at.smiech.engine.GameLoop
@@ -91,8 +92,11 @@ private const val DEFAULT_TICKS_PER_FRAME = 3
 /** How long the recorder lets a level up dialog sit before the autopilot picks, so it can be read. */
 private const val OFFER_READ_SECONDS = 1.3f
 
-/** How long the stage complete overlay is held at the end. */
-private const val OUTRO_SECONDS = 2.6f
+/**
+ * How long a won run is taped after its boss goes down: the boss going up and the run playing on
+ * until the stage complete overlay comes up, then the overlay held for a moment at the end.
+ */
+private const val OUTRO_SECONDS = STAGE_COMPLETE_DELAY_SECONDS + 2.6f
 
 /** A stage still running this long is not going to be won; its boss arrives at five minutes. */
 private const val GIVE_UP_SECONDS = 540f

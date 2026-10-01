@@ -197,19 +197,6 @@ class MusicDirectorTest {
     }
 
     @Test
-    fun `a won stage winds down to its bed`() {
-        val director = director()
-        director.fly(waveIndex = 5, boss = true)
-        director.onStageCleared()
-        director.fly(waveIndex = 5, boss = true)
-
-        assertEquals(setOf(MusicLayer.BED), music.playing())
-        val fades = music.orders.filter { it.level == 0f }.map { it.fadeBeats }.toSet()
-        assertEquals(setOf(2f), fades, "wound down, not cut")
-        assertTrue(music.muffled > 0f)
-    }
-
-    @Test
     fun `a level is ordered when it changes and not every frame`() {
         val director = director()
         director.fly(combo = 2)
