@@ -89,6 +89,12 @@ by device.
   `Screen`s, because swapping screens disposes the run. `GameOverScreen` is its own screen.
 - Moving to the next stage builds a fresh `GameScreen`. That is what resets score, experience and
   power-ups.
+- The boss going down does not put "stage complete" up at once. Everything hostile goes with it,
+  and the run plays on for `STAGE_COMPLETE_DELAY_SECONDS` (`playOutVictory`) under a banner that
+  the boss has fallen: the bat flies on, unarmed and untouchable, the wreck bursts again at
+  `BOSS_AFTERSHOCK_SECONDS`, the stage's music stops dead for the boss's blast, and a fanfare comes
+  in. The overlay lands on the fanfare's last chord. The aftershocks are timed to the blasts in
+  `bossDeath.wav` and the delay to the fanfare's `LANDING_BEAT`; change each with its script.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
 - In-game text (HUD, banners, overlays) is literal strings drawn at framebuffer coordinates in
@@ -175,24 +181,26 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   the readout and a new layer land together. Under the tune the thresholds are two rungs apart,
   over it one; fury is the boss's, or a SUPERNOVA streak's. A hit is a thud (a
   muffle and a dip), the level-up dialog holds the music under a muffle instead of pausing it, the
-  boss and each boss phase get a one-bar drop and a slam on the downbeat, and a won stage winds
-  down to its bed. `GameScreen` feeds it at the very top of `update`, ahead of every early return,
-  because the music carries on under the overlays. Pause pauses it; death hands over to the game
-  over's track.
+  boss and each boss phase get a one-bar drop and a slam on the downbeat. `GameScreen` feeds it at
+  the very top of `update`, ahead of every early return, because the music carries on under the
+  level-up dialog. Pause pauses it; the boss's death stops it dead and hands over to the victory's
+  fanfare, and the bat's death to the game over's track.
 - `StemMixer` (`:engine`, common) decodes the stems as it mixes and lands every change on the
   music's grid (`MusicGrid`, `Quantum`): a layer coming in is all the way up on the beat, one
   going out plays out its beat first. It also runs the muffle, a swept low-pass.
   `DesktopLayeredMusic` and `AndroidLayeredMusic` are only threads pulling frames from it into a
   `SourceDataLine` or an `AudioTrack`.
-- The menu's and the game over's music go through the same mixer: `Audio.newMusic` is one stem at
-  full level (`TrackMusic`), looping or played once. A track that does not loop stops at its end
-  (`StemMixer.isLooping`, `hasEnded`) and starts from the top when played again.
+- The menu's, the game over's and the victory's music go through the same mixer: `Audio.newMusic`
+  is one stem at full level (`TrackMusic`), looping or played once. A track that does not loop
+  stops at its end (`StemMixer.isLooping`, `hasEnded`) and starts from the top when played again.
 - Two threads touch the mixer, and there are no locks, which common code could not take anyway.
   The game thread only calls the setters, which swap in immutable orders; the audio thread owns
   the rest. Every stem is decoded every chunk, heard or not: a stem's place in the music is how far
   it has been read.
 - `GameScreen` opens its stage's music the first time it plays it and disposes it with itself, so
   a run with music off never reads the stems and the next stage's run does not play over this one.
+  The fanfare is the same (`GameAssets.VICTORY_MUSIC`): each won run opens its own, because a
+  track paused partway resumes from there, and a fanfare has to start from the top.
 - The grid is declared twice, in the stage's generator and in its `StageMusic` in `GameAssets`.
   `MusicStemTest` holds them together: every stem whole bars at the declared tempo, and every
   stem's length dividing the longest, so the layers stay in step however long the run goes.
@@ -227,12 +235,18 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   `painterResource`.
 - The death sound is MP3, which the desktop decodes through the mp3spi/jlayer service providers.
   No code references them; `Mp3DecodingTest` guards it.
-- Music is not MP3. The stages' stems and the menu's and game over's tracks are IMA ADPCM WAVs in
-  `assets/music/`, decoded in common code (`ImaAdpcmClip`), because a platform MP3 decoder pads
-  and trims a file's ends its own way: stems a few milliseconds apart flam on every drum hit, and
-  a loop gets a gap. They are 22.05 kHz stereo, a quarter of their PCM size.
+- Music is not MP3. The stages' stems and the menu's, game over's and victory's tracks are IMA
+  ADPCM WAVs in `assets/music/`, decoded in common code (`ImaAdpcmClip`), because a platform MP3
+  decoder pads and trims a file's ends its own way: stems a few milliseconds apart flam on every
+  drum hit, and a loop gets a gap. They are 22.05 kHz stereo, a quarter of their PCM size.
 - Generated sound effects are WAV: `javax.sound.sampled` reads PCM natively, and SoundPool can
   `openFd` them uncompressed from the APK.
+- Every effect is a `SoundEffect` - its file, its volume, and the least gap between two plays of
+  it - and a run plays them through its `SoundBoard`. The gap is what keeps a fan of hits landing
+  on one tick from playing five times over: SoundPool would stack the copies, where a desktop
+  `Clip` starts over. The files are written near full scale, so the volumes are the whole balance,
+  between the effects and against the music; they were set by measuring each against a stage's
+  middle layers, on a full-range speaker and through a phone's.
 - The launcher icon is adaptive: `mipmap-anydpi/ic_launcher.xml` over three vector layers in
   `app/src/main/res/drawable`, which redraw the pixel art crisply at any size a launcher picks.
 - The desktop installers take `desktop/icons/cyanbat.{icns,ico,png}` through `nativeDistributions`.

@@ -196,9 +196,39 @@ const val BANNER_FONT_SIZE = 26
 const val STAGE_TIMER_FONT_SIZE = 18
 
 // How long the victory overlay ignores input, in seconds. Longer than the pause overlay's, because
-// the player has just been steering with a finger down and the boss went up in a blast worth
-// watching.
+// the player may still be steering with a finger down when it comes up, and the fanfare's last
+// chord, which the overlay lands on, deserves a moment to ring.
 const val STAGE_COMPLETE_ARMING_SECONDS = 1.2f
+
+// When the victory's fanfare comes in after the boss goes down, in seconds: once the boss's blast
+// and the aftershocks after it have gone off, so the two are heard one after the other rather than
+// over each other.
+const val VICTORY_FANFARE_DELAY_SECONDS = 0.8f
+
+// Where the fanfare's last chord lands, from its first note: seven beats at 140 BPM. Set by
+// tools/generate_victory_music.py (LANDING_BEAT); change the two together.
+const val VICTORY_FANFARE_LANDING_SECONDS = 3f
+
+// How long the run plays on after its boss goes down before the stage complete overlay comes up: the
+// overlay lands on the fanfare's last chord. Long enough to watch the boss go up and hear the
+// fanfare out, and the player can keep flying through it.
+const val STAGE_COMPLETE_DELAY_SECONDS = VICTORY_FANFARE_DELAY_SECONDS + VICTORY_FANFARE_LANDING_SECONDS
+
+// How far a blast or a break drifts each tick, in framebuffer pixels: left, the way the scenery
+// goes, so it stays where the thing was rather than where the screen was.
+const val BURST_DRIFT = -1f
+
+// When the boss's wreck goes up again after its first blast, in seconds after it: the blasts in
+// bossDeath.wav, from tools/generate_combat_sounds.py (AFTERSHOCKS). Change the two together, or the
+// blasts heard and the blasts seen drift apart.
+val BOSS_AFTERSHOCK_SECONDS = floatArrayOf(0.2f, 0.42f, 0.66f)
+
+// The first aftershock's size against the piece of the boss it goes off on, and how much smaller
+// each one after it is. Nearly the boss's own blast, because a fireball's art fills only the middle
+// of its frame and anything smaller is lost next to a boss; dying away, so it reads as the wreck
+// going up again rather than as more bosses dying.
+const val BOSS_AFTERSHOCK_SCALE = 0.9f
+const val BOSS_AFTERSHOCK_FALLOFF = 0.85f
 
 
 // --- The forest --------------------------------------------------------------------------------
@@ -401,10 +431,6 @@ const val AURA_FULL_INTENSITY_LEVEL = 24
 // is a thing they will notice reaching, "level 7" is not.
 const val AURA_LEVELS_PER_TIER = 10
 
-// How loud the surge is played, against the 0..1 the engine takes. Deliberately low: it lands on
-// the same beat as the level up banner and the power-up dialog, over music that is still playing.
-const val AURA_SURGE_VOLUME = 0.35f
-
 
 // --- Hit feedback ------------------------------------------------------------------------------
 
@@ -418,11 +444,6 @@ const val HIT_FLASH_SECONDS = 0.08f
 // value that reads instantly against every sprite in the game. The alpha is the flash at full
 // strength - short of solid, so the enemy underneath is still recognisable while it burns.
 const val HIT_FLASH_COLOR = 0xE6FFFFFF.toInt()
-
-// How loud the gun is, against the 0..1 the engine takes. Low, and it has to be: at the base
-// cadence this plays once a second for a whole run, and with Rapid Fire stacked more than three
-// times a second.
-const val SHOT_VOLUME = 0.18f
 
 
 // --- Critical hits -----------------------------------------------------------------------------

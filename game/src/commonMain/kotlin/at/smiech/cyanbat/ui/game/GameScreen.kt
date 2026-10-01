@@ -14,17 +14,22 @@ import at.smiech.cyanbat.progress.PlayerLoadout
 import at.smiech.cyanbat.progress.PlayerProgress
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resource.Backdrop
+import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.SoundEffect
 import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.service.BossKind
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.ObstacleGenerator
 import at.smiech.cyanbat.service.StageProgression
-import at.smiech.cyanbat.util.AURA_SURGE_VOLUME
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_COUNT
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_SECONDS
 import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
+import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_FALLOFF
+import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SCALE
+import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SECONDS
+import at.smiech.cyanbat.util.BURST_DRIFT
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.DEATH_GRAVITY
 import at.smiech.cyanbat.util.DEATH_PUFF_INTERVAL_SECONDS
@@ -44,13 +49,14 @@ import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
-import at.smiech.cyanbat.util.SHOT_VOLUME
 import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
+import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
 import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
+import at.smiech.cyanbat.util.VICTORY_FANFARE_DELAY_SECONDS
 import at.smiech.cyanbat.util.WAVE_BANNER_SECONDS
 import at.smiech.cyanbat.util.XP_BAR_HEIGHT
 import at.smiech.cyanbat.util.WOUNDED_FIRE_RATE
@@ -61,6 +67,7 @@ import at.smiech.engine.Game
 import at.smiech.engine.GameButton
 import at.smiech.engine.Graphics
 import at.smiech.engine.LayeredMusic
+import at.smiech.engine.Music
 import at.smiech.engine.Screen
 import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.ecs.AnimationComponent
@@ -106,6 +113,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlin.math.atan2
+import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.random.Random
 
@@ -183,6 +191,18 @@ class GameScreen(
     /** Turns the run into the music's layers; see [MusicDirector]. Opened with [music]. */
     private var director: MusicDirector? = null
 
+    /**
+     * The fanfare of a won stage, opened as it is first played; see [GameAssets.VICTORY_MUSIC].
+     * Its own, like [music], and disposed with the screen.
+     */
+    private var fanfare: Music? = null
+
+    /** Set when a pause cut the fanfare short, so that resuming carries it on; see [setPaused]. */
+    private var fanfareHeld = false
+
+    /** The run's sound effects; see [SoundBoard]. */
+    private val sounds = SoundBoard(env.assets.audio.effects) { env.audioSettings.soundsEnabled }
+
     private lateinit var g: Graphics
     private var stageNameDisplayTime = 3.0f
 
@@ -191,10 +211,25 @@ class GameScreen(
     private var bannerTime = 0f
 
     /**
-     * Set when the stage's boss goes down. The run is over, but won rather than lost, so the bat
-     * stays where it is and the player reads their score off a screen they earned.
+     * Set when the stage's boss goes down. The run is over, but won rather than lost: it plays on
+     * for [STAGE_COMPLETE_DELAY_SECONDS] (see [playOutVictory]), and then the player reads their
+     * score off a screen they earned.
      */
     private var stageComplete = false
+
+    /** Time since the boss went down; the run's own time, so a pause holds it. */
+    private var victorySeconds = 0f
+
+    /** The stage complete overlay is up: the boss is down, and the run has played out after it. */
+    private val stageCompleteShown: Boolean
+        get() = stageComplete && victorySeconds >= STAGE_COMPLETE_DELAY_SECONDS
+
+    /**
+     * Where the boss was when it went down, piece by piece - one piece for a boss that is one
+     * entity, and every one in sight for one with a body - for the aftershocks to go off in. Moved
+     * on with the blasts every tick, since the wreck is in the world, not on the screen.
+     */
+    private val wreck = mutableListOf<Rect>()
 
     /** Time before the victory overlay will accept a tap as "done"; see [handleStageCompleteControls]. */
     private var stageCompleteArmingTime = 0f
@@ -353,6 +388,9 @@ class GameScreen(
      * at range than anything else in the stage does on contact.
      */
     private fun fireShot(shooterId: EntityId) {
+        // Once the stage is won nothing fires. Nothing hostile is left to fire or to be fired at,
+        // and the bat's gun going on under the fanfare would be a sound with no purpose.
+        if (stageComplete) return
         val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
         val isPlayer = world.hasComponent(shooterId, PlayerControlComponent::class)
         // An enemy holds its fire until it is on screen. A volley fired from past the right edge
@@ -402,14 +440,10 @@ class GameScreen(
         }
 
         // Once per volley, not once per shot: a spread is one pull of the trigger, and playing it
-        // per projectile would make a five-way fan five times as loud as a single shot.
-        //
-        // The bat only. The boss fires too, but its shots are already announced by being on
-        // screen and coming at the player, and a second gun in the mix at this cadence would
-        // bury the one the player is actually operating.
-        if (isPlayer && env.audioSettings.soundsEnabled) {
-            env.assets.audio.shotSound.play(SHOT_VOLUME)
-        }
+        // per projectile would make a five-way fan five times as loud as a single shot. An enemy's
+        // gun has a voice of its own, darker and well under the bat's, so the gun the player is
+        // operating is still the one they hear.
+        sounds.play(if (isPlayer) SoundEffect.SHOT else SoundEffect.ENEMY_SHOT)
     }
 
     /**
@@ -453,6 +487,8 @@ class GameScreen(
                 speed = volley.speed,
             )
         }
+        // Once for the volley, however many shots are in it, as for a straight bolt.
+        sounds.play(SoundEffect.ENEMY_SHOT)
     }
 
     /**
@@ -598,9 +634,7 @@ class GameScreen(
         if (tier <= aura.tier) return
         aura.tier = tier
         aura.surge = 1f
-        if (env.audioSettings.soundsEnabled) {
-            env.assets.audio.auraSurgeSound.play(AURA_SURGE_VOLUME)
-        }
+        sounds.play(SoundEffect.AURA_SURGE)
     }
 
     /**
@@ -686,9 +720,15 @@ class GameScreen(
         }
 
         val died = dealt > 0 && world.getComponent(target, HealthComponent::class)?.alive == false
-        // What is left behind depends on what died; see [burst], which is also what decides that
-        // most things leave nothing at all.
-        if (died) burst(target)
+        if (died) {
+            // What is left behind depends on what died; see [burst], which is also what decides
+            // that most things leave nothing at all.
+            burst(target)
+        } else if (dealt > 0 && collisionGroupOf(dealtBy) == CollisionGroup.PLAYER_PROJECTILE) {
+            // A shot that lands is heard landing, in an enemy or in a rock it is wearing down. One
+            // that kills is heard in what it killed instead.
+            sounds.play(SoundEffect.HIT)
+        }
         return died
     }
 
@@ -706,6 +746,9 @@ class GameScreen(
         val shield = world.getComponent(id, ShieldComponent::class) ?: return false
         if (!shield.absorb(amount)) return false
 
+        // A ping rather than a hit's thump, so the player hears as well as sees that nothing got
+        // through.
+        sounds.play(SoundEffect.SHIELD_HIT)
         val rect = world.getComponent(id, TransformComponent::class)?.rect ?: return true
         factory.createDamageText(rect.left, rect.centerY, amount, color = shield.color)
         return true
@@ -722,22 +765,28 @@ class GameScreen(
         //
         // Everything else is left alone. A blast on every shot that lands would bury a tough enemy
         // behind its own hit effects, and the bat's death has an animation of its own.
-        val (pixmap, spawn) = when (collisionGroupOf(id)) {
-            CollisionGroup.ENEMY -> graphics.explosion to factory::createExplosion
-            CollisionGroup.OBSTACLE -> graphics.shatter to factory::createShatter
+        val (pixmap, spawn, sound) = when (collisionGroupOf(id)) {
+            CollisionGroup.ENEMY ->
+                Triple(graphics.explosion, factory::createExplosion, SoundEffect.ENEMY_DEATH)
+            CollisionGroup.OBSTACLE ->
+                Triple(graphics.shatter, factory::createShatter, SoundEffect.OBSTACLE_SHATTER)
             else -> return
         }
 
         // Never smaller than the artwork was drawn: an ordinary enemy keeps the blast it always
         // had, and only something bigger than one scales the effect up.
         spawn(rect.centerX, rect.centerY, pixmap, (rect.height / pixmap.height).coerceAtLeast(1f))
+
+        // Not once the stage is won. The boss's own blast was played as it went down, and it is
+        // the sound of the boss and of everything that goes up with it; see [completeStage].
+        if (!stageComplete) sounds.play(sound)
     }
 
     /**
      * Takes [amount] off [targetId]'s health and kills it at zero, returning what actually landed.
      *
      * Nothing lands on something with no health to lose, on something already dead, or on a player
-     * still inside the cooldown that follows their last hit.
+     * still inside the cooldown that follows their last hit - or on one who has won the stage.
      */
     private fun applyDamage(targetId: EntityId, amount: Int): Int {
         val health = world.getComponent(targetId, HealthComponent::class) ?: return 0
@@ -750,7 +799,10 @@ class GameScreen(
         // and how much of the hit gets through are both run stats the power-ups raise.
         val control = world.getComponent(targetId, PlayerControlComponent::class)
         if (control != null) {
-            if (control.hitCooldown > 0f) return 0
+            // Everything hostile went down with the boss, but not before the end of the tick: the
+            // rest of the collision pass the boss died in still sees it. A stage won is won, and the
+            // bat flies out the seconds after it untouchable.
+            if (stageComplete || control.hitCooldown > 0f) return 0
             control.hitCooldown = loadout.hitCooldownSeconds
             scoring.registerPlayerHit()
             director?.onPlayerHit()
@@ -773,7 +825,10 @@ class GameScreen(
         if (health.hitPoints <= 0) {
             // The damage still landed and is still reported: a revive is the bat surviving a blow
             // that would have killed it, not the blow never happening.
-            if (control != null && revive(health)) return dealt
+            if (control != null && revive(health)) {
+                sounds.play(SoundEffect.BAT_HIT)
+                return dealt
+            }
 
             health.hitPoints = 0
             health.alive = false
@@ -782,6 +837,9 @@ class GameScreen(
                 endRun()
             }
             if (targetId == enmGen.bossId) completeStage()
+        } else if (control != null) {
+            // Not on the blow that kills it, which the death sound speaks for.
+            sounds.play(SoundEffect.BAT_HIT)
         }
         return dealt
     }
@@ -808,17 +866,21 @@ class GameScreen(
      * The stage's boss is down, so the stage is over.
      *
      * The run stops here rather than rolling on into a sixth minute of enemies: a boss that could
-     * be beaten and then followed by more of the same would not be a boss. What is left on screen
-     * is left where it is - the world stops ticking under the overlay - and the player reads their
-     * total off the overlay and taps out when they are ready.
+     * be beaten and then followed by more of the same would not be a boss. Everything hostile goes
+     * down with it, the run plays out a few seconds more - the wreck going up, the fanfare coming in
+     * (see [playOutVictory]) - and then the player reads their total off the overlay and taps out
+     * when they are ready.
      */
     private fun completeStage() {
         if (stageComplete) return
         stageComplete = true
-        stageCompleteArmingTime = STAGE_COMPLETE_ARMING_SECONDS
         finalStageSeconds = enmGen.elapsedSeconds
-        overlayTaps.reset()
+        // Read before the boss is forgotten: the aftershocks go off where it was.
+        enmGen.bossId?.let { world.getComponent(it, TransformComponent::class)?.rect }
+            ?.takeIf(::inSight)
+            ?.let(wreck::add)
         explodeBossBody()
+        clearHostiles()
         enmGen.clearBoss()
         scoring.awardStageCleared()
         // Banked even though the run ends here: the total is what the victory screen reports, and
@@ -830,9 +892,13 @@ class GameScreen(
         // from the victory screen has still beaten the stage.
         nextStageId?.let { env.stageUnlocks.unlockAsync(it) }
 
-        // Wound down rather than stopped: the bed plays on under the overlay, so the stage the
-        // player has just won does not fall silent around them.
-        director?.onStageCleared()
+        // The stage's music stops dead on the kill, and the blast fills the silence it leaves. The
+        // victory's fanfare takes over once the blast has had its moment; see [playOutVictory].
+        music?.pause()
+        sounds.play(SoundEffect.BOSS_DEATH)
+        // Its name went up as it arrived, and goes up again as it falls - held until the overlay
+        // takes over, so the seconds between are seen to be the victory and not the game hanging.
+        announce("${progression.design.bossName} FALLS", seconds = STAGE_COMPLETE_DELAY_SECONDS)
     }
 
     /**
@@ -846,7 +912,7 @@ class GameScreen(
             if (part == enmGen.bossId) continue
             val rect = world.getComponent(part, TransformComponent::class)?.rect ?: continue
             // Only the ones in sight: a part still under the sand has nothing to show for it.
-            if (rect.bottom > 0f && rect.top < game.frameBufferHeight) {
+            if (inSight(rect)) {
                 val blast = env.assets.graphics.explosion
                 factory.createExplosion(
                     rect.centerX,
@@ -854,10 +920,34 @@ class GameScreen(
                     blast,
                     rect.height / blast.height * BODY_BLAST_SCALE
                 )
+                wreck += rect
             }
             world.removeEntity(part)
         }
     }
+
+    /**
+     * Everything hostile goes down with its boss: whatever it called in goes up where it is, and
+     * every shot still in the air is gone. The run plays on for a few seconds after the boss, and
+     * nothing in them should be left to hurt the bat, or to need shooting.
+     */
+    private fun clearHostiles() {
+        for (id in world.query(CollisionComponent::class, TransformComponent::class)) {
+            val group = collisionGroupOf(id)
+            if (group == CollisionGroup.ENEMY_PROJECTILE) world.removeEntity(id)
+            // The boss and its body have gone up already, where they were.
+            if (group != CollisionGroup.ENEMY || id == enmGen.bossId || isBossPart(id)) continue
+            // Only what is in sight goes up. A blast off the edge would drift into the frame with
+            // nothing behind it, and one under the sand would never be seen at all.
+            if (world.getComponent(id, TransformComponent::class)?.rect?.let(::inSight) == true) burst(id)
+            world.removeEntity(id)
+        }
+    }
+
+    /** Whether any of [rect] is inside the frame. */
+    private fun inSight(rect: Rect): Boolean =
+        rect.right > 0f && rect.left < game.frameBufferWidth &&
+                rect.bottom > 0f && rect.top < game.frameBufferHeight
 
     /** The stage after this one, or null when this is the last. */
     private val nextStageId: Int?
@@ -869,10 +959,10 @@ class GameScreen(
         else -> if (phase >= 3) "QUEEN ENRAGED" else "SWARM CALLED"
     }
 
-    /** Puts [text] up over the run for [WAVE_BANNER_SECONDS], replacing whatever was there. */
-    private fun announce(text: String) {
+    /** Puts [text] up over the run for [seconds], replacing whatever was there. */
+    private fun announce(text: String, seconds: Float = WAVE_BANNER_SECONDS) {
         bannerText = text
-        bannerTime = WAVE_BANNER_SECONDS
+        bannerTime = seconds
     }
 
     /**
@@ -940,9 +1030,7 @@ class GameScreen(
         saveHighscore()
         finalStageSeconds = enmGen.elapsedSeconds
 
-        if (env.audioSettings.soundsEnabled) {
-            env.assets.audio.deathSound.play(100f)
-        }
+        sounds.play(SoundEffect.BAT_DEATH)
         music?.pause()
         if (env.audioSettings.musicEnabled) {
             env.assets.audio.gameOverMusic.play()
@@ -1005,17 +1093,25 @@ class GameScreen(
     }
 
     override fun update(deltaTime: Float) {
-        // Ahead of everything that returns early. The music plays on under the level up dialog
-        // and the victory overlay, and what it does there - muffled, winding down - is the point.
+        // Ahead of everything that returns early. The music plays on under the level up dialog,
+        // and what it does there - muffled - is the point.
         steerMusic(deltaTime)
+        // The clock the sound effects are held apart by. It can run on through a pause, since
+        // nothing plays during one.
+        sounds.advance(deltaTime)
 
         // Ahead of the pause controls, which would otherwise read the player's way out of a won
-        // stage as a request to pause it.
-        if (stageComplete) {
+        // stage as a request to pause it. A pause the host made while it was up is still answered
+        // by them, so the player can tap their way back to it.
+        if (stageCompleteShown && !paused) {
             handleStageCompleteControls(deltaTime)
             return
         }
         if (handlePauseControls(deltaTime)) return
+        if (stageComplete) {
+            playOutVictory(deltaTime)
+            return
+        }
 
         // A level up owed is a level up shown, before anything else moves: the pick is meant to
         // change the fight the player is in, not the one after it.
@@ -1052,8 +1148,8 @@ class GameScreen(
             // and the score still moves after it: the kill itself is counted, and so is any later
             // kill in the same pass. The overlay shows the record and the score side by side, where
             // a record lower than the score beside it reads as a bug. The frame's remaining ticks
-            // are dropped: from the next frame the world stops ticking under the overlay, and they
-            // would only move the score on again.
+            // are dropped: from the next frame the run plays out its victory instead, where nothing
+            // is left that scores; see [playOutVictory].
             if (stageComplete) {
                 saveHighscore()
                 break
@@ -1194,11 +1290,75 @@ class GameScreen(
     }
 
     /**
+     * The seconds between the boss going down and the overlay coming up, which the run plays on
+     * through, so the boss is seen going up rather than frozen in its first frame of fire.
+     *
+     * The bat still flies, though nothing is left for it to shoot or to be hurt by: everything
+     * hostile went down with the boss ([clearHostiles]). The wreck goes up again on each of
+     * [BOSS_AFTERSHOCK_SECONDS], the fanfare comes in at [VICTORY_FANFARE_DELAY_SECONDS], and the
+     * overlay lands on its last chord. The stage clock holds where the boss left it, nothing new
+     * arrives, and no level up is offered: a pick would change nothing now.
+     */
+    private fun playOutVictory(deltaTime: Float) {
+        val before = victorySeconds
+        victorySeconds += deltaTime
+        fun reached(seconds: Float) = before < seconds && victorySeconds >= seconds
+
+        BOSS_AFTERSHOCK_SECONDS.forEachIndexed { index, seconds -> if (reached(seconds)) aftershock(index) }
+        if (reached(VICTORY_FANFARE_DELAY_SECONDS)) playFanfare()
+        if (bannerTime > 0) bannerTime -= deltaTime
+
+        tickTime += deltaTime
+        while (tickTime > tick) {
+            tickTime -= tick
+            world.update(tick, game.input)
+            comboMeter.update(tick, scoring.hitStreak, scoring.multiplier)
+            // The blasts drift with the scenery, so the wreck they go off in drifts with them.
+            for (i in wreck.indices) wreck[i] = wreck[i].offset(BURST_DRIFT, 0f)
+        }
+
+        if (stageCompleteShown) {
+            stageCompleteArmingTime = STAGE_COMPLETE_ARMING_SECONDS
+            overlayTaps.reset()
+            // The overlay says it now. Nothing counts a banner down under the overlay, so one left
+            // a hair short of its end would stay there.
+            bannerTime = 0f
+        }
+    }
+
+    /**
+     * The wreck going up again, [index] blasts after the first, somewhere on a piece of the boss:
+     * one of the blasts in the boss's death sound, seen as well as heard.
+     */
+    private fun aftershock(index: Int) {
+        val piece = wreck.randomOrNull(random) ?: return
+        val blast = env.assets.graphics.explosion
+        val scale = piece.height / blast.height * BOSS_AFTERSHOCK_SCALE * BOSS_AFTERSHOCK_FALLOFF.pow(index)
+        factory.createExplosion(
+            centerX = piece.left + piece.width * (0.2f + 0.6f * random.nextFloat()),
+            centerY = piece.top + piece.height * (0.2f + 0.6f * random.nextFloat()),
+            pixmap = blast,
+            scale = scale.coerceAtLeast(1f),
+        )
+    }
+
+    /**
+     * Hands playback to the victory's fanfare, opening it the first time; see [fanfare]. Not if
+     * the bat went down in the same tick as the boss: the game over track owns playback then.
+     */
+    private fun playFanfare() {
+        if (!env.audioSettings.musicEnabled) return
+        if (world.getComponent(batId, HealthComponent::class)?.alive != true) return
+        val audio = game.audio ?: return
+        (fanfare ?: audio.newMusic(GameAssets.VICTORY_MUSIC).also { fanfare = it }).play()
+    }
+
+    /**
      * The stage is won. A tap or Confirm flies on to the next stage, where there is one; Back
      * leaves for the menu, and so does a tap on the last stage.
      *
-     * Armed on a delay for the same reason the pause overlay is: the player was steering with a
-     * finger down as the boss died, and the lift that follows is not them asking to leave.
+     * Armed on a delay for the same reason the pause overlay is: the player can still be steering
+     * with a finger down as it comes up, and the lift that follows is not them asking to leave.
      */
     private fun handleStageCompleteControls(deltaTime: Float) {
         stageCompleteArmingTime -= deltaTime
@@ -1268,11 +1428,30 @@ class GameScreen(
             resumeArmingTime = RESUME_ARMING_SECONDS
             overlayTaps.reset()
             music?.pause()
+            // Held only if it is still going: a fanfare that has played out would start again
+            // from the top if it were played once more.
+            if (fanfare?.isPlaying == true) {
+                fanfare?.pause()
+                fanfareHeld = true
+            }
         } else {
-            // Only the stage theme: once the bat is dead the game over track owns playback, and
-            // resuming would put two tracks on top of each other.
-            val health = world.getComponent(batId, HealthComponent::class)
-            if (health?.alive == true) startStageMusic()
+            resumeMusic()
+        }
+    }
+
+    /**
+     * Puts back whatever a pause cut off: the stage's music while the run is being flown, and the
+     * fanfare once it has been won. Nothing once the bat is dead: the game over track owns playback
+     * then, and resuming would put two tracks on top of each other.
+     */
+    private fun resumeMusic() {
+        when {
+            stageComplete -> if (fanfareHeld) {
+                fanfareHeld = false
+                fanfare?.play()
+            }
+
+            world.getComponent(batId, HealthComponent::class)?.alive == true -> startStageMusic()
         }
     }
 
@@ -1477,7 +1656,7 @@ class GameScreen(
         bannerText?.takeIf { bannerTime > 0 }?.let { drawBanner(it) }
 
         if (offer.isNotEmpty()) drawPowerUpOffer()
-        if (stageComplete) drawStageCompleteOverlay()
+        if (stageCompleteShown) drawStageCompleteOverlay()
         if (paused) drawPauseOverlay()
     }
 
@@ -1571,21 +1750,21 @@ class GameScreen(
      */
     override fun resume() {
         // The run survives untouched - only playback needs restoring, and only if the player had
-        // not paused by hand. After death the game over music owns playback, so leave it alone.
+        // not paused by hand.
         if (paused) return
-        val health = world.getComponent(batId, HealthComponent::class)
-        if (health?.alive == true) {
-            startStageMusic()
-        }
+        resumeMusic()
     }
 
     override fun dispose() {
         screenScope.cancel()
         // Flying on to the next stage builds a fresh screen, which opens that stage's music; this
-        // one's has to go, or the two would play over each other.
+        // one's has to go, or the two would play over each other - and so does the fanfare, which
+        // a player tapping straight through would otherwise hear on into the next stage.
         music?.dispose()
         music = null
         director = null
+        fanfare?.dispose()
+        fanfare = null
     }
 
     private companion object {
