@@ -88,7 +88,7 @@ class WoundSystemTest {
 
     /** Health grown mid-run is a longer bar, and the same hit points are a smaller share of it. */
     @Test
-    fun `the row follows the fraction, not the count`() {
+    fun `the row follows the fraction rather than the count`() {
         val (sprite, health) = creature()
         health.hitPoints = 60
         health.maxHitPoints = 200
@@ -117,7 +117,7 @@ class WoundSystemTest {
      * hurt or healed - once, on the tick it moves there, and of nothing in between.
      */
     @Test
-    fun `the game hears of each row a creature moves to, and only then`() {
+    fun `the game hears of each row a creature moves to and only then`() {
         val (_, health) = creature()
 
         world.update(0.01f, null)

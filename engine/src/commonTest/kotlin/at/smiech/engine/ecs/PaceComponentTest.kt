@@ -72,7 +72,7 @@ class PaceComponentTest {
      * flies the same loop, and takes longer over it.
      */
     @Test
-    fun `a slowed loop is the same size, and takes longer`() {
+    fun `a slowed loop is the same size and takes longer`() {
         val full = enemy(EnemyMovementType.LOOP, x = 330f, y = 150f, holdX = 320f, baseSpeedX = -1.7f)
         val slowed = enemy(EnemyMovementType.LOOP, x = 330f, y = 150f, holdX = 320f, baseSpeedX = -1.7f, pace = 0.5f)
         var fullTop = Float.MAX_VALUE
