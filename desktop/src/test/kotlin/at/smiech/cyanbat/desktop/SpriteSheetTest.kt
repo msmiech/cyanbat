@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.desktop
 
+import at.smiech.cyanbat.ecs.ElitePalette
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -158,13 +159,33 @@ class SpriteSheetTest {
     }
 
     /**
-     * Eight colorways of one 24x12 bolt: the player's, one per cave enemy type, then the forest's
-     * spitter, wisp and Moth Queen, and the Sand Wyrm's; see `EnemySpecies.shotVariant` and
-     * `SAND_WYRM_SHOT_VARIANT`.
+     * Thirteen colorways of one 24x12 bolt: the player's, one per cave enemy type, then the forest's
+     * spitter, wisp and Moth Queen, the Sand Wyrm's, and one per elite palette; see
+     * `EnemySpecies.shotVariant`, `SAND_WYRM_SHOT_VARIANT` and `ElitePalette`.
      */
     @Test
     fun `the shot sheet holds a colorway per shooter`() {
-        assertEquals(24 * 8 to 12, sizeOf("shot.png"))
+        assertEquals(24 * 13 to 12, sizeOf("shot.png"))
+    }
+
+    /**
+     * An elite's bolts are the color of its glow, and the two are declared apart - the glow in
+     * `ElitePalette`, the bolts in `generate_shot_sprite.py`. This holds them together: the body of
+     * each colorway, read off the sheet, is exactly its palette's rim.
+     */
+    @Test
+    fun `every elite's bolts are the color of its glow`() {
+        val image = javaClass.getResourceAsStream("/shot.png").use { ImageIO.read(it) }
+        for (palette in ElitePalette.entries) {
+            // The middle of the bolt's body, clear of its tail and its tip.
+            val body = image.getRGB(palette.shotVariant * 24 + 12, 5)
+            assertEquals(
+                palette.aura.rim and 0xFFFFFF,
+                body and 0xFFFFFF,
+                "$palette's bolts are #%06X, its glow's rim #%06X"
+                    .format(body and 0xFFFFFF, palette.aura.rim and 0xFFFFFF),
+            )
+        }
     }
 
     @Test

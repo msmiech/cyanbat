@@ -6,18 +6,25 @@ import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.desktop.recorder.RunProbe
 import at.smiech.cyanbat.ecs.BossPartComponent
+import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.service.EnemyGun
 import at.smiech.cyanbat.service.EnemySpecies
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
+import at.smiech.cyanbat.util.BURROW_SHOWING
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
+import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
+import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
+import at.smiech.cyanbat.util.WOUND_ROWS
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Haptics
+import at.smiech.engine.ecs.AuraComponent
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.EntityId
@@ -279,8 +286,130 @@ class GameScreenTest {
         }
     }
 
-    /** A run of one stage: the screen, what the probe reads of it, and the assets it was built from. */
-    private open class Flight(val screen: GameScreen, val probe: RunProbe, val assets: GameAssets)
+    /**
+     * An elite pays several kills' worth of points and of experience - checked on the run's own
+     * wiring, the collision that kills it, against an ordinary imp shot down the same way.
+     */
+    @Test
+    fun `an elite pays out several kills' worth of points and experience`() = flight(CAVE) {
+        val (ordinaryPoints, ordinaryExperience) = shootDown(elite = null)
+        val (elitePoints, eliteExperience) = shootDown(elite = ElitePalette.SCARLET)
+
+        assertTrue(ordinaryPoints > 0 && ordinaryExperience > 0, "the ordinary imp paid nothing")
+        assertEquals(ordinaryPoints * ELITE_SCORE_FACTOR, elitePoints, "points")
+        assertEquals(ordinaryExperience * ELITE_EXPERIENCE_FACTOR, eliteExperience, "experience")
+    }
+
+    /**
+     * What shooting down one imp - an [elite] one, or an ordinary one for null - adds to the run's
+     * score and to its experience. One shot from dead, with that shot already inside it.
+     */
+    private fun Flight.shootDown(elite: ElitePalette?): Pair<Int, Int> {
+        val imp = imp(x = 300f, y = 60f, elite = elite, hitPoints = 1)
+        val score = probe.score
+        val experience = probe.experience
+        val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
+        val shot = assets.graphics.shot
+        EntityFactory(probe.world).createShot(
+            x = rect.centerX - SHOT_FRAME_WIDTH,
+            y = rect.centerY - shot.height / 2f,
+            width = SHOT_FRAME_WIDTH.toFloat(),
+            height = shot.height.toFloat(),
+            pixmap = shot,
+            isPlayer = true,
+        )
+        screen.update(TICK_INITIAL * 1.5f)
+        return (probe.score - score) to (probe.experience - experience)
+    }
+
+    @Test
+    fun `an elite fires in the colors of its glow`() = flight(CAVE) {
+        val elite = imp(x = 300f, y = 60f, elite = ElitePalette.VENOM, gun = EnemySpecies.ISSUED_GUN)
+        val weapon = probe.world.getComponent(elite, WeaponComponent::class)!!
+        weapon.timeSinceLastShot = weapon.interval
+
+        screen.update(TICK_INITIAL * 1.5f)
+
+        val shot = enemyShots().single()
+        assertEquals(
+            ElitePalette.VENOM.shotVariant * SHOT_FRAME_WIDTH,
+            probe.world.getComponent(shot, SpriteComponent::class)!!.baseSrcX,
+        )
+    }
+
+    /**
+     * Fire from under the sand would come from where nothing can be seen, and nothing would have
+     * warned the player of it. An elite wyrmling is the first thing that cruises in down there armed.
+     */
+    @Test
+    fun `an armed enemy under the sand holds its fire until it comes up`() = flight(DESERT) {
+        val world = probe.world
+        val sheet = assets.stage(DESERT).enemySheet
+        val height = (sheet.height / WOUND_ROWS).toFloat()
+        val wyrmling = EntityFactory(world).createEnemy(
+            x = 300f, y = 320f - BURROW_SHOWING, width = 28f, height = height, pixmap = sheet,
+            species = EnemySpecies.WYRMLING, gun = EnemySpecies.ISSUED_GUN, elite = ElitePalette.EMBER,
+        )
+        val weapon = world.getComponent(wyrmling, WeaponComponent::class)!!
+
+        weapon.timeSinceLastShot = weapon.interval
+        screen.update(TICK_INITIAL * 1.5f)
+        assertTrue(enemyShots().isEmpty(), "it fired from under the sand")
+
+        world.getComponent(wyrmling, TransformComponent::class)!!.rect = Rect.fromLTWH(300f, 150f, 28f, height)
+        weapon.timeSinceLastShot = weapon.interval
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(1, enemyShots().size, "it held its fire once it was up")
+    }
+
+    /**
+     * The cave's scenery is a sprite like the rest, and it used to be drawn in one pass with them -
+     * after the halos, and over every one of them, the bat's included. Read off the framebuffer,
+     * because a draw call that is made and then painted over is exactly what a recorded one misses.
+     */
+    @Test
+    fun `a halo shows over the cave's scenery`() = flight(CAVE) {
+        val elite = imp(x = 380f, y = 220f, elite = ElitePalette.SCARLET)
+        val aura = probe.world.getComponent(elite, AuraComponent::class)!!
+        // A few pixels above the imp, inside its glow, where there is nothing but scenery without it.
+        val x = 394
+        val y = 216
+
+        screen.present(0f)
+        val glowing = game.frameBuffer.getRGB(x, y)
+        aura.intensity = 0f
+        aura.tier = 0
+        screen.present(0f)
+        val dark = game.frameBuffer.getRGB(x, y)
+
+        val red = { rgb: Int -> (rgb shr 16) and 0xFF }
+        assertTrue(
+            red(glowing) > red(dark) + 20,
+            "the scarlet glow did not show: #%06X with it, #%06X without".format(glowing and 0xFFFFFF, dark and 0xFFFFFF),
+        )
+    }
+
+    /** One of the cave's scouts at ([x], [y]), as an [elite] or an ordinary one for null. */
+    private fun Flight.imp(
+        x: Float,
+        y: Float,
+        elite: ElitePalette?,
+        hitPoints: Int = 100,
+        gun: EnemyGun? = null,
+    ): EntityId = EntityFactory(probe.world).createEnemy(
+        x = x, y = y, width = 28f, height = IMP_ROW.toFloat(), pixmap = assets.stage(CAVE).enemySheet,
+        species = EnemySpecies.SCOUT, hitPoints = hitPoints, gun = gun, elite = elite,
+    )
+
+    private fun Flight.enemyShots(): List<EntityId> = probe.world.query(CollisionComponent::class).filter {
+        probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.ENEMY_PROJECTILE
+    }
+
+    /**
+     * A run of one stage: the screen, what the probe reads of it, the assets it was built from, and
+     * the host whose framebuffer it draws into.
+     */
+    private open class Flight(val screen: GameScreen, val probe: RunProbe, val assets: GameAssets, val game: DesktopGame)
 
     /** A run of [stage] on the desktop's own host, disposed of when [test] is done with it. */
     private fun flight(stage: Int, test: Flight.() -> Unit) {
@@ -299,7 +428,7 @@ class GameScreenTest {
             stage,
         )
         try {
-            Flight(screen, RunProbe(screen), assets).test()
+            Flight(screen, RunProbe(screen), assets, game).test()
         } finally {
             screen.dispose()
             game.audio.dispose()
@@ -307,7 +436,8 @@ class GameScreenTest {
     }
 
     /** A desert run at its boss: a [Flight], and the wyrm's head. */
-    private class WyrmFight(flight: Flight, val head: EntityId) : Flight(flight.screen, flight.probe, flight.assets)
+    private class WyrmFight(flight: Flight, val head: EntityId) :
+        Flight(flight.screen, flight.probe, flight.assets, flight.game)
 
     /** A desert run straight at its boss, with the escort cleared away. */
     private fun wyrmFight(test: WyrmFight.() -> Unit) = flight(DESERT) {

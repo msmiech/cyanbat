@@ -1,8 +1,11 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.util.BOSS_SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.BURROW_SHOWING
+import at.smiech.cyanbat.util.ELITE_FIRE_INTERVAL_FACTOR
+import at.smiech.cyanbat.util.ELITE_HIT_POINT_FACTOR
 import at.smiech.cyanbat.util.FIRST_SHOT_JITTER
 import at.smiech.cyanbat.util.FORMATION_RANKS
 import at.smiech.cyanbat.util.FORMATION_RANK_SPACING_X
@@ -143,45 +146,61 @@ class EnemyGenerator(
         onWaveChanged(wave)
     }
 
-    /** Picks a species from [wave] and sends it in however it travels, returning the group's cost. */
+    /**
+     * Picks a species from [wave] and sends it in however it travels, returning the group's cost.
+     *
+     * Whether the group brings an elite is rolled here, once for the whole group; see
+     * [WaveDesign.eliteChance]. It falls to the group's first member: one of a swarm, scattered like
+     * the rest of it, and the leader of a formation, at the point of the V.
+     */
     private fun spawnGroup(wave: EnemyWave): Float {
         val species = wave.enemyTypes[random.nextInt(wave.enemyTypes.size)]
+        // Only rolled where the wave sends elites at all, so an opening minute draws the dice it
+        // always did.
+        val elite = wave.eliteChance > 0f && random.nextFloat() < wave.eliteChance
         when (species.squad) {
-            Squad.SOLO -> spawnSolo(species, wave)
-            Squad.SWARM -> spawnSwarm(species, wave)
-            Squad.V_FORMATION -> spawnFormation(species, wave)
-            Squad.BURROW -> spawnBurrowed(species, wave)
+            Squad.SOLO -> spawnSolo(species, wave, elite)
+            Squad.SWARM -> spawnSwarm(species, wave, elite = elite)
+            Squad.V_FORMATION -> spawnFormation(species, wave, elite)
+            Squad.BURROW -> spawnBurrowed(species, wave, elite = elite)
         }
         return species.squad.cost
     }
 
-    private fun spawnSolo(species: EnemySpecies, wave: EnemyWave) {
+    private fun spawnSolo(species: EnemySpecies, wave: EnemyWave, elite: Boolean) {
         val y = 100f + random.nextInt(worldHeight - 200)
-        spawn(species, wave, x = xSpawnPosition.toFloat(), laneY = y)
+        spawn(species, wave, x = xSpawnPosition.toFloat(), laneY = y, elite = elite)
     }
 
     /**
      * A flock around a shared path: every member is spawned on this tick, so they share a clock
      * and a sway, and each is scattered a little around the path and given its own buzz.
+     *
+     * @param elite whether one of them is an elite.
      */
-    private fun spawnSwarm(species: EnemySpecies, wave: EnemyWave, centerY: Float? = null) {
+    private fun spawnSwarm(species: EnemySpecies, wave: EnemyWave, centerY: Float? = null, elite: Boolean = false) {
         val size = (SWARM_SIZE + wave.index / 2 * SWARM_SIZE_PER_TWO_WAVES).coerceAtMost(SWARM_SIZE_MAX)
         val laneY = (centerY ?: groupLane()) - realEnemyHeight / 2f
-        repeat(size) {
+        repeat(size) { member ->
             spawn(
                 species, wave,
                 x = xSpawnPosition + random.nextFloat() * SWARM_SPREAD_X,
                 laneY = laneY,
                 offsetY = (random.nextFloat() * 2f - 1f) * SWARM_SPREAD_Y,
                 phase = random.nextFloat() * TWO_PI,
+                elite = elite && member == 0,
             )
         }
     }
 
-    /** Five in a V, the leader at the point and two ranks trailing it on either side. */
-    private fun spawnFormation(species: EnemySpecies, wave: EnemyWave) {
+    /**
+     * Five in a V, the leader at the point and two ranks trailing it on either side.
+     *
+     * @param elite whether the leader is an elite.
+     */
+    private fun spawnFormation(species: EnemySpecies, wave: EnemyWave, elite: Boolean) {
         val laneY = groupLane() - realEnemyHeight / 2f
-        spawn(species, wave, x = xSpawnPosition.toFloat(), laneY = laneY)
+        spawn(species, wave, x = xSpawnPosition.toFloat(), laneY = laneY, elite = elite)
         for (rank in 1..FORMATION_RANKS) {
             for (side in SIDES) {
                 spawn(
@@ -198,8 +217,13 @@ class EnemyGenerator(
      * In along the bottom edge from the right, under the sand with only its back showing, to leap
      * from its station; see [at.smiech.engine.ecs.EnemyMovementType.LEAP].
      */
-    private fun spawnBurrowed(species: EnemySpecies, wave: EnemyWave, x: Float = xSpawnPosition.toFloat()) {
-        spawn(species, wave, x = x, laneY = worldHeight - BURROW_SHOWING)
+    private fun spawnBurrowed(
+        species: EnemySpecies,
+        wave: EnemyWave,
+        x: Float = xSpawnPosition.toFloat(),
+        elite: Boolean = false,
+    ) {
+        spawn(species, wave, x = x, laneY = worldHeight - BURROW_SHOWING, elite = elite)
     }
 
     /** A center for a group's path, far enough from the edges that its sway stays on screen. */
@@ -210,7 +234,11 @@ class EnemyGenerator(
      * One enemy of [species] at [wave]'s strength, with whatever shield and gun the dice give it.
      *
      * Dice are only rolled for what a species can actually have, so a stage whose enemies never
-     * carry shields or guns - the cave - draws exactly the numbers it always did.
+     * carry shields or guns - the cave - draws exactly the numbers it always did until an elite
+     * turns up, and only an elite rolls for its colors.
+     *
+     * @param elite whether it is one: tougher, quicker to fire, armed whatever its kind, and in
+     *   colors of its own; see [ElitePalette].
      */
     private fun spawn(
         species: EnemySpecies,
@@ -219,19 +247,26 @@ class EnemyGenerator(
         laneY: Float,
         offsetY: Float = 0f,
         phase: Float = 0f,
+        elite: Boolean = false,
     ) {
-        val hitPoints = (wave.hitPoints * species.hitPointFactor).roundToInt().coerceAtLeast(1)
+        val ordinaryHitPoints = (wave.hitPoints * species.hitPointFactor).roundToInt().coerceAtLeast(1)
+        val hitPoints =
+            if (elite) (ordinaryHitPoints * ELITE_HIT_POINT_FACTOR).roundToInt() else ordinaryHitPoints
         val damage = (wave.damage * species.damageFactor).roundToInt().coerceAtLeast(1)
 
+        // Sized off an ordinary one of its kind: what makes an elite tougher is what is inside the
+        // shell, and an elite beetle behind two and a half shells' worth would be a wall.
         val shieldPoints = when {
-            species.innateShield > 0f -> (hitPoints * species.innateShield).roundToInt()
+            species.innateShield > 0f -> (ordinaryHitPoints * species.innateShield).roundToInt()
             species.canBeShielded && wave.shieldChance > 0f && random.nextFloat() < wave.shieldChance ->
-                (hitPoints * WAVE_SHIELD_FRACTION).roundToInt()
+                (ordinaryHitPoints * WAVE_SHIELD_FRACTION).roundToInt()
             else -> 0
         }
-        val gun = species.gun ?: EnemySpecies.ISSUED_GUN.takeIf {
+        val issued = species.gun ?: EnemySpecies.ISSUED_GUN.takeIf {
             species.armable && wave.gunChance > 0f && random.nextFloat() < wave.gunChance
         }
+        val gun = if (elite) eliteGun(issued) else issued
+        val palette = if (elite) ElitePalette.entries[random.nextInt(ElitePalette.entries.size)] else null
         val holdX = when (species.movement) {
             EnemyMovementType.HOVER, EnemyMovementType.DIVE, EnemyMovementType.LEAP, EnemyMovementType.LOOP ->
                 xSpawnPosition * (HOLD_X_MIN_FRACTION + random.nextFloat() * (HOLD_X_MAX_FRACTION - HOLD_X_MIN_FRACTION))
@@ -257,7 +292,17 @@ class EnemyGenerator(
             shieldRegrowth = if (species.innateShield > 0f) species.shieldRegrowth else 0f,
             gun = gun,
             firstShotDelay = gun?.let { it.interval * FIRST_SHOT_JITTER * random.nextFloat() } ?: 0f,
+            elite = palette,
         )
+    }
+
+    /**
+     * What an elite fires: its kind's own gun, or the waves' issued one for a kind that carries none,
+     * on a shorter cadence either way; see [ELITE_FIRE_INTERVAL_FACTOR].
+     */
+    private fun eliteGun(gun: EnemyGun?): EnemyGun {
+        val base = gun ?: EnemySpecies.ISSUED_GUN
+        return base.copy(interval = base.interval * ELITE_FIRE_INTERVAL_FACTOR)
     }
 
     private fun spawnBossOnce() {
@@ -340,6 +385,9 @@ class EnemyGenerator(
      * A swarm the boss has called in: the same wasps as the stage's own, at the strength of the
      * wave that escorted her in, arriving from the edge in a lane away from the middle - she holds
      * the middle, and a swarm spawned inside her would be a swarm the player never saw arrive.
+     *
+     * Never with an elite in it, and nor is anything a boss calls up: the fight is the boss's, and
+     * a glow in the swarm would pull the player's fire off her.
      */
     private fun summonSwarm() {
         val escort = progression.waveAt(progression.bossTimeSeconds - 1f)

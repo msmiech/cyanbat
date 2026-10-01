@@ -31,7 +31,7 @@ import kotlin.random.Random
  * @param speedMultiplier applied to the type's own base speed.
  * @param spawnIntervalSeconds average gap between spawns, before jitter.
  * @param burstSize how many arrive together at each spawn.
- * @param shieldChance/gunChance see [WaveDesign].
+ * @param shieldChance/gunChance/eliteChance see [WaveDesign].
  */
 data class EnemyWave(
     val index: Int,
@@ -43,6 +43,7 @@ data class EnemyWave(
     val burstSize: Int,
     val shieldChance: Float = 0f,
     val gunChance: Float = 0f,
+    val eliteChance: Float = 0f,
 )
 
 /**
@@ -123,6 +124,7 @@ data class StageProgression(
         burstSize = 1 + index / BURST_EVERY_WAVES,
         shieldChance = designOf(index).shieldChance,
         gunChance = designOf(index).gunChance,
+        eliteChance = designOf(index).eliteChance,
     )
 
     /**

@@ -21,11 +21,16 @@ import at.smiech.cyanbat.service.EnemySpecies.WYRMLING
  *   read as a new *group* of enemies rather than as more of the last one.
  * @param shieldChance the chance that an enemy which can carry a shield spawns behind one, as 0..1.
  * @param gunChance the chance that an [EnemySpecies.armable] enemy is issued a gun, as 0..1.
+ * @param eliteChance the chance that a group arrives with an elite in it, as 0..1: a loner that is
+ *   one, or one of a swarm or a formation. Rolled per group rather than per enemy, so that a swarm
+ *   of seven is no likelier to bring one than a lone scout - an elite is meant to stand out from
+ *   what it arrives with, and a flock of them would just be a harder swarm.
  */
 data class WaveDesign(
     val species: List<EnemySpecies>,
     val shieldChance: Float = 0f,
     val gunChance: Float = 0f,
+    val eliteChance: Float = 0f,
 )
 
 /** Which boss a stage ends on - a different fight, not just a different sprite. */
@@ -61,14 +66,20 @@ data class StageDesign(
         /**
          * Stage 1. Each minute brings a group that moves in a way the last one did not, and the
          * escort in the fifth is the two that are hardest to lead.
+         *
+         * Every stage sends its elites on the same ramp: none in the opening minute, which is for
+         * learning the stage's own enemies, and then a few groups in a hundred, climbing to the
+         * escort. That comes to a couple of elites a minute early on and one every six or seven
+         * seconds in the escort, in any stage: the forest's swarms are more enemies, but no more
+         * groups.
          */
         val CAVE = StageDesign(
             waves = listOf(
-                WaveDesign(listOf(SCOUT)),                  // scouts only, straight and readable
-                WaveDesign(listOf(SCOUT, WEAVER)),          // weavers join them
-                WaveDesign(listOf(WEAVER, STRIKER)),        // the scouts give way to zigzags
-                WaveDesign(listOf(SCOUT, WEAVER, STRIKER)), // everything at once
-                WaveDesign(listOf(WEAVER, STRIKER)),        // the boss escort
+                WaveDesign(listOf(SCOUT)),                                       // scouts only, straight and readable
+                WaveDesign(listOf(SCOUT, WEAVER), eliteChance = 0.04f),          // weavers join them
+                WaveDesign(listOf(WEAVER, STRIKER), eliteChance = 0.05f),        // the scouts give way to zigzags
+                WaveDesign(listOf(SCOUT, WEAVER, STRIKER), eliteChance = 0.06f), // everything at once
+                WaveDesign(listOf(WEAVER, STRIKER), eliteChance = 0.07f),        // the boss escort
             ),
             boss = BossKind.CAVE_DRONE,
             bossName = "THE CACO IMP",
@@ -86,13 +97,13 @@ data class StageDesign(
                 // A swarm to learn, and a shielded beetle to learn shields on.
                 WaveDesign(listOf(WASP, BEETLE)),
                 // Formations and the first thing that aims at the player.
-                WaveDesign(listOf(WISP, SPITTER, WASP), shieldChance = 0.1f),
+                WaveDesign(listOf(WISP, SPITTER, WASP), shieldChance = 0.1f, eliteChance = 0.04f),
                 // Divers, with the swarms and tanks from the opening minute for cover.
-                WaveDesign(listOf(OWL, WASP, BEETLE), shieldChance = 0.2f, gunChance = 0.15f),
+                WaveDesign(listOf(OWL, WASP, BEETLE), shieldChance = 0.2f, gunChance = 0.15f, eliteChance = 0.05f),
                 // Everything at once.
-                WaveDesign(listOf(WASP, BEETLE, SPITTER, OWL, WISP), shieldChance = 0.3f, gunChance = 0.25f),
+                WaveDesign(listOf(WASP, BEETLE, SPITTER, OWL, WISP), shieldChance = 0.3f, gunChance = 0.25f, eliteChance = 0.06f),
                 // The escort: everything that shoots or dives, and most of it armed or shielded.
-                WaveDesign(listOf(SPITTER, OWL, WISP), shieldChance = 0.4f, gunChance = 0.35f),
+                WaveDesign(listOf(SPITTER, OWL, WISP), shieldChance = 0.4f, gunChance = 0.35f, eliteChance = 0.07f),
             ),
             boss = BossKind.MOTH_QUEEN,
             bossName = "THE MOTH QUEEN",
@@ -110,13 +121,13 @@ data class StageDesign(
                 // Noon: a cloud of locusts, and a hawk's loop to learn.
                 WaveDesign(listOf(LOCUST, HAWK)),
                 // Something comes up out of the sand, and a scarab whose shell grows back.
-                WaveDesign(listOf(WYRMLING, LOCUST, SCARAB), shieldChance = 0.1f),
+                WaveDesign(listOf(WYRMLING, LOCUST, SCARAB), shieldChance = 0.1f, eliteChance = 0.04f),
                 // The golden hour: the djinn and its fans, with the hawks and the leapers for cover.
-                WaveDesign(listOf(DJINN, HAWK, WYRMLING), shieldChance = 0.2f, gunChance = 0.15f),
+                WaveDesign(listOf(DJINN, HAWK, WYRMLING), shieldChance = 0.2f, gunChance = 0.15f, eliteChance = 0.05f),
                 // Sunset, and everything at once.
-                WaveDesign(listOf(LOCUST, HAWK, WYRMLING, DJINN, SCARAB), shieldChance = 0.3f, gunChance = 0.25f),
+                WaveDesign(listOf(LOCUST, HAWK, WYRMLING, DJINN, SCARAB), shieldChance = 0.3f, gunChance = 0.25f, eliteChance = 0.06f),
                 // Dusk, and the escort: everything that leaps, loops or shoots.
-                WaveDesign(listOf(WYRMLING, DJINN, HAWK, SCARAB), shieldChance = 0.4f, gunChance = 0.35f),
+                WaveDesign(listOf(WYRMLING, DJINN, HAWK, SCARAB), shieldChance = 0.4f, gunChance = 0.35f, eliteChance = 0.07f),
             ),
             boss = BossKind.SAND_WYRM,
             bossName = "THE SAND WYRM",

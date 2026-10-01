@@ -12,8 +12,8 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * Draws the charge an [AuraComponent] is carrying: a halo that swells with [AuraComponent.intensity],
- * and sparks and lightning that are added a tier at a time.
+ * Draws the charge an [AuraComponent] is carrying, in its [AuraComponent.colors]: a halo that swells
+ * with [AuraComponent.intensity], and sparks and lightning that are added a tier at a time.
  *
  * Add it **twice**, once per [Layer], with the entity's sprites drawn in between. The halo belongs
  * behind the entity, because a glow drawn over it would wash the artwork out at exactly the point
@@ -113,7 +113,7 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
             val alpha = HALO_PEAK_ALPHA * inwards.pow(HALO_FALLOFF) *
                     aura.intensity * (1f + aura.surge)
             val color = EngineColors.withAlpha(
-                EngineColors.lerp(AURA_AMBER, AURA_GOLD, inwards),
+                EngineColors.lerp(aura.colors.rim, aura.colors.core, inwards),
                 alpha,
             )
 
@@ -165,7 +165,7 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
                 (centerY + y).roundToInt(),
                 size,
                 size,
-                EngineColors.withAlpha(SPARK_COLOR, alpha),
+                EngineColors.withAlpha(aura.colors.spark, alpha),
             )
         }
     }
@@ -213,7 +213,7 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
             // stops the effect reading as a ribbon being faded in and out.
             val life = elapsed / (BOLT_FLASH_SECONDS * rate)
             val fade = 1f - life * life
-            val color = EngineColors.withAlpha(BOLT_COLOR, fade)
+            val color = EngineColors.withAlpha(aura.colors.bolt, fade)
 
             var fromX = centerX + cos(startAngle) * shellX
             var fromY = centerY + sin(startAngle) * shellY
@@ -258,7 +258,7 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
                 (centerY + sin(endAngle) * shellY).roundToInt() - 1,
                 3,
                 3,
-                EngineColors.withAlpha(SPARK_COLOR, fade),
+                EngineColors.withAlpha(aura.colors.spark, fade),
             )
         }
     }
@@ -321,15 +321,6 @@ class AuraSystem(private val layer: Layer) : GameSystem() {
          */
         const val HALO_PEAK_ALPHA = 0.24f
         const val HALO_FALLOFF = 1.8f
-
-        // Bright on purpose, and the reason is the blend rather than the hue. Half-opacity amber
-        // over the dark blue of the cave averages to khaki - the first two passes both came out
-        // brown - and the fix is not a warmer color but a lighter one, carried at enough alpha
-        // that the middle of the halo settles near its own gold instead of halfway to the cave.
-        val AURA_AMBER = 0xFFFFC83C.toInt()
-        val AURA_GOLD = 0xFFFFFCE4.toInt()
-        val SPARK_COLOR = 0xFFFFFBDC.toInt()
-        val BOLT_COLOR = 0xFFFFFFF0.toInt()
 
         /** Sparks added per tier, and the ceiling on them. */
         const val SPARKS_PER_TIER = 7

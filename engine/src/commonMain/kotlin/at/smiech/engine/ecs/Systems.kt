@@ -634,8 +634,12 @@ class AnimationSystem : GameSystem() {
 
 /**
  * System that renders entities with a SpriteComponent.
+ *
+ * @param layers the z indices this pass draws. All of them by default; a world that has something
+ *   to draw *between* layers adds one pass per range with that something in between. Two passes
+ *   over ranges that meet draw every sprite one pass over both would, in the same order.
  */
-class RenderSystem : GameSystem() {
+class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var sprites: ComponentMapper<SpriteComponent>
     private lateinit var zIndices: ComponentMapper<ZIndexComponent>
@@ -668,11 +672,12 @@ class RenderSystem : GameSystem() {
     override fun draw(world: World, graphics: Graphics) {
         var count = 0
         world.forEach(transforms, sprites) { id ->
+            val zIndex = zIndices[id]?.zIndex ?: 0
+            if (zIndex !in layers) return@forEach
             if (count == ids.size) {
                 ids = ids.copyOf(count * 2)
                 order = order.copyOf(count * 2)
             }
-            val zIndex = zIndices[id]?.zIndex ?: 0
             ids[count] = id
             order[count] = (zIndex.toLong() shl 32) or count.toLong()
             count++

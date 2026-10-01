@@ -1,6 +1,8 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.ecs.BossPartComponent
+import at.smiech.cyanbat.ecs.EliteComponent
+import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
 import at.smiech.cyanbat.util.CRITICAL_TEXT_DURATION_SECONDS
@@ -10,6 +12,8 @@ import at.smiech.cyanbat.util.DAMAGE_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.DAMAGE_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_TEXT_RISE_PER_TICK
 import at.smiech.cyanbat.util.DESTRUCTIBLE_HIT_POINTS
+import at.smiech.cyanbat.util.ELITE_AURA_INTENSITY
+import at.smiech.cyanbat.util.ELITE_AURA_TIER
 import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.HEALTH_BAR_HEIGHT
 import at.smiech.cyanbat.util.HEALTH_BAR_OFFSET_Y
@@ -131,6 +135,9 @@ class EntityFactory(val world: World) {
      * @param gun what it fires, or null for an enemy that only rams.
      * @param firstShotDelay how long an armed enemy waits before its first volley, on top of its
      *   interval - so a formation spawned on one tick does not fire as one.
+     * @param elite the palette it wears as an elite, or null for an ordinary enemy. What makes an
+     *   elite tougher and quicker on the trigger is already in the health and gun it is handed; this
+     *   is the glow, the color of its shots, and the mark the run pays out on.
      */
     fun createEnemy(
         x: Float,
@@ -150,6 +157,7 @@ class EntityFactory(val world: World) {
         shieldRegrowth: Float = 0f,
         gun: EnemyGun? = null,
         firstShotDelay: Float = 0f,
+        elite: ElitePalette? = null,
     ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
@@ -191,8 +199,18 @@ class EntityFactory(val world: World) {
                 phase = phase,
             )
         )
-        // So that anything which is given a gun fires in its own color rather than the player's.
-        world.addComponent(id, ProjectileStyleComponent(species.shotVariant))
+        // So that anything which is given a gun fires in its own color rather than the player's - and
+        // an elite in the color of its glow rather than of its kind, which is how its fire is told
+        // from the rest of the wave's.
+        world.addComponent(id, ProjectileStyleComponent(elite?.shotVariant ?: species.shotVariant))
+        if (elite != null) {
+            world.addComponent(id, EliteComponent(elite))
+            // A fixed glow rather than one that grows: an elite arrives as what it is.
+            world.addComponent(
+                id,
+                AuraComponent(intensity = ELITE_AURA_INTENSITY, tier = ELITE_AURA_TIER, colors = elite.aura),
+            )
+        }
         if (gun != null) {
             world.addComponent(id, WeaponComponent(gun.interval, timeSinceLastShot = -firstShotDelay))
             world.addComponent(id, GunComponent(gun.volleys))

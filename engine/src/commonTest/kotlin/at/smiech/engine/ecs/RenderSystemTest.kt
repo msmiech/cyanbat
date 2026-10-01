@@ -146,6 +146,31 @@ class RenderSystemTest {
         assertContentEquals(listOf("below", "unlayered", "above"), drawnOrder())
     }
 
+    /**
+     * What layered passes are for: something drawn between them - an aura's halo - lands over
+     * everything in the first and under everything in the second. Between them they draw every
+     * sprite once, in the order one pass would have.
+     */
+    @Test
+    fun `passes over separate layers each draw only their own and between them all of it in order`() {
+        fun drawnBy(vararg passes: IntRange): List<String> {
+            val layered = World().apply { passes.forEach { addSystem(RenderSystem(layers = it)) } }
+            for ((tag, zIndex) in listOf("enemy" to 10, "background" to -100, "unlayered" to null, "below" to -5)) {
+                val id = layered.createEntity()
+                layered.addComponent(id, TransformComponent(Rect.fromLTWH(0f, 0f, 10f, 10f)))
+                layered.addComponent(id, SpriteComponent(TaggedPixmap(tag)))
+                if (zIndex != null) layered.addComponent(id, ZIndexComponent(zIndex))
+            }
+            return RecordingGraphics().also { layered.draw(it) }.drawn
+        }
+        val below = Int.MIN_VALUE until 0
+        val rest = 0..Int.MAX_VALUE
+
+        assertContentEquals(listOf("background", "below"), drawnBy(below))
+        assertContentEquals(listOf("unlayered", "enemy"), drawnBy(rest))
+        assertContentEquals(listOf("background", "below", "unlayered", "enemy"), drawnBy(below, rest))
+    }
+
     @Test
     fun `sprites sharing a layer keep their creation order`() {
         spawn("first", zIndex = 10)

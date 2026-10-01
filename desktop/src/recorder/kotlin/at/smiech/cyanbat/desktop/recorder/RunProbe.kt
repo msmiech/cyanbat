@@ -34,6 +34,9 @@ class RunProbe(private val screen: GameScreen) {
 
     val stageComplete: Boolean get() = stageCompleteField.getBoolean(screen)
     val level: Int get() = (progressField.get(screen) as PlayerProgress).level
+
+    /** Everything the run has earned toward its levels, from the start. */
+    val experience: Int get() = (progressField.get(screen) as PlayerProgress).totalExperience
     val score: Int get() = (scoringField.get(screen) as ScoreTracker).score
 
     /** The wave or boss announcement on screen, if one is. */

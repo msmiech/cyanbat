@@ -1,5 +1,6 @@
 package at.smiech.cyanbat
 
+import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
 import at.smiech.cyanbat.util.HITS_PER_MULTIPLIER_STEP
 import at.smiech.cyanbat.util.STAGE_COMPLETE_BONUS
 import at.smiech.cyanbat.util.POINTS_PER_HIT
@@ -18,6 +19,7 @@ class ScoreTracker(
     private val pointsPerHit: Int = POINTS_PER_HIT,
     private val hitsPerMultiplierStep: Int = HITS_PER_MULTIPLIER_STEP,
     private val stageCompleteBonus: Int = STAGE_COMPLETE_BONUS,
+    private val eliteFactor: Int = ELITE_SCORE_FACTOR,
 ) {
     var score: Int = 0
         private set
@@ -49,10 +51,16 @@ class ScoreTracker(
      */
     private var remainder: Float = 0f
 
-    /** Extends the streak first, so a kill scores at the multiplier it just earned. */
-    fun registerEnemyDestroyed() {
+    /**
+     * Extends the streak first, so a kill scores at the multiplier it just earned.
+     *
+     * @param elite whether it was an elite, which pays [eliteFactor] kills' worth of points - and is
+     *   still one kill to the streak, which counts how long the bat has gone untouched rather than
+     *   what it earned in that time.
+     */
+    fun registerEnemyDestroyed(elite: Boolean = false) {
         hitStreak++
-        award(pointsPerHit * multiplier)
+        award(pointsPerHit * multiplier * if (elite) eliteFactor else 1)
     }
 
     /** The bat took damage. Points already banked stay; the streak does not. */
