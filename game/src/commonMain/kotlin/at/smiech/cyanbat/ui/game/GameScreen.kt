@@ -4,6 +4,7 @@ import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.ScoreTracker
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.ecs.BossPartComponent
+import at.smiech.cyanbat.ecs.EliteComponent
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.ecs.NightfallSystem
 import at.smiech.cyanbat.ecs.ShotPattern
@@ -355,7 +356,8 @@ class GameScreen(
         val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
         val isPlayer = world.hasComponent(shooterId, PlayerControlComponent::class)
         // An enemy holds its fire until it is on screen. A volley fired from past the right edge
-        // would arrive out of nowhere, and nothing the player could see would have warned them.
+        // would arrive out of nowhere, and nothing the player could see would have warned them -
+        // and nor would one from under the sand, where an elite wyrmling cruises in armed.
         if (!isPlayer && !isOnScreen(transform.rect)) return
         val gun = if (isPlayer) null else world.getComponent(shooterId, GunComponent::class)
         if (gun != null) {
@@ -410,8 +412,14 @@ class GameScreen(
         }
     }
 
+    /**
+     * Wholly inside the frame across, and with its middle inside it from top to bottom. Looser up
+     * and down, because a swarm or a diver routinely dips part of itself past the top or the bottom
+     * and is still plainly there; what is ruled out is firing from where nothing can be seen.
+     */
     private fun isOnScreen(rect: Rect): Boolean =
-        rect.left >= 0f && rect.right <= game.frameBufferWidth
+        rect.left >= 0f && rect.right <= game.frameBufferWidth &&
+                rect.centerY >= 0f && rect.centerY <= game.frameBufferHeight
 
     /**
      * One pull of an enemy's trigger: whatever [gun]'s next [Volley] is, in the shooter's color
@@ -546,13 +554,14 @@ class GameScreen(
         if (isEnemyShotDown(group1, group2)) {
             val enemyDied = if (group1 == CollisionGroup.ENEMY) died1 else died2
             if (enemyDied) {
-                scoring.registerEnemyDestroyed()
+                val enemyId = if (group1 == CollisionGroup.ENEMY) id1 else id2
+                val elite = world.hasComponent(enemyId, EliteComponent::class)
+                scoring.registerEnemyDestroyed(elite)
                 // The boss is banked by completeStage, which knows it was the boss - and a part of
                 // its body going down is the boss going down. Everything else is worth what its
-                // wave is worth.
-                val enemyId = if (group1 == CollisionGroup.ENEMY) id1 else id2
+                // wave is worth, and an elite several times that.
                 if (enemyId != bossId && !isBossPart(enemyId)) {
-                    awardExperience(PlayerProgress.experienceForKill(enmGen.currentWave.index))
+                    awardExperience(PlayerProgress.experienceForKill(enmGen.currentWave.index, elite))
                 }
             }
         }

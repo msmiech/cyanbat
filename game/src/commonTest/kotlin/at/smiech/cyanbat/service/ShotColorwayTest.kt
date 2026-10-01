@@ -1,9 +1,11 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.MOTH_QUEEN_SHOT_VARIANT
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
+import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
@@ -137,8 +139,43 @@ class ShotColorwayTest {
         assertTrue(MOTH_QUEEN_SHOT_VARIANT != PLAYER_SHOT_VARIANT)
     }
 
+    // --- elites -----------------------------------------------------------------------------------
+
+    @Test
+    fun `every elite's colorway is on the sheet and is its own`() {
+        val variants = ElitePalette.entries.map { it.shotVariant }
+        assertTrue(variants.all { it in 0 until COLORWAYS }, "an elite colorway off the sheet: $variants")
+        assertEquals(variants.size, variants.toSet().size, "two elite palettes share a colorway")
+    }
+
+    /**
+     * An elite's fire is told from the rest of the wave's by its color, so no elite colorway may be
+     * one anything else fires - nor the player's, which no enemy may ever fire.
+     */
+    @Test
+    fun `no elite fires in a colorway that anything else does`() {
+        val everyoneElse = EnemySpecies.entries.map { it.shotVariant }.toSet() +
+            setOf(PLAYER_SHOT_VARIANT, 2 + ENEMY_SHOT_VARIANT_OFFSET, MOTH_QUEEN_SHOT_VARIANT, SAND_WYRM_SHOT_VARIANT)
+        for (palette in ElitePalette.entries) {
+            assertTrue(palette.shotVariant !in everyoneElse, "$palette fires colorway ${palette.shotVariant}")
+        }
+    }
+
+    @Test
+    fun `an elite fires in its palette's colorway rather than its kind's`() {
+        for (palette in ElitePalette.entries) {
+            val id = factory.createEnemy(
+                0f, 0f, 28f, 29f, enemySheet, species = EnemySpecies.SCOUT, elite = palette,
+            )
+            assertEquals(palette.shotVariant, world.getComponent(id, ProjectileStyleComponent::class)?.variant)
+        }
+    }
+
     private companion object {
-        /** How many colorways shot.png lays out: the player's, the cave's three, the forest's three. */
-        const val COLORWAYS = 7
+        /**
+         * How many colorways shot.png lays out: the player's, the cave's three, the forest's three,
+         * the Sand Wyrm's, and the elites' five.
+         */
+        const val COLORWAYS = 13
     }
 }

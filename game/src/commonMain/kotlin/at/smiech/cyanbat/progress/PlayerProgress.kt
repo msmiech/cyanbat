@@ -2,6 +2,7 @@ package at.smiech.cyanbat.progress
 
 import at.smiech.cyanbat.util.AURA_FULL_INTENSITY_LEVEL
 import at.smiech.cyanbat.util.AURA_LEVELS_PER_TIER
+import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
 import at.smiech.cyanbat.util.XP_FIRST_LEVEL
 import at.smiech.cyanbat.util.XP_LEVEL_STEP
 import at.smiech.cyanbat.util.XP_PER_KILL
@@ -99,12 +100,13 @@ class PlayerProgress(
 
     companion object {
         /**
-         * What killing an enemy from [waveIndex] is worth.
+         * What killing an enemy from [waveIndex] is worth, and [ELITE_EXPERIENCE_FACTOR] times that
+         * for an [elite].
          *
          * Scaled by the wave so that pressing on pays better than farming the opening minute,
          * which would otherwise be the safest way to level: early enemies die to one shot.
          */
-        fun experienceForKill(waveIndex: Int): Int =
-            XP_PER_KILL + waveIndex * XP_PER_KILL_PER_WAVE
+        fun experienceForKill(waveIndex: Int, elite: Boolean = false): Int =
+            (XP_PER_KILL + waveIndex * XP_PER_KILL_PER_WAVE) * if (elite) ELITE_EXPERIENCE_FACTOR else 1
     }
 }

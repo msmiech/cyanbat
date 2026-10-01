@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.progress
 
+import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
 import at.smiech.cyanbat.util.XP_FIRST_LEVEL
 import at.smiech.cyanbat.util.XP_LEVEL_STEP
 import at.smiech.cyanbat.util.XP_PER_KILL
@@ -113,6 +114,22 @@ class PlayerProgressTest {
         byWave.zipWithNext { earlier, later ->
             assertTrue(later > earlier, "wave payout did not climb: $earlier then $later")
         }
+    }
+
+    /** An elite is worth a handful of its wave's kills, in whichever wave it turns up. */
+    @Test
+    fun `an elite is worth several kills of its own wave`() {
+        for (wave in 0..4) {
+            assertEquals(
+                PlayerProgress.experienceForKill(wave) * ELITE_EXPERIENCE_FACTOR,
+                PlayerProgress.experienceForKill(wave, elite = true),
+                "wave $wave",
+            )
+        }
+        assertTrue(
+            PlayerProgress.experienceForKill(0, elite = true) > PlayerProgress.experienceForKill(0),
+            "an elite is worth no more than anything else",
+        )
     }
 
     /**

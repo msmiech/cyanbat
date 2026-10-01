@@ -145,6 +145,19 @@ so healing undoes it. The bosses change phase at the same marks.
   `pa.tear`) so it stays put through the animation, and writes the rows with `pa.save_rows`.
   `SpriteSheetTest` checks that every wounded frame differs from the one above it.
 
+**Elites.** From a stage's second minute, a group can arrive with an elite in it: a loner, one of a
+swarm, or a formation's leader.
+- `WaveDesign.eliteChance` is rolled once per group in `EnemyGenerator.spawnGroup`. Boss summons
+  skip that roll, so a boss never calls up an elite.
+- An elite has `ELITE_HIT_POINT_FACTOR` its kind's health (not its shield), and fires its kind's
+  gun - or the issued one, for a kind that carries none - at `ELITE_FIRE_INTERVAL_FACTOR` the
+  interval. Its `ElitePalette` is the color of its `AuraComponent` and of its `shot.png` colorway.
+  `SpriteSheetTest` holds each colorway's body to its palette's rim.
+- `GameScreen` reads its `EliteComponent` as it dies, to pay `ELITE_SCORE_FACTOR` and
+  `ELITE_EXPERIENCE_FACTOR` kills' worth; it is still one kill to the streak.
+- An aura's halo is drawn between two `RenderSystem` passes: the scenery strip (below z 0), then
+  every other sprite. In one pass the strip covered every halo in the cave and the forest.
+
 **Player progression** is per run and never persisted:
 - `PlayerProgress` tracks experience and the bat's level.
 - `PowerUp` builds the three-card offer. Maxed cards drop out of it, and the uncapped ones

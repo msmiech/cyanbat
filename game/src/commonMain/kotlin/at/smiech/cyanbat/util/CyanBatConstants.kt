@@ -467,9 +467,10 @@ const val MAX_CRITICAL_CHANCE = 0.5f
 
 // --- Shot colorways ----------------------------------------------------------------------------
 //
-// `shot.png` is one bolt drawn seven times over: the player's cyan, then the cave's three enemy
-// palettes in the order the enemy sheet lays them out, then the forest's shooters. Which colorway
-// a species fires is on EnemySpecies. A shot is the color of whatever fired it, so a screen
+// `shot.png` is one bolt drawn thirteen times over: the player's cyan, then the cave's three enemy
+// palettes in the order the enemy sheet lays them out, then the forest's shooters, the Sand Wyrm's,
+// and one per ElitePalette. Which colorway a species fires is on EnemySpecies, and an elite fires
+// its palette's instead. A shot is the color of whatever fired it, so a screen
 // holding the bat's fire and the boss's at the same time says which is which by color rather than
 // by which way a bolt happens to be travelling.
 
@@ -531,6 +532,35 @@ const val SHIELD_REGROWTH_DELAY_SECONDS = 2.5f
 // How much of something coming in under the sand shows above the bottom edge: its ridged back, and
 // nothing else. Enough to see coming the whole way in, too little to be mistaken for flying.
 const val BURROW_SHOWING = 11f
+
+
+// --- Elites ------------------------------------------------------------------------------------
+//
+// Now and then an ordinary enemy arrives as an elite: wreathed in a glow of its own color, tougher,
+// quicker on the trigger, and worth a good deal more. How often is per wave, in StageDesign; the
+// colors are ElitePalette's. An elite is a prize to chase rather than a threat to avoid, so what it
+// pays is set a little above what it costs.
+
+// Its health against an ordinary one of its kind. At two and a half, an elite in the cave's second
+// wave takes four of the bat's opening shots and one in its last takes eight: a chase across the
+// frame rather than a tap.
+const val ELITE_HIT_POINT_FACTOR = 2.5f
+
+// The gap between its volleys against its kind's. One that carries no gun of its own is issued the
+// waves' gun on spawn, so an elite always shoots - its shots in its own color are half of how it is
+// told apart.
+const val ELITE_FIRE_INTERVAL_FACTOR = 0.6f
+
+// What killing one pays, in ordinary kills of its wave: experience and points both. It still counts
+// as one kill to the streak, which is the player's skill rather than their prize.
+const val ELITE_EXPERIENCE_FACTOR = 3
+const val ELITE_SCORE_FACTOR = 3
+
+// Its glow, in the terms of the bat's aura: as bright as the bat's ever gets, with the first tier of
+// sparks and lightning in it. Full brightness because an enemy is smaller than the bat, and its sprite
+// covers the brightest part of its own halo; anything less was a faint ring that a glance passed over.
+const val ELITE_AURA_INTENSITY = 1f
+const val ELITE_AURA_TIER = 1
 
 
 // --- The Sand Wyrm -----------------------------------------------------------------------------

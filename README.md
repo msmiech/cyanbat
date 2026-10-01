@@ -86,6 +86,12 @@ cracked shells, snapped horns and narrowed eyes, and a boss looks as far through
 phases say it is. A wounded enemy is a straggler, too: it flies slower and fires less often the
 worse it is hurt, falling behind its swarm. The bosses alone are never slowed by their wounds.
 
+From a stage's second minute on, now and then an enemy arrives as an elite, wreathed in a glow of
+its own - scarlet, ember, venom green, ultraviolet or fuchsia. It takes two and a half times the
+punishment, fires faster and in the color of its glow - even if its kind never shoots at all - and
+pays out three times the points and experience. They are rare early on, and in the escort that
+brings in the boss there is one every six or seven seconds.
+
 ## 🎮 Controls
 
 |            | Move                                   | Pause / resume  | Quit to menu |

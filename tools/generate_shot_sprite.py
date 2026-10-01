@@ -12,10 +12,11 @@ and re-run, instead of reverse-engineering colors out of the image.
 The bolt points right, which is the only direction the *player* fires; enemy shots travel left and
 are turned by `FacingSystem`, so one drawing serves both.
 
-Eight colorways, laid out left to right and addressed the way the enemy sheet is. The player's is
-cyan, the next three are the cave's enemy palettes from `generate_enemy_sprites.py` - violet, amber
-and crimson - the next three are the forest's shooters, and the last is the desert's boss - so a
-shot is the same color as whatever fired it. That matters more than it sounds:
+Thirteen colorways, laid out left to right and addressed the way the enemy sheet is. The player's
+is cyan, the next three are the cave's enemy palettes from `generate_enemy_sprites.py` - violet,
+amber and crimson - the next three are the forest's shooters, the next is the desert's boss, and
+the last five are the elites', one per `ElitePalette` - so a shot is the same color as whatever
+fired it. That matters more than it sounds:
 the screen can hold the bat's shots and the boss's at once, travelling in opposite directions, and
 before this they were the same cyan bolt. Which ones were dangerous had to be worked out from
 which way they were moving.
@@ -72,6 +73,19 @@ COLORWAYS = (
     # spitter's magenta, the scarab in crimson, an armed hawk in flame - because each of those is
     # the color of the thing firing it.
     {"d": (186, 104, 20, 180), "c": (255, 204, 64, 255), "w": (255, 250, 226, 255)},
+    # The elites', one per `ElitePalette` in the order it declares them. An elite of any species can
+    # wear any of them, so each body is exactly its palette's rim - the outside of its glow - and a
+    # bolt is the color of the light around whatever fired it rather than of the creature inside.
+    # SCARLET
+    {"d": (150, 24, 40, 180), "c": (255, 56, 72, 255), "w": (255, 226, 228, 255)},
+    # EMBER
+    {"d": (160, 62, 14, 180), "c": (255, 122, 30, 255), "w": (255, 238, 214, 255)},
+    # VENOM
+    {"d": (40, 130, 24, 180), "c": (116, 238, 60, 255), "w": (236, 255, 226, 255)},
+    # ULTRAVIOLET
+    {"d": (84, 36, 160, 180), "c": (164, 88, 255, 255), "w": (240, 228, 255, 255)},
+    # FUCHSIA
+    {"d": (150, 24, 112, 180), "c": (255, 64, 196, 255), "w": (255, 226, 246, 255)},
 )
 
 TRANSPARENT = (0, 0, 0, 0)

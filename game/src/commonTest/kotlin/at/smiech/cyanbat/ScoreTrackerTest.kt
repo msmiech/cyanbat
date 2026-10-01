@@ -52,6 +52,24 @@ class ScoreTrackerTest {
         assertEquals(40, scoring.score, "third kill should pay 10 x2, not 10 x1")
     }
 
+    /**
+     * An elite is a bigger prize, not a longer streak: the streak counts how long the bat has gone
+     * untouched, and one kill is one kill however much it paid.
+     */
+    @Test
+    fun `an elite pays several kills' worth and is still one kill to the streak`() {
+        val scoring = ScoreTracker(pointsPerHit = 10, hitsPerMultiplierStep = 3, eliteFactor = 3)
+        scoring.registerEnemyDestroyed()
+        scoring.registerEnemyDestroyed(elite = true)
+
+        assertEquals(10 + 30, scoring.score)
+        assertEquals(2, scoring.hitStreak)
+
+        // The third kill earns the step, and an elite is paid at it like anything else.
+        scoring.registerEnemyDestroyed(elite = true)
+        assertEquals(10 + 30 + 60, scoring.score)
+    }
+
     @Test
     fun `the multiplier has no ceiling`() {
         val scoring = tracker()
