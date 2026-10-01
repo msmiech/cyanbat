@@ -1137,6 +1137,36 @@ class HitFlashSystem : GameSystem() {
 }
 
 /**
+ * Draws every [WoundComponent] entity from the row of its sheet its health calls for.
+ *
+ * Add it after whatever lands the hits and before [RenderSystem], so the blow that takes something
+ * past a mark shows on the frame it lands rather than the one after.
+ *
+ * Something dead is left alone. What it looks like from there is up to whatever is killing it: the
+ * bat, for one, falls on a sheet of its own, which has no wounded rows to be moved onto.
+ */
+class WoundSystem : GameSystem() {
+    private lateinit var sprites: ComponentMapper<SpriteComponent>
+    private lateinit var wounds: ComponentMapper<WoundComponent>
+    private lateinit var healths: ComponentMapper<HealthComponent>
+
+    override fun onAttach(world: World) {
+        sprites = world.mapper(SpriteComponent::class)
+        wounds = world.mapper(WoundComponent::class)
+        healths = world.mapper(HealthComponent::class)
+    }
+
+    override fun update(world: World, deltaTime: Float, input: Input?) {
+        world.forEach(sprites, wounds, healths) { id ->
+            val health = healths.require(id)
+            if (!health.alive) return@forEach
+            val wound = wounds.require(id)
+            sprites.require(id).srcY = wound.rowHeight * wound.rowFor(health.fraction)
+        }
+    }
+}
+
+/**
  * Drives everything carrying a [DeathThroesComponent]: gravity, tumble, and the blasts thrown off
  * on the way down.
  *

@@ -36,6 +36,8 @@ import at.smiech.cyanbat.util.TRAIL_DRIFT_PER_TICK
 import at.smiech.cyanbat.util.TRAIL_DURATION_SECONDS
 import at.smiech.cyanbat.util.TRAIL_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.TRAIL_MIN_SCALE
+import at.smiech.cyanbat.util.WOUND_MARKS
+import at.smiech.cyanbat.util.WOUND_ROWS
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.AnimationComponent
@@ -65,6 +67,7 @@ import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.VelocityComponent
 import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.ecs.World
+import at.smiech.engine.ecs.WoundComponent
 import at.smiech.engine.ecs.ZIndexComponent
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
@@ -73,22 +76,24 @@ import kotlin.math.sin
 
 class EntityFactory(val world: World) {
 
+    /** The bat, at ([x], [y]), drawn from [pixmap]'s rows of unhurt and wounded wingbeats. */
     fun createBat(
         x: Float,
         y: Float,
         width: Float,
-        height: Float,
         pixmap: Pixmap,
         shotIntervalSeconds: Float,
     ): EntityId {
+        val height = pixmap.height / WOUND_ROWS
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height.toFloat())))
         world.addComponent(id, VelocityComponent(Vector2.Zero))
-        world.addComponent(id, SpriteComponent(pixmap, srcWidth = BAT_FRAME_WIDTH))
+        world.addComponent(id, SpriteComponent(pixmap, srcWidth = BAT_FRAME_WIDTH, srcHeight = height))
         world.addComponent(
             id,
-            AnimationComponent(BAT_FRAME_WIDTH, height.toInt(), BAT_FRAME_COUNT, BAT_FRAME_SECONDS)
+            AnimationComponent(BAT_FRAME_WIDTH, height, BAT_FRAME_COUNT, BAT_FRAME_SECONDS)
         )
+        world.addComponent(id, WoundComponent(height, WOUND_MARKS))
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.PLAYER))
         world.addComponent(id, HealthComponent(PLAYER_MAX_HIT_POINTS))
         // Bars are for the two things a fight is decided between - the bat and the stage's boss.
@@ -113,6 +118,8 @@ class EntityFactory(val world: World) {
      * faster as the minutes go by. They are fixed at spawn, so enemies already on screen keep the
      * strength they arrived with when a wave turns over.
      *
+     * @param height one picture's worth of [pixmap], which stacks each species unhurt, wounded
+     *   and battered; see [WoundComponent].
      * @param laneY the path a group flies around, for the species that fly in one. A swarm's
      *   members all share it and each sits [offsetY] from it; a loner's lane is where it spawned.
      * @param phase a per-member offset into its pattern, so a swarm does not buzz in unison.
@@ -151,7 +158,12 @@ class EntityFactory(val world: World) {
 
         world.addComponent(
             id,
-            SpriteComponent(pixmap, baseSrcX = srcXOf(species.strip), srcWidth = ENEMY_FRAME_WIDTH)
+            SpriteComponent(
+                pixmap,
+                baseSrcX = srcXOf(species.strip),
+                srcWidth = ENEMY_FRAME_WIDTH,
+                srcHeight = height.toInt(),
+            )
         )
         world.addComponent(
             id,
@@ -162,6 +174,7 @@ class EntityFactory(val world: World) {
                 ENEMY_FRAME_SECONDS
             )
         )
+        world.addComponent(id, WoundComponent(height.toInt(), WOUND_MARKS))
 
         world.addComponent(
             id,
@@ -223,7 +236,7 @@ class EntityFactory(val world: World) {
     ): EntityId = createBossEntity(
         x, y, holdX, pixmap, hitPoints, damage, shotIntervalSeconds,
         frameWidth = ENEMY_FRAME_WIDTH,
-        frameHeight = pixmap.height,
+        frameHeight = pixmap.height / WOUND_ROWS,
         frameCount = ENEMY_FRAME_COUNT,
         frameSeconds = ENEMY_FRAME_SECONDS,
         baseSrcX = srcXOf(BOSS_ENEMY_TYPE),
@@ -254,7 +267,7 @@ class EntityFactory(val world: World) {
         val id = createBossEntity(
             x, y, holdX, pixmap, hitPoints, damage, gun.interval,
             frameWidth = MOTH_QUEEN_FRAME_WIDTH,
-            frameHeight = pixmap.height,
+            frameHeight = pixmap.height / WOUND_ROWS,
             frameCount = MOTH_QUEEN_FRAME_COUNT,
             frameSeconds = MOTH_QUEEN_FRAME_SECONDS,
             baseSrcX = 0,
@@ -283,7 +296,8 @@ class EntityFactory(val world: World) {
      * is what keeps the bat from wearing it down by being hit by it.
      *
      * The parts are created tail first, so each is drawn over the one behind it and the body
-     * overlaps toward the head the way plates do.
+     * overlaps toward the head the way plates do. Only the head carries a [WoundComponent], for the
+     * same reason only the head carries health; [SandWyrmBrain] draws the plates from its row.
      *
      * @param bodyDamage what a plate deals on contact; less than the head's, see
      *   [at.smiech.cyanbat.util.SAND_WYRM_BODY_DAMAGE].
@@ -305,9 +319,16 @@ class EntityFactory(val world: World) {
             val id = world.createEntity()
             world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
             world.addComponent(id, VelocityComponent(Vector2.Zero))
+            // No wound of its own, because no health of its own: the brain draws every plate from
+            // the head's row, so the whole body is as battered as the health it shares.
             world.addComponent(
                 id,
-                SpriteComponent(pixmap, baseSrcX = sheetFrame * SAND_WYRM_FRAME, srcWidth = SAND_WYRM_FRAME),
+                SpriteComponent(
+                    pixmap,
+                    baseSrcX = sheetFrame * SAND_WYRM_FRAME,
+                    srcWidth = SAND_WYRM_FRAME,
+                    srcHeight = SAND_WYRM_FRAME,
+                ),
             )
             world.addComponent(id, CollisionComponent(tolerance, CollisionGroup.ENEMY))
             world.addComponent(id, DamageComponent(bodyDamage))
@@ -320,11 +341,15 @@ class EntityFactory(val world: World) {
         val head = world.createEntity()
         world.addComponent(head, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
         world.addComponent(head, VelocityComponent(Vector2.Zero))
-        world.addComponent(head, SpriteComponent(pixmap, srcWidth = SAND_WYRM_FRAME))
+        world.addComponent(
+            head,
+            SpriteComponent(pixmap, srcWidth = SAND_WYRM_FRAME, srcHeight = SAND_WYRM_FRAME),
+        )
         world.addComponent(
             head,
             AnimationComponent(SAND_WYRM_FRAME, SAND_WYRM_FRAME, SAND_WYRM_HEAD_FRAMES, SAND_WYRM_HEAD_FRAME_SECONDS),
         )
+        world.addComponent(head, WoundComponent(SAND_WYRM_FRAME, WOUND_MARKS))
         world.addComponent(head, FacesVelocityComponent(HOSTILE_ARTWORK_DEGREES))
         // At rest until the brain throws it: a leap whose station can never be reached.
         world.addComponent(head, EnemyBehaviorComponent(EnemyMovementType.LEAP, y, holdX = -Float.MAX_VALUE))
@@ -401,12 +426,20 @@ class EntityFactory(val world: World) {
         world.addComponent(id, VelocityComponent(Vector2.Zero))
         world.addComponent(
             id,
-            SpriteComponent(pixmap, baseSrcX = baseSrcX, srcWidth = frameWidth, scale = scale)
+            SpriteComponent(
+                pixmap,
+                baseSrcX = baseSrcX,
+                srcWidth = frameWidth,
+                srcHeight = frameHeight,
+                scale = scale,
+            )
         )
         world.addComponent(
             id,
             AnimationComponent(frameWidth, frameHeight, frameCount, frameSeconds)
         )
+        // At the marks the fight changes phase at, for a boss that has phases; see WOUND_MARKS.
+        world.addComponent(id, WoundComponent(frameHeight, WOUND_MARKS))
         world.addComponent(id, EnemyBehaviorComponent(movement, y, holdX = holdX))
         world.addComponent(id, ProjectileStyleComponent(shotVariant))
         world.addComponent(id, CollisionComponent(collisionTolerance, CollisionGroup.ENEMY))
@@ -677,7 +710,8 @@ class EntityFactory(val world: World) {
 
     private companion object {
         /**
-         * The bat's sheet: six frames of one wing-beat, laid out left to right.
+         * The bat's sheet: six frames of one wing-beat, laid out left to right, and that row again
+         * wounded and battered below it; see [WoundComponent].
          *
          * Six rather than the two it had, because two frames of a flap is a sprite blinking
          * between poses; a beat needs a downstroke and a fold to read as one. The interval is set
@@ -688,8 +722,9 @@ class EntityFactory(val world: World) {
         const val BAT_FRAME_SECONDS = 0.07f
 
         /**
-         * The enemy sheets: three types in the cave's and five in the forest's, four frames of
-         * wingbeat each, laid out type by type.
+         * The enemy sheets: three types in the cave's and five in the forest's and the desert's,
+         * four frames of wingbeat each, laid out type by type - and the whole row again wounded and
+         * battered below it, so the stride along a row is the same on every one of them.
          *
          * Four rather than the two it had, for the same reason the bat got six - and at an
          * interval that puts the cycle at the same ~0.4s, so the hostiles and the player beat

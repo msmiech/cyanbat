@@ -271,9 +271,13 @@ class SandWyrmBrain(
      * By distance along the path, not by how many ticks ago the head was there: the head slows over
      * the top of every arc, and a body laid out by time would bunch up there and string out on the
      * way down.
+     *
+     * Each part is drawn from the head's row of the sheet as it goes. The plates have no health to
+     * be wounded by, and a battered head on a pristine body would read as two animals.
      */
     private fun layBody() {
         val head = rectOf(headId) ?: return
+        val woundRow = world.getComponent(headId, SpriteComponent::class)?.srcY ?: 0
         var x = head.centerX
         var y = head.centerY
         var aheadX = x
@@ -304,6 +308,7 @@ class SandWyrmBrain(
                 remaining--
             }
             place(part, x, y, aheadX, aheadY)
+            world.getComponent(part, SpriteComponent::class)?.srcY = woundRow
             aheadX = x
             aheadY = y
         }

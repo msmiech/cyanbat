@@ -20,7 +20,7 @@ because the sheets differ: the bat is 45x40 a frame, an enemy 32x29, and an obst
 odd size.
 """
 
-from math import hypot
+from math import cos, hypot, pi, sin
 
 # Supersampling used to decide whether a pixel is inside a shape. Coverage is thresholded rather
 # than blended: the point is accurate silhouettes, not soft ones.
@@ -223,6 +223,61 @@ def shade_bands_across(grid, pixels, bands):
             grid[y][x] = bands[-1][1]
 
 
+# --- wounds --------------------------------------------------------------------------------------
+
+# How badly hurt a creature is drawn, one row of its sheet per level, top to bottom: unhurt, wounded
+# and battered. The game moves a creature down a row as its health falls past each mark
+# (`WoundComponent`), so the sheet of anything that can be hurt draws every frame once per level -
+# from the same body each time, with the wounds placed on the body's own parts, so a gash stays
+# where it is through a wingbeat instead of jumping about in it.
+#
+# What a wound looks like is the same across the bestiary, so a player learns it once: a creature
+# wounded has a split or a gash in it and a notch torn out of its edge; battered, it has more of
+# both, something broken off, and a hole through whatever is thin enough to be holed.
+WOUND_LEVELS = (0, 1, 2)
+
+
+def crack(points, radius=0.55):
+    """A jagged line through [points]: a split in a shell, a gash in a hide."""
+    return union(*(capsule(p, q, radius, radius) for p, q in zip(points, points[1:])))
+
+
+def notch(start, end, toward, depth, width=0.42):
+    """
+    A V torn into an edge between [start] and [end], cut in toward [toward] by [depth] of the way
+    from the middle of the edge. Its mouth reaches past the edge, so it opens the silhouette rather
+    than stopping just short of it. Placed off a shape's own points, so it moves as the shape does.
+    """
+
+    def lerp(p, q, t):
+        return (p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t)
+
+    left = lerp(start, end, 0.5 - width / 2)
+    right = lerp(start, end, 0.5 + width / 2)
+    apex = lerp(lerp(start, end, 0.5), toward, depth)
+    return [lerp(left, toward, -0.3), lerp(lerp(left, apex, 0.55), right, 0.12), apex, lerp(right, toward, -0.3)]
+
+
+def ring(center, radius, sides=8):
+    """The points of a small round hole, for a shot through something thin."""
+    cx, cy = center
+    return [
+        (cx + cos(2 * pi * (i + 0.5) / sides) * radius, cy + sin(2 * pi * (i + 0.5) / sides) * radius)
+        for i in range(sides)
+    ]
+
+
+def tear(grid, pixels):
+    """
+    Knocks [pixels] back out of the picture: a hole through a wing, a notch out of an edge.
+
+    Tear before the outer outline is drawn. It then rings the hole from inside, the way it rings the
+    sprite, and that dark rim is what makes a gap read as torn rather than as a part left unpainted.
+    """
+    for x, y in pixels:
+        grid[y][x] = TRANSPARENT
+
+
 # --- output --------------------------------------------------------------------------------------
 
 
@@ -236,6 +291,30 @@ def save_sheet(path, grids, palette, frame_width, frame_height):
             for x, key in enumerate(row):
                 if key != TRANSPARENT:
                     sheet.putpixel((index * frame_width + x, y), palette[key])
+    sheet.save(path)
+    return sheet
+
+
+def save_rows(path, rows, palette, frame_width, frame_height):
+    """
+    Writes [rows] one above the other, each laid out left to right as [save_sheet] lays one out:
+    the sheet of a creature drawn once per [WOUND_LEVELS].
+
+    A None leaves its frame empty, for a picture that has no other state - a spray of sand does not
+    get wounded.
+    """
+    from PIL import Image
+
+    columns = max(len(row) for row in rows)
+    sheet = Image.new("RGBA", (frame_width * columns, frame_height * len(rows)), (0, 0, 0, 0))
+    for row_index, grids in enumerate(rows):
+        for index, grid in enumerate(grids):
+            if grid is None:
+                continue
+            for y, keys in enumerate(grid):
+                for x, key in enumerate(keys):
+                    if key != TRANSPARENT:
+                        sheet.putpixel((index * frame_width + x, row_index * frame_height + y), palette[key])
     sheet.save(path)
     return sheet
 

@@ -29,6 +29,12 @@ Two rules from the sheet before still hold, and they are the whole design:
 Types are indexed the way `EntityFactory.srcXOf` addresses them: 0 SCOUT, 1 WEAVER, 2 STRIKER.
 Type 2 is also what the boss is drawn from, three times over, so it is the one that has to survive
 being scaled up - and the one that gets the spines down its back.
+
+The whole row is drawn three times, top to bottom: unhurt, wounded and battered (`WoundComponent`).
+Wounded, the lamp of an imp's eye is cracked, a notch is torn out of its wing and the tip is off a
+horn: the eye first, because it is the brightest thing on the sprite and the one part nothing ever
+covers. Battered, its back is split, its wing is holed and its point broken off, two horns are
+snapped short, a tooth is gone and the lid has come down over the cracked lamp.
 """
 
 import pathlib
@@ -145,7 +151,7 @@ def shade_ball(grid, pixels, center, radii, key):
         grid[y][x] = f"{key}{tone}"
 
 
-def wing(root, angle_degrees, length, far):
+def wing(root, angle_degrees, length, far, wounds=0):
     """
     One devil wing, as a polygon: a leading edge out to a hooked tip, and a trailing edge cut into
     sharp points - where the bat's wings scallop between their fingers, these spike.
@@ -153,36 +159,78 @@ def wing(root, angle_degrees, length, far):
     Built pointing along +u with its leading edge on +v, then turned to [angle_degrees] above
     straight back. Below level it is mirrored, so the leading edge stays at the front of the stroke
     on the way down as well as up.
+
+    [wounds] are torn out of the outline itself, in those same coordinates, so they beat with the
+    wing: a notch into the trailing edge, and then the second point broken off and a hole through
+    the middle. Returns the hole separately, since it is cut out of the wing rather than drawn.
     """
+    # Battered, the second point has snapped off short.
+    second = [(0.72, -0.46)] if wounds < 2 else [(0.66, -0.30), (0.60, -0.36)]
+    # Wounded, the edge between the second and third points is torn in nearly to the leading edge.
+    between = [(0.42, -0.30)] if wounds < 1 else [(0.50, -0.30), (0.40, -0.06), (0.36, -0.38)]
     shape = [
         (0.0, 0.0),
         (0.46, 0.20),
         (1.00, 0.16),   # the tip, hooked forward
         (0.70, -0.12),
-        (0.72, -0.46),  # second point
-        (0.42, -0.30),
+        *second,        # second point
+        *between,
         (0.26, -0.56),  # third point
         (0.06, -0.30),
     ]
+    hole = pa.ring((0.62, 0.02), 0.13) if wounds >= 2 else None
     theta = radians(angle_degrees)
     flip = 1.0 if angle_degrees >= 0 else -1.0
     ux, uy = cos(theta), -sin(theta)
     vx, vy = -sin(theta) * flip, -cos(theta) * flip
     scale = length * (0.86 if far else 1.0)
-    points = [
-        (root[0] + (u * ux + v * vx) * scale, root[1] + (u * uy + v * vy) * scale)
-        for u, v in shape
-    ]
-    return pa.polygon(points), (points[0], points[2])
+
+    def place(u, v):
+        return (root[0] + (u * ux + v * vx) * scale, root[1] + (u * uy + v * vy) * scale)
+
+    points = [place(u, v) for u, v in shape]
+    torn = pa.polygon([place(u, v) for u, v in hole]) if hole else None
+    return pa.polygon(points), (points[0], points[2]), torn
 
 
-def horns(kind, center, radii):
+def broken(points, radii, keep):
+    """A horn stroke cut off [keep] of the way along it, blunt where it snapped."""
+    lengths = [hypot(q[0] - p[0], q[1] - p[1]) for p, q in zip(points, points[1:])]
+    left = sum(lengths) * keep
+    out_points, out_radii = [points[0]], [radii[0]]
+    for (p, q), (r0, r1), length in zip(zip(points, points[1:]), zip(radii, radii[1:]), lengths):
+        if left >= length:
+            out_points.append(q)
+            out_radii.append(r1)
+            left -= length
+            continue
+        t = left / length
+        out_points.append((p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t))
+        out_radii.append(max(r0 + (r1 - r0) * t, 0.7))
+        break
+    return out_points, out_radii
+
+
+def horns(kind, center, radii, wounds=0):
     """
     The horns for one temper, back to front, as (points, radii) strokes from base to tip.
 
     Few and far apart: horns bunched together read as a tuft of hair at this size, which is what
     the first pass of these got.
+
+    Wounded, the front horn has lost its tip; battered, it is snapped off short, and so is the one
+    behind it, the one horn broken each time being the one most in view.
     """
+    strokes = whole_horns(kind, center, radii)
+    front = len(strokes) - 1
+    if wounds >= 1:
+        strokes[front] = broken(*strokes[front], keep=0.6 if wounds == 1 else 0.4)
+    if wounds >= 2:
+        strokes[front - 1] = broken(*strokes[front - 1], keep=0.6)
+    return strokes
+
+
+def whole_horns(kind, center, radii):
     cx, cy = center
     rx, ry = radii
     top = cy - ry
@@ -244,7 +292,16 @@ def feet(center, radii, kick):
     return pa.union(*legs), pa.union(*claws)
 
 
-def render(type_index, frame_index):
+# The split a battered imp has across its lower back, in body radii from its center: the one
+# stretch of body the wing leaves bare on its upstroke, and the face never covers.
+BACK_CRACK = ((0.96, 0.22), (0.64, 0.36), (0.72, 0.60), (0.36, 0.82))
+
+# The crack across the lamp of the eye, in eye radii from its center: in from the top of the white,
+# on the side away from the iris, and down through the middle of it.
+EYE_CRACK = ((0.95, -0.75), (0.40, -0.25), (0.62, 0.10), (0.10, 0.62))
+
+
+def render(type_index, frame_index, wounds=0):
     spec = TYPES[type_index]
     key = spec["key"]
     wing_angle, kick, bob = BEAT[frame_index]
@@ -257,8 +314,8 @@ def render(type_index, frame_index):
     # Back to front: the far wing, the legs, the body, the near wing, and the face and horns over
     # everything - the face is what the player reads, so nothing is allowed to cover it.
     root = (cx + rx * 0.48, cy - ry * 0.44)
-    far_shape, _ = wing((root[0] + 1.4, root[1] - 1.2), wing_angle + 10.0, spec["wing"], far=True)
-    far = raster(far_shape)
+    far_shape, _, far_hole = wing((root[0] + 1.4, root[1] - 1.2), wing_angle + 10.0, spec["wing"], far=True, wounds=wounds)
+    far = raster(far_shape) - (raster(far_hole) if far_hole else set())
     pa.shade_bands(grid, far, ((0.55, f"{key}0"), (1.01, f"{key}1")))
 
     leg_shape, claw_shape = feet(center, (rx, ry), kick)
@@ -286,16 +343,21 @@ def render(type_index, frame_index):
     spines -= body
     paint(grid, spines, f"{key}1")
 
-    near_shape, (near_root, near_tip) = wing(root, wing_angle, spec["wing"], far=False)
+    near_shape, (near_root, near_tip), near_hole = wing(root, wing_angle, spec["wing"], far=False, wounds=wounds)
     near = raster(near_shape)
     pa.shade_bands(grid, near, ((0.40, f"{key}1"), (1.01, f"{key}2")))
     # The wing's arm, a ridge along its leading edge.
     ridge = raster(pa.capsule(near_root, near_tip, 0.7, 0.4)) & near
     paint(grid, ridge, f"{key}3")
+    # The hole goes through the ridge too: it is torn, not cut round the bone.
+    if near_hole:
+        hole = raster(near_hole) & near
+        pa.tear(grid, hole)
+        near -= hole
 
     # Back horn first, so the front one is drawn over it and outlined against it.
     horn_pixels = set()
-    for points, radii in horns(spec["horns"], center, (rx, ry)):
+    for points, radii in horns(spec["horns"], center, (rx, ry), wounds):
         pixels = raster(along(points, radii)) - body
         pa.outline_against(grid, horn_pixels - pixels, pixels, color="O")
         horn_pixels = (horn_pixels - pixels) | pixels
@@ -313,13 +375,22 @@ def render(type_index, frame_index):
         if (x, shine_y) in body and grid[shine_y][x] == f"{key}3":
             grid[shine_y][x] = f"{key}4"
 
-    face(grid, spec, center, (rx, ry))
+    if wounds >= 2:
+        points = [(cx + rx * u, cy + ry * v) for u, v in BACK_CRACK]
+        paint(grid, raster(pa.crack(points)) & (body - near - horn_pixels), "o")
+
+    face(grid, spec, center, (rx, ry), wounds)
     pa.outer_outline(grid, FRAME_WIDTH, FRAME_HEIGHT)
     return grid
 
 
-def face(grid, spec, center, radii):
-    """One eye and a grin, turned toward the player - which, for everything here, is to the left."""
+def face(grid, spec, center, radii, wounds=0):
+    """
+    One eye and a grin, turned toward the player - which, for everything here, is to the left.
+
+    Wounded, the lamp of the eye is cracked. Battered, the upper lid has come down over half of it
+    whatever the temper, tipped the way the temper tips it, and a tooth is gone from the grin.
+    """
     cx, cy = center
     rx, ry = radii
     ex, ey = cx - rx * 0.30, cy - ry * 0.18
@@ -327,11 +398,15 @@ def face(grid, spec, center, radii):
 
     eye = raster(pa.ellipse(ex, ey, erx, ery))
     lid = spec["lid"]
+    lid_height = 0.34
+    if wounds >= 2:
+        lid = 0.25 if lid is None else lid
+        lid_height = -0.05
     if lid is not None:
         # The upper lid, cut straight across: level it looks sly, tipped down toward the front it
         # scowls. What it covers is lid, not eye, so it goes back to the body's own shading.
         def under_lid(x, y):
-            return y + 0.5 > ey - ery * 0.34 + lid * (x + 0.5 - ex)
+            return y + 0.5 > ey - ery * lid_height + lid * (x + 0.5 - ex)
 
         covered = {p for p in eye if not under_lid(*p)}
         eye -= covered
@@ -344,6 +419,9 @@ def face(grid, spec, center, radii):
     paint(grid, iris, "i")
     pupil = raster(pa.ellipse(ex - erx * 0.34, ey + ery * 0.10, 0.62, ery * 0.52)) & eye
     paint(grid, pupil, "p")
+    if wounds >= 1:
+        points = [(ex + erx * u, ey + ery * v) for u, v in EYE_CRACK]
+        paint(grid, raster(pa.crack(points, 0.5)) & eye, "o")
 
     # The grin: the bottom of an ellipse, tipped up at the back into a smirk.
     mx, my = cx - rx * 0.26, cy + ry * 0.44
@@ -362,30 +440,36 @@ def face(grid, spec, center, radii):
         top[x] = min(top.get(x, y), y)
     columns = sorted(top)[1:-1]
     for n in range(spec["teeth"]):
+        if wounds >= 2 and n == 1:
+            continue
         x = columns[round((n + 0.5) * (len(columns) - 1) / spec["teeth"])]
         grid[top[x]][x] = "t"
 
 
 def main() -> int:
     # Laid out type by type, each type's frames contiguous, which is what srcXOf plus the
-    # animation's frame stride walks.
-    grids = [
-        render(type_index, frame_index)
-        for type_index in range(TYPE_COUNT)
-        for frame_index in range(FRAME_COUNT)
+    # animation's frame stride walks - and that row once per wound level, top to bottom.
+    rows = [
+        [
+            render(type_index, frame_index, level)
+            for type_index in range(TYPE_COUNT)
+            for frame_index in range(FRAME_COUNT)
+        ]
+        for level in pa.WOUND_LEVELS
     ]
     last_x, last_y = FRAME_WIDTH - 1, FRAME_HEIGHT - 1
-    for index, grid in enumerate(grids):
-        if any(
-            grid[y][x] not in (pa.TRANSPARENT, pa.OUTLINE)
-            for y in range(FRAME_HEIGHT)
-            for x in range(FRAME_WIDTH)
-            if x in (0, last_x) or y in (0, last_y)
-        ):
-            print(f"frame {index} runs off the edge of its frame", file=sys.stderr)
-            return 1
-    sheet = pa.save_sheet(OUTPUT, grids, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
-    print(f"{OUTPUT} ({sheet.width}x{sheet.height}, {TYPE_COUNT} types x {FRAME_COUNT} frames)")
+    for level, grids in enumerate(rows):
+        for index, grid in enumerate(grids):
+            if any(
+                grid[y][x] not in (pa.TRANSPARENT, pa.OUTLINE)
+                for y in range(FRAME_HEIGHT)
+                for x in range(FRAME_WIDTH)
+                if x in (0, last_x) or y in (0, last_y)
+            ):
+                print(f"row {level} frame {index} runs off the edge of its frame", file=sys.stderr)
+                return 1
+    sheet = pa.save_rows(OUTPUT, rows, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
+    print(f"{OUTPUT} ({sheet.width}x{sheet.height}, {TYPE_COUNT} types x {FRAME_COUNT} frames x {len(rows)} rows)")
     print(f"strip offsets: {[i * FRAME_WIDTH * FRAME_COUNT for i in range(TYPE_COUNT)]}")
     return 0
 

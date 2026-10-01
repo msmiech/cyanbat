@@ -94,6 +94,7 @@ import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.ecs.WeaponSystem
 import at.smiech.engine.ecs.World
+import at.smiech.engine.ecs.WoundSystem
 import at.smiech.engine.math.Rect
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -293,6 +294,10 @@ class GameScreen(
         // rather than being aged down on the very tick it happened.
         world.addSystem(HitFlashSystem())
         world.addSystem(CollisionSystem { id1, id2 -> handleCollision(id1, id2) })
+        // After the collisions that land the hits, so the blow that takes something past a mark
+        // shows on the frame it lands. The Sand Wyrm's brain reads the head's row off it later in
+        // the same tick, to draw the body from.
+        world.addSystem(WoundSystem())
         // With the height too: enemy fire is aimed and fanned now, and leaves through the top and
         // bottom as well as the sides.
         world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight))
@@ -320,7 +325,6 @@ class GameScreen(
             x = (game.frameBufferWidth / 3).toFloat(),
             y = (game.frameBufferHeight / 2).toFloat(),
             width = 45f,
-            height = env.assets.graphics.bat.height.toFloat(),
             pixmap = env.assets.graphics.bat,
             // From the loadout rather than the constant, so the bat is built from the same stats
             // the power-ups go on to change and the two can never start out disagreeing.

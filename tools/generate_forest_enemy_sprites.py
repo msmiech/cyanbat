@@ -25,7 +25,13 @@ blue-grey rock. And **one outline**: every sprite is ringed in the same near-bla
 as one bestiary rather than as five pieces of borrowed art.
 
 Laid out like `enemies.png`: 32x29 frames, four per type, types left to right in the order
-`EnemySpecies` addresses them - 0 WASP, 1 BEETLE, 2 SPITTER, 3 OWL, 4 WISP.
+`EnemySpecies` addresses them - 0 WASP, 1 BEETLE, 2 SPITTER, 3 OWL, 4 WISP - and that row three
+times over, top to bottom: unhurt, wounded and battered (`WoundComponent`).
+
+Each wears its wounds the way its own body would. What is thin tears - a wasp's wing, an owl's
+feathers, a leaf of the rotor; what is shelled cracks - the beetle's dome, the seed pod; what sticks
+out snaps - a horn, a sting, an antenna, a tuft; and a flame gutters, drawing in and dimming. Battered
+eyes are screwed half shut.
 """
 
 import pathlib
@@ -100,18 +106,36 @@ def paint(grid, pixels, key):
         grid[y][x] = key
 
 
-def eye(grid, cx, cy, rx=2.2, ry=2.0, pupil_dx=-0.6):
+def eye(grid, cx, cy, rx=2.2, ry=2.0, pupil_dx=-0.6, wounds=0):
+    """The cold eye every hostile has. Battered, it is screwed half shut, from the top."""
+    if wounds >= 2:
+        cy, ry = cy + ry * 0.35, ry * 0.6
     paint(grid, raster(pa.ellipse(cx, cy, rx, ry)), "e")
     paint(grid, raster(pa.ellipse(cx + pupil_dx, cy + 0.1, rx * 0.48, ry * 0.55)), "p")
+
+
+def torn(pixels, *holes):
+    """[pixels] with [holes] - polygons, as point lists - torn out of them."""
+    for hole in holes:
+        pixels = pixels - raster(pa.polygon(hole))
+    return pixels
+
+
+def gash(grid, points, within, key="o", radius=0.55):
+    """A crack or a gash along [points], only where it lands on [within]."""
+    paint(grid, raster(pa.crack(points, radius)) & within, key)
 
 
 # --- wasp ----------------------------------------------------------------------------------------
 
 
-def wasp(frame):
+def wasp(frame, wounds=0):
     """
     Small on purpose. A swarm is six of these on screen at once, and six full-frame sprites would
     be a wall rather than a swarm - the collision box is shrunk to match in `EnemySpecies`.
+
+    Wounded, a wing is notched and an antenna snapped short; battered, the wing is torn back to a
+    stub and the sting is gone.
     """
     grid = pa.blank(W, H)
     bob = (0, -1, 0, 1)[frame]
@@ -126,12 +150,18 @@ def wasp(frame):
         pa.polygon([(14, cy - 2), wing_tip, wing_back, (18, cy - 1)]),
         pa.polygon([(16, cy - 2), (wing_tip[0] + 4, wing_tip[1] + 3), (wing_back[0] + 2, wing_back[1] + 1)]),
     ))
+    root = (15.5, cy - 1.5)
+    if wounds >= 1:
+        wings = torn(wings, pa.notch(wing_tip, wing_back, root, 0.55, width=0.5))
+    if wounds >= 2:
+        wings = torn(wings, pa.ring(wing_tip, 4.2))
     pa.shade_bands(grid, wings, ((0.45, "w1"), (1.01, "w0")))
 
     head = pa.ellipse(8.5, cy, 3.6, 3.4)
     thorax = pa.ellipse(13.5, cy - 0.2, 3.4, 3.0)
     abdomen = pa.ellipse(21.0, cy + 1.2, 6.0, 4.0)
-    sting = pa.polygon([(26, cy), (30.5, cy + 3.2), (26, cy + 3.4)])
+    # Battered, the sting has snapped off at the root.
+    sting = pa.polygon([(26, cy), (30.5, cy + 3.2), (26, cy + 3.4)] if wounds < 2 else [(26, cy + 0.6), (27.6, cy + 2.2), (26, cy + 3.0)])
     legs = pa.union(
         pa.capsule((12, cy + 2), (10, cy + 6), 0.6, 0.5),
         pa.capsule((15, cy + 2), (15, cy + 7), 0.6, 0.5),
@@ -146,11 +176,11 @@ def wasp(frame):
     paint(grid, stripes & raster(abdomen), "k0")
     paint(grid, raster(legs) | raster(sting), "k1")
 
-    # Antennae, forward and up.
-    paint(grid, raster(pa.capsule((7, cy - 3), (4, cy - 7), 0.55, 0.45)), "k1")
+    # Antennae, forward and up - or, wounded, snapped halfway.
+    paint(grid, raster(pa.capsule((7, cy - 3), (4, cy - 7) if wounds < 1 else (5.6, cy - 5.0), 0.55, 0.45)), "k1")
 
     pa.outline_against(grid, wings - body, body, color="O")
-    eye(grid, 7.6, cy - 0.4, 1.7, 1.8, pupil_dx=-0.5)
+    eye(grid, 7.6, cy - 0.4, 1.7, 1.8, pupil_dx=-0.5, wounds=wounds)
     pa.outer_outline(grid, W, H)
     return grid
 
@@ -158,11 +188,14 @@ def wasp(frame):
 # --- beetle --------------------------------------------------------------------------------------
 
 
-def beetle(frame):
+def beetle(frame, wounds=0):
     """
     A round domed shell, a horn off the front, and membrane wings buzzing out from under the wing
     cases. The dome is the shape a shield bubble sits over most naturally, which is why the beetle
     is the one that always carries one.
+
+    Wounded, the dome is cracked through its shine; battered, it is cracked again, a chunk is
+    broken out of its back and the horn has snapped.
     """
     grid = pa.blank(W, H)
     bob = (0, 0, 1, 1)[frame]
@@ -183,20 +216,29 @@ def beetle(frame):
 
     shell = pa.ellipse(cx + 1.5, cy, 11.0, 8.2)
     head = pa.ellipse(cx - 9.0, cy + 2.2, 4.4, 3.8)
-    horn = pa.polygon([(cx - 11, cy - 0.5), (cx - 15.5, cy - 7.5), (cx - 13.5, cy - 7.0), (cx - 8.5, cy - 1.5)])
+    horn = pa.polygon(
+        [(cx - 11, cy - 0.5), (cx - 15.5, cy - 7.5), (cx - 13.5, cy - 7.0), (cx - 8.5, cy - 1.5)] if wounds < 2
+        else [(cx - 11, cy - 0.5), (cx - 13.4, cy - 4.4), (cx - 12.0, cy - 3.6), (cx - 11.4, cy - 4.8), (cx - 8.5, cy - 1.5)]
+    )
     body = raster(pa.union(shell, head, horn))
     # Flat-bottomed: the lower edge of the shell is its belly, not more dome.
     body = {(x, y) for x, y in body if y <= cy + 6}
+    if wounds >= 2:
+        body = torn(body, pa.ring((cx + 11.0, cy - 5.4), 2.8))
     pa.shade_bands(grid, body, ((0.18, "c3"), (0.42, "c2"), (0.72, "c1"), (1.01, "c0")))
 
     # The seam down the wing cases, and a metallic glint on the dome.
     seam = raster(pa.capsule((cx - 2, cy - 7.5), (cx + 10, cy + 2), 0.55, 0.55)) & body
     paint(grid, seam, "c0")
     paint(grid, raster(pa.ellipse(cx - 1.0, cy - 4.2, 2.6, 1.4)) & body, "c3")
+    if wounds >= 1:
+        gash(grid, [(cx + 0.6, cy - 8.4), (cx - 0.8, cy - 5.2), (cx + 1.6, cy - 3.0), (cx + 0.2, cy + 0.4), (cx + 1.4, cy + 3.0)], body)
+    if wounds >= 2:
+        gash(grid, [(cx + 7.4, cy - 6.6), (cx + 5.2, cy - 3.8), (cx + 7.0, cy - 1.4), (cx + 4.8, cy + 2.6)], body)
 
     pa.outline_against(grid, wings - body, body, color="O")
     pa.outline_against(grid, legs - body, body, color="O")
-    eye(grid, cx - 9.8, cy + 1.6, 1.8, 1.7, pupil_dx=-0.5)
+    eye(grid, cx - 9.8, cy + 1.6, 1.8, 1.7, pupil_dx=-0.5, wounds=wounds)
     pa.outer_outline(grid, W, H)
     return grid
 
@@ -204,12 +246,15 @@ def beetle(frame):
 # --- spitter -------------------------------------------------------------------------------------
 
 
-def spitter(frame):
+def spitter(frame, wounds=0):
     """
     A seed pod slung under a spinning three-leaf rotor, with its mouth open toward the player.
 
     The rotor is the animation: four frames of a leaf going round, so the thing reads as hovering
     in place rather than flying - which is exactly what it does before it opens fire.
+
+    Wounded, the pod is cracked and a leaf of the rotor torn short, so the spin limps; battered, the
+    pod is cracked again and a second leaf is torn.
     """
     grid = pa.blank(W, H)
     cx, cy = 16.0, 18.0
@@ -219,7 +264,8 @@ def spitter(frame):
     leaves = set()
     for index in range(3):
         angle = frame * (pi / 6.0) + index * (2.0 * pi / 3.0)
-        reach = 11.0 * cos(angle)
+        # The same leaves torn every frame, so the damage goes round with the rotor.
+        reach = 11.0 * cos(angle) * (0.5 if index < wounds else 1.0)
         depth = sin(angle)
         tip = (hub[0] + reach, hub[1] - 1.0 + depth * 1.2)
         leaves |= raster(pa.polygon([
@@ -238,6 +284,10 @@ def spitter(frame):
     # Ridges down the pod, so it reads as a seed rather than a ball.
     for rx in (cx + 2.0, cx + 6.0):
         paint(grid, raster(pa.capsule((rx, cy - 6.5), (rx + 1.0, cy + 6.5), 0.5, 0.5)) & body, "m1")
+    if wounds >= 1:
+        gash(grid, [(cx - 1.0, cy - 7.4), (cx + 0.6, cy - 4.4), (cx - 1.0, cy - 1.8), (cx + 0.8, cy + 1.6), (cx - 0.4, cy + 4.6)], body)
+    if wounds >= 2:
+        gash(grid, [(cx + 8.6, cy - 4.6), (cx + 6.4, cy - 2.0), (cx + 8.0, cy + 0.8), (cx + 5.4, cy + 4.4)], body)
 
     # The mouth: dark, with the round it is about to fire glowing in the back of it.
     mouth = raster(pa.ellipse(cx - 10.4, cy + 0.8, 1.6, 2.2))
@@ -245,7 +295,7 @@ def spitter(frame):
     paint(grid, raster(pa.ellipse(cx - 9.8, cy + 0.8, 0.8, 0.9)), "r2")
 
     pa.outline_against(grid, stalk - body, body, color="O")
-    eye(grid, cx - 3.5, cy - 3.0, 2.2, 2.0)
+    eye(grid, cx - 3.5, cy - 3.0, 2.2, 2.0, wounds=wounds)
     pa.outer_outline(grid, W, H)
     return grid
 
@@ -253,11 +303,14 @@ def spitter(frame):
 # --- owl -----------------------------------------------------------------------------------------
 
 
-def owl(frame):
+def owl(frame, wounds=0):
     """
     Side on, flying left: a round body, ear tufts, a hooked beak and the two big eyes an owl is
     recognised by. The wings are the whole animation, and they beat big - this is the one that
     lunges, and it should look like it has the reach to.
+
+    Wounded, feathers are gone from the near wing's trailing edge and a tuft is torn; battered,
+    the far wing has lost feathers too and there is a gash down the breast.
     """
     grid = pa.blank(W, H)
     bob = (1, 0, -1, 0)[frame]
@@ -268,6 +321,8 @@ def owl(frame):
     root = (cx + 1.0, cy - 2.0)
     far_tip = (cx + 10.0, cy - 11.0 + beat * 12.0)
     far = raster(pa.polygon([root, (cx - 3.0, cy - 7.0 + beat * 8.0), far_tip, (cx + 13.0, cy + 1.0)]))
+    if wounds >= 2:
+        far = torn(far, pa.notch(far_tip, (cx + 13.0, cy + 1.0), root, 0.5, width=0.5))
     pa.shade_bands(grid, far, ((0.6, "b0"), (1.01, "b1")))
 
     tail = pa.polygon([(cx + 7, cy + 2), (cx + 14, cy + 4), (cx + 13, cy + 8), (cx + 6, cy + 6)])
@@ -275,7 +330,9 @@ def owl(frame):
     head = pa.ellipse(cx - 5.0, cy - 1.5, 6.0, 5.6)
     tufts = pa.union(
         pa.polygon([(cx - 8.5, cy - 5.0), (cx - 10.5, cy - 10.5), (cx - 6.0, cy - 6.5)]),
-        pa.polygon([(cx - 3.0, cy - 6.0), (cx - 2.5, cy - 11.0), (cx + 0.5, cy - 5.5)]),
+        # The back tuft, torn ragged once the owl is wounded.
+        pa.polygon([(cx - 3.0, cy - 6.0), (cx - 2.5, cy - 11.0), (cx + 0.5, cy - 5.5)] if wounds < 1
+                   else [(cx - 3.0, cy - 6.0), (cx - 2.6, cy - 8.8), (cx - 1.4, cy - 7.6), (cx + 0.5, cy - 5.5)]),
     )
     torso = raster(pa.union(tail, body, head, tufts))
     pa.shade_bands(grid, torso, ((0.3, "b2"), (0.65, "b1"), (1.01, "b0")))
@@ -285,6 +342,8 @@ def owl(frame):
     pa.shade_bands(grid, breast, ((0.5, "b3"), (1.01, "b2")))
     for by in (cy + 3.0, cy + 6.0):
         paint(grid, raster(pa.capsule((cx - 3.5, by), (cx + 1.5, by + 0.6), 0.4, 0.4)) & breast, "b1")
+    if wounds >= 2:
+        gash(grid, [(cx - 4.2, cy + 7.8), (cx - 2.4, cy + 5.2), (cx - 2.8, cy + 3.6), (cx - 0.6, cy + 1.4)], breast)
 
     # The facial disc and the eyes.
     face = raster(pa.ellipse(cx - 6.5, cy - 1.0, 4.0, 3.8)) & torso
@@ -293,15 +352,16 @@ def owl(frame):
 
     # The near wing last: over the body, so the downstroke visibly sweeps across it.
     near_tip = (cx + 7.0, cy - 12.0 + beat * 16.0)
-    near = raster(pa.polygon([
-        (cx - 2.0, cy - 1.0), (cx - 4.0, cy - 5.0 + beat * 9.0), near_tip, (cx + 11.0, cy + 1.0 + beat * 2.0),
-    ]))
+    near_trail = (cx + 11.0, cy + 1.0 + beat * 2.0)
+    near = raster(pa.polygon([(cx - 2.0, cy - 1.0), (cx - 4.0, cy - 5.0 + beat * 9.0), near_tip, near_trail]))
+    if wounds >= 1:
+        near = torn(near, pa.notch(near_tip, near_trail, (cx - 2.0, cy - 1.0), 0.45, width=0.36))
     pa.shade_bands(grid, near, ((0.35, "b3"), (0.7, "b2"), (1.01, "b1")))
     pa.outline_against(grid, near, torso - near, color="O")
     pa.outline_against(grid, far - torso - near, torso | near, color="O")
 
     # Drawn after the wing so the eye is never covered: the eyes are the owl.
-    eye(grid, cx - 7.6, cy - 1.8, 2.0, 2.1, pupil_dx=-0.4)
+    eye(grid, cx - 7.6, cy - 1.8, 2.0, 2.1, pupil_dx=-0.4, wounds=wounds)
 
     pa.outer_outline(grid, W, H)
     return grid
@@ -310,33 +370,44 @@ def owl(frame):
 # --- wisp ----------------------------------------------------------------------------------------
 
 
-def wisp(frame):
+# How much of its fire a wisp has left at each wound level: its tongues draw in and its core shrinks.
+WISP_FIRE = (1.0, 0.72, 0.5)
+
+
+def wisp(frame, wounds=0):
     """
     A ball of flame with a face in it, trailing fire behind. It flickers rather than flaps: the
     tail's tongues move frame to frame and the core pulses, so a formation of five reads as lit
     torches moving in step.
+
+    A flame is not cut, it gutters: wounded, its tongues draw in and its core shrinks; battered,
+    they draw in further, the white heart has gone out of it and its eyes are narrowed.
     """
     grid = pa.blank(W, H)
     cx, cy = 11.5, 15.0
     pulse = (0.0, 0.6, 1.0, 0.5)[frame]
+    fire = WISP_FIRE[wounds]
+    shrink = (1.0 - fire) * 3.0
 
     tongues = set()
     for index, (dy, length) in enumerate(((-4.5, 15.0), (0.0, 19.0), (4.5, 14.0))):
         wave = sin(frame * pi / 2.0 + index * 1.7) * 2.2
-        tip = (cx + length, cy + dy + wave)
+        tip = (cx + length * fire, cy + dy + wave)
         tongues |= raster(pa.polygon([
             (cx + 1.0, cy + dy - 3.2), tip, (cx + 1.0, cy + dy + 3.2),
         ]))
-    tongues |= raster(pa.ellipse(cx + 4.0, cy, 6.0, 6.2))
+    tongues |= raster(pa.ellipse(cx + 4.0, cy, 6.0 - shrink, 6.2 - shrink))
     pa.shade_bands_across(grid, tongues, ((0.3, "h2"), (0.65, "h1"), (1.01, "h0")))
 
-    core = raster(pa.ellipse(cx, cy, 7.4 + pulse, 7.0 + pulse))
-    pa.shade_bands(grid, core, ((0.2, "h4"), (0.45, "h3"), (0.8, "h2"), (1.01, "h1")))
-    paint(grid, raster(pa.ellipse(cx - 1.0, cy - 0.5, 3.6 + pulse * 0.5, 3.4 + pulse * 0.5)), "h4")
+    core = raster(pa.ellipse(cx, cy, 7.4 + pulse - shrink, 7.0 + pulse - shrink))
+    heart = "h4" if wounds < 2 else "h3"
+    pa.shade_bands(grid, core, ((0.2, heart), (0.45, "h3"), (0.8, "h2"), (1.01, "h1")))
+    paint(grid, raster(pa.ellipse(cx - 1.0, cy - 0.5, 3.6 + pulse * 0.5 - shrink, 3.4 + pulse * 0.5 - shrink)), heart)
 
-    # A pair of dark eyes, so it has a face and so it has a front.
-    paint(grid, raster(pa.ellipse(cx - 3.8, cy - 1.2, 0.9, 1.5)), "p")
-    paint(grid, raster(pa.ellipse(cx - 0.8, cy - 1.2, 0.9, 1.5)), "p")
+    # A pair of dark eyes, so it has a face and so it has a front - narrowed once it is battered.
+    eye_height = 1.5 if wounds < 2 else 0.8
+    paint(grid, raster(pa.ellipse(cx - 3.8, cy - 1.2 + (1.5 - eye_height), 0.9, eye_height)), "p")
+    paint(grid, raster(pa.ellipse(cx - 0.8, cy - 1.2 + (1.5 - eye_height), 0.9, eye_height)), "p")
 
     pa.outer_outline(grid, W, H)
     return grid
@@ -346,9 +417,12 @@ TYPES = (wasp, beetle, spitter, owl, wisp)
 
 
 def main() -> int:
-    grids = [draw(frame) for draw in TYPES for frame in range(FRAME_COUNT)]
-    sheet = pa.save_sheet(OUTPUT, grids, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
-    print(f"{OUTPUT} ({sheet.width}x{sheet.height}, {TYPE_COUNT} types x {FRAME_COUNT} frames)")
+    rows = [
+        [draw(frame, level) for draw in TYPES for frame in range(FRAME_COUNT)]
+        for level in pa.WOUND_LEVELS
+    ]
+    sheet = pa.save_rows(OUTPUT, rows, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
+    print(f"{OUTPUT} ({sheet.width}x{sheet.height}, {TYPE_COUNT} types x {FRAME_COUNT} frames x {len(rows)} rows)")
     return 0
 
 

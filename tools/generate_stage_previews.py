@@ -27,17 +27,21 @@ ENEMY_W = 32
 ENEMY_FRAMES = 4
 BAT_W = 45
 
+# The bat's and the hostiles' sheets stack every frame unhurt, wounded and battered; the previews
+# show them unhurt, from the top row.
+WOUND_ROWS = 3
+
 
 def load(name):
     return Image.open(ASSETS / name).convert("RGBA")
 
 
-def frame(sheet, width, index):
-    return sheet.crop((index * width, 0, (index + 1) * width, sheet.height))
+def frame(sheet, width, index, rows=1):
+    return sheet.crop((index * width, 0, (index + 1) * width, sheet.height // rows))
 
 
 def enemy(sheet, species, beat=0):
-    return frame(sheet, ENEMY_W, species * ENEMY_FRAMES + beat)
+    return frame(sheet, ENEMY_W, species * ENEMY_FRAMES + beat, WOUND_ROWS)
 
 
 def stage(background_name, background_x, top, bottom):
@@ -46,7 +50,7 @@ def stage(background_name, background_x, top, bottom):
     scene.alpha_composite(top_rock, (top[1], 0))
     bottom_rock = load(bottom[0])
     scene.alpha_composite(bottom_rock, (bottom[1], HEIGHT - bottom_rock.height))
-    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1), (96, 140))
+    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1, WOUND_ROWS), (96, 140))
     return scene
 
 
@@ -170,7 +174,7 @@ def desert():
     bolt = frame(load("shot.png"), 24, 4).transpose(Image.FLIP_LEFT_RIGHT)
     for x, y, tilt in ((244, 94, 14), (238, 110, 0), (244, 126, -14)):
         scene.alpha_composite(turned(bolt, tilt), (x, y))
-    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1), (96, 140))
+    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1, WOUND_ROWS), (96, 140))
     shot(scene, 0, 150, 154)
     shot(scene, 0, 205, 154)
     return scene

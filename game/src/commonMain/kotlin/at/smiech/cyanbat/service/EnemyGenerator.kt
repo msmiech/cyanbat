@@ -22,6 +22,7 @@ import at.smiech.cyanbat.util.SWARM_SIZE_PER_TWO_WAVES
 import at.smiech.cyanbat.util.SWARM_SPREAD_X
 import at.smiech.cyanbat.util.SWARM_SPREAD_Y
 import at.smiech.cyanbat.util.WAVE_SHIELD_FRACTION
+import at.smiech.cyanbat.util.WOUND_ROWS
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.EnemyMovementType
 import at.smiech.engine.ecs.EntityId
@@ -60,7 +61,8 @@ class EnemyGenerator(
     private val bossPixmap: Pixmap? = null,
     private val onBossPhaseChanged: (Int) -> Unit = {},
 ) {
-    private val realEnemyHeight = enemyPixmap.height
+    /** One picture of an enemy: the sheet stacks each of them unhurt, wounded and battered. */
+    private val realEnemyHeight = enemyPixmap.height / WOUND_ROWS
 
     /** Seconds of play into the current stage. Everything else is derived from it. */
     var elapsedSeconds = 0f
@@ -281,7 +283,7 @@ class EnemyGenerator(
                 val sheet = requireNotNull(bossPixmap) { "The Moth Queen needs her own sheet" }
                 factory.createMothQueen(
                     x = xSpawnPosition.toFloat(),
-                    y = (worldHeight - sheet.height) / 2f,
+                    y = (worldHeight - sheet.height / WOUND_ROWS) / 2f,
                     holdX = xSpawnPosition * BOSS_HOLD_X_FRACTION,
                     pixmap = sheet,
                     hitPoints = wave.hitPoints,
