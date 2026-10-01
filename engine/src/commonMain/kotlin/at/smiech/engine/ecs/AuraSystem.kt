@@ -3,8 +3,6 @@ package at.smiech.engine.ecs
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
-import at.smiech.engine.ecs.AuraSystem.Companion.BOLT_FLASH_SECONDS
-import at.smiech.engine.ecs.AuraSystem.Companion.SPARKS_PER_TIER
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.pow

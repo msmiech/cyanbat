@@ -6,7 +6,7 @@ coreKtx = "1.19.1"
 datastore = "1.2.1"
 lifecycleViewmodelCompose = "2.11.0"
 # What Compose already brings in; declared because the engine calls it directly.
-tracing = "1.2.0"
+tracing = "2.0.3"
 jetbrainsLifecycle = "2.11.0"
 composeMaterial3 = "1.4.0"
 compose = "1.12.1"

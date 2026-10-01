@@ -28,9 +28,9 @@ import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.SAND_WYRM_FRAME
 import at.smiech.cyanbat.util.SAND_WYRM_HEAD_FRAMES
 import at.smiech.cyanbat.util.SAND_WYRM_HEAD_FRAME_SECONDS
+import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAME
 import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAMES
-import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAME_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHIELD_REGROWTH_DELAY_SECONDS

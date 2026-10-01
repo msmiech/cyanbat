@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.ui.game
 
+import at.smiech.cyanbat.ui.game.ComboHeat.supernova
 import at.smiech.cyanbat.util.COMBO_COUNT_GROWTH
 import at.smiech.cyanbat.util.COMBO_COUNT_MAX_SIZE
 import at.smiech.cyanbat.util.COMBO_FONT_SIZE

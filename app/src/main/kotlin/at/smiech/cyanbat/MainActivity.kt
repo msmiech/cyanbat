@@ -13,8 +13,8 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
-import at.smiech.cyanbat.data.DataStoreStageUnlockStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
+import at.smiech.cyanbat.data.DataStoreStageUnlockStore
 import at.smiech.cyanbat.data.LegacyHighscoreMigration
 import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost

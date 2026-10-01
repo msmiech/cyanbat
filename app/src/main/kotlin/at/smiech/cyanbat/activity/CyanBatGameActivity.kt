@@ -4,8 +4,8 @@ import android.content.Intent
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
-import at.smiech.cyanbat.data.DataStoreStageUnlockStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
+import at.smiech.cyanbat.data.DataStoreStageUnlockStore
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.resource.GameAssets

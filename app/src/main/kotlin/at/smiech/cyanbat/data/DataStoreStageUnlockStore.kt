@@ -3,8 +3,8 @@ package at.smiech.cyanbat.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
-import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.PREFS_KEY_HIGHEST_STAGE
+import at.smiech.cyanbat.StageUnlockStore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
