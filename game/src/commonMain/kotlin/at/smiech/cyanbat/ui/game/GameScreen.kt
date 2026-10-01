@@ -52,6 +52,8 @@ import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
 import at.smiech.cyanbat.util.WAVE_BANNER_SECONDS
 import at.smiech.cyanbat.util.XP_BAR_HEIGHT
+import at.smiech.cyanbat.util.WOUNDED_FIRE_RATE
+import at.smiech.cyanbat.util.WOUNDED_PACE
 import at.smiech.cyanbat.util.XP_PER_BOSS
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
@@ -81,6 +83,7 @@ import at.smiech.engine.ecs.HitFlashComponent
 import at.smiech.engine.ecs.HitFlashSystem
 import at.smiech.engine.ecs.LifetimeSystem
 import at.smiech.engine.ecs.MovementSystem
+import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.PlayerInputSystem
@@ -295,9 +298,9 @@ class GameScreen(
         world.addSystem(HitFlashSystem())
         world.addSystem(CollisionSystem { id1, id2 -> handleCollision(id1, id2) })
         // After the collisions that land the hits, so the blow that takes something past a mark
-        // shows on the frame it lands. The Sand Wyrm's brain reads the head's row off it later in
-        // the same tick, to draw the body from.
-        world.addSystem(WoundSystem())
+        // shows on the frame it lands - and slows it from the next. The Sand Wyrm's brain reads the
+        // head's row off it later in the same tick, to draw the body from.
+        world.addSystem(WoundSystem { id, row -> slowWounded(id, row) })
         // With the height too: enemy fire is aimed and fanned now, and leaves through the top and
         // bottom as well as the sides.
         world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight))
@@ -952,6 +955,20 @@ class GameScreen(
             return
         }
         world.addComponent(enemyId, HitFlashComponent(HIT_FLASH_SECONDS, HIT_FLASH_COLOR))
+    }
+
+    /**
+     * Sets a wounded enemy's pace to what its [row] of wounds leaves it; see [WOUNDED_PACE] and
+     * [WOUNDED_FIRE_RATE].
+     *
+     * Only ordinary enemies carry a pace, so the bat and the bosses go on at full pace however hurt
+     * they look. Called on the way back up a row too, which nothing hostile does yet, so the pace
+     * would follow a heal the way the picture does.
+     */
+    private fun slowWounded(id: EntityId, row: Int) {
+        val pace = world.getComponent(id, PaceComponent::class) ?: return
+        pace.motion = WOUNDED_PACE[row]
+        pace.fire = WOUNDED_FIRE_RATE[row]
     }
 
     /** Puts the number at the enemy's leading edge, which is the side the bat's shots arrive from. */

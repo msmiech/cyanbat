@@ -508,6 +508,9 @@ data class HitFlashComponent(
  *   thresholds[n].
  */
 class WoundComponent(val rowHeight: Int, val thresholds: FloatArray) : Component {
+    /** The row it is drawn from now, kept by [WoundSystem]: 0 unhurt, then one per mark crossed. */
+    var row: Int = 0
+
     /** The row an entity at [fraction] of its health is drawn from: 0 unhurt, then one per mark. */
     fun rowFor(fraction: Float): Int {
         var row = 0
@@ -515,6 +518,22 @@ class WoundComponent(val rowHeight: Int, val thresholds: FloatArray) : Component
         return row
     }
 }
+
+/**
+ * How fast an entity goes about what it does, as fractions of its own pace: 1 is its full pace,
+ * and lower is slower.
+ *
+ * A clock of its own rather than a speed. [motion] is the rate its time runs at for everything
+ * about how it flies - the distance it covers a tick ([MovementSystem]), its pattern's clock
+ * ([EnemyBehaviorSystem]) and its wingbeat ([AnimationSystem]) - so a slowed pattern is the same
+ * pattern played slower: a weave keeps its width, a loop its size and a leap its height. Scaling
+ * only the velocity would have shrunk them instead. [fire] is the same for its weapon's cadence
+ * ([WeaponSystem]): at a half, it fires every other interval. Its shots, once fired, fly at their
+ * own speed.
+ *
+ * Opt-in, like most components here: what slows an entity down, and how far, is the game's call.
+ */
+data class PaceComponent(var motion: Float = 1f, var fire: Float = 1f) : Component
 
 /**
  * Which colorway of the shared projectile sheet this entity's shots are drawn from.

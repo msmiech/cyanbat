@@ -7,6 +7,7 @@ import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.desktop.recorder.RunProbe
 import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.service.EnemySpecies
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
@@ -21,8 +22,10 @@ import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.EntityId
 import at.smiech.engine.ecs.HealthComponent
+import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TransformComponent
+import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.math.Rect
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
@@ -31,6 +34,7 @@ import kotlin.math.roundToInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -206,6 +210,52 @@ class GameScreenTest {
         screen.update(TICK_INITIAL * 1.5f)
 
         assertEquals(2 * IMP_ROW, sprite.srcY)
+    }
+
+    /**
+     * A wounded enemy is a straggler: slower in everything it does, and slower to fire, the worse
+     * it is hurt. Checked on the run's own wiring - the wound system's callback into the screen -
+     * because that is the part a unit test of the engine cannot see.
+     */
+    @Test
+    fun `a wounded enemy slows down and fires less, the worse it is hurt`() = flight(CAVE) {
+        val world = probe.world
+        val imp = EntityFactory(world).createEnemy(
+            x = 400f, y = 100f, width = 28f, height = IMP_ROW.toFloat(),
+            pixmap = assets.stage(CAVE).enemySheet, species = EnemySpecies.STRIKER, hitPoints = 100,
+        )
+        val health = world.getComponent(imp, HealthComponent::class)!!
+        val pace = world.getComponent(imp, PaceComponent::class)!!
+        assertEquals(PaceComponent(), pace, "an unhurt enemy goes at its own pace")
+
+        health.hitPoints = 50
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(PaceComponent(motion = 0.8f, fire = 0.75f), pace, "wounded")
+
+        health.hitPoints = 20
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(PaceComponent(motion = 0.6f, fire = 0.5f), pace, "battered")
+    }
+
+    /**
+     * The bosses are special, and hard enough to reach: their wounds show, but never cost them a
+     * step or a shot.
+     */
+    @Test
+    fun `a battered boss keeps its pace`() = flight(CAVE) {
+        screen.enmGen.update(StageProgression.forStage(CAVE).bossTimeSeconds)
+        val boss = assertNotNull(screen.enmGen.bossId, "the boss should have arrived")
+        val world = probe.world
+        val health = world.getComponent(boss, HealthComponent::class)!!
+        val weapon = world.getComponent(boss, WeaponComponent::class)!!
+        health.hitPoints = health.maxHitPoints / 4
+        screen.update(TICK_INITIAL * 1.5f)
+        val before = weapon.timeSinceLastShot
+
+        screen.update(TICK_INITIAL)
+
+        assertNull(world.getComponent(boss, PaceComponent::class), "the boss was given a pace to slow")
+        assertEquals(TICK_INITIAL, weapon.timeSinceLastShot - before, 0.0001f, "its gun slowed down")
     }
 
     /**

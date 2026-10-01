@@ -11,6 +11,7 @@ import at.smiech.engine.ecs.EntityId
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LifetimeComponent
 import at.smiech.engine.ecs.MovementSystem
+import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.PlayerInputSystem
 import at.smiech.engine.ecs.TransformComponent
@@ -205,6 +206,9 @@ class Autopilot(
                         scratch.addComponent(copy, VelocityComponent(it.velocity))
                     }
                     world.getComponent(id, EnemyBehaviorComponent::class)?.let { scratch.addComponent(copy, it.copy()) }
+                    // A wounded enemy flies slower, and a forecast at full pace would dodge where
+                    // it is not going to be.
+                    world.getComponent(id, PaceComponent::class)?.let { scratch.addComponent(copy, it.copy()) }
                     copies += copy
                     enemies += enemy
                     tolerances += collision.tolerance

@@ -13,23 +13,27 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * System that moves entities based on their velocity.
+ * System that moves entities based on their velocity, slowed by a [PaceComponent] where there is
+ * one.
  */
 class MovementSystem : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var velocities: ComponentMapper<VelocityComponent>
+    private lateinit var paces: ComponentMapper<PaceComponent>
 
     override fun onAttach(world: World) {
         transforms = world.mapper(TransformComponent::class)
         velocities = world.mapper(VelocityComponent::class)
+        paces = world.mapper(PaceComponent::class)
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
         world.forEach(transforms, velocities) { id ->
             val transform = transforms.require(id)
             val velocity = velocities.require(id).velocity
+            val pace = paces[id]?.motion ?: 1f
 
-            transform.rect = transform.rect.offset(velocity.x, velocity.y)
+            transform.rect = transform.rect.offset(velocity.x * pace, velocity.y * pace)
         }
     }
 }
@@ -128,6 +132,10 @@ private const val STAGE_COMMITTED = 2
  * Some patterns aim at the player, so it looks the player up once per update: the first living
  * entity carrying a [PlayerControlComponent]. With none - a test world, or a bat already dead -
  * those patterns fly on as if nobody were there.
+ *
+ * A [PaceComponent] slows an enemy's own clock: every timer here runs on its time, and
+ * [MovementSystem] carries it its share of each velocity, so a slowed pattern is the same pattern
+ * played slower.
  */
 class EnemyBehaviorSystem : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -135,6 +143,7 @@ class EnemyBehaviorSystem : GameSystem() {
     private lateinit var behaviors: ComponentMapper<EnemyBehaviorComponent>
     private lateinit var players: ComponentMapper<PlayerControlComponent>
     private lateinit var healths: ComponentMapper<HealthComponent>
+    private lateinit var paces: ComponentMapper<PaceComponent>
 
     /** The player's center this update, or NaN when there is no living player to aim at. */
     private var targetX = Float.NaN
@@ -146,6 +155,7 @@ class EnemyBehaviorSystem : GameSystem() {
         behaviors = world.mapper(EnemyBehaviorComponent::class)
         players = world.mapper(PlayerControlComponent::class)
         healths = world.mapper(HealthComponent::class)
+        paces = world.mapper(PaceComponent::class)
     }
 
     private fun findTarget(world: World) {
@@ -167,9 +177,10 @@ class EnemyBehaviorSystem : GameSystem() {
             val transform = transforms.require(id)
             val velocity = velocities.require(id)
             val behavior = behaviors.require(id)
+            val pace = paces[id]?.motion ?: 1f
 
-            behavior.elapsedTime += deltaTime * behavior.tempo
-            behavior.stateTime += deltaTime
+            behavior.elapsedTime += deltaTime * pace * behavior.tempo
+            behavior.stateTime += deltaTime * pace
 
             when (behavior.type) {
                 EnemyMovementType.SCOUT -> {
@@ -212,21 +223,26 @@ class EnemyBehaviorSystem : GameSystem() {
 
                 EnemyMovementType.SWARM -> swarm(transform, velocity, behavior)
                 EnemyMovementType.SURGE -> surge(velocity, behavior)
-                EnemyMovementType.HOVER -> hover(transform, velocity, behavior)
+                EnemyMovementType.HOVER -> hover(transform, velocity, behavior, pace)
                 EnemyMovementType.DIVE -> dive(transform, velocity, behavior)
                 EnemyMovementType.FORMATION -> formation(transform, velocity, behavior)
                 EnemyMovementType.BOSS_FIGURE_EIGHT -> figureEight(transform, velocity, behavior)
-                EnemyMovementType.LEAP -> leap(transform, velocity, behavior, deltaTime)
+                EnemyMovementType.LEAP -> leap(transform, velocity, behavior, deltaTime, pace)
                 EnemyMovementType.LOOP -> loop(transform, velocity, behavior)
             }
         }
     }
 
+    /**
+     * A slowed leaper is thrown as hard as ever and falls on its own time, which is what keeps a
+     * slowed leap the same height: it is only the climb and the fall that take longer.
+     */
     private fun leap(
         transform: TransformComponent,
         velocity: VelocityComponent,
         behavior: EnemyBehaviorComponent,
         deltaTime: Float,
+        pace: Float,
     ) {
         val rect = transform.rect
         if (behavior.state == STAGE_APPROACH) {
@@ -241,7 +257,7 @@ class EnemyBehaviorSystem : GameSystem() {
             return
         }
         // Committed, and gravity's from here: nothing about the arc is steered.
-        velocity.velocity = velocity.velocity.copy(y = velocity.velocity.y + LEAP_GRAVITY * deltaTime)
+        velocity.velocity = velocity.velocity.copy(y = velocity.velocity.y + LEAP_GRAVITY * deltaTime * pace)
     }
 
     /**
@@ -313,6 +329,7 @@ class EnemyBehaviorSystem : GameSystem() {
         transform: TransformComponent,
         velocity: VelocityComponent,
         behavior: EnemyBehaviorComponent,
+        pace: Float,
     ) {
         val rect = transform.rect
         when (behavior.state) {
@@ -325,7 +342,7 @@ class EnemyBehaviorSystem : GameSystem() {
             // player who sits still and loses one who keeps moving.
             val wanted = targetY - rect.height / 2f
             behavior.initialY += (wanted - behavior.initialY)
-                .coerceIn(-HOVER_LANE_DRIFT, HOVER_LANE_DRIFT)
+                .coerceIn(-HOVER_LANE_DRIFT * pace, HOVER_LANE_DRIFT * pace)
         }
 
         val bobY = behavior.initialY + sin(behavior.elapsedTime * 2.2f + behavior.phase) * HOVER_BOB
@@ -575,15 +592,18 @@ class FacingSystem : GameSystem() {
 }
 
 /**
- * System that handles animations by updating Sprite source rectangles.
+ * System that handles animations by updating Sprite source rectangles, on the entity's own time
+ * where a [PaceComponent] slows it.
  */
 class AnimationSystem : GameSystem() {
     private lateinit var sprites: ComponentMapper<SpriteComponent>
     private lateinit var animations: ComponentMapper<AnimationComponent>
+    private lateinit var paces: ComponentMapper<PaceComponent>
 
     override fun onAttach(world: World) {
         sprites = world.mapper(SpriteComponent::class)
         animations = world.mapper(AnimationComponent::class)
+        paces = world.mapper(PaceComponent::class)
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
@@ -591,7 +611,7 @@ class AnimationSystem : GameSystem() {
             val anim = animations.require(id)
 
             if (!anim.isFinished) {
-                anim.currentTime += deltaTime
+                anim.currentTime += deltaTime * (paces[id]?.motion ?: 1f)
                 if (anim.currentTime > anim.interval) {
                     if (anim.isLooping) {
                         anim.currentFrame = (anim.currentFrame + 1) % anim.frameCount
@@ -734,7 +754,8 @@ class RenderSystem : GameSystem() {
 }
 
 /**
- * Fires weapons whose cadence has come round.
+ * Fires weapons whose cadence has come round - more slowly for an entity whose [PaceComponent]
+ * has slowed its fire.
  *
  * Spawning is delegated to [onFire] because what a projectile looks like is a game concern, not
  * an engine one - the same split CollisionSystem uses for its handler.
@@ -743,11 +764,13 @@ class WeaponSystem(private val onFire: (EntityId) -> Unit) : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var weapons: ComponentMapper<WeaponComponent>
     private lateinit var healths: ComponentMapper<HealthComponent>
+    private lateinit var paces: ComponentMapper<PaceComponent>
 
     override fun onAttach(world: World) {
         transforms = world.mapper(TransformComponent::class)
         weapons = world.mapper(WeaponComponent::class)
         healths = world.mapper(HealthComponent::class)
+        paces = world.mapper(PaceComponent::class)
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
@@ -756,7 +779,9 @@ class WeaponSystem(private val onFire: (EntityId) -> Unit) : GameSystem() {
             val health = healths[id]
             if (health == null || health.alive) {
                 val weapon = weapons.require(id)
-                weapon.timeSinceLastShot += deltaTime
+                // Slowed by running the cadence's clock slower rather than by stretching the
+                // interval, which the game rearms for its own reasons and would have to remember.
+                weapon.timeSinceLastShot += deltaTime * (paces[id]?.fire ?: 1f)
                 if (weapon.timeSinceLastShot >= weapon.interval) {
                     // Subtract rather than zero, so a long frame does not lose the remainder and
                     // drift the cadence.
@@ -1144,8 +1169,12 @@ class HitFlashSystem : GameSystem() {
  *
  * Something dead is left alone. What it looks like from there is up to whatever is killing it: the
  * bat, for one, falls on a sheet of its own, which has no wounded rows to be moved onto.
+ *
+ * What else a wound does is left to [onRowChanged], called with the entity and its new row each
+ * time it moves to another one, healed or hurt - the same split [WeaponSystem] uses: an engine
+ * knows a creature has been wounded, not what that costs it in this game.
  */
-class WoundSystem : GameSystem() {
+class WoundSystem(private val onRowChanged: (EntityId, Int) -> Unit = { _, _ -> }) : GameSystem() {
     private lateinit var sprites: ComponentMapper<SpriteComponent>
     private lateinit var wounds: ComponentMapper<WoundComponent>
     private lateinit var healths: ComponentMapper<HealthComponent>
@@ -1161,7 +1190,12 @@ class WoundSystem : GameSystem() {
             val health = healths.require(id)
             if (!health.alive) return@forEach
             val wound = wounds.require(id)
-            sprites.require(id).srcY = wound.rowHeight * wound.rowFor(health.fraction)
+            val row = wound.rowFor(health.fraction)
+            sprites.require(id).srcY = wound.rowHeight * row
+            if (row != wound.row) {
+                wound.row = row
+                onRowChanged(id, row)
+            }
         }
     }
 }

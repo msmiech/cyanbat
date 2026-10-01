@@ -80,6 +80,14 @@ const val BATTERED_AT = 0.33f
 val WOUND_MARKS = floatArrayOf(WOUNDED_AT, BATTERED_AT)
 const val WOUND_ROWS = 3
 
+// What a wound costs an ordinary enemy, a row of WOUND_MARKS apiece: how fast it still flies - its
+// pattern, its wingbeat and all - and how often it still fires, as fractions of its own. A hurt
+// enemy becomes a straggler, falling behind its swarm or its formation, which rewards the player for
+// finishing what they started. The bosses are left at full pace: their fights escalate as they are
+// hurt, and are special enough, and hard enough to reach, without being made easier at the end.
+val WOUNDED_PACE = floatArrayOf(1f, 0.8f, 0.6f)
+val WOUNDED_FIRE_RATE = floatArrayOf(1f, 0.75f, 0.5f)
+
 // Obstacles are scenery a shot clears rather than a target that soaks hits, so one shot still
 // takes one down.
 const val DESTRUCTIBLE_HIT_POINTS = DAMAGE_PER_HIT

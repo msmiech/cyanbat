@@ -18,9 +18,11 @@ private const val ROW = 40
 /** Which row of its sheet a creature is drawn from, against what is left of its health. */
 class WoundSystemTest {
 
+    private val changes = mutableListOf<Pair<EntityId, Int>>()
+
     private val world = World().apply {
         addSystem(AnimationSystem())
-        addSystem(WoundSystem())
+        addSystem(WoundSystem { id, row -> changes += id to row })
     }
 
     private fun creature(hitPoints: Int = 100): Pair<SpriteComponent, HealthComponent> {
@@ -108,6 +110,27 @@ class WoundSystemTest {
 
         assertEquals(column, sprite.srcX)
         assertEquals(ROW, sprite.srcY)
+    }
+
+    /**
+     * What a wound does besides show is the game's, and it hears of every row a creature moves to -
+     * hurt or healed - once, on the tick it moves there, and of nothing in between.
+     */
+    @Test
+    fun `the game hears of each row a creature moves to, and only then`() {
+        val (_, health) = creature()
+
+        world.update(0.01f, null)
+        assertEquals(emptyList(), changes.map { it.second }, "an unhurt creature has nothing to report")
+
+        health.hitPoints = 50
+        repeat(3) { world.update(0.01f, null) }
+        health.hitPoints = 10
+        repeat(3) { world.update(0.01f, null) }
+        health.hitPoints = 100
+        repeat(3) { world.update(0.01f, null) }
+
+        assertEquals(listOf(1, 2, 0), changes.map { it.second })
     }
 
     /**

@@ -56,6 +56,7 @@ import at.smiech.engine.ecs.FloatingTextComponent
 import at.smiech.engine.ecs.HealthBarComponent
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LifetimeComponent
+import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.ProjectileStyleComponent
@@ -175,6 +176,9 @@ class EntityFactory(val world: World) {
             )
         )
         world.addComponent(id, WoundComponent(height.toInt(), WOUND_MARKS))
+        // At full pace until it is wounded; GameScreen slows it from there. Only an ordinary enemy
+        // carries one, so nothing a wound does can reach a boss.
+        world.addComponent(id, PaceComponent())
 
         world.addComponent(
             id,
@@ -218,11 +222,12 @@ class EntityFactory(val world: World) {
      * The stage's boss: the sheet's last enemy drawn [scale] times over, with a health pool worth
      * a fight and a gun of its own.
      *
-     * It differs from [createEnemy] in three ways that matter, and each is deliberate. It is never
+     * It differs from [createEnemy] in four ways that matter, and each is deliberate. It is never
      * culled for leaving the frame, because it enters from the edge and a boss that could drift
      * out of the stage is a boss the player can lose rather than beat. It carries a health bar,
      * the only thing besides the bat that does, because a fight this long is unreadable without
-     * one. And it holds station instead of closing, which is what [EnemyMovementType.BOSS] is for.
+     * one. It holds station instead of closing, which is what [EnemyMovementType.BOSS] is for. And
+     * it carries no [PaceComponent]: its wounds show, but they never slow it or thin out its fire.
      */
     fun createBoss(
         x: Float,
