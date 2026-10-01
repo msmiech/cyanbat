@@ -71,6 +71,23 @@ const val COMBO_SUPERNOVA_CYCLES_PER_SECOND = 0.35f
 const val PLAYER_MAX_HIT_POINTS = 100
 const val DAMAGE_PER_HIT = 34
 
+// Wounds. Every creature's sheet stacks it three times, top to bottom - unhurt, wounded, battered -
+// and a row takes over as its health falls to each of these marks; see WoundComponent. The bosses
+// change phase at the same marks, so every creature in the game, the bat included, looks hurt at
+// the same point of its bar, and a boss looks as far through its fight as it is.
+const val WOUNDED_AT = 0.66f
+const val BATTERED_AT = 0.33f
+val WOUND_MARKS = floatArrayOf(WOUNDED_AT, BATTERED_AT)
+const val WOUND_ROWS = 3
+
+// What a wound costs an ordinary enemy, a row of WOUND_MARKS apiece: how fast it still flies - its
+// pattern, its wingbeat and all - and how often it still fires, as fractions of its own. A hurt
+// enemy becomes a straggler, falling behind its swarm or its formation, which rewards the player for
+// finishing what they started. The bosses are left at full pace: their fights escalate as they are
+// hurt, and are special enough, and hard enough to reach, without being made easier at the end.
+val WOUNDED_PACE = floatArrayOf(1f, 0.8f, 0.6f)
+val WOUNDED_FIRE_RATE = floatArrayOf(1f, 0.75f, 0.5f)
+
 // Obstacles are scenery a shot clears rather than a target that soaks hits, so one shot still
 // takes one down.
 const val DESTRUCTIBLE_HIT_POINTS = DAMAGE_PER_HIT
@@ -246,9 +263,10 @@ const val MOTH_QUEEN_COLLISION_TOLERANCE = 14f
 // The colorway of shot.png her bolts are drawn in: rose, like her wings.
 const val MOTH_QUEEN_SHOT_VARIANT = 6
 
-// The health fractions at which she changes phase.
-const val MOTH_QUEEN_PHASE_2_AT = 0.66f
-const val MOTH_QUEEN_PHASE_3_AT = 0.33f
+// The health fractions at which she changes phase, and so at which she looks wounded and then
+// battered; see WOUND_MARKS.
+const val MOTH_QUEEN_PHASE_2_AT = WOUNDED_AT
+const val MOTH_QUEEN_PHASE_3_AT = BATTERED_AT
 
 // The shield she raises at each change of phase, as a fraction of her full health. It does not
 // recharge: it is a wall to break through, once, at the start of each phase.
@@ -551,9 +569,9 @@ const val SAND_WYRM_BREACH_SPEED = 1.5f
 const val SAND_WYRM_ENRAGED_BREACH_SPEED = 1.9f
 
 // The health fractions at which it changes phase: it starts calling up its brood at the first,
-// and is enraged at the second.
-const val SAND_WYRM_PHASE_2_AT = 0.66f
-const val SAND_WYRM_PHASE_3_AT = 0.33f
+// and is enraged at the second. They are the marks its wounds show at too; see WOUND_MARKS.
+const val SAND_WYRM_PHASE_2_AT = WOUNDED_AT
+const val SAND_WYRM_PHASE_3_AT = BATTERED_AT
 
 // What its head and its body deal on contact, as shares of the boss damage its stage scales to -
 // 85 at stage 3, most of the bat's bar.

@@ -127,6 +127,24 @@ else moves, culls or kills them; `GameScreen` removes them when the boss dies. I
 pinned to the screen (`HealthBarComponent.pinnedTo`), because the head spends half the fight under
 the sand.
 
+**Wounds.** Every creature's sheet - the bat's, the three enemy sheets, both boss sheets - stacks
+each frame three times, top to bottom: unhurt, wounded, battered (`WOUND_ROWS`). `WoundSystem`
+moves a sprite down a row as its health falls past `WOUND_MARKS`, read off the health every tick,
+so healing undoes it. The bosses change phase at the same marks.
+- A creature's pixmap is three pictures tall. Its sprite must set `srcHeight` to one row - the
+  default is the whole pixmap - and anything sized off the sheet divides by `WOUND_ROWS`.
+- The Sand Wyrm's plates have no health; `SandWyrmBrain` draws them from the head's row. Its sand
+  plume is drawn on the top row only.
+- The dead are left alone: the bat falls on its one-row death sheet, which is drawn battered.
+- A wound also slows an ordinary enemy: `GameScreen` sets its `PaceComponent` from the row
+  (`WOUNDED_PACE`, `WOUNDED_FIRE_RATE`) through `WoundSystem`'s callback. A pace is a clock of the
+  entity's own, read by the movement, behavior, animation and weapon systems, so a slowed pattern
+  keeps its shape and only takes longer. Bosses carry no pace and are never slowed. The recorder's
+  forecast copies the pace, or it would dodge a wounded enemy where it is not going to be.
+- A generator draws each wound from the creature's own parts (`pa.notch`, `pa.crack`, `pa.ring`,
+  `pa.tear`) so it stays put through the animation, and writes the rows with `pa.save_rows`.
+  `SpriteSheetTest` checks that every wounded frame differs from the one above it.
+
 **Player progression** is per run and never persisted:
 - `PlayerProgress` tracks experience and the bat's level.
 - `PowerUp` builds the three-card offer. Maxed cards drop out of it, and the uncapped ones

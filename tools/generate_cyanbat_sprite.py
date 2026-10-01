@@ -34,7 +34,15 @@ Rendering is deliberately hard-edged. Shapes are sampled at 3x3 per pixel and th
 result is flat pixel art with as many colors as the palette below and not one more.
 
 The sheet is 6 frames of 45x40, laid out left to right, which is what `EntityFactory.createBat`
-addresses through `SpriteComponent.srcX`. The death sheet is 5 frames of the same size.
+addresses through `SpriteComponent.srcX` - and that row three times over, top to bottom: unhurt,
+wounded and battered, which the game picks between by the bat's health (`WoundComponent`). The
+death sheet is 5 frames of the same size, battered, because that is how the bat goes down.
+
+**Wounds.** They are the bat's own parts, torn: an ear nicked and then torn short, the near wing
+notched and then holed, claw marks down the pale of the cheek where no wing ever covers them, and at
+the last the eye screwed half shut and a leg hanging limp. Cool colors only, like everything else on
+the bat - a gash is the dark of its nose, not red, because red on this screen means something
+hostile.
 """
 
 import pathlib
@@ -143,6 +151,10 @@ FAR_WING_SCALE = 0.86
 # The pixel the eye is centered on, before the bob. The rest of the face is placed around it.
 EYE = (32.4, 17.0)
 
+# How open the eye is at each of `pa.WOUND_LEVELS` in flight: wide until the bat is battered, and
+# then screwed half shut. Dying brings its own.
+WOUND_EYE = (1.0, 1.0, 0.62)
+
 # How far the whole animal sits below where it was drawn, in pixels. At the top of its beat the far
 # wing reaches all the way up the frame, and drawn a pixel higher its tip lands on the top row with
 # no room left above it for the outline - a wing cut square by the edge of its own frame.
@@ -156,14 +168,18 @@ def lerp(p, q, t):
     return (p[0] + (q[0] - p[0]) * t, p[1] + (q[1] - p[1]) * t)
 
 
-def wing(shoulder, flap_degrees, spread, far):
+def wing(shoulder, flap_degrees, spread, far, wounds=0):
     """
-    One wing, posed and projected: its bones, and the membrane stretched over them.
+    One wing, posed and projected: its bones, the membrane stretched over them, and whatever has
+    been torn out of it.
 
     The wing is a flat sheet, so turning it about the body and looking at it from above comes down
     to one number - how much of its span shows on screen, and which way. That is `lift`: the sine of
     the flap angle, offset by the camera for each side, so the far wing shows more of itself on the
     way up and the near wing on the way down.
+
+    Tears are placed off the posed bones before any of it is projected, so a hole stays between the
+    same two fingers however far the wing is open or turned.
     """
     pose = {
         key: lerp(WING_FOLDED[key], WING_OPEN[key], spread)
@@ -179,6 +195,22 @@ def wing(shoulder, flap_degrees, spread, far):
         a, r = point
         return (shoulder[0] + a * scale, shoulder[1] - r * lift * scale)
 
+    # The near wing is the one the player watches, so it takes the first tear; the far one is only
+    # torn once the bat is battered.
+    wrist_plane = pose["wrist"]
+    holes = []
+    if far:
+        if wounds >= 2:
+            holes.append(pa.notch(tips[0], tips[1], wrist_plane, 0.62, width=0.55))
+    else:
+        if wounds >= 1:
+            holes.append(pa.notch(tips[1], tips[2], wrist_plane, 0.66, width=0.62))
+        if wounds >= 2:
+            panel = lerp(lerp(tips[0], tips[1], 0.5), wrist_plane, 0.42)
+            holes.append(pa.ring(panel, 3.0))
+            holes.append(pa.notch(tips[2], pose["heel"], wrist_plane, 0.45, width=0.55))
+    tears = [pa.polygon([place(point) for point in hole]) for hole in holes]
+
     elbow, wrist, thumb, heel = (place(pose[key]) for key in ("elbow", "wrist", "thumb", "heel"))
     tips = [place(tip) for tip in tips]
 
@@ -193,14 +225,18 @@ def wing(shoulder, flap_degrees, spread, far):
         outline += pa.bezier(start, lerp(middle, wrist, 0.3), end)
         outline.append(end)
 
-    return bones, outline, (wrist, thumb)
+    return bones, outline, (wrist, thumb), tears
 
 
-def near_wing_layers(flap, spread, dy):
+def torn(membrane, tears):
+    return pa.without(membrane, pa.union(*tears)) if tears else membrane
+
+
+def near_wing_layers(flap, spread, dy, wounds):
     """The near wing: membrane, the panels of it catching light, the bones ridged over it."""
     shoulder = (NEAR_SHOULDER[0], NEAR_SHOULDER[1] + dy)
-    bones, outline, thumb = wing(shoulder, flap, spread, far=False)
-    membrane = pa.polygon(outline)
+    bones, outline, thumb, tears = wing(shoulder, flap, spread, far=False, wounds=wounds)
+    membrane = torn(pa.polygon(outline), tears)
 
     # A panel is membrane far enough from every bone to read as stretched skin rather than ridge.
     def lit(x, y):
@@ -212,11 +248,11 @@ def near_wing_layers(flap, spread, dy):
     return [(membrane, "M"), (lit, "N"), (pa.union(arm, fingers), "B"), (claw, "B")]
 
 
-def far_wing_layers(flap, spread, dy):
+def far_wing_layers(flap, spread, dy, wounds):
     """The far wing, flat and dark behind the body."""
     shoulder = (FAR_SHOULDER[0], FAR_SHOULDER[1] + dy)
-    bones, outline, _ = wing(shoulder, flap, spread, far=True)
-    membrane = pa.polygon(outline)
+    bones, outline, _, tears = wing(shoulder, flap, spread, far=True, wounds=wounds)
+    membrane = torn(pa.polygon(outline), tears)
     arm = pa.union(*(pa.capsule(p, q, 1.0, 0.7) for p, q in bones))
     return [(membrane, "F"), (arm, "G")]
 
@@ -224,12 +260,16 @@ def far_wing_layers(flap, spread, dy):
 # --- the body ------------------------------------------------------------------------------------
 
 
-def body_parts(dy):
+def body_parts(dy, wounds=0):
     """
     The parts of the bat that never move, back to front.
 
     Each is shaded against its own extent, because one gradient over the whole silhouette would
     read the ear tips as the animal's back and put the pale belly halfway up its face.
+
+    [wounds] show on the near ear first: a nick out of its back edge, and then the tip torn off it.
+    It is the first thing the eye finds on the bat, so a ragged one is the first thing that says the
+    bat has been in a fight.
     """
     torso = pa.union(
         pa.ellipse(20.5, 23.8 + dy, 7.2, 5.6),
@@ -241,7 +281,9 @@ def body_parts(dy):
     # this sprite used to have a fin.
     legs = pa.union(
         pa.capsule((16.5, 26.5 + dy), (10.8, 28.6 + dy), 1.7, 1.0),
-        pa.capsule((17.5, 27.5 + dy), (12.2, 30.6 + dy), 1.5, 0.9),
+        # Battered, the near leg is past tucking up and hangs: a limp says it in the silhouette.
+        pa.capsule((17.5, 27.5 + dy), (15.2, 33.6 + dy), 1.5, 0.9)
+        if wounds >= 2 else pa.capsule((17.5, 27.5 + dy), (12.2, 30.6 + dy), 1.5, 0.9),
     )
     tail_membrane = pa.polygon(
         [(16.0, 24.0 + dy), (9.4, 27.6 + dy), (10.6, 30.0 + dy), (16.5, 29.0 + dy)]
@@ -256,6 +298,13 @@ def body_parts(dy):
     # else that could be drawn blue with wings at this size, so they are the biggest single part.
     near_ear = pa.polygon([(26.2, 15.6 + dy), (24.0, 3.2 + dy), (31.6, 13.0 + dy)])
     far_ear = pa.polygon([(30.6, 13.6 + dy), (33.2, 4.4 + dy), (36.0, 14.4 + dy)])
+    if wounds >= 1:
+        near_ear = pa.without(near_ear, pa.polygon([(22.0, 7.8 + dy), (27.4, 10.2 + dy), (22.0, 12.6 + dy)]))
+    if wounds >= 2:
+        near_ear = pa.without(near_ear, pa.polygon([
+            (18.0, -1.0), (34.0, -1.0), (34.0, 5.6 + dy), (27.6, 6.6 + dy), (26.6, 5.2 + dy),
+            (25.4, 7.4 + dy), (18.0, 6.6 + dy),
+        ]))
 
     return dict(
         tail=pa.union(tail_membrane, legs),
@@ -272,7 +321,19 @@ EAR_BANDS = ((0.45, "d"), (1.01, "b"))
 TAIL_BANDS = ((0.50, "d"), (1.01, "b"))
 
 
-def render_frame(flap, spread, bob, eye=1.0):
+# Claw marks raked down the cheek behind the eye, in the order they are taken. The cheek, because
+# it is pale and no wing ever sweeps across it: marks on the body spend half the beat under one.
+# Before the bob.
+CLAW_MARKS = (
+    ((26.4, 17.8), (27.4, 20.0), (27.8, 22.4)),
+    ((28.5, 19.2), (29.4, 21.2), (29.7, 23.0)),
+    ((30.6, 20.6), (31.2, 22.8)),
+)
+# How many of them each of the wound levels has taken.
+CLAWED = (0, 2, 3)
+
+
+def render_frame(flap, spread, bob, eye=1.0, wounds=0):
     grid = pa.blank(FRAME_WIDTH, FRAME_HEIGHT)
     bob += DROP
 
@@ -284,12 +345,12 @@ def render_frame(flap, spread, bob, eye=1.0):
             grid[y][x] = material
 
     far = set()
-    for shape, material in far_wing_layers(flap, spread, bob):
+    for shape, material in far_wing_layers(flap, spread, bob, wounds):
         pixels = raster(shape)
         far |= pixels
         paint(pixels, material)
 
-    parts = body_parts(bob)
+    parts = body_parts(bob, wounds)
     tail = raster(parts["tail"])
     pa.shade_bands(grid, tail, TAIL_BANDS)
     torso = raster(parts["torso"])
@@ -298,7 +359,7 @@ def render_frame(flap, spread, bob, eye=1.0):
 
     # The near wing over the body, so the downstroke visibly sweeps across the belly...
     near = set()
-    for shape, material in near_wing_layers(flap, spread, bob):
+    for shape, material in near_wing_layers(flap, spread, bob, wounds):
         pixels = raster(shape)
         near |= pixels
         paint(pixels, material)
@@ -323,6 +384,11 @@ def render_frame(flap, spread, bob, eye=1.0):
     for x, y in ((25, 23 + bob), (26, 26 + bob), (28, 27 + bob)):
         if (x, y) in ruff:
             grid[y][x] = "c"
+
+    # The claw marks, dark across the pale of the cheek. Before the eye, which is drawn over them.
+    for mark in CLAW_MARKS[:CLAWED[wounds]]:
+        points = [(x, y + bob) for x, y in mark]
+        paint(raster(pa.crack(points, 0.5)) & head, "n")
 
     # Depth, innermost first: each pass darkens the *further* layer where it meets a nearer one,
     # so nothing eats into the shape in front.
@@ -383,14 +449,25 @@ def main() -> int:
     # Two sheets from one animal. That is the whole reason the death frames live in this file
     # rather than a generator of their own: the bat dying has to be recognisably the same bat, and
     # the surest way to guarantee that is for both sheets to come out of the same body.
-    for name, poses in (("cyanBat.png", FLAP), ("cyanBatDeath.png", DEATH)):
-        grids = [render_frame(*pose) for pose in poses]
-        for index, grid in enumerate(grids):
-            if clipped(grid):
-                print(f"{name} frame {index} runs off the edge of its frame", file=sys.stderr)
-                return 1
-        sheet = pa.save_sheet(assets / name, grids, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
-        print(f"{assets / name} ({sheet.width}x{sheet.height}, {len(poses)} frames)")
+    #
+    # The flight is drawn at every wound level, a row apiece. The fall is drawn once, battered:
+    # nearly every bat that dies was battered on its last frame of flight, and one that healed as
+    # it fell would read as a glitch.
+    sheets = (
+        ("cyanBat.png", [
+            [render_frame(flap, spread, bob, WOUND_EYE[level], level) for flap, spread, bob in FLAP]
+            for level in pa.WOUND_LEVELS
+        ]),
+        ("cyanBatDeath.png", [[render_frame(*pose, wounds=pa.WOUND_LEVELS[-1]) for pose in DEATH]]),
+    )
+    for name, rows in sheets:
+        for level, grids in enumerate(rows):
+            for index, grid in enumerate(grids):
+                if clipped(grid):
+                    print(f"{name} row {level} frame {index} runs off the edge of its frame", file=sys.stderr)
+                    return 1
+        sheet = pa.save_rows(assets / name, rows, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
+        print(f"{assets / name} ({sheet.width}x{sheet.height}, {len(rows)} rows of {len(rows[0])} frames)")
     return 0
 
 

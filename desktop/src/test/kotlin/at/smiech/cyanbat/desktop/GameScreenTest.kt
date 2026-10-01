@@ -7,9 +7,11 @@ import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.desktop.recorder.RunProbe
 import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.service.EnemySpecies
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
@@ -20,7 +22,10 @@ import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.EntityId
 import at.smiech.engine.ecs.HealthComponent
+import at.smiech.engine.ecs.PaceComponent
+import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TransformComponent
+import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.math.Rect
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +34,7 @@ import kotlin.math.roundToInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
+import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 /**
@@ -161,11 +167,123 @@ class GameScreenTest {
         assertEquals(wyrmBefore, wyrm.hitPoints, "the wyrm was hurt by landing a blow")
     }
 
-    /** A desert run at its boss: the screen, what the probe reads of it, its assets, and the wyrm's head. */
-    private class WyrmFight(val screen: GameScreen, val probe: RunProbe, val assets: GameAssets, val head: EntityId)
+    /**
+     * Every creature's sheet stacks it unhurt, wounded and battered, and a run draws one row of it -
+     * the one its health calls for. Drawn whole, the bat would be three bats, one above the other.
+     */
+    @Test
+    fun `the bat is drawn from the row its health calls for, and healing puts it back`() = flight(CAVE) {
+        val world = probe.world
+        val sprite = world.getComponent(probe.batId, SpriteComponent::class)!!
+        val health = world.getComponent(probe.batId, HealthComponent::class)!!
+        assertEquals(BAT_ROW, sprite.srcHeight, "the bat is drawn a row at a time")
+        assertEquals(BAT_ROW.toFloat(), world.getComponent(probe.batId, TransformComponent::class)!!.rect.height)
 
-    /** A desert run straight at its boss, with the escort cleared away. */
-    private fun wyrmFight(test: WyrmFight.() -> Unit) {
+        health.hitPoints = 50
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(BAT_ROW, sprite.srcY, "wounded")
+
+        health.hitPoints = 20
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(2 * BAT_ROW, sprite.srcY, "battered")
+
+        health.hitPoints = health.maxHitPoints
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(0, sprite.srcY, "healed")
+    }
+
+    /**
+     * The cave's boss is an imp drawn three times its size: one row of the imps' sheet magnified,
+     * not the sheet's three rows - and its box sized off that one row, or the fight changes shape.
+     */
+    @Test
+    fun `the cave's boss is one imp drawn large, and wears its wounds`() = flight(CAVE) {
+        screen.enmGen.update(StageProgression.forStage(CAVE).bossTimeSeconds)
+        val boss = assertNotNull(screen.enmGen.bossId, "the boss should have arrived")
+        val world = probe.world
+        val sprite = world.getComponent(boss, SpriteComponent::class)!!
+        assertEquals(IMP_ROW, sprite.srcHeight)
+        assertEquals(IMP_ROW * BOSS_SPRITE_SCALE, world.getComponent(boss, TransformComponent::class)!!.rect.height)
+
+        val health = world.getComponent(boss, HealthComponent::class)!!
+        health.hitPoints = health.maxHitPoints / 4
+        screen.update(TICK_INITIAL * 1.5f)
+
+        assertEquals(2 * IMP_ROW, sprite.srcY)
+    }
+
+    /**
+     * A wounded enemy is a straggler: slower in everything it does, and slower to fire, the worse
+     * it is hurt. Checked on the run's own wiring - the wound system's callback into the screen -
+     * because that is the part a unit test of the engine cannot see.
+     */
+    @Test
+    fun `a wounded enemy slows down and fires less, the worse it is hurt`() = flight(CAVE) {
+        val world = probe.world
+        val imp = EntityFactory(world).createEnemy(
+            x = 400f, y = 100f, width = 28f, height = IMP_ROW.toFloat(),
+            pixmap = assets.stage(CAVE).enemySheet, species = EnemySpecies.STRIKER, hitPoints = 100,
+        )
+        val health = world.getComponent(imp, HealthComponent::class)!!
+        val pace = world.getComponent(imp, PaceComponent::class)!!
+        assertEquals(PaceComponent(), pace, "an unhurt enemy goes at its own pace")
+
+        health.hitPoints = 50
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(PaceComponent(motion = 0.8f, fire = 0.75f), pace, "wounded")
+
+        health.hitPoints = 20
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(PaceComponent(motion = 0.6f, fire = 0.5f), pace, "battered")
+    }
+
+    /**
+     * The bosses are special, and hard enough to reach: their wounds show, but never cost them a
+     * step or a shot.
+     */
+    @Test
+    fun `a battered boss keeps its pace`() = flight(CAVE) {
+        screen.enmGen.update(StageProgression.forStage(CAVE).bossTimeSeconds)
+        val boss = assertNotNull(screen.enmGen.bossId, "the boss should have arrived")
+        val world = probe.world
+        val health = world.getComponent(boss, HealthComponent::class)!!
+        val weapon = world.getComponent(boss, WeaponComponent::class)!!
+        health.hitPoints = health.maxHitPoints / 4
+        screen.update(TICK_INITIAL * 1.5f)
+        val before = weapon.timeSinceLastShot
+
+        screen.update(TICK_INITIAL)
+
+        assertNull(world.getComponent(boss, PaceComponent::class), "the boss was given a pace to slow")
+        assertEquals(TICK_INITIAL, weapon.timeSinceLastShot - before, 0.0001f, "its gun slowed down")
+    }
+
+    /**
+     * Only the head has health to be wounded by; the plates are drawn from whatever row it is on,
+     * so a battered head is never towing a pristine body.
+     */
+    @Test
+    fun `the Sand Wyrm is wounded along its whole body at once`() = wyrmFight {
+        val world = probe.world
+        val health = world.getComponent(head, HealthComponent::class)!!
+        health.hitPoints = health.maxHitPoints / 2
+
+        screen.update(TICK_INITIAL * 1.5f)
+
+        val parts = world.query(BossPartComponent::class)
+        assertEquals(10, parts.size, "the head and nine plates")
+        for (part in parts) {
+            val sprite = world.getComponent(part, SpriteComponent::class)!!
+            assertEquals(WYRM_FRAME, sprite.srcHeight)
+            assertEquals(WYRM_FRAME, sprite.srcY, "part $part is not drawn wounded")
+        }
+    }
+
+    /** A run of one stage: the screen, what the probe reads of it, and the assets it was built from. */
+    private open class Flight(val screen: GameScreen, val probe: RunProbe, val assets: GameAssets)
+
+    /** A run of [stage] on the desktop's own host, disposed of when [test] is done with it. */
+    private fun flight(stage: Int, test: Flight.() -> Unit) {
         val game = DesktopGame(480, 320)
         val assets = GameAssets.load(game.graphics, game.audio)
         val screen = GameScreen(
@@ -178,27 +296,43 @@ class GameScreenTest {
                 onExitToMenu = {},
                 audioSettings = Silent,
             ),
-            DESERT,
+            stage,
         )
         try {
-            val probe = RunProbe(screen)
-            screen.enmGen.update(StageProgression.forStage(DESERT).bossTimeSeconds)
-            val head = assertNotNull(screen.enmGen.bossId, "the wyrm should have arrived")
-            val world = probe.world
-            for (id in world.query(CollisionComponent::class)) {
-                val group = world.getComponent(id, CollisionComponent::class)?.group
-                if (group == CollisionGroup.ENEMY && !world.hasComponent(id, BossPartComponent::class)) world.removeEntity(id)
-            }
-            WyrmFight(screen, probe, assets, head).test()
+            Flight(screen, RunProbe(screen), assets).test()
         } finally {
             screen.dispose()
             game.audio.dispose()
         }
     }
 
+    /** A desert run at its boss: a [Flight], and the wyrm's head. */
+    private class WyrmFight(flight: Flight, val head: EntityId) : Flight(flight.screen, flight.probe, flight.assets)
+
+    /** A desert run straight at its boss, with the escort cleared away. */
+    private fun wyrmFight(test: WyrmFight.() -> Unit) = flight(DESERT) {
+        screen.enmGen.update(StageProgression.forStage(DESERT).bossTimeSeconds)
+        val head = assertNotNull(screen.enmGen.bossId, "the wyrm should have arrived")
+        val world = probe.world
+        for (id in world.query(CollisionComponent::class)) {
+            val group = world.getComponent(id, CollisionComponent::class)?.group
+            if (group == CollisionGroup.ENEMY && !world.hasComponent(id, BossPartComponent::class)) world.removeEntity(id)
+        }
+        WyrmFight(this, head).test()
+    }
+
     private companion object {
         const val CAVE = 1
         const val DESERT = 3
+
+        /**
+         * One row of each sheet, spelled out rather than read off the code, for the reason
+         * `SpriteSheetTest` gives: a test that derived them the way the game does would agree with it
+         * about a sheet that had changed underneath both.
+         */
+        const val BAT_ROW = 40
+        const val IMP_ROW = 29
+        const val WYRM_FRAME = 48
     }
 }
 

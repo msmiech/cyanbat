@@ -27,16 +27,20 @@ class SpriteSheetTest {
         return image.width to image.height
     }
 
-    /** Five frames of the bat going limp, the same 45x40 as the flap sheet it is swapped for. */
+    /**
+     * Five frames of the bat going limp, the same 45x40 as the flap sheet it is swapped for. One row
+     * only, battered: the bat falls on it whatever its health was, and `WoundSystem` leaves the dead
+     * on the row they have.
+     */
     @Test
     fun `the death sheet holds five frames`() {
         assertEquals(45 * 5 to 40, sizeOf("cyanBatDeath.png"))
     }
 
-    /** Six frames of 45x40; see `EntityFactory.BAT_FRAME_*`. */
+    /** Six frames of 45x40, unhurt, wounded and battered; see `EntityFactory.BAT_FRAME_*`. */
     @Test
-    fun `the bat sheet holds six frames`() {
-        assertEquals(45 * 6 to 40, sizeOf("cyanBat.png"))
+    fun `the bat sheet holds six frames in every state`() {
+        assertEquals(45 * 6 to 40 * WOUND_ROWS, sizeOf("cyanBat.png"))
     }
 
     /** Seven 40x40 frames of rock breaking; see `EntityFactory.SHATTER_FRAME_*`. */
@@ -65,41 +69,91 @@ class SpriteSheetTest {
     /** Four 32x29 frames of each of the cave's three imps; see `EntityFactory.srcXOf`. */
     @Test
     fun `the cave's sheet holds four frames of each imp`() {
-        assertEquals(32 * 4 * 3 to 29, sizeOf("enemies.png"))
+        assertEquals(32 * 4 * 3 to 29 * WOUND_ROWS, sizeOf("enemies.png"))
     }
 
-    /** Every beat of the bat's wings, every frame of it dying, and every one of the cave's imps. */
+    /**
+     * Every beat of the bat's wings, every frame of it dying, and every one of the cave's imps, in
+     * every state. A wounded row left empty would make a creature vanish the moment it was hurt.
+     */
     @Test
     fun `no frame of the bat or the cave's creatures is empty`() {
-        assertNoBlankFrames("cyanBat.png", frameWidth = 45, frames = 6)
+        assertNoBlankFrames("cyanBat.png", frameWidth = 45, frames = 6, rows = WOUND_ROWS)
         assertNoBlankFrames("cyanBatDeath.png", frameWidth = 45, frames = 5)
-        assertNoBlankFrames("enemies.png", frameWidth = 32, frames = 4 * 3)
+        assertNoBlankFrames("enemies.png", frameWidth = 32, frames = 4 * 3, rows = WOUND_ROWS)
     }
 
     /** Every creature on the forest's sheet, and every beat of the Moth Queen's wings. */
     @Test
     fun `no frame of the forest's creatures is empty`() {
-        assertNoBlankFrames("forestEnemies.png", frameWidth = 32, frames = 4 * 5)
-        assertNoBlankFrames("forestBoss.png", frameWidth = 96, frames = 4)
+        assertNoBlankFrames("forestEnemies.png", frameWidth = 32, frames = 4 * 5, rows = WOUND_ROWS)
+        assertNoBlankFrames("forestBoss.png", frameWidth = 96, frames = 4, rows = WOUND_ROWS)
     }
 
-    /** Every creature on the desert's sheet, and every part of the Sand Wyrm and its sand. */
+    /**
+     * Every creature on the desert's sheet, and every part of the Sand Wyrm and its sand. The sand
+     * is never hurt, so its four frames are only drawn in the top row.
+     */
     @Test
     fun `no frame of the desert's creatures is empty`() {
-        assertNoBlankFrames("desertEnemies.png", frameWidth = 32, frames = 4 * 5)
-        assertNoBlankFrames("desertBoss.png", frameWidth = 48, frames = 10)
+        assertNoBlankFrames("desertEnemies.png", frameWidth = 32, frames = 4 * 5, rows = WOUND_ROWS)
+        assertNoBlankFrames("desertBoss.png", frameWidth = 48, frames = 10, rowHeight = 48)
+        assertNoBlankFrames("desertBoss.png", frameWidth = 48, frames = 6, rows = WOUND_ROWS)
     }
 
-    private fun assertNoBlankFrames(name: String, frameWidth: Int, frames: Int) {
-        val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
-        for (frame in 0 until frames) {
-            var opaque = 0
-            for (y in 0 until image.height) {
-                for (x in frame * frameWidth until (frame + 1) * frameWidth) {
-                    if ((image.getRGB(x, y) ushr 24) != 0) opaque++
+    /**
+     * A wound has to show. Every frame of every wounded row is checked against the same frame a row
+     * up - the healthier picture - because a row that came out the same as it would be a mark the
+     * player crosses without anything happening on screen.
+     */
+    @Test
+    fun `every wound changes the picture`() {
+        for ((name, frameWidth, frames) in listOf(
+            Triple("cyanBat.png", 45, 6),
+            Triple("enemies.png", 32, 4 * 3),
+            Triple("forestEnemies.png", 32, 4 * 5),
+            Triple("desertEnemies.png", 32, 4 * 5),
+            Triple("forestBoss.png", 96, 4),
+            Triple("desertBoss.png", 48, 6),
+        )) {
+            val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
+            val rowHeight = image.height / WOUND_ROWS
+            for (row in 1 until WOUND_ROWS) {
+                for (frame in 0 until frames) {
+                    val changed = (0 until rowHeight).sumOf { y ->
+                        (frame * frameWidth until (frame + 1) * frameWidth).count { x ->
+                            image.getRGB(x, row * rowHeight + y) != image.getRGB(x, (row - 1) * rowHeight + y)
+                        }
+                    }
+                    assertTrue(changed > 0, "frame $frame of $name looks the same in row $row as in the row above")
                 }
             }
-            assertTrue(opaque > 0, "frame $frame of $name is blank")
+        }
+    }
+
+    /**
+     * @param rows how many rows of the sheet to check, from the top, each [rowHeight] tall - which
+     *   is the sheet's height over [rows] unless it is given.
+     */
+    private fun assertNoBlankFrames(
+        name: String,
+        frameWidth: Int,
+        frames: Int,
+        rows: Int = 1,
+        rowHeight: Int? = null,
+    ) {
+        val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
+        val height = rowHeight ?: (image.height / rows)
+        for (row in 0 until rows) {
+            for (frame in 0 until frames) {
+                var opaque = 0
+                for (y in row * height until (row + 1) * height) {
+                    for (x in frame * frameWidth until (frame + 1) * frameWidth) {
+                        if ((image.getRGB(x, y) ushr 24) != 0) opaque++
+                    }
+                }
+                assertTrue(opaque > 0, "frame $frame of row $row of $name is blank")
+            }
         }
     }
 
@@ -204,7 +258,7 @@ class SpriteSheetTest {
     /** Three types of four 32x29 frames, on an exact stride; see `EntityFactory.srcXOf`. */
     @Test
     fun `the enemy sheet holds three strips of four frames`() {
-        assertEquals(32 * 4 * 3 to 29, sizeOf("enemies.png"))
+        assertEquals(32 * 4 * 3 to 29 * WOUND_ROWS, sizeOf("enemies.png"))
     }
 
     /**
@@ -213,25 +267,25 @@ class SpriteSheetTest {
      */
     @Test
     fun `the forest's enemy sheet holds five strips of four frames`() {
-        assertEquals(32 * 4 * 5 to 29, sizeOf("forestEnemies.png"))
+        assertEquals(32 * 4 * 5 to 29 * WOUND_ROWS, sizeOf("forestEnemies.png"))
     }
 
     /** Five types of four 32x29 frames, like the forest's; see `EnemySpecies.strip`. */
     @Test
     fun `the desert's enemy sheet holds five strips of four frames`() {
-        assertEquals(32 * 4 * 5 to 29, sizeOf("desertEnemies.png"))
+        assertEquals(32 * 4 * 5 to 29 * WOUND_ROWS, sizeOf("desertEnemies.png"))
     }
 
     /** The head twice, three plates, the tail and four frames of sand; see `SAND_WYRM_FRAME`. */
     @Test
     fun `the Sand Wyrm's sheet holds its parts and its sand`() {
-        assertEquals(48 * 10 to 48, sizeOf("desertBoss.png"))
+        assertEquals(48 * 10 to 48 * WOUND_ROWS, sizeOf("desertBoss.png"))
     }
 
     /** Four 96x80 frames; see `MOTH_QUEEN_FRAME_WIDTH`. */
     @Test
     fun `the Moth Queen's sheet holds four frames`() {
-        assertEquals(96 * 4 to 80, sizeOf("forestBoss.png"))
+        assertEquals(96 * 4 to 80 * WOUND_ROWS, sizeOf("forestBoss.png"))
     }
 
     /**
@@ -337,6 +391,9 @@ class SpriteSheetTest {
 
         /** Noon, the golden hour, sunset and night; see `Daylight.KEYFRAMES`. */
         const val KEYFRAMES = 4
+
+        /** Unhurt, wounded and battered, top to bottom; see `WOUND_ROWS` and `WoundComponent`. */
+        const val WOUND_ROWS = 3
 
         /** The desert's scenery, drawn once in each of the [KEYFRAMES] and stacked. */
         val DESERT_KEYFRAMED = listOf(

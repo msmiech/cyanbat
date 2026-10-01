@@ -23,6 +23,12 @@ frame and still read as *flying*:
 * **A crown.** Feathered antennae swept back, so the silhouette says *queen* at a glance.
 
 Faces left, like every hostile: the head is at the left edge and the wings trail right.
+
+The four frames are drawn three times over, top to bottom - unhurt, wounded, battered - and she
+changes phase at the same marks the rows change at, so she looks as far through the fight as she
+is (`WoundComponent`). What gives is her wings, the way a moth's do: wounded, the forewing is holed
+and its edge torn; battered, both near wings are in tatters, the far pair is torn, one feather of her
+crown is snapped off and her thorax is split.
 """
 
 import pathlib
@@ -131,28 +137,59 @@ def eye_spot(grid, center, radius, clip):
     paint(grid, raster(pa.ellipse(cx - radius * 0.15, cy - radius * 0.15, radius * 0.14, radius * 0.14)) & clip, "s2")
 
 
-def render(frame):
+# Holes shot through her wings, as (along, across, radius) for `spot_at` on the near forewing, in
+# the order they are taken. A shot goes through every wing it meets, so each is torn out of all of
+# them and shows the sky, not a darker wing behind. They sit where they stay on the forewing, off her
+# body and clear of the eye spot - which is what makes her read as a moth at all - all through the
+# beat.
+HOLES = ((0.4, -0.5, 3.8), (0.1, 1.5, 3.2))
+HOLES_TAKEN = (0, 1, 2)
+
+
+def torn(pixels, *holes):
+    """[pixels] with [holes] - polygons, as point lists - torn out of them."""
+    for hole in holes:
+        pixels = pixels - raster(pa.polygon(hole))
+    return pixels
+
+
+def render(frame, wounds=0):
     grid = pa.blank(W, H)
     lift, spread = BEAT[frame]
     bob = (-2, 0, 2, 0)[frame]
     cy = 44 + bob
 
     shoulder = (34.0, cy - 6.0)
+    fore, (f_lead, f_tip, f_trail) = wing_shape(shoulder, lift, spread, 52, 30, 0.95)
+    holes = [
+        pa.ring(spot_at(f_lead, f_tip, f_trail, along, across), radius)
+        for along, across, radius in HOLES[:HOLES_TAKEN[wounds]]
+    ]
 
     # The far pair first, lifted a little higher and cut shorter, in the darker ramp.
-    far_fore, _ = wing_shape((shoulder[0] + 4, shoulder[1] - 1), lift + 12, spread, 48, 26, 0.95)
+    far_root = (shoulder[0] + 4, shoulder[1] - 1)
+    far_fore, (_, far_tip, far_trail) = wing_shape(far_root, lift + 12, spread, 48, 26, 0.95)
     far_hind, _ = wing_shape((shoulder[0] + 8, shoulder[1] + 6), lift * 0.5 - 30, spread, 32, 18, 0.9)
-    far = raster(pa.union(far_fore, far_hind))
+    far = torn(raster(pa.union(far_fore, far_hind)), *holes)
+    if wounds >= 2:
+        far = torn(far, pa.notch(far_tip, far_trail, far_root, 0.4, width=0.3))
     pa.shade_bands(grid, far, ((0.5, "d1"), (1.01, "d0")))
 
     # The near hindwing, rounder and hanging lower.
-    hind, (h_lead, h_tip, h_trail) = wing_shape((shoulder[0] + 6, shoulder[1] + 8), lift * 0.5 - 38, spread, 36, 22, 1.05)
-    hind_px = raster(hind)
+    hind_root = (shoulder[0] + 6, shoulder[1] + 8)
+    hind, (h_lead, h_tip, h_trail) = wing_shape(hind_root, lift * 0.5 - 38, spread, 36, 22, 1.05)
+    hind_px = torn(raster(hind), *holes)
+    if wounds >= 2:
+        hind_px = torn(hind_px, pa.notch(h_tip, h_trail, hind_root, 0.36, width=0.3))
     pa.shade_bands(grid, hind_px, ((0.3, "w2"), (0.7, "w1"), (1.01, "w0")))
 
     # The near forewing, the big one.
-    fore, (f_lead, f_tip, f_trail) = wing_shape(shoulder, lift, spread, 52, 30, 0.95)
-    fore_px = raster(fore)
+    fore_px = torn(raster(fore), *holes)
+    if wounds >= 1:
+        fore_px = torn(fore_px, pa.notch(f_tip, f_trail, shoulder, 0.3, width=0.22))
+    if wounds >= 2:
+        middle = ((f_tip[0] + f_trail[0]) / 2.0, (f_tip[1] + f_trail[1]) / 2.0)
+        fore_px = torn(fore_px, pa.notch(middle, f_trail, shoulder, 0.3, width=0.3))
     pa.shade_bands(grid, fore_px, ((0.14, "w3"), (0.45, "w2"), (0.8, "w1"), (1.01, "w0")))
 
     # Veins radiating from the root, so the wing has structure at this size.
@@ -186,6 +223,10 @@ def render(frame):
     # Segments on the abdomen.
     for sx in (40, 46, 52):
         paint(grid, raster(pa.capsule((sx, cy - 1), (sx + 1.5, cy + 13), 0.55, 0.55)) & body, "b1")
+    if wounds >= 2:
+        # Split across the thorax, which is lit, where a dark line shows.
+        split = [(33.0, cy - 8.0), (30.4, cy - 4.4), (33.2, cy - 1.0), (30.6, cy + 3.2), (32.4, cy + 7.0)]
+        paint(grid, raster(pa.crack(split, 0.6)) & body, "o")
 
     # The fur collar, the pale band that separates head from body.
     collar = raster(pa.ellipse(26, cy + 1, 4.5, 8.0)) & body
@@ -193,9 +234,12 @@ def render(frame):
 
     # The crown: two feathered antennae swept back over the head.
     antennae = set()
-    for base, tip in (((16, cy - 6), (30, cy - 24)), ((20, cy - 6), (38, cy - 20))):
-        antennae |= raster(pa.capsule(base, tip, 1.0, 0.7))
-        for i in range(1, 6):
+    for index, (base, tip) in enumerate((((16, cy - 6), (30, cy - 24)), ((20, cy - 6), (38, cy - 20)))):
+        # Battered, the far feather of the crown is snapped halfway along.
+        feathers = 6 if wounds < 2 or index == 0 else 3
+        end = tip if feathers == 6 else ((base[0] + tip[0]) / 2.0, (base[1] + tip[1]) / 2.0)
+        antennae |= raster(pa.capsule(base, end, 1.0, 0.7))
+        for i in range(1, feathers):
             t = i / 6.0
             px, py = base[0] + (tip[0] - base[0]) * t, base[1] + (tip[1] - base[1]) * t
             antennae |= raster(pa.capsule((px, py), (px + 3.5, py + 1.5), 0.55, 0.45))
@@ -213,9 +257,9 @@ def render(frame):
 
 
 def main() -> int:
-    grids = [render(frame) for frame in range(FRAME_COUNT)]
-    sheet = pa.save_sheet(OUTPUT, grids, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
-    print(f"{OUTPUT} ({sheet.width}x{sheet.height}, {FRAME_COUNT} frames)")
+    rows = [[render(frame, level) for frame in range(FRAME_COUNT)] for level in pa.WOUND_LEVELS]
+    sheet = pa.save_rows(OUTPUT, rows, PALETTE, FRAME_WIDTH, FRAME_HEIGHT)
+    print(f"{OUTPUT} ({sheet.width}x{sheet.height}, {FRAME_COUNT} frames x {len(rows)} rows)")
     return 0
 
 

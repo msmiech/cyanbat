@@ -30,6 +30,14 @@ glow along each plate's trailing edge, the edge left showing where the next plat
 it, as armor does.
 
 The sand is a pale, moonlit grey: the wyrm is only ever fought at night.
+
+Every part of the body is drawn three times over, top to bottom - unhurt, wounded and battered -
+and the game draws them all from the row the head's health calls for, so the whole wyrm is hurt
+at once (`WoundComponent`). It changes phase at the same marks. Its armor splits open onto the fire
+inside, the way its seams already glow: wounded, a crack runs molten down the skull and each plate;
+battered, a second one does, a horn of its crest and a spine of every plate are snapped, a tusk is
+broken and the tail has lost its hook. The sand is not hurt, and its frames are empty below the
+first row.
 """
 
 import pathlib
@@ -88,7 +96,13 @@ def paint(grid, pixels, key):
         grid[y][x] = key
 
 
-def head(open_jaws):
+def molten(grid, points, within, radius=0.8):
+    """A crack opened onto the fire inside: a molten core with a hotter line down its middle."""
+    paint(grid, raster(pa.crack(points, radius)) & within, "g0")
+    paint(grid, raster(pa.crack(points, radius * 0.5)) & within, "g2")
+
+
+def head(open_jaws, wounds=0):
     """
     A wedge of armor, broad at the back and blunt at the front, with a crest of three horns swept
     back over it and at the front a great round maw ringed with teeth and lit from inside. Two
@@ -100,7 +114,12 @@ def head(open_jaws):
 
     # The crest first, so the skull covers its roots.
     horns = set()
-    for base_x, tip, width in ((17.0, (25.0, 1.0), 3.4), (26.0, (36.0, 2.0), 3.0), (34.0, (45.0, 6.0), 2.6)):
+    for index, (base_x, tip, width) in enumerate(((17.0, (25.0, 1.0), 3.4), (26.0, (36.0, 2.0), 3.0), (34.0, (45.0, 6.0), 2.6))):
+        if wounds >= 2 and index == 1:
+            # Snapped off halfway, square across where it broke.
+            mid = ((base_x + tip[0]) / 2.0, (14.5 + tip[1]) / 2.0)
+            horns |= raster(pa.polygon([(base_x - width, 15.0), (mid[0] - 1.2, mid[1]), (mid[0] + 1.4, mid[1] + 0.8), (base_x + width, 14.0)]))
+            continue
         horns |= raster(pa.polygon([(base_x - width, 15.0), tip, (base_x + width, 14.0)]))
     pa.shade_bands_across(grid, horns, ((0.5, "t1"), (1.01, "t0")))
 
@@ -116,6 +135,12 @@ def head(open_jaws):
         paint(grid, raster(pa.capsule((px + 1, 11), (px - 1, 42), 0.55, 0.55)) & skull, "r0")
     paint(grid, raster(pa.capsule((41, 13), (40, 40), 0.6, 0.6)) & skull, "g1")
     paint(grid, raster(pa.capsule((42.5, 14), (41.5, 39), 0.5, 0.5)) & skull, "g0")
+    cracks = (
+        ((27.0, 11.0), (25.4, 16.6), (28.2, 21.4), (25.6, 27.6), (27.6, 33.0), (26.0, 38.0)),
+        ((36.4, 12.4), (34.6, 18.0), (37.2, 23.4), (34.8, 30.0), (36.6, 35.6)),
+    )
+    for crack in cracks[:wounds]:
+        molten(grid, crack, skull)
 
     # The maw: a dark ring of teeth round a molten throat.
     gape = 9.0 if open_jaws else 7.0
@@ -132,9 +157,13 @@ def head(open_jaws):
 
     # The tusks, curving forward round the maw from above and below.
     reach = 2.0 if open_jaws else 6.0
+    # Battered, the upper tusk has snapped short of its curve.
+    upper = (
+        [pa.capsule((14.0, 14.0), (3.0, 11.0), 2.4, 1.4), pa.capsule((3.0, 11.0), (0.8, 11.0 + reach), 1.4, 0.7)]
+        if wounds < 2 else [pa.capsule((14.0, 14.0), (6.4, 11.8), 2.4, 1.8)]
+    )
     tusks = raster(pa.union(
-        pa.capsule((14.0, 14.0), (3.0, 11.0), 2.4, 1.4),
-        pa.capsule((3.0, 11.0), (0.8, 11.0 + reach), 1.4, 0.7),
+        *upper,
         pa.capsule((14.0, 38.0), (3.0, 41.0), 2.4, 1.4),
         pa.capsule((3.0, 41.0), (0.8, 41.0 - reach), 1.4, 0.7),
     )) - maw
@@ -150,17 +179,20 @@ def head(open_jaws):
     return grid
 
 
-def plate(size):
+def plate(size, wounds=0):
     """
     One armored segment: a round plate [size] across, a spine on its back, a pale belly, and a
     molten seam along its trailing edge where the next plate forward does not cover it.
+
+    Wounded, it is split down its face; battered, split again, and its spine snapped short.
     """
     grid = pa.blank(FRAME, FRAME)
     radius = size / 2.0
     cx, cy = 24.0, 25.0
     body = raster(pa.ellipse(cx, cy, radius, radius * 0.9))
+    rise = 0.55 if wounds < 2 else 0.12
     spine = raster(pa.polygon([
-        (cx - radius * 0.45, cy - radius * 0.7), (cx + radius * 0.35, cy - radius * 0.9 - radius * 0.55),
+        (cx - radius * 0.45, cy - radius * 0.7), (cx + radius * 0.35, cy - radius * 0.9 - radius * rise),
         (cx + radius * 0.35, cy - radius * 0.72),
     ])) - body
     pa.shade_bands_across(grid, spine, ((0.5, "t1"), (1.01, "t0")))
@@ -173,24 +205,36 @@ def plate(size):
     seam -= raster(pa.ellipse(cx + radius * 0.35, cy, radius * 0.5, radius * 0.85))
     paint(grid, seam, "g1")
     paint(grid, {(x, y) for x, y in seam if (x + 1, y) not in seam}, "g0")
+    cracks = (
+        ((-0.02, -0.86), (-0.22, -0.40), (0.06, -0.02), (-0.16, 0.40), (0.02, 0.80)),
+        ((-0.56, -0.60), (-0.70, -0.16), (-0.48, 0.18), (-0.68, 0.56)),
+    )
+    for crack in cracks[:wounds]:
+        molten(grid, [(cx + radius * u, cy + radius * v) for u, v in crack], body, 0.4 + radius * 0.02)
     pa.outline_against(grid, spine, body, color="O")
     pa.outer_outline(grid, FRAME, FRAME)
     return grid
 
 
-def tail():
-    """The end of it: a last small plate drawn out into a hooked point."""
+def tail(wounds=0):
+    """
+    The end of it: a last small plate drawn out into a hooked point. Wounded, the plate is split;
+    battered, the hook is broken off.
+    """
     grid = pa.blank(FRAME, FRAME)
     cx, cy = 20.0, 25.0
-    body = raster(pa.union(
-        pa.ellipse(cx, cy, 10.0, 9.0),
-        pa.polygon([(cx + 2, cy - 7), (cx + 20, cy - 2), (cx + 24, cy - 7), (cx + 22, cy + 1), (cx + 2, cy + 8)]),
-    ))
+    point = (
+        [(cx + 2, cy - 7), (cx + 20, cy - 2), (cx + 24, cy - 7), (cx + 22, cy + 1), (cx + 2, cy + 8)] if wounds < 2
+        else [(cx + 2, cy - 7), (cx + 15, cy - 3.4), (cx + 16.4, cy - 1.0), (cx + 15.2, cy + 1.6), (cx + 2, cy + 8)]
+    )
+    body = raster(pa.union(pa.ellipse(cx, cy, 10.0, 9.0), pa.polygon(point)))
     pa.shade_bands(grid, body, ARMOR)
     belly = {(x, y) for x, y in body if y > cy + 4}
     pa.shade_bands(grid, belly, ((0.5, "b1"), (1.01, "b0")))
     paint(grid, raster(pa.capsule((cx + 6, cy - 6), (cx + 5, cy + 7), 0.5, 0.5)) & body, "g1")
     paint(grid, raster(pa.capsule((cx + 13, cy - 4), (cx + 12, cy + 4), 0.5, 0.5)) & body, "r0")
+    if wounds >= 1:
+        molten(grid, [(cx - 1.0, cy - 8.4), (cx - 3.0, cy - 3.6), (cx - 0.6, cy + 0.6), (cx - 2.6, cy + 5.4)], body, 0.6)
     pa.outer_outline(grid, FRAME, FRAME)
     return grid
 
@@ -233,11 +277,15 @@ def plume(frame, rng):
 
 def main() -> int:
     rng = random.Random(SEED)
-    grids = [head(False), head(True), plate(40), plate(34), plate(28), tail()]
-    grids += [plume(frame, rng) for frame in range(4)]
-    assert len(grids) == FRAMES
-    sheet = pa.save_sheet(OUTPUT, grids, PALETTE, FRAME, FRAME)
-    print(f"{OUTPUT} ({sheet.width}x{sheet.height}, {FRAMES} frames of {FRAME})")
+    rows = [
+        [head(False, level), head(True, level), plate(40, level), plate(34, level), plate(28, level), tail(level)]
+        for level in pa.WOUND_LEVELS
+    ]
+    rows[0] += [plume(frame, rng) for frame in range(4)]
+    rows[1:] = [row + [None] * 4 for row in rows[1:]]
+    assert all(len(row) == FRAMES for row in rows)
+    sheet = pa.save_rows(OUTPUT, rows, PALETTE, FRAME, FRAME)
+    print(f"{OUTPUT} ({sheet.width}x{sheet.height}, {FRAMES} frames of {FRAME} x {len(rows)} rows)")
     return 0
 
 

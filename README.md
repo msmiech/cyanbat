@@ -80,6 +80,12 @@ cave, wooden drums and a bamboo flute in the forest, an oud and a ney in the des
 out quiet and builds as the fight does. The menu has a theme of its own, a dark synth loop with a
 heartbeat under it, and a lost run gets a lament.
 
+Everything that can be hurt shows it. The bat and every hostile are drawn three ways - unhurt,
+wounded once a third of their health is gone and battered once two thirds are - with torn wings,
+cracked shells, snapped horns and narrowed eyes, and a boss looks as far through its fight as its
+phases say it is. A wounded enemy is a straggler, too: it flies slower and fires less often the
+worse it is hurt, falling behind its swarm. The bosses alone are never slowed by their wounds.
+
 ## 🎮 Controls
 
 |            | Move                                   | Pause / resume  | Quit to menu |

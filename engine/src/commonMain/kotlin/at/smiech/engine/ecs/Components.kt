@@ -489,6 +489,53 @@ data class HitFlashComponent(
 }
 
 /**
+ * Shows how badly an entity is hurt by which row of its sheet it is drawn from, picked by
+ * [WoundSystem] from its [HealthComponent].
+ *
+ * A sheet for this stacks one picture of its creature per state, top to bottom: unhurt on top, and
+ * under it a row per mark in [thresholds], each more battered than the last. Rows, the way a sheet
+ * drawn in several lights stacks them, because [AnimationSystem] walks [SpriteComponent.srcX] and
+ * never touches [SpriteComponent.srcY]: a wound takes hold mid wingbeat without the beat losing its
+ * place.
+ *
+ * The row is read off the health every tick rather than latched by the hit that crossed a mark, so
+ * whatever puts health back puts the picture back with it.
+ *
+ * @param rowHeight how far down its sheet each row starts from the one above: the height of one
+ *   picture, which is the sheet's height over its rows.
+ * @param thresholds the health fractions at or below which each wounded row takes over, from the
+ *   first wound to the worst: row n + 1 is drawn once [HealthComponent.fraction] is down to
+ *   thresholds[n].
+ */
+class WoundComponent(val rowHeight: Int, val thresholds: FloatArray) : Component {
+    /** The row it is drawn from now, kept by [WoundSystem]: 0 unhurt, then one per mark crossed. */
+    var row: Int = 0
+
+    /** The row an entity at [fraction] of its health is drawn from: 0 unhurt, then one per mark. */
+    fun rowFor(fraction: Float): Int {
+        var row = 0
+        while (row < thresholds.size && fraction <= thresholds[row]) row++
+        return row
+    }
+}
+
+/**
+ * How fast an entity goes about what it does, as fractions of its own pace: 1 is its full pace,
+ * and lower is slower.
+ *
+ * A clock of its own rather than a speed. [motion] is the rate its time runs at for everything
+ * about how it flies - the distance it covers a tick ([MovementSystem]), its pattern's clock
+ * ([EnemyBehaviorSystem]) and its wingbeat ([AnimationSystem]) - so a slowed pattern is the same
+ * pattern played slower: a weave keeps its width, a loop its size and a leap its height. Scaling
+ * only the velocity would have shrunk them instead. [fire] is the same for its weapon's cadence
+ * ([WeaponSystem]): at a half, it fires every other interval. Its shots, once fired, fly at their
+ * own speed.
+ *
+ * Opt-in, like most components here: what slows an entity down, and how far, is the game's call.
+ */
+data class PaceComponent(var motion: Float = 1f, var fire: Float = 1f) : Component
+
+/**
  * Which colorway of the shared projectile sheet this entity's shots are drawn from.
  *
  * Carried by the *shooter*, not by the shot, and read when the shot is spawned. That is the only
