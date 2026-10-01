@@ -10,9 +10,9 @@ import kotlin.math.sqrt
  * Neither platform can be asked to draw the shapes itself and come out the same as the other.
  * Android's `Paint()` antialiases by default since Android 12, and even with that turned off, Skia
  * and Java2D disagree about which pixels an aliased edge covers: each approximates the curve its
- * own way, Java2D moves a path a quarter of a pixel before filling it, and the two end a line on
- * different pixels. Filled rectangles they agree on to the pixel, which is why everything here
- * comes out as runs of them.
+ * own way, Java2D nudges a path onto a grid of its own before filling it, which leaves a small oval
+ * lopsided, and Skia stops a line a pixel short of its far end. Filled rectangles they agree on to
+ * the pixel, which is why everything here comes out as runs of them.
  *
  * Pixel art, so nothing is antialiased: a pixel is in a shape or it is not. And no pixel is handed
  * out twice for one shape, so a shape drawn in a translucent color is blended once all over.
