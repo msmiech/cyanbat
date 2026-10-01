@@ -9,10 +9,10 @@ import at.smiech.cyanbat.util.ENEMY_BASE_HIT_POINTS
 import at.smiech.cyanbat.util.ENEMY_DAMAGE_PER_WAVE
 import at.smiech.cyanbat.util.ENEMY_HIT_POINTS_PER_WAVE
 import at.smiech.cyanbat.util.ENEMY_SPEED_PER_WAVE
-import at.smiech.cyanbat.util.STAGE_DIFFICULTY_STEP
 import at.smiech.cyanbat.util.MINIMUM_SPAWN_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.OPENING_SPAWN_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.SPAWN_INTERVAL_JITTER
+import at.smiech.cyanbat.util.STAGE_DIFFICULTY_STEP
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
 import kotlin.random.Random
 

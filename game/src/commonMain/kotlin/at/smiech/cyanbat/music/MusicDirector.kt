@@ -1,5 +1,8 @@
 package at.smiech.cyanbat.music
 
+import at.smiech.cyanbat.music.MusicDirector.Companion.COMBO_RUNGS
+import at.smiech.cyanbat.music.MusicDirector.Companion.COMBO_STEP
+import at.smiech.cyanbat.music.MusicDirector.Companion.WAVE_RISE
 import at.smiech.cyanbat.ui.game.ComboHeat
 import at.smiech.engine.LayeredMusic
 import at.smiech.engine.MusicGrid

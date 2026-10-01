@@ -58,9 +58,9 @@ import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
 import at.smiech.cyanbat.util.VICTORY_FANFARE_DELAY_SECONDS
 import at.smiech.cyanbat.util.WAVE_BANNER_SECONDS
-import at.smiech.cyanbat.util.XP_BAR_HEIGHT
 import at.smiech.cyanbat.util.WOUNDED_FIRE_RATE
 import at.smiech.cyanbat.util.WOUNDED_PACE
+import at.smiech.cyanbat.util.XP_BAR_HEIGHT
 import at.smiech.cyanbat.util.XP_PER_BOSS
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game

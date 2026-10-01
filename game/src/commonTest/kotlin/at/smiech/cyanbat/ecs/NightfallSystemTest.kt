@@ -9,8 +9,8 @@ import at.smiech.engine.ecs.CrossfadeComponent
 import at.smiech.engine.ecs.RenderSystem
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TransformComponent
-import at.smiech.engine.math.Rect
 import at.smiech.engine.ecs.World
+import at.smiech.engine.math.Rect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue

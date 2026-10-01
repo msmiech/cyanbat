@@ -2,8 +2,8 @@ package at.smiech.cyanbat
 
 import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
 import at.smiech.cyanbat.util.HITS_PER_MULTIPLIER_STEP
-import at.smiech.cyanbat.util.STAGE_COMPLETE_BONUS
 import at.smiech.cyanbat.util.POINTS_PER_HIT
+import at.smiech.cyanbat.util.STAGE_COMPLETE_BONUS
 
 /**
  * Scoring for a single run.

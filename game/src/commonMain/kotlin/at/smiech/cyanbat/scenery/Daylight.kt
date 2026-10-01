@@ -1,5 +1,8 @@
 package at.smiech.cyanbat.scenery
 
+import at.smiech.cyanbat.scenery.Daylight.SKY
+import at.smiech.cyanbat.scenery.Daylight.SKY_POSITIONS
+import at.smiech.cyanbat.scenery.Daylight.fraction
 import at.smiech.engine.EngineColors
 
 /**

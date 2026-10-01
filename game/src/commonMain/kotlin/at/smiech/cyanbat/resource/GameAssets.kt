@@ -1,11 +1,11 @@
 package at.smiech.cyanbat.resource
 
-import at.smiech.engine.Audio as EngineAudio
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Music
 import at.smiech.engine.MusicGrid
 import at.smiech.engine.Pixmap
 import at.smiech.engine.Sound
+import at.smiech.engine.Audio as EngineAudio
 import at.smiech.engine.Graphics as EngineGraphics
 
 data class GameAssets(
