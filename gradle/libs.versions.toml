@@ -5,6 +5,8 @@ kotlin = "2.4.20"
 coreKtx = "1.19.1"
 datastore = "1.2.1"
 lifecycleViewmodelCompose = "2.11.0"
+# What Compose already brings in; declared because the engine calls it directly.
+tracing = "1.2.0"
 jetbrainsLifecycle = "2.11.0"
 composeMaterial3 = "1.4.0"
 compose = "1.12.1"
@@ -23,6 +25,7 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-activity-ktx = { module = "androidx.activity:activity-ktx", version.ref = "activityKtx" }
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycleViewmodelCompose" }
+androidx-tracing = { module = "androidx.tracing:tracing", version.ref = "tracing" }
 jetbrains-lifecycle-viewmodel-compose = { module = "org.jetbrains.androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "jetbrainsLifecycle" }
 androidx-compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "composeMaterial3" }
 androidx-datastore = { module = "androidx.datastore:datastore", version.ref = "datastore" }

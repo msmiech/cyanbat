@@ -62,6 +62,8 @@ and the host blits that to the window.
 the run. `GameScreen` steps `world.update` in fixed 19 ms ticks (`TICK_INITIAL`), and everything
 that paces gameplay - `EnemyGenerator`, `ObstacleGenerator`, the stage clock - is fed that tick.
 Never pace gameplay with the wall clock or a coroutine: a paused game has to be a paused stage.
+On Android the loop marks each frame's `Screen.update` and `Screen.present` in the system trace
+(`FrameTrace`), so a Perfetto or Android Studio trace shows what a slow frame spent its time on.
 
 **The framebuffer's shape is part of the game design.** It is 3:2, and spawn points, boss stations
 and wave pacing are all tuned to 480x320. `FrameFit` fits it to the screen according to the
@@ -217,6 +219,10 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
 - `AndroidGraphics` and `DesktopGraphics` must put the same pixels on the framebuffer. That goes
   down to the deliberate `- 1` in `drawPixmap`, which paints a column short and is why background
   tiles overlap by one column.
+- Both framebuffers are 8 bits a channel and opaque, so a blend - an aura's halo, the desert's
+  crossfades - comes out the same on each: an `ARGB_8888` bitmap created without alpha on Android,
+  a `TYPE_INT_RGB` image on the desktop. Android's used to be `RGB_565`, which rounds every blend
+  to five or six bits a channel.
 - Text is the exception. Each backend draws it in its platform's sans-serif face (Roboto on
   Android, Arial on Windows, usually DejaVu Sans on Linux), and the same string comes out at
   different widths. Right-align, center or wrap text by `Graphics.measureString`, never by a count
