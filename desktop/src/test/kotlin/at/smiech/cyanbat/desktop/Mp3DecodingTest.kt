@@ -1,8 +1,10 @@
 package at.smiech.cyanbat.desktop
 
+import at.smiech.cyanbat.resource.SoundEffect
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
@@ -20,16 +22,16 @@ import kotlin.test.assertTrue
  */
 class Mp3DecodingTest {
 
-    private val audioAssets = listOf("deathSound.mp3")
+    private val audioAssets = SoundEffect.entries.map { it.file }.filter { it.endsWith(".mp3") }
 
     /**
-     * The aura surge is the one asset here the JDK can decode on its own, and it is WAV precisely
-     * so that it can be: Android's `AssetManager.openFd` needs an uncompressed asset to hand
-     * SoundPool a file descriptor, and AGP leaves `.wav` uncompressed while it would repack an
-     * MP3. It still has to be on the classpath and still has to decode, so it is checked alongside
-     * the rest - just without the service provider being the thing under test.
+     * Every other effect is a WAV the JDK can decode on its own, and WAV precisely so that it can
+     * be: Android's `AssetManager.openFd` needs an uncompressed asset to hand SoundPool a file
+     * descriptor, and AGP leaves `.wav` uncompressed while it would repack an MP3. They still have
+     * to be on the classpath and still have to decode, so they are checked alongside the rest -
+     * just without the service provider being the thing under test.
      */
-    private val pcmAssets = listOf("auraSurge.wav", "shotFire.wav")
+    private val pcmAssets = SoundEffect.entries.map { it.file }.filter { it.endsWith(".wav") }
 
     @Test
     fun `audio assets are on the classpath`() {
@@ -72,14 +74,19 @@ class Mp3DecodingTest {
         }
     }
 
+    /**
+     * As plain PCM, too: a WAV can hold compressed audio - the music's are IMA ADPCM - and SoundPool
+     * would refuse an effect written that way.
+     */
     @Test
-    fun `the aura surge decodes without a service provider`() {
+    fun `every wav effect is plain pcm and decodes without a service provider`() {
         for (name in pcmAssets) {
             val resource = javaClass.getResourceAsStream("/$name")
                 ?: error("$name is missing from the classpath")
 
             resource.buffered().use { raw ->
                 AudioSystem.getAudioInputStream(raw).use { stream ->
+                    assertEquals(AudioFormat.Encoding.PCM_SIGNED, stream.format.encoding, "$name's encoding")
                     assertTrue(
                         stream.readNBytes(DECODE_PROBE_BYTES).isNotEmpty(),
                         "$name produced no PCM"

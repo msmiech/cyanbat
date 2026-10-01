@@ -32,10 +32,11 @@ import wave
 SAMPLE_RATE = 22050
 DURATION = 0.12
 
-# Quieter than the aura surge, because where that one fires on a milestone this fires constantly.
-# It sits under the music rather than over it, and is meant to confirm the trigger rather than
-# announce it.
-PEAK = 0.16
+# Near full scale, like the sounds of the fight that answer it (generate_combat_sounds.py), so the
+# samples carry their full 16 bits. How loud it plays is SoundEffect.SHOT's volume, which is where it
+# is set under the music: written at a sixth of full scale, it could not be turned up far enough to
+# be heard over the music at all.
+PEAK = 0.9
 
 # The sweep. Two octaves down over the length of the blip, which is what makes it read as a shot
 # going away rather than as a beep.

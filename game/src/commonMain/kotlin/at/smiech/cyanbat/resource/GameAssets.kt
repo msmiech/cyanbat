@@ -32,14 +32,21 @@ data class GameAssets(
 
     data class Audio(
         var gameOverMusic: Music,
-        var deathSound: Sound,
-        /** The swell the bat's aura lets out each time it crosses a tier; see `AuraComponent`. */
-        var auraSurgeSound: Sound,
-        /** The bat's gun. Short and quiet by design: it plays on every volley. */
-        var shotSound: Sound,
+        /** Every [SoundEffect], loaded up front: they play mid-fight, where a load would stall it. */
+        var effects: Map<SoundEffect, Sound>,
     )
 
     companion object {
+        /**
+         * The fanfare a won stage gets, from tools/generate_victory_music.py.
+         *
+         * Opened by the run that wins rather than loaded with the rest: it plays once, from the top,
+         * and a track that has been played partway carries on from there the next time. So each win
+         * gets a fresh one, and the run that opened it disposes of it - which also stops it the
+         * moment the player flies on, rather than over the next stage's music.
+         */
+        const val VICTORY_MUSIC = "music/victory.wav"
+
         /**
          * Loads every asset the game uses, through whichever platform's [EngineGraphics] and
          * [EngineAudio] it is handed.
@@ -62,9 +69,7 @@ data class GameAssets(
                 audio = Audio(
                     // Generated like the stages' music, by tools/generate_game_over_music.py.
                     gameOverMusic = a.newMusic("music/game_over.wav"),
-                    deathSound = a.newSound("deathSound.mp3"),
-                    auraSurgeSound = a.newSound("auraSurge.wav"),
-                    shotSound = a.newSound("shotFire.wav"),
+                    effects = SoundEffect.entries.associateWith { a.newSound(it.file) },
                 ),
                 stages = listOf(
                     Stage(

@@ -55,7 +55,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
 
     override var currentScreen: Screen? = null
     private var wakeLock: WakeLock? = null
-    private val gameLoop = GameLoop(this)
+    private val gameLoop = GameLoop(this, trace = AndroidFrameTrace)
 
     /**
      * Keyboard, game controller and back-gesture state. Owned by the activity rather than by a
@@ -88,7 +88,19 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         )
         hideStatusBar()
 
-        val frameBuffer = createBitmap(frameBufferWidth, frameBufferHeight, Bitmap.Config.RGB_565)
+        // Eight bits a channel, like the desktop's TYPE_INT_RGB framebuffer, so that a blend - an
+        // aura's halo, the desert's crossfades, a dimmed overlay - comes out the same on both.
+        // RGB_565 rounded every blend to five or six bits a channel, which banded the dusk and
+        // drifted wherever translucent layers stacked.
+        //
+        // Created without alpha, because it never holds any: it starts black, as RGB_565 did, and
+        // everything is drawn over what is already there.
+        val frameBuffer = createBitmap(
+            frameBufferWidth,
+            frameBufferHeight,
+            Bitmap.Config.ARGB_8888,
+            hasAlpha = false,
+        )
         val touchHandler = PointerTouchHandler()
 
         input = AndroidInput(touchHandler, controlHandler)

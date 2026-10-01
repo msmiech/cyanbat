@@ -8,11 +8,13 @@ import at.smiech.cyanbat.desktop.recorder.RunProbe
 import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.SoundEffect
 import at.smiech.cyanbat.service.EnemyGun
 import at.smiech.cyanbat.service.EnemySpecies
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SECONDS
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.BURROW_SHOWING
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
@@ -20,10 +22,14 @@ import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
 import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
+import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
+import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.WOUND_ROWS
+import at.smiech.engine.GameButton
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Haptics
+import at.smiech.engine.Sound
 import at.smiech.engine.ecs.AuraComponent
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
@@ -308,7 +314,13 @@ class GameScreenTest {
         val imp = imp(x = 300f, y = 60f, elite = elite, hitPoints = 1)
         val score = probe.score
         val experience = probe.experience
-        val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
+        shoot(imp)
+        return (probe.score - score) to (probe.experience - experience)
+    }
+
+    /** One of the bat's shots, already inside [target], and a tick for it to land. */
+    private fun Flight.shoot(target: EntityId) {
+        val rect = probe.world.getComponent(target, TransformComponent::class)!!.rect
         val shot = assets.graphics.shot
         EntityFactory(probe.world).createShot(
             x = rect.centerX - SHOT_FRAME_WIDTH,
@@ -319,7 +331,139 @@ class GameScreenTest {
             isPlayer = true,
         )
         screen.update(TICK_INITIAL * 1.5f)
-        return (probe.score - score) to (probe.experience - experience)
+    }
+
+    /**
+     * Brings the cave's boss in and shoots it down, one hit from dead. On screen, where a boss is
+     * fought: it arrives from past the right edge.
+     */
+    private fun Flight.downBoss() {
+        screen.enmGen.update(StageProgression.forStage(CAVE).bossTimeSeconds)
+        val boss = assertNotNull(screen.enmGen.bossId, "the boss should have arrived")
+        val transform = probe.world.getComponent(boss, TransformComponent::class)!!
+        transform.rect = Rect.fromLTWH(300f, 100f, transform.rect.width, transform.rect.height)
+        probe.world.getComponent(boss, HealthComponent::class)!!.hitPoints = 1
+        shoot(boss)
+        assertTrue(probe.stageComplete, "the boss should be down")
+    }
+
+    /** Steps the run on through [seconds] of frames, as the game loop would. */
+    private fun Flight.fly(seconds: Float) {
+        repeat((seconds / FRAME_SECONDS).roundToInt()) { screen.update(FRAME_SECONDS) }
+    }
+
+    private fun Flight.hostiles(): List<EntityId> = probe.world.query(CollisionComponent::class).filter {
+        probe.world.getComponent(it, CollisionComponent::class)?.group in
+            setOf(CollisionGroup.ENEMY, CollisionGroup.ENEMY_PROJECTILE)
+    }
+
+    /**
+     * The run plays on for a few seconds after its boss, and nothing may be left in them to shoot
+     * the bat down: whatever the boss called in goes up with it, and the shots in the air go too.
+     */
+    @Test
+    fun `everything hostile goes down with the boss`() = flight(CAVE) {
+        val straggler = imp(x = 300f, y = 60f, elite = null)
+        val impRect = probe.world.getComponent(straggler, TransformComponent::class)!!.rect
+        val shot = assets.graphics.shot
+        EntityFactory(probe.world).createShot(
+            x = impRect.left - SHOT_FRAME_WIDTH, y = impRect.centerY, width = SHOT_FRAME_WIDTH.toFloat(),
+            height = shot.height.toFloat(), pixmap = shot, isPlayer = false,
+        )
+
+        downBoss()
+        fly(0.1f)
+
+        assertEquals(emptyList(), hostiles(), "left in the stage after its boss")
+    }
+
+    /** Should anything be left by the boss, a stage won is still won. */
+    @Test
+    fun `the bat cannot be hurt once the stage is won`() = flight(CAVE) {
+        downBoss()
+        val health = probe.world.getComponent(probe.batId, HealthComponent::class)!!
+        val before = health.hitPoints
+        val bat = probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect
+        imp(x = bat.left, y = bat.top, elite = null)
+
+        fly(0.5f)
+
+        assertEquals(before, health.hitPoints)
+    }
+
+    /**
+     * The boss is seen going up, and the fanfare heard coming in, before the overlay takes the
+     * player on: a press made while it plays out is not them asking to leave.
+     */
+    @Test
+    fun `the overlay waits for the boss's fall to play out`() = flight(CAVE) {
+        downBoss()
+        assertEquals("THE CACO IMP FALLS", probe.banner)
+        val blasts = { probe.world.query(SpriteComponent::class).count {
+            probe.world.getComponent(it, SpriteComponent::class)?.pixmap === assets.graphics.explosion
+        } }
+        val first = BOSS_AFTERSHOCK_SECONDS.first()
+        fly(first + 0.05f)
+        assertTrue(blasts() >= 2, "the wreck did not go up again: ${blasts()} blasts")
+
+        game.controlHandler.onButtonPress(GameButton.CONFIRM)
+        fly(STAGE_COMPLETE_DELAY_SECONDS + STAGE_COMPLETE_ARMING_SECONDS + 0.1f - (first + 0.05f))
+        assertNull(game.currentScreen, "a press made before the overlay was up took the player on")
+        assertNull(probe.banner, "left under the overlay")
+
+        game.controlHandler.onButtonPress(GameButton.CONFIRM)
+        screen.update(FRAME_SECONDS)
+        val next = assertNotNull(game.currentScreen as? GameScreen, "the overlay did not take the player on")
+        try {
+            assertEquals(2, next.currentStage.id)
+        } finally {
+            next.dispose()
+        }
+    }
+
+    /**
+     * A fight heard through the run's own wiring: a shot landing, a kill, the bat taking a blow, and
+     * the boss going down - which, with all it takes with it, is one sound and not a crowd of them.
+     */
+    @Test
+    fun `the fight is heard`() {
+        val heard = mutableListOf<SoundEffect>()
+        val sounds = SoundEffect.entries.associateWith { effect ->
+            object : Sound {
+                override fun play(volume: Float) {
+                    heard += effect
+                }
+
+                override fun dispose() = Unit
+            }
+        }
+        // The guns are left out: the bat's fires on its own clock, and so might the imps'.
+        val fight = { heard.filterNot { it == SoundEffect.SHOT || it == SoundEffect.ENEMY_SHOT } }
+
+        flight(CAVE, sounds) {
+            val imp = imp(x = 300f, y = 60f, elite = null)
+            shoot(imp)
+            assertEquals(listOf(SoundEffect.HIT), fight(), "a shot landing")
+
+            probe.world.getComponent(imp, HealthComponent::class)!!.hitPoints = 1
+            shoot(imp)
+            assertEquals(listOf(SoundEffect.HIT, SoundEffect.ENEMY_DEATH), fight(), "a kill")
+
+            val bat = probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect
+            val shot = assets.graphics.shot
+            EntityFactory(probe.world).createShot(
+                x = bat.centerX, y = bat.centerY, width = SHOT_FRAME_WIDTH.toFloat(),
+                height = shot.height.toFloat(), pixmap = shot, isPlayer = false,
+            )
+            screen.update(TICK_INITIAL * 1.5f)
+            assertEquals(SoundEffect.BAT_HIT, fight().last(), "the bat hit")
+
+            heard.clear()
+            imp(x = 300f, y = 200f, elite = null)
+            downBoss()
+            fly(0.1f)
+            assertEquals(listOf(SoundEffect.BOSS_DEATH), fight(), "the boss and its escort going down")
+        }
     }
 
     @Test
@@ -411,10 +555,14 @@ class GameScreenTest {
      */
     private open class Flight(val screen: GameScreen, val probe: RunProbe, val assets: GameAssets, val game: DesktopGame)
 
-    /** A run of [stage] on the desktop's own host, disposed of when [test] is done with it. */
-    private fun flight(stage: Int, test: Flight.() -> Unit) {
+    /**
+     * A run of [stage] on the desktop's own host, disposed of when [test] is done with it: silent, or
+     * with its effects played through [sounds] for a test that listens to it.
+     */
+    private fun flight(stage: Int, sounds: Map<SoundEffect, Sound>? = null, test: Flight.() -> Unit) {
         val game = DesktopGame(480, 320)
         val assets = GameAssets.load(game.graphics, game.audio)
+        if (sounds != null) assets.audio.effects = sounds
         val screen = GameScreen(
             game,
             CyanBatEnvironment(
@@ -423,7 +571,7 @@ class GameScreenTest {
                 highscores = RecordingHighscores(),
                 stageUnlocks = StageUnlockStore.InMemory(),
                 onExitToMenu = {},
-                audioSettings = Silent,
+                audioSettings = if (sounds != null) SoundsOnly else Silent,
             ),
             stage,
         )
@@ -463,6 +611,9 @@ class GameScreenTest {
         const val BAT_ROW = 40
         const val IMP_ROW = 29
         const val WYRM_FRAME = 48
+
+        /** A frame of a 60 Hz display, which is what the game loop hands a screen at a time. */
+        const val FRAME_SECONDS = 1f / 60
     }
 }
 
@@ -485,4 +636,10 @@ private class RecordingHighscores : HighscoreStore {
 private object Silent : AudioSettings {
     override val musicEnabled = false
     override val soundsEnabled = false
+}
+
+/** No music, which no test listens to and every run would otherwise start a thread to play. */
+private object SoundsOnly : AudioSettings {
+    override val musicEnabled = false
+    override val soundsEnabled = true
 }

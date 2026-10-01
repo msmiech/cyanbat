@@ -5,6 +5,7 @@ import at.smiech.cyanbat.ecs.EliteComponent
 import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
+import at.smiech.cyanbat.util.BURST_DRIFT
 import at.smiech.cyanbat.util.CRITICAL_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.CRITICAL_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
@@ -714,7 +715,7 @@ class EntityFactory(val world: World) {
                 )
             )
         )
-        world.addComponent(id, VelocityComponent(Vector2(-1f, 0f)))
+        world.addComponent(id, VelocityComponent(Vector2(BURST_DRIFT, 0f)))
         world.addComponent(id, SpriteComponent(pixmap, srcWidth = frameWidth, scale = scale))
         world.addComponent(
             id,
