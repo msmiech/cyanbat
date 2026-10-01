@@ -223,6 +223,12 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   crossfades - comes out the same on each: an `ARGB_8888` bitmap created without alpha on Android,
   a `TYPE_INT_RGB` image on the desktop. Android's used to be `RGB_565`, which rounds every blend
   to five or six bits a channel.
+- Lines, ovals and oval outlines are worked out once, in common code (`Raster`), and laid down as
+  rectangles, which both backends fill alike. Neither backend draws its own: Skia and Java2D light
+  different edge pixels even with antialiasing off. Android fills an oval's rectangles as one
+  polygon instead, for speed, and that covers exactly the same pixels.
+- Shapes are never antialiased. Android's `Paint()` antialiases by default since Android 12, so the
+  shape paint turns that off by hand; Android's text has a paint of its own, which keeps it on.
 - Text is the exception. Each backend draws it in its platform's sans-serif face (Roboto on
   Android, Arial on Windows, usually DejaVu Sans on Linux), and the same string comes out at
   different widths. Right-align, center or wrap text by `Graphics.measureString`, never by a count

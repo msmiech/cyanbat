@@ -1,8 +1,10 @@
 package at.smiech.engine.impl
 
 import at.smiech.engine.EngineColors
+import at.smiech.engine.Raster
 import java.awt.image.BufferedImage
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 /**
@@ -39,6 +41,52 @@ class DesktopGraphicsTest {
                 "\"$text\" at ${size}px stops at column ${inked.last()}, short of its measured end at $penEnd",
             )
         }
+    }
+
+    /**
+     * The shapes come out exactly as [Raster] works them out - which is what Android draws too -
+     * and not as Java2D's own `fillOval` and `drawLine` would have them.
+     *
+     * Drawn translucent over black, so that a pixel blended twice, or an edge pixel only partly
+     * covered, would show up as a second shade of gray.
+     */
+    @Test
+    fun `ovals outlines and lines land on exactly the pixels Raster gives them`() {
+        val gray = EngineColors.withAlpha(EngineColors.WHITE, 0.5f)
+        val cases = listOf(
+            Triple("oval", lit { it.drawOval(5, 4, 37, 29, gray) }, runs { Raster.oval(5, 4, 37, 29, it) }),
+            Triple(
+                "outline",
+                lit { it.drawOvalOutline(5, 4, 37, 29, gray) },
+                runs { Raster.ovalOutline(5, 4, 37, 29, it) },
+            ),
+            Triple("line", lit { it.drawLine(3, 40, 58, 9, gray) }, runs { Raster.line(3, 40, 58, 9, it) }),
+        )
+        for ((shape, drawn, expected) in cases) {
+            assertEquals(expected, drawn.keys, "the $shape's pixels")
+            assertEquals(1, drawn.values.toSet().size, "the $shape in more than one shade")
+        }
+    }
+
+    /** Every pixel [draw] changes on a black frame, with the color it leaves there. */
+    private fun lit(draw: (DesktopGraphics) -> Unit): Map<Pair<Int, Int>, Int> {
+        val frame = BufferedImage(64, 48, BufferedImage.TYPE_INT_RGB)
+        draw(DesktopGraphics(frame) { error("no assets here") })
+        val lit = HashMap<Pair<Int, Int>, Int>()
+        for (y in 0 until frame.height) for (x in 0 until frame.width) {
+            val rgb = frame.getRGB(x, y) and 0xFFFFFF
+            if (rgb != 0) lit[x to y] = rgb
+        }
+        return lit
+    }
+
+    /** The pixels covered by the rectangles [draw] hands out. */
+    private fun runs(draw: ((Int, Int, Int, Int) -> Unit) -> Unit): Set<Pair<Int, Int>> {
+        val pixels = HashSet<Pair<Int, Int>>()
+        draw { left, top, width, height ->
+            for (y in top until top + height) for (x in left until left + width) pixels += x to y
+        }
+        return pixels
     }
 
     private companion object {

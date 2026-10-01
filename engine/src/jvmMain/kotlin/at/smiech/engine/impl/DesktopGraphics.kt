@@ -57,25 +57,14 @@ class DesktopGraphics(
         frameBuffer.setRGB(x, y, color)
     }
 
-    override fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int) {
-        g2d.color = Color(color, true)
-        g2d.drawLine(xFrom, yFrom, xTo, yTo)
-    }
-
-    // The Android implementation sets Paint.Style.FILL, so these are filled shapes despite the name.
+    /**
+     * Filled despite the name, as on Android. The lines and ovals arrive here too, as runs of
+     * rectangles worked out by [at.smiech.engine.Raster]: Java2D's own `drawLine` and `fillOval`
+     * light different edge pixels from Skia's, so this backend draws neither.
+     */
     override fun drawRect(x: Int, y: Int, width: Int, height: Int, color: Int) {
         g2d.color = Color(color, true)
         g2d.fillRect(x, y, width, height)
-    }
-
-    override fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int) {
-        g2d.color = Color(color, true)
-        g2d.fillOval(x, y, width, height)
-    }
-
-    override fun drawOvalOutline(x: Int, y: Int, width: Int, height: Int, color: Int) {
-        g2d.color = Color(color, true)
-        g2d.drawOval(x, y, width, height)
     }
 
     /**
