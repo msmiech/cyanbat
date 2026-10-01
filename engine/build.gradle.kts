@@ -53,6 +53,7 @@ kotlin {
                 implementation(libs.androidx.activity.ktx)
                 implementation(libs.androidx.core.ktx)
                 implementation(libs.androidx.activity.compose)
+                implementation(libs.androidx.tracing)
             }
         }
     }

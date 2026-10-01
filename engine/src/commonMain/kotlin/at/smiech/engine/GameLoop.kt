@@ -8,7 +8,9 @@ package at.smiech.engine
  */
 class GameLoop(
     private val game: Game,
-    private val maxDeltaSeconds: Float = MAX_FRAME_DELTA_SECONDS
+    private val maxDeltaSeconds: Float = MAX_FRAME_DELTA_SECONDS,
+    /** Marks each frame's update and present for a profiler; see [FrameTrace]. */
+    private val trace: FrameTrace = FrameTrace.None,
 ) {
     private var lastFrameNanos = 0L
 
@@ -29,8 +31,10 @@ class GameLoop(
         // which briefly slows game time instead of teleporting the world.
         val deltaTime = elapsed.coerceIn(0f, maxDeltaSeconds)
 
-        game.currentScreen?.update(deltaTime)
-        game.currentScreen?.present(deltaTime)
+        // Marked apart, because they cost different things: update is the game's logic, present
+        // is the rasterizing of the whole frame into the framebuffer.
+        traced(UPDATE_SECTION) { game.currentScreen?.update(deltaTime) }
+        traced(PRESENT_SECTION) { game.currentScreen?.present(deltaTime) }
     }
 
     /** Call when the host resumes, so the next frame is treated as a fresh start. */
@@ -38,7 +42,22 @@ class GameLoop(
         lastFrameNanos = 0L
     }
 
+    private inline fun traced(section: String, block: () -> Unit) {
+        trace.begin(section)
+        try {
+            block()
+        } finally {
+            trace.end()
+        }
+    }
+
     companion object {
+        /** The screen's update, as a trace names it. */
+        const val UPDATE_SECTION = "Screen.update"
+
+        /** The screen's present, as a trace names it: the frame drawn into the framebuffer. */
+        const val PRESENT_SECTION = "Screen.present"
+
         /**
          * Upper bound on the delta handed to a screen, in seconds. Roughly three frames at 60Hz -
          * loose enough to absorb ordinary frame jitter, tight enough that a resume costs a couple

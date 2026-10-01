@@ -55,7 +55,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
 
     override var currentScreen: Screen? = null
     private var wakeLock: WakeLock? = null
-    private val gameLoop = GameLoop(this)
+    private val gameLoop = GameLoop(this, trace = AndroidFrameTrace)
 
     /**
      * Keyboard, game controller and back-gesture state. Owned by the activity rather than by a
