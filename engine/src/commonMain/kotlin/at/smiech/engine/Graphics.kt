@@ -1,8 +1,5 @@
 package at.smiech.engine
 
-import kotlin.math.cos
-import kotlin.math.sin
-
 interface Graphics {
     enum class PixmapFormat {
         ARGB8888, RGB565
@@ -11,34 +8,38 @@ interface Graphics {
     fun newPixmap(filename: String, format: PixmapFormat): Pixmap
     fun clear(color: Int)
     fun drawPixel(x: Int, y: Int, color: Int)
-    fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int)
-    fun drawRect(x: Int, y: Int, width: Int, height: Int, color: Int)
-    fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int)
 
     /**
-     * The outline of the oval [drawOval] would fill, one pixel thick.
+     * A line one pixel wide from one point to the other, both ends included; [Raster.line] says
+     * which pixels.
      *
-     * A default rather than an abstract method, so a test double that only draws rectangles does
-     * not have to learn it: this plots the ring pixel by pixel, which is correct everywhere and
-     * slow everywhere. Both real backends override it with their own stroked oval.
+     * Laid down as runs through [drawRect], which is what makes it the same pixels on every
+     * backend. A backend must not draw it with a line of its own - Skia's and Java2D's end on
+     * different pixels - though a test double that records lines can override it.
      */
-    fun drawOvalOutline(x: Int, y: Int, width: Int, height: Int, color: Int) {
-        val rx = width / 2f
-        val ry = height / 2f
-        if (rx <= 0f || ry <= 0f) return
-        val cx = x + rx
-        val cy = y + ry
-        // Enough steps that neighbouring samples are never more than a pixel apart.
-        val steps = (maxOf(rx, ry) * 7f).toInt().coerceAtLeast(8)
-        for (i in 0 until steps) {
-            val angle = i * 6.2831855f / steps
-            drawPixel(
-                (cx + rx * cos(angle)).toInt(),
-                (cy + ry * sin(angle)).toInt(),
-                color
-            )
-        }
-    }
+    fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int) =
+        Raster.line(xFrom, yFrom, xTo, yTo) { left, top, w, h -> drawRect(left, top, w, h, color) }
+
+    fun drawRect(x: Int, y: Int, width: Int, height: Int, color: Int)
+
+    /**
+     * The oval inscribed in the [width] by [height] box at [x], [y], filled; [Raster.oval] says
+     * which pixels.
+     *
+     * Laid down as runs of rows through [drawRect], for the reason [drawLine] is. A backend may fill
+     * the same pixels a faster way, as Android does, but never with an oval of its own.
+     */
+    fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int) =
+        Raster.oval(x, y, width, height) { left, top, w, h -> drawRect(left, top, w, h, color) }
+
+    /**
+     * The outline of the oval [drawOval] would fill, one pixel thick: the fill's own rim, so an
+     * outline drawn over the same oval filled lands exactly on its edge. [Raster.ovalOutline] says
+     * which pixels, and it is laid down like the fill.
+     */
+    fun drawOvalOutline(x: Int, y: Int, width: Int, height: Int, color: Int) =
+        Raster.ovalOutline(x, y, width, height) { left, top, w, h -> drawRect(left, top, w, h, color) }
+
     fun drawPixmap(
         pixmap: Pixmap,
         x: Int,
