@@ -454,13 +454,44 @@ data class WeaponComponent(
  * systems can draw the same aura, in front of the entity and behind it, from the same clock.
  *
  * @param surge set to 1 when a tier is crossed and decayed back to 0, for the flare that marks it.
+ * @param colors what it is drawn in. Gold unless the game says otherwise.
  */
 data class AuraComponent(
     var intensity: Float = 0f,
     var tier: Int = 0,
     var phase: Float = 0f,
     var surge: Float = 0f,
+    val colors: AuraColors = AuraColors.GOLD,
 ) : Component
+
+/**
+ * The colors an [AuraComponent] is drawn in, by [AuraSystem].
+ *
+ * The halo's rings run from [rim] on the outside to [core] in the middle, so the rim is most of the
+ * hue a glance takes away, and the core is what the middle of the halo settles toward once the rings
+ * have stacked up over whatever is behind it. That is why a core wants to be light: see [GOLD].
+ *
+ * @param spark the embers rising through the halo, and the bright point where a bolt earths.
+ * @param bolt the lightning crawling over it.
+ */
+data class AuraColors(val rim: Int, val core: Int, val spark: Int, val bolt: Int) {
+    companion object {
+        /**
+         * Amber into a gold so pale it is nearly white.
+         *
+         * Bright on purpose, and the reason is the blend rather than the hue. Half-opacity amber
+         * over the dark blue of the cave averages to khaki - the first two passes both came out
+         * brown - and the fix is not a warmer color but a lighter one, carried at enough alpha
+         * that the middle of the halo settles near its own gold instead of halfway to the cave.
+         */
+        val GOLD = AuraColors(
+            rim = 0xFFFFC83C.toInt(),
+            core = 0xFFFFFCE4.toInt(),
+            spark = 0xFFFFFBDC.toInt(),
+            bolt = 0xFFFFFFF0.toInt(),
+        )
+    }
+}
 
 /**
  * A brief bloom of light over an entity that has just been hit, aged by [HitFlashSystem] and

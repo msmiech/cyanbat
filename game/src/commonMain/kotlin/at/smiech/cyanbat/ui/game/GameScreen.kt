@@ -304,10 +304,15 @@ class GameScreen(
         // With the height too: enemy fire is aimed and fanned now, and leaves through the top and
         // bottom as well as the sides.
         world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight))
-        // Before the sprites, so the halo is light coming off the bat rather than a wash over it.
-        // This is also the pass that advances the aura's clock; see [AuraSystem.Layer].
+        // The scenery strip of the cave and the forest, on a pass of its own under every other
+        // sprite: it is a sprite itself, and drawn in one pass with the rest it went down over every
+        // halo, so no aura in either stage ever showed one.
+        world.addSystem(RenderSystem(layers = Int.MIN_VALUE until SPRITE_LAYERS_FROM))
+        // Over the scenery and under the sprites, so the halo is light coming off whatever wears it
+        // rather than a wash over it. This is also the pass that advances the aura's clock; see
+        // [AuraSystem.Layer].
         world.addSystem(AuraSystem(AuraSystem.Layer.HALO))
-        world.addSystem(RenderSystem())
+        world.addSystem(RenderSystem(layers = SPRITE_LAYERS_FROM..Int.MAX_VALUE))
         // Straight after the sprites, so a bubble encloses the enemy it protects rather than being
         // painted over by it; and before the health bars, which must never be lost behind one.
         world.addSystem(ShieldSystem())
@@ -1592,6 +1597,12 @@ class GameScreen(
         const val COMBO_BASELINE = 66
 
         const val DEGREES_PER_RADIAN = 57.29578f
+
+        /**
+         * The lowest z index that is drawn over a halo. The scenery strip sits well below it, and
+         * every sprite of the run - the obstacles up - at or above it.
+         */
+        const val SPRITE_LAYERS_FROM = 0
 
         /**
          * How big each part of a boss's body goes up, against the part itself. Under one: ten of

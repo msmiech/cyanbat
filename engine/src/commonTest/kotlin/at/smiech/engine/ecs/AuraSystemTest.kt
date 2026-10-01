@@ -77,10 +77,11 @@ class AuraSystemTest {
         tier: Int = 0,
         phase: Float = 0f,
         alive: Boolean? = null,
+        colors: AuraColors = AuraColors.GOLD,
     ): AuraComponent {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(100f, 100f, 45f, 40f)))
-        val aura = AuraComponent(intensity = intensity, tier = tier, phase = phase)
+        val aura = AuraComponent(intensity = intensity, tier = tier, phase = phase, colors = colors)
         world.addComponent(id, aura)
         if (alive != null) world.addComponent(id, HealthComponent(hitPoints = 1, alive = alive))
         return aura
@@ -264,7 +265,41 @@ class AuraSystemTest {
         assertTrue(draw().lines.isEmpty(), "the arc outlived its flash")
     }
 
+    /** Unless it is told otherwise, an aura is the bat's own gold. */
+    @Test
+    fun `an aura asked for no colors is gold`() {
+        assertEquals(AuraColors.GOLD, AuraComponent().colors)
+    }
+
+    /**
+     * Every part of the effect in the colors it was handed, with nothing left over from the gold it
+     * was first written in. The four are told apart so that one drawn in another's color shows.
+     */
+    @Test
+    fun `an aura is drawn in its own colors`() {
+        charged(intensity = 1f, tier = 2, phase = 0.02f, colors = PATCHWORK)
+
+        val drawn = draw()
+
+        assertEquals(PATCHWORK.rim.rgb, drawn.ovals.first().color.rgb, "the outermost ring")
+        assertEquals(PATCHWORK.core.rgb, drawn.ovals.last().color.rgb, "the innermost ring")
+        assertTrue(drawn.lines.isNotEmpty(), "no bolt struck to check the color of")
+        assertTrue(drawn.lines.all { it.color.rgb == PATCHWORK.bolt.rgb }, "a bolt not in the bolt color")
+        assertTrue(drawn.blips.isNotEmpty(), "no spark to check the color of")
+        assertTrue(drawn.blips.all { it.color.rgb == PATCHWORK.spark.rgb }, "a spark not in the spark color")
+    }
+
+    private val Int.rgb: Int get() = this and 0xFFFFFF
+
     private companion object {
+        /** Four colors that are each unlike the others and unlike gold. */
+        val PATCHWORK = AuraColors(
+            rim = 0xFF8000FF.toInt(),
+            core = 0xFFE0C0FF.toInt(),
+            spark = 0xFF40FF40.toInt(),
+            bolt = 0xFF0040FF.toInt(),
+        )
+
         /** The center of the box [charged] places its entity at: 100,100 by 45x40. */
         const val ENTITY_CENTER_X = 122.5f
         const val ENTITY_CENTER_Y = 120.0f
