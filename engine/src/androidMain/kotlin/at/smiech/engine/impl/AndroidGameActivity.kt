@@ -1,6 +1,6 @@
 package at.smiech.engine.impl
 
-import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
 import android.os.PowerManager
@@ -24,9 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.core.graphics.createBitmap
+import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
@@ -50,6 +51,9 @@ import kotlinx.coroutines.isActive
  */
 abstract class AndroidGameActivity : ComponentActivity(), Game {
     override var graphics: Graphics? = null
+
+    /** [graphics], as what the frame is drawn from. */
+    private lateinit var frame: ComposeGraphics
     override var audio: Audio? = null
     override var input: Input? = null
 
@@ -88,23 +92,16 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         )
         hideStatusBar()
 
-        // Eight bits a channel, like the desktop's TYPE_INT_RGB framebuffer, so that a blend - an
-        // aura's halo, the desert's crossfades, a dimmed overlay - comes out the same on both.
-        // RGB_565 rounded every blend to five or six bits a channel, which banded the dusk and
-        // drifted wherever translucent layers stacked.
-        //
-        // Created without alpha, because it never holds any: it starts black, as RGB_565 did, and
-        // everything is drawn over what is already there.
-        val frameBuffer = createBitmap(
-            frameBufferWidth,
-            frameBufferHeight,
-            Bitmap.Config.ARGB_8888,
-            hasAlpha = false,
-        )
         val touchHandler = PointerTouchHandler()
 
         input = AndroidInput(touchHandler, controlHandler)
-        graphics = AndroidGraphics(assets, frameBuffer)
+        frame = ComposeGraphics(
+            frameBufferWidth,
+            frameBufferHeight,
+            ::loadImage,
+            createFontFamilyResolver(this),
+        )
+        graphics = frame
 
         // Back reaches the game as a button rather than finishing the activity, so a screen can
         // give it a meaning - pausing, here. Taken from the dispatcher and not from KEYCODE_BACK
@@ -151,13 +148,11 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                         withFrameNanos { frameTimeNanos ->
                             gameLoop.frame(frameTimeNanos)
 
-                            // Signal Compose that the framebuffer's pixels have been updated
+                            // Signal Compose that a new frame has been recorded to draw.
                             frameTrigger++
                         }
                     }
                 }
-
-                val imageBitmap = remember(frameBuffer) { frameBuffer.asImageBitmap() }
 
                 Canvas(
                     modifier = Modifier
@@ -176,12 +171,29 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                     @Suppress("UNUSED_VARIABLE")
                     val trigger = frameTrigger
 
-                    drawFrameBuffer(
-                        imageBitmap, fit, ambientBars.takeIf { displayMode == DisplayMode.AMBIENT }
-                    )
+                    // Its own section in the trace, after the loop's update and present: this is where
+                    // the frame is handed to HWUI, and what that costs the main thread. The GPU's own
+                    // work shows up on the RenderThread.
+                    AndroidFrameTrace.begin(ComposeGraphics.DRAW_SECTION)
+                    try {
+                        drawGameFrame(frame, fit, ambientBars.takeIf { displayMode == DisplayMode.AMBIENT })
+                    } finally {
+                        AndroidFrameTrace.end()
+                    }
                 }
             }
         }
+    }
+
+    /**
+     * An asset decoded for drawing. Immutable, as BitmapFactory leaves it, so HWUI can keep it on the
+     * GPU from the first frame that draws it; `prepareToDraw` starts that upload early.
+     */
+    private fun loadImage(filename: String): ImageBitmap {
+        val bitmap = assets.open(filename).use { BitmapFactory.decodeStream(it) }
+            ?: throw RuntimeException("Asset-Bitmap <$filename> not found!")
+        bitmap.prepareToDraw()
+        return bitmap.asImageBitmap()
     }
 
     override fun onResume() {

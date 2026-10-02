@@ -49,8 +49,8 @@ app yet: the targets are there so that the shared code stays portable to one.
 
 **Two kinds of UI.** The menu - main screen, stage select, settings, credits - is shared Compose:
 `CyanBatMenu`, fed by a `MenuHost`, navigated by a hand-rolled `MenuBackStack`. The game itself is
-not Compose: screens draw into a fixed **480x320 framebuffer** through the engine's `Graphics`,
-and the host blits that to the window.
+not laid out by Compose, but it is drawn through it: screens draw a fixed **480x320 frame**
+through the engine's `Graphics`, and the host draws that into a Compose `Canvas` - see Rendering.
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
 - Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`.
@@ -63,9 +63,10 @@ the run. `GameScreen` steps `world.update` in fixed 19 ms ticks (`TICK_INITIAL`)
 that paces gameplay - `EnemyGenerator`, `ObstacleGenerator`, the stage clock - is fed that tick.
 Never pace gameplay with the wall clock or a coroutine: a paused game has to be a paused stage.
 On Android the loop marks each frame's `Screen.update` and `Screen.present` in the system trace
-(`FrameTrace`), so a Perfetto or Android Studio trace shows what a slow frame spent its time on.
+(`FrameTrace`), and the activity marks the frame's drawing (`Frame.draw`), so a Perfetto or Android
+Studio trace shows what a slow frame spent its time on.
 
-**The framebuffer's shape is part of the game design.** It is 3:2, and spawn points, boss stations
+**The frame's shape is part of the game design.** It is 3:2, and spawn points, boss stations
 and wave pacing are all tuned to 480x320. `FrameFit` fits it to the screen according to the
 player's `DisplayMode` (stretch, black bars, or the default ambient bars) and maps touches back
 through the same rectangle. Do not widen the playfield for wide screens; it would change difficulty
@@ -99,7 +100,7 @@ by device.
   `bossDeath.wav` and the delay to the fanfare's `LANDING_BEAT`; change each with its script.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
-- In-game text (HUD, banners, overlays) is literal strings drawn at framebuffer coordinates in
+- In-game text (HUD, banners, overlays) is literal strings drawn at frame coordinates in
   `GameScreen` and `GameOverScreen`. The rows are hard-coded, but every centered or right-aligned
   line is placed by its measured width, so rewording one needs no new x. Menu text is in
   `composeResources/values/strings.xml`.
@@ -215,27 +216,43 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
 - Android's Back arrives as `GameButton.BACK` from the back-pressed dispatcher, because gesture
   navigation raises no key event.
 
-**Rendering parity.**
-- `AndroidGraphics` and `DesktopGraphics` must put the same pixels on the framebuffer. That goes
-  down to the deliberate `- 1` in `drawPixmap`, which paints a column short and is why background
-  tiles overlap by one column.
-- Both framebuffers are 8 bits a channel and opaque, so a blend - an aura's halo, the desert's
-  crossfades - comes out the same on each: an `ARGB_8888` bitmap created without alpha on Android,
-  a `TYPE_INT_RGB` image on the desktop. Android's used to be `RGB_565`, which rounds every blend
-  to five or six bits a channel.
-- Lines, ovals and oval outlines are worked out once, in common code (`Raster`), and laid down as
-  rectangles, which both backends fill alike. Neither backend draws its own: Skia and Java2D light
-  different edge pixels even with antialiasing off. Android fills an oval's rectangles as one
-  polygon instead, for speed, and that covers exactly the same pixels.
-- Shapes are never antialiased. Android's `Paint()` antialiases by default since Android 12, so the
-  shape paint turns that off by hand; Android's text has a paint of its own, which keeps it on.
-- Text is the exception. Each backend draws it in its platform's sans-serif face (Roboto on
-  Android, Arial on Windows, usually DejaVu Sans on Linux), and the same string comes out at
-  different widths. Right-align, center or wrap text by `Graphics.measureString`, never by a count
-  of characters: a layout counted out in Arial runs off the frame in DejaVu Sans.
-- A new `Graphics` primitive needs a default implementation or both overrides, and the test fakes
-  need updating.
-- Blits are nearest-neighbor.
+**Rendering.** One `Graphics` for every platform: `ComposeGraphics`, in the engine's common code,
+drawn through Compose's Canvas - HWUI, and so the GPU, on Android; Skia on the desktop (and on
+iOS, for an app to come). There is no framebuffer bitmap.
+- `present` is recorded, call by call, and the host draws the recording in Compose's draw phase
+  with `drawGameFrame`: scaled from frame pixels to the `FrameFit` rectangle in one transform, and
+  clipped to it. A frame is drawn more than once: `AmbientBars` draws its edges again into a small
+  picture of its own to read them, and `drawInto` draws it at frame size, on the CPU, for the
+  recorder and the tests (`DesktopGame.capture`).
+- Every screen clears first, and the clear is what starts the recording over.
+- Everything but text is pixel art on a grid, at any screen size: drawn aliased and
+  nearest-neighbor, in frame pixels under one scale. Lines, ovals and oval outlines are worked out
+  in common code (`Raster`) and filled as rectangles or as polygons with pixel corners - never as
+  Skia's own shapes, whose edges are not the grid's. A turned sprite is turned on the grid first,
+  into a picture of its own, and then drawn upright: turned at the screen's resolution its pixels
+  would come out as squares tilted against the grid and finer than it. `ComposeGraphicsTest` holds
+  this to the pixel: at three times the frame's size, every frame pixel is a solid block.
+- The grid is the frame's own pixels by default, and ready to be made finer: `gridScale` on
+  `ComposeGraphics` is grid pixels to a frame pixel, taken up at the next frame. On a finer grid,
+  sprites and rectangles keep their frame pixels, ovals and outlines are worked out on the grid
+  with their weight kept, and turned sprites turn on it. Lines stay on the frame's grid, since
+  `Raster` only draws them one grid pixel wide. A setting for it would be wired up the way the
+  `DisplayMode` is, from the host.
+- The deliberate `- 1` in `drawPixmap` paints a column and a row short, and is why background
+  tiles overlap by one column. A "fix" would shift every sprite by a pixel.
+- Text is the exception, by choice: laid out in frame pixels, so the game places it as before, but
+  drawn at the screen's resolution and antialiased. An outline is a stroke around the glyphs
+  (`drawOutlinedString`), not the string stamped around itself. Each platform draws its own
+  sans-serif face (Roboto on Android, Arial on Windows, usually DejaVu Sans on Linux), and the same
+  string comes out at different widths. Right-align, center or wrap text by
+  `Graphics.measureString`, never by a count of characters.
+- A translucent blend can round a step apart on the GPU, on the CPU and between scales; the tests
+  allow a step a channel and no more.
+- The desktop decodes assets with Skia and marks them immutable (`DesktopGame.loadImage`). Compose's
+  desktop canvas wraps a bitmap in a new Skia image every time it draws it, and copies one that
+  could still change: the desert's ground was a copy of its whole sheet for every strip.
+- A new `Graphics` primitive needs a default implementation or a `ComposeGraphics` override, and the
+  test fakes need updating.
 
 **Assets.**
 - `assets/` at the root is packaged as Android assets by `:app` and as classpath resources by
@@ -321,8 +338,9 @@ set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
   the surrounding density.
 - **Look at the result.** Unit tests cover game logic, not what reaches the screen, device input
   or the activity lifecycle, and draw-call assertions happily pass on output that looks wrong.
-  Check visual changes by rendering through the real `DesktopGraphics` into a `BufferedImage`, or
-  by running the game (`:desktop:run`, `run-cyanbat`) and looking at the screenshots.
+  Check visual changes by drawing a frame through `drawGameFrame` into an `ImageBitmap` the size of
+  a screen, as `ComposeGraphicsTest` does, or by running the game (`:desktop:run`, `run-cyanbat`)
+  and looking at the screenshots.
 - **Branches and PRs.**
   - Branch as `feat/`, `fix/`, `chore/`, `ci/`, `perf/` or `refactor/` and open a PR against
     `main`. The owner merges on GitHub.

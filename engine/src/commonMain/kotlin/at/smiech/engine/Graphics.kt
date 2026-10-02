@@ -1,5 +1,13 @@
 package at.smiech.engine
 
+/**
+ * What a screen draws its frame with: integer coordinates in frame pixels, the frame being the
+ * game's 480x320.
+ *
+ * Everything but text is pixel art, and lands on the frame's pixel grid however large the frame is
+ * shown; text is drawn smooth at the screen's resolution. `ComposeGraphics` is the one real
+ * implementation, for every platform; the rest are test doubles.
+ */
 interface Graphics {
     enum class PixmapFormat {
         ARGB8888, RGB565
@@ -165,45 +173,48 @@ interface Graphics {
         rotationDegrees: Float,
     ) = drawPixmapSilhouette(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, color)
 
+    /** [s] in the platform's sans-serif face, [fontSize] frame pixels tall, from its baseline at [x], [y]. */
     fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
 
     /**
-     * The width [drawString] gives [s] at [fontSize], in framebuffer pixels. Rounded up, so that
-     * text placed by it never runs past the edge it was placed against.
+     * Draws [s] ringed by an outline a frame pixel thick in [outlineColor], so it stays readable over
+     * whatever the game happens to be drawing behind it.
      *
-     * Text is the one thing the two platforms do not draw alike. Each draws it in its own
-     * sans-serif face - Roboto on Android; on the desktop, whatever Java's SansSerif resolves to,
-     * which is Arial on Windows and usually DejaVu Sans on Linux - and the faces disagree on
-     * widths: the HUD's "Level: 17" is 58px wide in Arial and 67px in DejaVu Sans. So text that is
-     * aligned by its right edge, centered or wrapped has to be measured, never counted out in
-     * characters.
+     * A default rather than an abstract method, so a test double does not have to learn it: this
+     * stamps the string at the eight pixels around it in the outline color and then draws the fill,
+     * eight rather than four because a four-way ring leaves the diagonals of a glyph bare. The real
+     * backend strokes the glyphs instead, which at the screen's resolution is a clean line where
+     * eight stamps would be eight copies.
+     */
+    fun drawOutlinedString(
+        s: String,
+        x: Int,
+        y: Int,
+        fontSize: Int,
+        color: Int,
+        outlineColor: Int = EngineColors.BLACK,
+    ) {
+        var i = 0
+        while (i < OUTLINE_OFFSETS.size) {
+            drawString(s, x + OUTLINE_OFFSETS[i], y + OUTLINE_OFFSETS[i + 1], fontSize, outlineColor)
+            i += 2
+        }
+        drawString(s, x, y, fontSize, color)
+    }
+
+    /**
+     * The width [drawString] gives [s] at [fontSize], in frame pixels. Rounded up, so that text
+     * placed by it never runs past the edge it was placed against.
+     *
+     * Text is the one thing that does not come out the same everywhere. It is drawn in each
+     * platform's own sans-serif face - Roboto on Android; on the desktop whatever face Compose finds
+     * for sans-serif, Arial on Windows - and the faces disagree on widths: the HUD's "Level: 17" is
+     * 58px wide in Arial and 67px in DejaVu Sans. So text that is aligned by its right edge,
+     * centered or wrapped has to be measured, never counted out in characters.
      */
     fun measureString(s: String, fontSize: Int): Int
     val width: Int
     val height: Int
-}
-
-/**
- * Draws [s] ringed by a one-pixel outline in [outlineColor], so it stays readable over whatever
- * the game happens to be drawing behind it.
- *
- * Neither platform's text API outlines, so the outline is the same string stamped around the fill.
- * Eight offsets rather than four: a four-way ring leaves the diagonals of a glyph bare.
- */
-fun Graphics.drawOutlinedString(
-    s: String,
-    x: Int,
-    y: Int,
-    fontSize: Int,
-    color: Int,
-    outlineColor: Int = EngineColors.BLACK,
-) {
-    var i = 0
-    while (i < OUTLINE_OFFSETS.size) {
-        drawString(s, x + OUTLINE_OFFSETS[i], y + OUTLINE_OFFSETS[i + 1], fontSize, outlineColor)
-        i += 2
-    }
-    drawString(s, x, y, fontSize, color)
 }
 
 /** The eight neighbors of the origin, as x/y pairs. */

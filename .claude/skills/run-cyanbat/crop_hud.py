@@ -7,13 +7,12 @@
 The HUD is the band across the top of the frame: score, wave and combo down the left, the stage
 timer in the middle, and the level in the top right corner.
 
-The game renders into a 480x320 framebuffer that is scaled up evenly to fit the window - with
-bars beside it on a screen wider than 3:2, above and below it on one taller - so HUD text is small
-and blurry in a full-size capture. This finds where the framebuffer landed and crops that band out
-of it.
+The game draws a 480x320 frame scaled up evenly to fit the window - with bars beside it on a
+screen wider than 3:2, above and below it on one taller - so HUD text is small in a full-size
+capture. This finds where the frame landed and crops that band out of it.
 
 That assumes one of the display modes that keep the game's shape, Ambient bars (the default) or
-Black bars. Under Stretch to fit screen the framebuffer fills the capture and this crop is off.
+Black bars. Under Stretch to fit screen the frame fills the capture and this crop is off.
 
 Run through uv so the Pillow dependency resolves itself:
 
@@ -27,7 +26,7 @@ from PIL import Image
 FRAME_BUFFER_WIDTH = 480
 FRAME_BUFFER_HEIGHT = 320
 
-# Fractions of the framebuffer, matching the HUD's position in it: the full width, and down past
+# Fractions of the frame, matching the HUD's position in it: the full width, and down past
 # the third line of the left column, the combo, whose count swells as the streak climbs.
 HUD_WIDTH_FRACTION = 1.0
 HUD_HEIGHT_FRACTION = 0.24

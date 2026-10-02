@@ -1,10 +1,10 @@
 package at.smiech.engine.impl
 
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.unit.IntOffset
-import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.withTransform
 import at.smiech.engine.DisplayMode
 import kotlin.math.floor
 import kotlin.math.min
@@ -99,19 +99,33 @@ data class FrameFit(
     }
 }
 
-/** The bars either side of the framebuffer, or above and below it, when nothing lights them. */
+/** The bars either side of the frame, or above and below it, when nothing lights them. */
 private val BAR_COLOR = Color.Black
 
 /**
- * Draws [image], the framebuffer, where [fit] puts it, with the bars around it - black, or lit by
- * [ambient] when there is one.
+ * Draws the frame [graphics] last recorded where [fit] puts it, with the bars around it - black, or
+ * lit by [ambient] when there is one.
+ *
+ * Scaled from frame pixels to the view in one transform, so that everything the frame holds lands
+ * on its pixel grid at whatever size the view is; and clipped to the frame, so that a sprite half off
+ * the playfield stops at its edge, as it did when the frame was a bitmap, rather than spilling onto
+ * a bar.
  */
-fun DrawScope.drawFrameBuffer(image: ImageBitmap, fit: FrameFit, ambient: AmbientBars? = null) {
+fun DrawScope.drawGameFrame(graphics: ComposeGraphics, fit: FrameFit, ambient: AmbientBars? = null) {
     drawRect(BAR_COLOR)
-    ambient?.draw(this, image, fit)
-    drawImage(
-        image = image,
-        dstOffset = IntOffset(fit.left, fit.top),
-        dstSize = IntSize(fit.width, fit.height),
-    )
+    ambient?.draw(this, graphics, fit)
+    val left = fit.left.toFloat()
+    val top = fit.top.toFloat()
+    clipRect(left, top, left + fit.width, top + fit.height) {
+        withTransform({
+            translate(left, top)
+            scale(
+                fit.width / fit.frameBufferWidth.toFloat(),
+                fit.height / fit.frameBufferHeight.toFloat(),
+                pivot = Offset.Zero,
+            )
+        }) {
+            graphics.draw(this)
+        }
+    }
 }

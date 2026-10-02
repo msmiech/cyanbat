@@ -123,9 +123,9 @@ cmd_shot() {
   log "$OUT/$name.png ($sz bytes)"
 }
 
-# Crop + 1:1 the HUD along the top of the frame. It is drawn into a 480x320
-# framebuffer that is scaled up to fit the window, so the text is small and
-# blurry in a full screenshot; this makes it readable.
+# Crop + 1:1 the HUD along the top of the frame. The game draws a 480x320
+# frame scaled up to fit the window, so the text is small in a full
+# screenshot; this makes it readable.
 cmd_hud() {
   local name="${1:-hud}"
   cmd_shot "$name"

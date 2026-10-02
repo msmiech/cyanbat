@@ -60,7 +60,7 @@ class BackgroundScrollingSystem(
          * Tiles are laid one column *before* the last one's trailing edge, not flush against it.
          *
          * The blit paints one column short of its destination box - the `- 1` in
-         * `DesktopGraphics.drawPixmap`, which is deliberate and mirrors Android exactly - so a tile
+         * `ComposeGraphics.drawPixmap`, which is deliberate - so a tile
          * whose box runs to `left + width` only ever colors up to `left + width - 1`. Laid flush,
          * that leaves a one pixel hole at every join: a black hairline scrolling down the middle of
          * the cave, which is precisely the artifact this whole change is meant to remove.

@@ -6,8 +6,9 @@ description: Build, install, launch, drive and screenshot the CyanBat game - on 
 # Running CyanBat
 
 CyanBat is a landscape game sharing one Kotlin Multiplatform codebase between Android and
-desktop. On Android a Compose menu (`MainActivity`) launches a custom-framebuffer game activity
-(`CyanBatGameActivity`); on desktop a single Compose window swaps between the two.
+desktop. On Android a Compose menu (`MainActivity`) launches the game activity
+(`CyanBatGameActivity`), which draws the game's 480x320 frame through a Compose Canvas; on desktop a
+single Compose window swaps between the two.
 
 Unit tests cover the ECS, math and spawn pacing, but nothing covers rendering, input or the
 activity lifecycle - for those, run it.
@@ -73,8 +74,9 @@ size; it cannot tell gameplay from a black frame.
 Use `hud` rather than `shot` whenever you need to read the HUD - score, wave and
 combo down the left, the stage timer in the middle, the level top right. The
 highscore is not on it: the game over screen, the stage complete overlay and the
-stage select show that. The game renders into a 480x320 framebuffer that is
-scaled up to the window, so HUD text is blurry and small in a full-size capture.
+stage select show that. The game draws a 480x320 frame scaled up to the
+window; the HUD's text is drawn smooth at the screen's resolution, but it is small
+in a full-size capture.
 How it is scaled is the player's choice, under Settings > Display (see the
 gotcha on `input swipe` below).
 
@@ -150,7 +152,7 @@ lifecycle, and there are no instrumentation tests. Verify those on the emulator.
   That makes screenshots of a chosen position repeatable - see
   `PlayerInputSystem`. Where screen pixels land depends on Settings > Display
   (`DisplayMode`, stored as `display_mode` in the DataStore). In the default,
-  Ambient bars, and in Black bars, the framebuffer is scaled evenly to the screen's
+  Ambient bars, and in Black bars, the frame is scaled evenly to the screen's
   full height and centered (`FrameFit`): on a 2400x1080 capture it spans x 390-2010
   with the bars either side, and screen pixels map to it at (x - 390) / 3.375 and
   y / 3.375. A touch on a bar still steers, toward that edge. In Stretch to fit

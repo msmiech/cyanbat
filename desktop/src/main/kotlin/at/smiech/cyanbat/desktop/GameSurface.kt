@@ -14,7 +14,6 @@ import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
-import androidx.compose.ui.graphics.toComposeImageBitmap
 import androidx.compose.ui.input.key.onKeyEvent
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalWindowInfo
@@ -22,15 +21,15 @@ import at.smiech.engine.DisplayMode
 import at.smiech.engine.GameLoop
 import at.smiech.engine.impl.AmbientBars
 import at.smiech.engine.impl.FrameFit
-import at.smiech.engine.impl.drawFrameBuffer
+import at.smiech.engine.impl.drawGameFrame
 import at.smiech.engine.impl.onComposeKeyEvent
 import at.smiech.engine.impl.onComposePointerEvent
 
 /**
- * Renders the game's framebuffer and drives it from Compose's frame callback - the desktop
- * counterpart of the Canvas in AndroidGameActivity.
+ * Draws the game's frame and drives it from Compose's frame callback - the desktop counterpart of
+ * the Canvas in AndroidGameActivity.
  *
- * @param displayMode how the framebuffer is fitted to the window, as the player set it.
+ * @param displayMode how the frame is fitted to the window, as the player set it.
  */
 @Composable
 fun GameSurface(game: DesktopGame, displayMode: DisplayMode) {
@@ -102,13 +101,7 @@ fun GameSurface(game: DesktopGame, displayMode: DisplayMode) {
             @Suppress("UNUSED_VARIABLE")
             val trigger = frameTrigger
 
-            // Unlike Android's cached, zero-copy Bitmap.asImageBitmap(), this copies each frame.
-            // At 480x320 that is cheap enough to prefer over a Skia-backed framebuffer.
-            drawFrameBuffer(
-                game.frameBuffer.toComposeImageBitmap(),
-                fit,
-                ambientBars.takeIf { displayMode == DisplayMode.AMBIENT },
-            )
+            drawGameFrame(game.graphics, fit, ambientBars.takeIf { displayMode == DisplayMode.AMBIENT })
         }
     }
 }
