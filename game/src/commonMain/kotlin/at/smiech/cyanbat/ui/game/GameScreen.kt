@@ -50,7 +50,6 @@ import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
-import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
 import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
@@ -426,7 +425,7 @@ class GameScreen(
         // spawned with.
         val damage = if (isPlayer) loadout.shotDamage else damageOf(shooterId)
 
-        for (angle in spreadAngles(if (isPlayer) loadout.extraShots else 0)) {
+        for (angle in spreadAngles(if (isPlayer) 1 + loadout.extraShots else 1)) {
             // Rolled per projectile rather than per volley, so a wider fan really is more chances
             // at one. The bat only: a critical is a reward, and one landing on the player from
             // off screen would just be a death they cannot account for.
@@ -541,22 +540,6 @@ class GameScreen(
         // Measured from the left, which is the way enemy fire faces: atan2 of (down, left).
         return atan2(dy, -dx) * DEGREES_PER_RADIAN
     }
-
-    /**
-     * The headings of one volley: the straight shot, then [extraShots] fanned alternately below
-     * and above it, widening a step at a time.
-     *
-     * The straight shot is always there, so a spread widens the bat's fire rather than replacing
-     * it. Alternating sides rather than filling one first is what keeps the fan balanced: an even
-     * number of extras is symmetrical, and an odd one leans by a single shot instead of stacking
-     * every extra below the line.
-     */
-    private fun spreadAngles(extraShots: Int): List<Float> =
-        (0..extraShots).map { index ->
-            val step = (index + 1) / 2
-            val sign = if (index % 2 == 1) 1f else -1f
-            if (index == 0) 0f else sign * step * SPREAD_ANGLE_DEGREES
-        }
 
     /**
      * Sheds one segment of the bat's wake, just off the back of it.

@@ -353,8 +353,8 @@ const val POWER_UP_CHOICES = 3
 const val RAPID_FIRE_FACTOR = 0.82f
 const val MIN_SHOT_INTERVAL_SECONDS = 0.3f
 
-// Spread Shot. Each pick adds one more shot to the fan, alternating above and below the straight
-// one; the cap is what keeps the spread readable and the frame from filling with shots.
+// Spread Shot. Each pick adds one more shot to the fan, which stays centered on straight ahead; the
+// cap is what keeps the spread readable and the frame from filling with shots.
 const val MAX_EXTRA_SHOTS = 4
 const val SPREAD_ANGLE_DEGREES = 9f
 
