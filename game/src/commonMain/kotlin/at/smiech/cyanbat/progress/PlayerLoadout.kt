@@ -36,7 +36,7 @@ class PlayerLoadout {
     var shotIntervalSeconds: Float = SHOT_INTERVAL_SECONDS
         private set
 
-    /** Shots fanned out either side of the straight one. Zero is the single shot it starts with. */
+    /** Shots added to the bat's fan. Zero is the single straight shot it starts with. */
     var extraShots: Int = 0
         private set
 
