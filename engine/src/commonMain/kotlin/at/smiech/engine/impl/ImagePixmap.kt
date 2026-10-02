@@ -17,4 +17,9 @@ class ImagePixmap(val image: ImageBitmap) : Pixmap {
 
     /** The platform frees the pixels when nothing holds the image any more. */
     override fun dispose() = Unit
+
+    override fun readPixels(buffer: IntArray, x: Int, y: Int, width: Int, height: Int): Boolean {
+        image.readPixels(buffer, x, y, width, height)
+        return true
+    }
 }

@@ -131,6 +131,44 @@ carrying a `CrossfadeComponent` (the desert's obstacles) in the same light.
 - The sun the player can see sets on the right, so the desert's scenery is lit from the right; the
   night palettes turn that round, to the moon on the left.
 
+**The cave's dark.** The cave is flown in the dark (`Stage.lighting`, a `StageLighting`); the forest
+and the desert are flown in daylight, and none of this runs there.
+- `LightingSystem` sits between two `RenderSystem` passes split at `LIGHTS_FROM` (z 15). Under it are
+  the scenery, the halos, the obstacles and everything hostile, as lit as whatever reaches them; over
+  it the shots, the bat and the blasts, which are lights and are drawn as bright as they are. In
+  daylight the two passes draw what one did.
+- What gives off light (`LightComponent`: the bat, each shot in its bolt's color - `SHOT_BODY_COLORS`,
+  which `SpriteSheetTest` holds to the sheet - blasts, the flash where a shot is spent, elites, the
+  cave's boss) and what throws shadows (`OccluderComponent`: obstacles and creatures) is set in
+  `EntityFactory`, and only when its `lit` is set. The numbers are under "The dark" in
+  `CyanBatConstants`.
+- The light is worked out on the tick into a `Lighting` and drawn on the frame by
+  `Graphics.drawLighting`. `ComposeGraphics` turns it into a picture on the CPU, a pixel of it to
+  each 2x2 cell of frame pixels (`LIGHT_CELL`): each light a cached sprite of banded rings in its color
+  (`Lighting.rings`, laid down with `Raster.oval`), laid over the dark with its shadows erased from a
+  scratch copy first. The frame takes that picture in one GPU draw, multiplied (`Modulate`), with a
+  little of it added back as `glow`. A light no tick has changed (`Lighting.version`) is not drawn
+  again.
+- It is built for old phones, and measured on the emulator before and after: the light costs the UI
+  thread about 0.2 ms a frame. Keep it that way. On the CPU only plain copies (`Src`) and `SrcOver`
+  are fast in Skia - adding light (`Plus`) or tinting it as it is drawn costs several times as much a
+  pixel - which is why lights are laid over rather than added, and why each color of light is its own
+  cached sprite. The first light, the bat's, lands on nothing but the dark, so it is copied down whole
+  with the dark already in it and its shadows painted on in the dark's color (`layFirst`), which comes
+  out the same pixel for pixel. Half the frame's resolution is a quarter of the pixels to fill, light
+  and upload every tick; the cost is a shadow's edge stepping two pixels at a time.
+- A shadow is cast from the convex hull of the sprite's current frame (`Silhouettes`), out from its
+  far side, so whatever throws one stays lit, and a creature's shadow beats its wings. Every light
+  throws them, the shots' included; a light inside an outline (an elite's glow) throws none from it.
+- Glints (`Gloss`): each frame's outline is taken as a rounded bevel, and every light reaching
+  something with a `shine` adds a thin rim on the side it comes from, in its color - unless that thing
+  stands in another's shadow. Sixteen directions, three steps, masks cached per frame and direction
+  (`FrameCache`) and added after the light. They are meant to stay subtle and to help the player read
+  which way the light falls and where things are; past the frame's edge the art counts as carrying on,
+  so a rock's cut base never glints.
+- Silhouettes and glints read the art through `Pixmap.readPixels`. A test double reads nothing and
+  counts as its whole frame.
+
 **Bosses with a body.** The Sand Wyrm is a head plus nine plates, each an entity, laid by
 `SandWyrmBrain` along the path the head has flown. Every part carries a `BossPartComponent`: a
 shot that hits a part lands on the head, which carries the health (a plate passes on only its

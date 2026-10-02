@@ -5,7 +5,7 @@ arcade staples like *Flappy Bird*. It runs on **Android** and on the **desktop**
 and Linux) from a single shared codebase.
 
 <p align="center">
-  <img src="docs/gameplay.gif" alt="Stage 1, the cave: the bat fans its fire through a wave of imps, picks Spread Shot at a level up and brings down the Caco Imp. Then glimpses of stage 2, the forest, with its wasp swarms and shielded beetles, up to the moment the Moth Queen arrives, and of stage 3, the desert, at noon and as the sun goes down">
+  <img src="docs/gameplay.gif" alt="Stage 1, the cave, flown in the dark by the bat's own light: the bat fans its fire through a wave of imps, picks Spread Shot at a level up and brings down the Caco Imp. Then glimpses of stage 2, the forest, with its wasp swarms and shielded beetles, up to the moment the Moth Queen arrives, and of stage 3, the desert, at noon and as the sun goes down">
 </p>
 <p align="center">
   <sub><b>The Cave</b> from start to boss, then glimpses of <b>The Forest</b> and <b>The Desert</b>, from real runs of the game; see <a href="#-gameplay-footage">how it is recorded</a>.</sub>
@@ -22,6 +22,11 @@ and Linux) from a single shared codebase.
   desktop — as pixel art on a 640x360 grid at any screen size, with the HUD's text smooth over it.
 - **Entity Component System**: `:engine`'s ECS decouples game logic from data, so behavior is
   composed from components rather than an inheritance hierarchy.
+- **2D lighting**: the cave is lit by point lights - the bat, its shots, the blasts - with hard
+  shadows cast from each sprite's own outline, and a glint of each light along the edge of whatever
+  it falls on. The light is worked out on the CPU at half the frame's resolution, a few native
+  blits a light, and laid over the frame in one GPU draw, so it stays on the pixel grid and cheap on
+  old phones.
 - **Value class optimization**: `Vector2` is a bit-packed value class, so movement math
   allocates nothing in the game loop.
 - **Sub-pixel precision**: geometry is float-based, and the frame loop clamps its delta so a
@@ -69,7 +74,7 @@ build, install, launch, screenshot, and check persistence. See
 
 | Stage | What it throws at you |
 |---|---|
-| 1. The Cave | Five one-minute waves of imps, then a boss that weaves and fires back. |
+| 1. The Cave | Flown in the dark, by the bat's own light: every shot lights its way, every blast lights up the rock, and whatever stands in the light throws a shadow. Five one-minute waves of imps, then a boss that weaves and fires back. |
 | 2. The Forest | Wasp swarms, wisp formations, diving owls, hovering spitters that aim at you, and beetles behind shield bubbles - tougher and faster than the cave, ending in the three-phase Moth Queen. |
 | 3. The Desert | Flown from noon into nightfall: the sun sets as the waves go by and the stars come out for the boss. Locust clouds, looping hawks, djinn throwing fans of fire, scarabs whose shells grow back, and wyrmlings that cruise in under the sand and leap at you - ending in the Sand Wyrm, which breaches out of the dunes in arcs and can be hit anywhere along its body. |
 

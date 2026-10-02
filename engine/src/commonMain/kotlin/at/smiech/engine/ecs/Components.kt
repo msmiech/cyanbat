@@ -493,6 +493,55 @@ data class AuraColors(val rim: Int, val core: Int, val spark: Int, val bolt: Int
 }
 
 /**
+ * A point light at the middle of the entity's box, lighting what is around it where a
+ * [LightingSystem] makes the stage dark. Whatever an [OccluderComponent] stands between the light and
+ * a pixel throws that pixel into shadow.
+ *
+ * @param color what it lights things with at full strength. The frame is multiplied by the light
+ *   that reaches it, so a pale color lights everything, and a saturated one mostly what shares its hue.
+ * @param radius how far it reaches, in frame pixels; it falls off to nothing there.
+ * @param intensity how strongly it shines, as 0..1. Mutable, for a light that is turned up or down.
+ * @param fadeSeconds when above zero, the light dies away over this long from the moment it is made,
+ *   bright at first and quickly dimmer, the way a flash does.
+ * @param removeWhenFaded whether the entity goes with the light once it has faded: true for one that
+ *   is nothing but the light, a flash where a shot struck.
+ */
+class LightComponent(
+    var color: Int,
+    var radius: Int,
+    var intensity: Float = 1f,
+    val fadeSeconds: Float = 0f,
+    val removeWhenFaded: Boolean = false,
+) : Component {
+    /** How long it has been fading, advanced by [LightingSystem]. */
+    var elapsed: Float = 0f
+
+    /** How brightly it shines now: its [intensity], less what its fade has taken. */
+    val strength: Float
+        get() {
+            if (fadeSeconds <= 0f) return intensity
+            val left = 1f - (elapsed / fadeSeconds).coerceIn(0f, 1f)
+            return intensity * left * left
+        }
+
+    /** Whether its fade has run all the way out. */
+    val faded: Boolean get() = fadeSeconds > 0f && elapsed >= fadeSeconds
+}
+
+/**
+ * Stands in the way of every [LightComponent] that reaches it, throwing a shadow away from each in
+ * the shape of its sprite: the outline of the opaque pixels of the frame it is drawn from at that
+ * moment, so a creature's shadow beats its wings with it.
+ *
+ * Only what is behind it is darkened, never the thing itself: a creature stays as lit as the light
+ * reaching it, and throws its shadow back off its far side.
+ *
+ * @param shine how strongly a light glints off its edge on the side the light comes from, as 0..1; see
+ *   [at.smiech.engine.Gloss]. Zero for something matte. Only an upright sprite glints.
+ */
+class OccluderComponent(val shine: Float = 0f) : Component
+
+/**
  * A brief bloom of light over an entity that has just been hit, aged by [HitFlashSystem] and
  * drawn by [RenderSystem].
  *

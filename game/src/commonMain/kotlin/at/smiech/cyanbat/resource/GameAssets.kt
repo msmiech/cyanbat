@@ -1,5 +1,7 @@
 package at.smiech.cyanbat.resource
 
+import at.smiech.cyanbat.util.CAVE_AMBIENT
+import at.smiech.cyanbat.util.CAVE_GLOW
 import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Music
 import at.smiech.engine.MusicGrid
@@ -84,6 +86,8 @@ data class GameAssets(
                         // In 12/8: four beats a bar, each a dotted quarter of three rolling eighths.
                         music = StageMusic("cave", MusicGrid(beatsPerMinute = 63.0, beatsPerBar = 4)),
                         enemySheet = pixmap("enemies.png"),
+                        // Underground, and so the one stage flown in the dark, by the bat's own light.
+                        lighting = StageLighting(ambient = CAVE_AMBIENT, glow = CAVE_GLOW),
                     ),
                     Stage(
                         id = 2,

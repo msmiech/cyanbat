@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
+import at.smiech.engine.Lighting
 import at.smiech.engine.Raster
 import kotlin.math.roundToInt
 import kotlin.test.Test
@@ -227,6 +228,127 @@ class ComposeGraphicsTest {
     }
 
     /**
+     * The light multiplies what is under it: out where no light reaches a pixel is the dark times
+     * what was drawn there, and at a light's full strength it is what was drawn there.
+     */
+    @Test
+    fun `the light darkens the frame to the ambient and leaves it as drawn at full strength`() {
+        val graphics = graphics(64, 48)
+        graphics.clear(GRAY)
+        graphics.drawLighting(Lighting().apply {
+            begin(DARK, glow = 0f)
+            add(32, 24, 10, EngineColors.WHITE, 1f)
+        })
+        val frame = graphics.render(1f)
+
+        assertTrue(near(frame[2, 2], 0xFF202020.toInt()), "far from the light: #%08X".format(frame[2, 2]))
+        assertTrue(near(frame[32, 24], GRAY), "in the light: #%08X".format(frame[32, 24]))
+        // Out at the edge of its disc, part of the way between the two.
+        val edge = green(frame[32 + 8, 24])
+        assertTrue(edge in 0x21 until 0x80, "at the edge of the light: $edge")
+    }
+
+    @Test
+    fun `a shadow keeps what it falls on in the dark`() {
+        val graphics = graphics(64, 48)
+        graphics.clear(GRAY)
+        graphics.drawLighting(Lighting().apply {
+            begin(DARK, glow = 0f)
+            add(32, 24, 12, EngineColors.WHITE, 1f).apply {
+                addShadowPoint(34f, 10f)
+                addShadowPoint(50f, 10f)
+                addShadowPoint(50f, 40f)
+                addShadowPoint(34f, 40f)
+                closeShadow()
+            }
+        })
+        val frame = graphics.render(1f)
+
+        assertTrue(near(frame[30, 24], GRAY), "beside the shadow: #%08X".format(frame[30, 24]))
+        assertTrue(near(frame[35, 24], 0xFF202020.toInt()), "in the shadow: #%08X".format(frame[35, 24]))
+        assertTrue(near(frame[33, 24], GRAY), "the pixel before the shadow's edge: #%08X".format(frame[33, 24]))
+    }
+
+    /**
+     * The first light of a frame is laid down whole, the dark round it and all, its shadows painted
+     * on in the dark's color, where every other light is laid over what is there with its shadows cut
+     * out first. The two ways must come out the same, pixel for pixel.
+     */
+    @Test
+    fun `the first light comes out as any other would`() {
+        fun frame(behind: Boolean): Picture {
+            val graphics = graphics(64, 48)
+            graphics.clear(GRAY)
+            graphics.drawLighting(Lighting().apply {
+                begin(DARK, glow = 0f)
+                // Off the picture altogether, so the light that counts is laid over the dark instead.
+                if (behind) add(-1000, -1000, 10, EngineColors.WHITE, 1f)
+                add(30, 22, 16, EngineColors.CYAN, 1f).apply {
+                    addShadowPoint(36f, 10f)
+                    addShadowPoint(60f, 4f)
+                    addShadowPoint(60f, 34f)
+                    closeShadow()
+                }
+                add(50, 40, 8, EngineColors.YELLOW, 0.7f)
+            })
+            return graphics.render(1f)
+        }
+        val first = frame(behind = false)
+        val laidOver = frame(behind = true)
+        for ((x, y) in first.pixels()) {
+            assertEquals(laidOver[x, y], first[x, y], "pixel ($x, $y)")
+        }
+    }
+
+    /** The light is worked out at the frame's size, so it comes out on the grid like the art. */
+    @Test
+    fun `at a whole-number scale the light is solid blocks too`() {
+        val graphics = graphics(64, 48)
+        graphics.drawScene()
+        graphics.drawLighting(Lighting().apply {
+            begin(DARK, glow = 0.2f)
+            add(20, 20, 18, EngineColors.CYAN, 0.8f).apply {
+                addShadowPoint(25f, 14f)
+                addShadowPoint(45f, 2f)
+                addShadowPoint(45f, 30f)
+                closeShadow()
+            }
+            add(50, 30, 9, EngineColors.YELLOW, 1f)
+        })
+        val small = graphics.render(1f)
+        val large = graphics.render(3f)
+
+        for (y in 0 until large.height) for (x in 0 until large.width) {
+            val block = large[x - x % 3, y - y % 3]
+            assertEquals(block, large[x, y], "view pixel ($x, $y) is not its block's color")
+            assertTrue(near(block, small[x / 3, y / 3]), "view pixel ($x, $y) against frame pixel (${x / 3}, ${y / 3})")
+        }
+    }
+
+    /**
+     * A glint is added over the sprite on the side the light comes from, in the light's color, and
+     * nowhere else.
+     */
+    @Test
+    fun `a glint lights the edge of a sprite facing the light in the light's color`() {
+        val graphics = graphics(48, 48, "disc" to disc(16, GRAY))
+        val disc = graphics.newPixmap("disc", Graphics.PixmapFormat.ARGB8888)
+        graphics.clear(EngineColors.BLACK)
+        graphics.drawPixmap(disc, 16, 16, 0, 0, 16, 16)
+        graphics.drawLighting(Lighting().apply {
+            begin(EngineColors.WHITE, glow = 0f)
+            // From the right, in pure cyan, which adds nothing to red.
+            addGlint(disc, 0, 0, 16, 16, 16, 16, 16, 16, 0, EngineColors.CYAN, 1f)
+        })
+        val frame = graphics.render(1f)
+
+        val glinting = frame.pixels().filter { (x, y) -> green(frame[x, y]) > green(GRAY) + 8 }
+        assertTrue(glinting.isNotEmpty(), "nothing glints")
+        assertTrue(glinting.all { (x, _) -> x >= 16 + 8 }, "a glint on the left half: ${glinting.filter { it.first < 24 }}")
+        assertTrue(glinting.all { (x, y) -> red(frame[x, y]) == red(GRAY) }, "the cyan glint changed red")
+    }
+
+    /**
      * Everything the grid tests draw, laid out apart so that nothing translucent overlaps anything
      * but the background: a sprite, a magnified one, a fade, a flash, a turned sprite with its flash,
      * a translucent rectangle, a pixel, an oval, an outline and a line.
@@ -310,6 +432,10 @@ class ComposeGraphicsTest {
 
         val BACKGROUND = 0xFF203040.toInt()
 
+        /** A mid gray to light, and a dark at a quarter of full light to light it with. */
+        val GRAY = 0xFF808080.toInt()
+        val DARK = 0xFF404040.toInt()
+
         /** One string of each kind the game lays out by its width, at the size it draws it. */
         val GAME_TEXT = listOf(
             "Level: 99" to 15,
@@ -337,6 +463,17 @@ class ComposeGraphicsTest {
                 if (x == 5 && y == 0) continue
                 paint.color = Color(0xFF000000.toInt() or ((x * 40 + 20) shl 16) or ((y * 45 + 10) shl 8) or ((x + y) * 20 + 30))
                 canvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
+            }
+            return image
+        }
+
+        /** A disc [size] across in [color], clear round it. */
+        fun disc(size: Int, color: Int): ImageBitmap {
+            val image = ImageBitmap(size, size)
+            val canvas = Canvas(image)
+            val paint = Paint().apply { isAntiAlias = false; this.color = Color(color) }
+            Raster.oval(0, 0, size, size) { left, top, width, height ->
+                canvas.drawRect(left.toFloat(), top.toFloat(), (left + width).toFloat(), (top + height).toFloat(), paint)
             }
             return image
         }

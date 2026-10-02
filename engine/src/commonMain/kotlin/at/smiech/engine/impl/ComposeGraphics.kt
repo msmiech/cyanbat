@@ -26,7 +26,10 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
+import at.smiech.engine.FrameCache
+import at.smiech.engine.Gloss
 import at.smiech.engine.Graphics
+import at.smiech.engine.Lighting
 import at.smiech.engine.Pixmap
 import at.smiech.engine.Raster
 import kotlin.math.ceil
@@ -137,6 +140,63 @@ class ComposeGraphics(
 
     private val offscreen = CanvasDrawScope()
 
+    /**
+     * The frame's light as [drawLighting] last worked it out - a picture of [LIGHT_CELL] by
+     * [LIGHT_CELL] frame pixels to its every pixel, drawn on the CPU - and which [Lighting], at which
+     * [Lighting.version], it holds, so that a light that has not changed since is not drawn again.
+     */
+    private var lightImage: ImageBitmap? = null
+    private var lightCanvas: Canvas? = null
+    private var litBy: Lighting? = null
+    private var litVersion = 0
+
+    /** Every light asked for so far, by radius and then color, drawn once in its rings; see [lightSprite]. */
+    private var lightSprites = arrayOfNulls<ArrayList<TintedLight>>(64)
+
+    /** The first lights of frames so far, each already laid over the dark; see [darkLightSprite]. */
+    private val darkLights = ArrayList<DarkLight>(2)
+
+    /** Where a light that throws shadows has them cut out of it; see [shadowed]. */
+    private var shadowScratch: ImageBitmap? = null
+    private var shadowCanvas: Canvas? = null
+    private val shadowPath = Path()
+
+    // The light is drawn into pictures of whole cells of frame pixels, so whatever is aliased here
+    // lands on the frame's grid: a shadow's edge falls between two cells, never across one. Every draw
+    // into them is a plain copy or laid over what is there, the two blits Skia does fastest on the CPU
+    // on every platform; adding light, or tinting it as it is drawn, costs several times as much a pixel.
+    private val ambientPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src }
+    private val ringPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src }
+    private val copyPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src; filterQuality = FilterQuality.None }
+    private val shadowPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Clear }
+    private val overPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.SrcOver; filterQuality = FilterQuality.None }
+    private val lightPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Modulate; filterQuality = FilterQuality.None }
+    private val glowPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Plus; filterQuality = FilterQuality.None }
+
+    /**
+     * How each frame of the art glints, in each direction a light can come from: a picture the frame's
+     * size, white where it catches the light and as opaque as the glint is bright, or null where it
+     * catches none. Worked out from the frame's own pixels the first time it is asked for; see [Gloss].
+     */
+    private var framePixels = IntArray(0)
+    private val surfaces = FrameCache { pixmap, x, y, width, height, _ ->
+        if (framePixels.size < width * height) framePixels = IntArray(width * height)
+        if (pixmap.readPixels(framePixels, x, y, width, height)) Gloss.surface(framePixels, width, height) else null
+    }
+    private val glintMasks = FrameCache(Gloss.DIRECTIONS) { pixmap, x, y, width, height, direction ->
+        surfaces[pixmap, x, y, width, height]?.let { glintMask(it, direction) }
+    }
+    private val maskPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src }
+    private val glintPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Plus; filterQuality = FilterQuality.None }
+
+    /** A light's color, as the filter its glints are tinted with, one for each color seen; see [tint]. */
+    private val tintColors = IntArray(MAX_TINTS)
+    private val tintFilters = arrayOfNulls<ColorFilter>(MAX_TINTS)
+    private var tintCount = 0
+
+    /** Which slot the next new tint takes once every one is in use: the oldest. */
+    private var nextTint = 0
+
     override fun newPixmap(filename: String, format: Graphics.PixmapFormat): Pixmap = ImagePixmap(loadImage(filename))
 
     /**
@@ -229,6 +289,50 @@ class ComposeGraphics(
         if (image(SILHOUETTE, turn.image, 0, 0, turn.width, turn.height, turn.left, turn.top, turn.width, turn.height, grid)) {
             ints[intCount++] = color
         }
+    }
+
+    /**
+     * Works the light out into a picture - unless it is the light already there - and records it to be
+     * laid over everything recorded so far, and the glints over that.
+     *
+     * Drawn on the CPU, like a turned sprite, and for the same reason: each of its pixels is a whole
+     * cell of frame pixels, so it lands on the grid when the frame is scaled up. It costs a few native
+     * blits a light, and the frame takes the picture in one draw on the GPU, where lights layered up
+     * there would each be another pass over the screen - and their shadows, clips the GPU is slow at.
+     */
+    override fun drawLighting(lighting: Lighting) {
+        if (lighting !== litBy || lighting.version != litVersion) {
+            renderLight(lighting)
+            litBy = lighting
+            litVersion = lighting.version
+        }
+        val image = lightImage ?: return
+        reserve(LIGHT_LENGTH)
+        ints[intCount++] = LIGHT
+        refs += image
+        addFloat(lighting.glow)
+
+        // Over the light, each glint is its frame's mask for its light's direction, tinted the light's
+        // color and added to the sprite it belongs to, laid exactly where the sprite was blitted - the
+        // blit's own `- 1` and all, so a magnified sprite's glint is magnified with it.
+        for (g in 0 until lighting.glintCount) {
+            val glint = lighting.glint(g)
+            val mask = glintMasks[glint.pixmap, glint.srcX, glint.srcY, glint.srcWidth, glint.srcHeight, glint.direction]
+                ?: continue
+            val recorded = image(
+                GLINT, mask, 0, 0, glint.srcWidth - 1, glint.srcHeight - 1,
+                glint.x, glint.y, glint.dstWidth - 1, glint.dstHeight - 1, 1,
+            )
+            if (recorded) {
+                ints[intCount++] = glint.color
+                addFloat(glint.strength)
+            }
+        }
+    }
+
+    private fun addFloat(value: Float) {
+        if (floatCount == floats.size) floats = floats.copyOf(floats.size * 2)
+        floats[floatCount++] = value
     }
 
     override fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int) {
@@ -327,6 +431,18 @@ class ComposeGraphics(
                     i += TEXT_LENGTH
                 }
 
+                LIGHT -> {
+                    drawLight(canvas, refs[r++] as ImageBitmap, floats[f++])
+                    i += LIGHT_LENGTH
+                }
+
+                GLINT -> {
+                    glintPaint.colorFilter = tint(ints[i + IMAGE_LENGTH])
+                    glintPaint.alpha = floats[f++]
+                    drawImage(canvas, refs[r++] as ImageBitmap, i, glintPaint)
+                    i += IMAGE_LENGTH + 1
+                }
+
                 else -> error("Unknown drawing command ${ints[i]} at $i")
             }
         }
@@ -420,6 +536,250 @@ class ComposeGraphics(
             text,
             styles.getOrPut(fontSize) { TextStyle(fontSize = fontSize.sp, fontFamily = FontFamily.SansSerif) },
         )
+
+    /**
+     * The light laid over the frame: everything multiplied by it, and then as much of it as [glow]
+     * says added on top. Magnified nearest-neighbor, so each cell of frame pixels gets the one light
+     * its pixel of the picture was worked out to.
+     */
+    private fun drawLight(canvas: Canvas, image: ImageBitmap, glow: Float) {
+        val cells = IntSize(image.width, image.height)
+        val covered = IntSize(image.width * LIGHT_CELL, image.height * LIGHT_CELL)
+        canvas.drawImageRect(image, IntOffset.Zero, cells, IntOffset.Zero, covered, lightPaint)
+        if (glow > 0f) {
+            glowPaint.alpha = glow
+            canvas.drawImageRect(image, IntOffset.Zero, cells, IntOffset.Zero, covered, glowPaint)
+        }
+    }
+
+    /**
+     * Works [lighting] out into [lightImage]: the dark everywhere, and every light laid over it in turn.
+     *
+     * The first light is laid down whole instead, the dark round its rings and all ([layFirst]), and
+     * the dark filled in only around it. Nothing is under it yet but the dark, so the picture comes
+     * out the same pixel for pixel, for less than half the work: a copy is the cheapest blit there is,
+     * and its shadows are painted straight on in the dark's color rather than cut out of a copy of it
+     * first. It is the bat's light, the largest by far and the one that throws the most shadows.
+     */
+    private fun renderLight(lighting: Lighting) {
+        val cellsWide = (width + LIGHT_CELL - 1) / LIGHT_CELL
+        val cellsHigh = (height + LIGHT_CELL - 1) / LIGHT_CELL
+        val canvas = lightCanvas ?: Canvas(ImageBitmap(cellsWide, cellsHigh).also { lightImage = it }).also { lightCanvas = it }
+        ambientPaint.color = Color(lighting.ambient or OPAQUE)
+        val first = if (lighting.count > 0) lighting[0] else null
+        if (first != null && first.intensity >= 1f && cellRadius(first) > 0) {
+            layFirst(canvas, first, lighting.ambient, cellsWide, cellsHigh)
+        } else {
+            canvas.drawRect(0f, 0f, cellsWide.toFloat(), cellsHigh.toFloat(), ambientPaint)
+            if (first != null) layLight(canvas, first)
+        }
+        for (i in 1 until lighting.count) layLight(canvas, lighting[i])
+    }
+
+    /** A light's radius in cells of the light picture. */
+    private fun cellRadius(light: Lighting.Light): Int = (light.radius + LIGHT_CELL / 2) / LIGHT_CELL
+
+    /**
+     * Lays the first light down whole, onto nothing: its rings over the [ambient] dark, as one copy,
+     * its shadows painted on in the dark's color, and the dark filled in round its square.
+     */
+    private fun layFirst(canvas: Canvas, light: Lighting.Light, ambient: Int, cellsWide: Int, cellsHigh: Int) {
+        val radius = cellRadius(light)
+        val size = 2 * radius + 1
+        val left = light.x.floorDiv(LIGHT_CELL) - radius
+        val top = light.y.floorDiv(LIGHT_CELL) - radius
+        canvas.drawImageRect(
+            darkLightSprite(radius, light.color, ambient), IntOffset.Zero, IntSize(size, size),
+            IntOffset(left, top), IntSize(size, size), copyPaint,
+        )
+        if (light.shadowCount > 0) {
+            traceShadows(light, 0, 0)
+            canvas.drawPath(shadowPath, ambientPaint)
+        }
+        fillDark(canvas, 0, 0, cellsWide, top, cellsWide, cellsHigh)
+        fillDark(canvas, 0, top + size, cellsWide, cellsHigh, cellsWide, cellsHigh)
+        fillDark(canvas, 0, top, left, top + size, cellsWide, cellsHigh)
+        fillDark(canvas, left + size, top, cellsWide, top + size, cellsWide, cellsHigh)
+    }
+
+    /** The dark over the part of the cells from [left], [top] to [right], [bottom] that is in the picture. */
+    private fun fillDark(canvas: Canvas, left: Int, top: Int, right: Int, bottom: Int, cellsWide: Int, cellsHigh: Int) {
+        val l = left.coerceIn(0, cellsWide)
+        val t = top.coerceIn(0, cellsHigh)
+        val r = right.coerceIn(0, cellsWide)
+        val b = bottom.coerceIn(0, cellsHigh)
+        if (r > l && b > t) canvas.drawRect(l.toFloat(), t.toFloat(), r.toFloat(), b.toFloat(), ambientPaint)
+    }
+
+    /**
+     * Lays one light's rings over the light picture, at its intensity, its shadows cut out of them
+     * first: each pixel taken toward the light's color by as much as the light is there.
+     *
+     * Laid over rather than added, because laying a picture over another is the blit Skia does fastest
+     * on the CPU, where adding one costs several times as much a pixel - and the light picture is a
+     * good part of the frame's pixels every tick. Light laid over light never comes out brighter than
+     * the brighter of the two, so it cannot blow out; and where a colored light falls in the bat's,
+     * it tints it rather than brightening it, which reads as the color of that light all the same.
+     */
+    private fun layLight(canvas: Canvas, light: Lighting.Light) {
+        val radius = cellRadius(light)
+        if (radius <= 0 || light.intensity <= 0f) return
+        val size = 2 * radius + 1
+        val left = light.x.floorDiv(LIGHT_CELL) - radius
+        val top = light.y.floorDiv(LIGHT_CELL) - radius
+        val image = lightImage ?: return
+        if (left >= image.width || top >= image.height || left + size <= 0 || top + size <= 0) return
+        val rings = lightSprite(radius, light.color)
+        val source = if (light.shadowCount > 0) shadowed(rings, light, left, top, size) else rings
+        overPaint.alpha = light.intensity
+        canvas.drawImageRect(source, IntOffset.Zero, IntSize(size, size), IntOffset(left, top), IntSize(size, size), overPaint)
+    }
+
+    /**
+     * [rings] copied out with every shadow on [light] erased from them: what of the light gets past
+     * whatever stands in its way. One scratch picture serves every light, since each is laid over the
+     * light picture before the next is cut, and on the CPU the draws happen as they are made.
+     */
+    private fun shadowed(rings: ImageBitmap, light: Lighting.Light, left: Int, top: Int, size: Int): ImageBitmap {
+        val scratch = shadowScratch?.takeIf { it.width >= size && it.height >= size }
+            ?: ImageBitmap(roundUp(size), roundUp(size)).also {
+                shadowScratch = it
+                shadowCanvas = Canvas(it)
+            }
+        val canvas = shadowCanvas ?: return rings
+        canvas.drawImageRect(rings, IntOffset.Zero, IntSize(size, size), IntOffset.Zero, IntSize(size, size), copyPaint)
+        traceShadows(light, left, top)
+        canvas.drawPath(shadowPath, shadowPaint)
+        return scratch
+    }
+
+    /**
+     * Every shadow on [light] as one path, in cells of the light picture counted from [left], [top]. The
+     * shadows are all wound the same way round, so where two overlap the path fills the overlap once,
+     * as the union of the two.
+     */
+    private fun traceShadows(light: Lighting.Light, left: Int, top: Int) {
+        shadowPath.rewind()
+        shadowPath.fillType = PathFillType.NonZero
+        val points = light.shadowPoints
+        var start = 0
+        for (shadow in 0 until light.shadowCount) {
+            val end = light.shadowEnd(shadow)
+            shadowPath.moveTo(points[start] / LIGHT_CELL - left, points[start + 1] / LIGHT_CELL - top)
+            var point = start + 2
+            while (point < end) {
+                shadowPath.lineTo(points[point] / LIGHT_CELL - left, points[point + 1] / LIGHT_CELL - top)
+                point += 2
+            }
+            shadowPath.close()
+            start = end
+        }
+    }
+
+    /**
+     * [lightSprite] laid over the [ambient] dark once and kept, opaque: the first light of a frame as
+     * [layFirst] copies it down, the same pixels laying the light over the dark would leave.
+     */
+    private fun darkLightSprite(radius: Int, color: Int, ambient: Int): ImageBitmap {
+        val rgb = color or OPAQUE
+        val dark = ambient or OPAQUE
+        for (i in darkLights.indices) {
+            val lit = darkLights[i]
+            if (lit.radius == radius && lit.color == rgb && lit.ambient == dark) return lit.image
+        }
+        val size = 2 * radius + 1
+        val image = ImageBitmap(size, size)
+        val canvas = Canvas(image)
+        ringPaint.color = Color(dark)
+        canvas.drawRect(0f, 0f, size.toFloat(), size.toFloat(), ringPaint)
+        overPaint.alpha = 1f
+        val rings = lightSprite(radius, rgb)
+        canvas.drawImageRect(rings, IntOffset.Zero, IntSize(size, size), IntOffset.Zero, IntSize(size, size), overPaint)
+        darkLights += DarkLight(radius, rgb, dark, image)
+        return image
+    }
+
+    /** A first light, already laid over the dark; see [darkLightSprite]. */
+    private class DarkLight(val radius: Int, val color: Int, val ambient: Int, val image: ImageBitmap)
+
+    /**
+     * A light of [radius] in [color], as a picture 2 * [radius] + 1 across: the color, as opaque at its
+     * heart as the light is strong and clear at its edge, in the rings [Lighting.rings] gives - each
+     * laid down as [Raster] fills an oval, so that it is the same pixels on every platform. Drawn the
+     * first time a light of that radius and color is, and kept: a run's lights come in a handful of
+     * radii and colors, and a light tinted as it is drawn would cost every pixel of it a filter, every
+     * frame.
+     */
+    private fun lightSprite(radius: Int, color: Int): ImageBitmap {
+        if (radius >= lightSprites.size) lightSprites = lightSprites.copyOf(maxOf(radius + 1, lightSprites.size * 2))
+        val tinted = lightSprites[radius] ?: ArrayList<TintedLight>(2).also { lightSprites[radius] = it }
+        val rgb = color or OPAQUE
+        for (i in tinted.indices) {
+            if (tinted[i].color == rgb) return tinted[i].image
+        }
+
+        val size = 2 * radius + 1
+        val image = ImageBitmap(size, size)
+        val canvas = Canvas(image)
+        val rings = Lighting.rings(radius)
+        for (i in rings.indices step 2) {
+            val ring = rings[i]
+            ringPaint.color = Color(rgb).copy(alpha = rings[i + 1] / 255f)
+            Raster.oval(radius - ring, radius - ring, 2 * ring + 1, 2 * ring + 1) { left, top, w, h ->
+                canvas.drawRect(left.toFloat(), top.toFloat(), (left + w).toFloat(), (top + h).toFloat(), ringPaint)
+            }
+        }
+        tinted += TintedLight(rgb, image)
+        return image
+    }
+
+    /** A light's rings in one color; see [lightSprite]. */
+    private class TintedLight(val color: Int, val image: ImageBitmap)
+
+    /**
+     * The pixels of a frame of [surface] that glint in a light from [direction], as a picture of the
+     * frame's size: white, and as opaque as each pixel's glint is bright. Null for a frame that catches
+     * none of it. Laid down a run of a row at a time, the way [Raster] shapes are, so it is the same
+     * pixels on every platform.
+     */
+    private fun glintMask(surface: Gloss.Surface, direction: Int): ImageBitmap? {
+        val levels = surface.glints(direction)
+        if (levels.all { it.toInt() == 0 }) return null
+        val width = surface.width
+        val image = ImageBitmap(width, surface.height)
+        val canvas = Canvas(image)
+        for (y in 0 until surface.height) {
+            var x = 0
+            while (x < width) {
+                val level = levels[y * width + x].toInt()
+                var end = x + 1
+                while (end < width && levels[y * width + end].toInt() == level) end++
+                if (level > 0) {
+                    maskPaint.color = Color.White.copy(alpha = level / Gloss.LEVELS.toFloat())
+                    canvas.drawRect(x.toFloat(), y.toFloat(), end.toFloat(), y + 1f, maskPaint)
+                }
+                x = end
+            }
+        }
+        return image
+    }
+
+    /**
+     * The filter that tints a glint's white mask its light's [color] as it is drawn on the GPU, where a
+     * filter costs next to nothing: kept for each color asked for, since a run's lights come in a
+     * handful of colors and a filter is an allocation. Past [MAX_TINTS] colors the oldest is let go.
+     */
+    private fun tint(color: Int): ColorFilter {
+        val rgb = color or OPAQUE
+        for (i in 0 until tintCount) {
+            if (tintColors[i] == rgb) return tintFilters[i]!!
+        }
+        val filter = ColorFilter.tint(Color(rgb), BlendMode.Modulate)
+        val slot = if (tintCount < MAX_TINTS) tintCount++ else (nextTint++ % MAX_TINTS)
+        tintColors[slot] = rgb
+        tintFilters[slot] = filter
+        return filter
+    }
 
     private fun shape(op: Int, a: Int, b: Int, c: Int, d: Int, color: Int) {
         // A clear color changes nothing, and the outer rings of a faint halo come out clear.
@@ -654,11 +1014,26 @@ class ComposeGraphics(
         private const val FADED = 6
         private const val SILHOUETTE = 7
         private const val TEXT = 8
+        private const val LIGHT = 9
+
+        /**
+         * Frame pixels to a pixel of the light picture, each way. The light is worked out at half the
+         * frame's resolution: a quarter of the pixels to fill, to light and to hand the GPU every tick,
+         * which is most of what the light costs. Light falls off smoothly and is read for where it
+         * falls, so its cells go unnoticed in the pools, and a shadow's edge steps two pixels at a time
+         * instead of one.
+         */
+        private const val LIGHT_CELL = 2
+        private const val GLINT = 10
 
         /** How many ints each kind of command takes, its opcode included. */
         private const val SHAPE_LENGTH = 6
         private const val IMAGE_LENGTH = 10
         private const val TEXT_LENGTH = 7
+        private const val LIGHT_LENGTH = 1
+
+        /** How many light colors [tint] keeps a filter for. */
+        private const val MAX_TINTS = 32
 
         private const val OPAQUE = 0xFF000000.toInt()
         private const val RADIANS_PER_DEGREE = 0.017453292f
