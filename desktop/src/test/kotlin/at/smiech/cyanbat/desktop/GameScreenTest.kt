@@ -14,6 +14,7 @@ import at.smiech.cyanbat.service.EnemySpecies
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.BAT_LIGHT_FADE_SECONDS
 import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SECONDS
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.BURROW_SHOWING
@@ -22,6 +23,7 @@ import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
 import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
+import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
@@ -37,6 +39,8 @@ import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.EntityId
 import at.smiech.engine.ecs.HealthComponent
+import at.smiech.engine.ecs.LightComponent
+import at.smiech.engine.ecs.OccluderComponent
 import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TransformComponent
@@ -48,6 +52,7 @@ import kotlinx.coroutines.flow.flow
 import kotlin.math.roundToInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -535,6 +540,114 @@ class GameScreenTest {
         )
     }
 
+    /**
+     * The cave is flown in the dark, by the light the bat carries: the rock beside the bat is lit, and
+     * the same rock across the cave is not. Read off the frame in the flat band of rock across the
+     * middle of the cave, above the stage's name, before anything has arrived to stand in the way.
+     */
+    @Test
+    fun `the cave is dark but for the light the bat carries`() = flight(CAVE) {
+        placeBat()
+        screen.update(TICK_INITIAL * 1.5f)
+        screen.present(0f)
+        val frame = game.capture()
+
+        val beside = frame[ROCK_ROW * FRAME_BUFFER_WIDTH + BAT_MIDDLE_X - 60]
+        val across = frame[ROCK_ROW * FRAME_BUFFER_WIDTH + 600]
+        assertTrue(
+            brightness(beside) > brightness(across) + 30,
+            "beside the bat #%06X, across the cave #%06X".format(beside and 0xFFFFFF, across and 0xFFFFFF),
+        )
+    }
+
+    /**
+     * An imp in the bat's light throws its shadow away from the bat: the rock just behind it is in the
+     * dark, where the rock as far from the bat on its other side is lit.
+     */
+    @Test
+    fun `an imp throws a shadow away from the bat`() = flight(CAVE) {
+        placeBat()
+        EntityFactory(probe.world, lit = true).createEnemy(
+            x = 248f, y = ROCK_ROW - IMP_ROW / 2f, width = 28f, height = IMP_ROW.toFloat(),
+            pixmap = assets.stage(CAVE).enemySheet, species = EnemySpecies.SCOUT, hitPoints = 1000,
+        )
+        screen.update(TICK_INITIAL * 1.5f)
+        screen.present(0f)
+        val frame = game.capture()
+
+        val behind = frame[ROCK_ROW * FRAME_BUFFER_WIDTH + 300]
+        val opposite = frame[ROCK_ROW * FRAME_BUFFER_WIDTH + 2 * BAT_MIDDLE_X - 300]
+        assertTrue(
+            brightness(opposite) > brightness(behind) + 20,
+            "behind the imp #%06X, as far off on the other side #%06X"
+                .format(behind and 0xFFFFFF, opposite and 0xFFFFFF),
+        )
+    }
+
+    @Test
+    fun `a spent shot leaves a flash of its light, which goes out by itself`() = flight(CAVE) {
+        val lit = EntityFactory(probe.world, lit = true)
+        val imp = lit.createEnemy(
+            x = 400f, y = 60f, width = 28f, height = IMP_ROW.toFloat(),
+            pixmap = assets.stage(CAVE).enemySheet, species = EnemySpecies.SCOUT, hitPoints = 1000,
+        )
+        val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
+        val shot = assets.graphics.shot
+        lit.createShot(
+            x = rect.centerX - SHOT_FRAME_WIDTH / 2f, y = rect.centerY - shot.height / 2f,
+            width = SHOT_FRAME_WIDTH.toFloat(), height = shot.height.toFloat(), pixmap = shot, isPlayer = true,
+        )
+        val flashes = {
+            probe.world.query(LightComponent::class).filter {
+                probe.world.getComponent(it, LightComponent::class)!!.removeWhenFaded
+            }
+        }
+
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(1, flashes().size, "the shot's flash")
+
+        fly(IMPACT_LIGHT_SECONDS + 0.05f)
+        assertTrue(flashes().isEmpty(), "the flash outlived its light")
+    }
+
+    @Test
+    fun `the bat's light goes out as it falls`() = flight(CAVE) {
+        val world = probe.world
+        val light = { world.getComponent(probe.batId, LightComponent::class)!! }
+        assertEquals(1f, light().strength)
+
+        world.getComponent(probe.batId, HealthComponent::class)!!.hitPoints = 1
+        val bat = world.getComponent(probe.batId, TransformComponent::class)!!.rect
+        val shot = assets.graphics.shot
+        EntityFactory(world).createShot(
+            x = bat.centerX, y = bat.centerY, width = SHOT_FRAME_WIDTH.toFloat(),
+            height = shot.height.toFloat(), pixmap = shot, isPlayer = false,
+        )
+        screen.update(TICK_INITIAL * 1.5f)
+        assertFalse(world.getComponent(probe.batId, HealthComponent::class)!!.alive, "the bat should be dead")
+        assertTrue(light().strength in 0.5f..<1f, "the light, as the bat starts to fall: ${light().strength}")
+
+        fly(BAT_LIGHT_FADE_SECONDS)
+        assertEquals(0f, light().strength)
+    }
+
+    /** Only the cave is dark: the forest's bat carries no light, and nothing in it throws a shadow. */
+    @Test
+    fun `the forest is flown in daylight`() = flight(FOREST) {
+        fly(2f)
+        assertNull(probe.world.getComponent(probe.batId, LightComponent::class))
+        assertTrue(probe.world.query(LightComponent::class).isEmpty(), "something in the forest gives off light")
+        assertTrue(probe.world.query(OccluderComponent::class).isEmpty(), "something in the forest throws a shadow")
+    }
+
+    /** Puts the bat at the same place every time, its middle on [BAT_MIDDLE_X] and [ROCK_ROW]. */
+    private fun Flight.placeBat() {
+        probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect =
+            Rect.fromLTWH(BAT_MIDDLE_X - 22.5f, ROCK_ROW - BAT_ROW / 2f, 45f, BAT_ROW.toFloat())
+    }
+
+    private fun brightness(argb: Int): Int = ((argb shr 16) and 0xFF) + ((argb shr 8) and 0xFF) + (argb and 0xFF)
+
     /** One of the cave's scouts at ([x], [y]), as an [elite] or an ordinary one for null. */
     private fun Flight.imp(
         x: Float,
@@ -603,7 +716,15 @@ class GameScreenTest {
 
     private companion object {
         const val CAVE = 1
+        const val FOREST = 2
         const val DESERT = 3
+
+        /**
+         * A row of the flat band of rock across the middle of the cave, clear of the stage's name, and
+         * where the light tests put the middle of the bat on it.
+         */
+        const val ROCK_ROW = 140
+        const val BAT_MIDDLE_X = 222
 
         /**
          * One row of each sheet, spelled out rather than read off the code, for the reason

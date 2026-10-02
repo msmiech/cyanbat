@@ -5,7 +5,17 @@ import at.smiech.cyanbat.ecs.EliteComponent
 import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
+import at.smiech.cyanbat.util.BAT_LIGHT_COLOR
+import at.smiech.cyanbat.util.BAT_LIGHT_RADIUS
+import at.smiech.cyanbat.util.BLAST_LIGHT_COLOR
+import at.smiech.cyanbat.util.BLAST_LIGHT_MAX_RADIUS
+import at.smiech.cyanbat.util.BLAST_LIGHT_RADIUS
+import at.smiech.cyanbat.util.BLAST_LIGHT_STEP
+import at.smiech.cyanbat.util.BOSS_LIGHT_COLOR
+import at.smiech.cyanbat.util.BOSS_LIGHT_INTENSITY
+import at.smiech.cyanbat.util.BOSS_LIGHT_RADIUS
 import at.smiech.cyanbat.util.BURST_DRIFT
+import at.smiech.cyanbat.util.CREATURE_SHINE
 import at.smiech.cyanbat.util.CRITICAL_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.CRITICAL_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
@@ -15,16 +25,22 @@ import at.smiech.cyanbat.util.DAMAGE_TEXT_RISE_PER_TICK
 import at.smiech.cyanbat.util.DESTRUCTIBLE_HIT_POINTS
 import at.smiech.cyanbat.util.ELITE_AURA_INTENSITY
 import at.smiech.cyanbat.util.ELITE_AURA_TIER
+import at.smiech.cyanbat.util.ELITE_LIGHT_RADIUS
+import at.smiech.cyanbat.util.ENEMY_SHOT_LIGHT_RADIUS
 import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.HEALTH_BAR_HEIGHT
 import at.smiech.cyanbat.util.HEALTH_BAR_OFFSET_Y
+import at.smiech.cyanbat.util.IMPACT_LIGHT_RADIUS
+import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
 import at.smiech.cyanbat.util.MOTH_QUEEN_COLLISION_TOLERANCE
 import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_COUNT
 import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_SECONDS
 import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_WIDTH
 import at.smiech.cyanbat.util.MOTH_QUEEN_SHOT_VARIANT
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
+import at.smiech.cyanbat.util.PLAYER_SHOT_LIGHT_RADIUS
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
+import at.smiech.cyanbat.util.ROCK_SHINE
 import at.smiech.cyanbat.util.SAND_WYRM_FRAME
 import at.smiech.cyanbat.util.SAND_WYRM_HEAD_FRAMES
 import at.smiech.cyanbat.util.SAND_WYRM_HEAD_FRAME_SECONDS
@@ -34,8 +50,11 @@ import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAMES
 import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAME_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHIELD_REGROWTH_DELAY_SECONDS
+import at.smiech.cyanbat.util.SHOT_BODY_COLORS
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.SHOT_HIT_POINTS
+import at.smiech.cyanbat.util.SHOT_LIGHT_INTENSITY
+import at.smiech.cyanbat.util.SHOT_LIGHT_PALENESS
 import at.smiech.cyanbat.util.SHOT_SPEED
 import at.smiech.cyanbat.util.TRAIL_DRIFT_PER_TICK
 import at.smiech.cyanbat.util.TRAIL_DURATION_SECONDS
@@ -61,6 +80,8 @@ import at.smiech.engine.ecs.FloatingTextComponent
 import at.smiech.engine.ecs.HealthBarComponent
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LifetimeComponent
+import at.smiech.engine.ecs.LightComponent
+import at.smiech.engine.ecs.OccluderComponent
 import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
@@ -78,9 +99,17 @@ import at.smiech.engine.ecs.ZIndexComponent
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
 import kotlin.math.cos
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
-class EntityFactory(val world: World) {
+/**
+ * Builds every entity a run is made of.
+ *
+ * @param lit whether the stage is flown in the dark, where what gives off light carries a
+ *   [LightComponent] and what stands in its way an [OccluderComponent]. In daylight neither is added,
+ *   so nothing carries bookkeeping no system will read.
+ */
+class EntityFactory(val world: World, private val lit: Boolean = false) {
 
     /** The bat, at ([x], [y]), drawn from [pixmap]'s rows of unhurt and wounded wingbeats. */
     fun createBat(
@@ -111,6 +140,8 @@ class EntityFactory(val world: World) {
         // Dormant at level 1, which is where every run starts: an aura the player has not earned
         // yet draws nothing at all. GameScreen.syncAura is what wakes it up.
         world.addComponent(id, AuraComponent())
+        // What the player sees the dark by. The bat throws no shadow of its own: it is the light.
+        if (lit) world.addComponent(id, LightComponent(BAT_LIGHT_COLOR, BAT_LIGHT_RADIUS))
         world.addComponent(id, LifetimeComponent(false))
         world.addComponent(id, ZIndexComponent(20))
         return id
@@ -211,7 +242,10 @@ class EntityFactory(val world: World) {
                 id,
                 AuraComponent(intensity = ELITE_AURA_INTENSITY, tier = ELITE_AURA_TIER, colors = elite.aura),
             )
+            // And in the dark the glow is a light, so it is seen coming from across the cave.
+            if (lit) world.addComponent(id, LightComponent(elite.aura.rim, ELITE_LIGHT_RADIUS))
         }
+        if (lit) world.addComponent(id, OccluderComponent(CREATURE_SHINE))
         if (gun != null) {
             world.addComponent(id, WeaponComponent(gun.interval, timeSinceLastShot = -firstShotDelay))
             world.addComponent(id, GunComponent(gun.volleys))
@@ -270,7 +304,11 @@ class EntityFactory(val world: World) {
         // Tolerance scaled with the sprite, so the boss's box sits in from its edges by the same
         // proportion an ordinary enemy's does.
         collisionTolerance = 5f * scale,
-    )
+    ).also { id ->
+        // The fight is fought across the cave, and a boss sunk in the dark at its far end is one the
+        // player cannot read; it smoulders, dimly, wherever the bat's light is.
+        if (lit) world.addComponent(id, LightComponent(BOSS_LIGHT_COLOR, BOSS_LIGHT_RADIUS, BOSS_LIGHT_INTENSITY))
+    }
 
     /**
      * The forest's boss: drawn at its own size from its own sheet, rather than an enemy magnified.
@@ -357,6 +395,7 @@ class EntityFactory(val world: World) {
             world.addComponent(id, CollisionComponent(tolerance, CollisionGroup.ENEMY))
             world.addComponent(id, DamageComponent(bodyDamage))
             world.addComponent(id, BossPartComponent(share = SAND_WYRM_PLATE_SHARE))
+            if (lit) world.addComponent(id, OccluderComponent(CREATURE_SHINE))
             world.addComponent(id, LifetimeComponent(false))
             world.addComponent(id, ZIndexComponent(12))
             id
@@ -385,6 +424,7 @@ class EntityFactory(val world: World) {
         world.addComponent(head, BossPartComponent())
         world.addComponent(head, WeaponComponent(gun.interval))
         world.addComponent(head, GunComponent(gun.volleys))
+        if (lit) world.addComponent(head, OccluderComponent(CREATURE_SHINE))
         world.addComponent(head, LifetimeComponent(false))
         world.addComponent(head, ZIndexComponent(13))
         return listOf(head) + body
@@ -471,6 +511,7 @@ class EntityFactory(val world: World) {
         world.addComponent(id, DamageComponent(damage))
         world.addComponent(id, HealthBarComponent(HEALTH_BAR_HEIGHT * scale, HEALTH_BAR_OFFSET_Y))
         world.addComponent(id, WeaponComponent(shotIntervalSeconds))
+        if (lit) world.addComponent(id, OccluderComponent(CREATURE_SHINE))
         world.addComponent(id, LifetimeComponent(false))
         world.addComponent(id, ZIndexComponent(12))
         return id
@@ -525,6 +566,7 @@ class EntityFactory(val world: World) {
         world.addComponent(id, VelocityComponent(Vector2(-1f, 0f)))
         world.addComponent(id, SpriteComponent(pixmap, srcHeight = height.toInt()))
         if (keyframed) world.addComponent(id, CrossfadeComponent())
+        if (lit) world.addComponent(id, OccluderComponent(ROCK_SHINE))
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.OBSTACLE))
         world.addComponent(id, HealthComponent(DESTRUCTIBLE_HIT_POINTS))
         world.addComponent(id, LifetimeComponent(true))
@@ -589,8 +631,32 @@ class EntityFactory(val world: World) {
         )
         world.addComponent(id, HealthComponent(SHOT_HIT_POINTS))
         world.addComponent(id, DamageComponent(damage, isCritical = critical))
+        if (lit) {
+            // A bolt glows the color of its body, so a shot lights its way across the dark and the
+            // player sees whose it is by the light it throws as well as by the bolt.
+            val color = EngineColors.lerp(SHOT_BODY_COLORS[variant], EngineColors.WHITE, SHOT_LIGHT_PALENESS)
+            val radius = if (isPlayer) PLAYER_SHOT_LIGHT_RADIUS else ENEMY_SHOT_LIGHT_RADIUS
+            world.addComponent(id, LightComponent(color, radius, SHOT_LIGHT_INTENSITY))
+        }
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(15))
+        return id
+    }
+
+    /**
+     * A flash of light where a shot was spent, in the shot's own [color]: it lights up whatever was
+     * struck at the moment it is struck. Nothing but the light, which fades in
+     * [IMPACT_LIGHT_SECONDS] and takes the entity with it. It drifts with the scenery, so it stays
+     * where the blow landed.
+     */
+    fun createFlash(centerX: Float, centerY: Float, color: Int): EntityId {
+        val id = world.createEntity()
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX, centerY, 0f, 0f)))
+        world.addComponent(id, VelocityComponent(Vector2(BURST_DRIFT, 0f)))
+        world.addComponent(
+            id,
+            LightComponent(color, IMPACT_LIGHT_RADIUS, fadeSeconds = IMPACT_LIGHT_SECONDS, removeWhenFaded = true),
+        )
         return id
     }
 
@@ -664,7 +730,19 @@ class EntityFactory(val world: World) {
     ): EntityId = createBurst(
         centerX, centerY, pixmap, EXPLOSION_FRAME_WIDTH,
         EXPLOSION_FRAME_COUNT, EXPLOSION_FRAME_SECONDS, scale,
-    )
+    ).also { id ->
+        // Fire lights the dark around it, and goes out with the fireball.
+        if (lit) {
+            world.addComponent(
+                id,
+                LightComponent(
+                    BLAST_LIGHT_COLOR,
+                    blastLightRadius(scale),
+                    fadeSeconds = EXPLOSION_FRAME_COUNT * EXPLOSION_FRAME_SECONDS,
+                ),
+            )
+        }
+    }
 
     /**
      * Rock coming apart, for an obstacle: chunks and dust rather than fire.
@@ -794,6 +872,14 @@ class EntityFactory(val world: World) {
 
         /** The boss wears the third enemy's colors, the same ones the final wave escorts it in. */
         const val BOSS_ENEMY_TYPE = 2
+
+        /**
+         * A blast's light at [scale], rounded to [BLAST_LIGHT_STEP] and held to [BLAST_LIGHT_MAX_RADIUS]:
+         * every radius of light is drawn once and kept, and the bosses go up in blasts of every size.
+         */
+        fun blastLightRadius(scale: Float): Int =
+            ((BLAST_LIGHT_RADIUS * scale / BLAST_LIGHT_STEP).roundToInt() * BLAST_LIGHT_STEP)
+                .coerceIn(BLAST_LIGHT_STEP, BLAST_LIGHT_MAX_RADIUS)
 
         /** Degrees to radians, for the spread on a fanned shot. */
         const val PI_OVER_180 = 0.017453292f

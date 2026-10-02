@@ -173,6 +173,20 @@ interface Graphics {
         rotationDegrees: Float,
     ) = drawPixmapSilhouette(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, color)
 
+    /**
+     * Lights everything drawn so far with [lighting]: each pixel of the frame multiplied by the light
+     * that reaches it - [Lighting.ambient], taken toward the color of every light whose disc it lies in
+     * and out of whose shadows it is - and then that light added over it at [Lighting.glow], and the
+     * glints added over the sprites they belong to. What is drawn after this is left as it is drawn,
+     * which is how something that is itself a light stays bright in the dark.
+     *
+     * The light is worked out a cell of frame pixels at a time, so it lands on the frame's grid like
+     * everything else; the glints a frame pixel at a time, like the sprites they belong to.
+     *
+     * A default that lights nothing, so a test double does not have to learn it.
+     */
+    fun drawLighting(lighting: Lighting) {}
+
     /** [s] in the platform's sans-serif face, [fontSize] frame pixels tall, from its baseline at [x], [y]. */
     fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
 

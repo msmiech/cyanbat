@@ -2,6 +2,7 @@ package at.smiech.cyanbat.desktop
 
 import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.SHOT_BODY_COLORS
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -174,6 +175,25 @@ class SpriteSheetTest {
      * `ElitePalette`, the bolts in `generate_shot_sprite.py`. This holds them together: the body of
      * each colorway, read off the sheet, is exactly its palette's rim.
      */
+    /**
+     * In the dark a shot gives off the light of its body's color, which the game declares apart from
+     * the sheet, in `SHOT_BODY_COLORS`. This holds the two together, colorway by colorway.
+     */
+    @Test
+    fun `every shot gives off the color of its bolt`() {
+        val image = javaClass.getResourceAsStream("/shot.png").use { ImageIO.read(it) }
+        assertEquals(image.width / 24, SHOT_BODY_COLORS.size, "a light color for every colorway")
+        for (variant in SHOT_BODY_COLORS.indices) {
+            val body = image.getRGB(variant * 24 + 12, 5)
+            assertEquals(
+                SHOT_BODY_COLORS[variant] and 0xFFFFFF,
+                body and 0xFFFFFF,
+                "colorway $variant's bolt is #%06X, its light #%06X"
+                    .format(body and 0xFFFFFF, SHOT_BODY_COLORS[variant] and 0xFFFFFF),
+            )
+        }
+    }
+
     @Test
     fun `every elite's bolts are the color of its glow`() {
         val image = javaClass.getResourceAsStream("/shot.png").use { ImageIO.read(it) }

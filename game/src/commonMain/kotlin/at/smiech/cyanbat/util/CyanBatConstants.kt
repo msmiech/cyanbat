@@ -511,6 +511,86 @@ const val SHOT_FRAME_WIDTH = 24
 const val PLAYER_SHOT_VARIANT = 0
 const val ENEMY_SHOT_VARIANT_OFFSET = 1
 
+// The body of each colorway's bolt, in the sheet's order: what color of light a shot gives off where
+// the stage is dark. From `generate_shot_sprite.py`, which SpriteSheetTest holds them to.
+val SHOT_BODY_COLORS = intArrayOf(
+    0xFF00E5FF.toInt(), // the bat's cyan
+    0xFFB05CE8.toInt(), // violet
+    0xFFE8942C.toInt(), // amber
+    0xFFDC4250.toInt(), // crimson
+    0xFFE45ACC.toInt(), // magenta
+    0xFFFC8C28.toInt(), // flame
+    0xFFF080AA.toInt(), // rose
+    0xFFFFCC40.toInt(), // molten gold
+    0xFFFF3848.toInt(), // scarlet
+    0xFFFF7A1E.toInt(), // ember
+    0xFF74EE3C.toInt(), // venom
+    0xFFA458FF.toInt(), // ultraviolet
+    0xFFFF40C4.toInt(), // fuchsia
+)
+
+
+// --- The dark ----------------------------------------------------------------------------------
+//
+// The cave is flown in the dark. The bat carries its own light, every shot and every blast is one,
+// and whatever stands in a light's way - a rock, an imp - throws a shadow away from it; see
+// LightingSystem. These are the whole of how dark it is and how far each light reaches. The forest
+// and the desert are flown in daylight, and none of it applies there.
+
+// The light where no other reaches, as the color the cave is multiplied by: about a quarter, and a
+// little bluer than gray. The walls sink into the dark, while an imp the bat's light has not reached
+// yet is still a warm shape the player can see coming - the dark is the cave's mood, not a way to
+// hide what is about to hit the bat.
+const val CAVE_AMBIENT = 0xFF3C4258.toInt()
+
+// How much of the light shows in the air as well as on the rock. Multiplying alone barely lights the
+// cave's navy walls with a warm light, or anything with the bat's cyan but what is cyan already; much
+// more than a breath of it and the light reads as fog.
+const val CAVE_GLOW = 0.08f
+
+// The bat's light: near white with a breath of cyan, so what it falls on keeps its own colors, and wide
+// enough to light most of the frame's height and an imp a second before it arrives. It goes out over
+// BAT_LIGHT_FADE_SECONDS as the bat falls, which is about how long the fall takes.
+const val BAT_LIGHT_COLOR = 0xFFDCF8FF.toInt()
+const val BAT_LIGHT_RADIUS = 160
+const val BAT_LIGHT_FADE_SECONDS = 1.2f
+
+// A shot's light, in its bolt's color lifted part of the way to white so that it lights more than
+// what shares its hue. The bat's shots light a little further than anything fired back at it.
+const val PLAYER_SHOT_LIGHT_RADIUS = 50
+const val ENEMY_SHOT_LIGHT_RADIUS = 44
+const val SHOT_LIGHT_INTENSITY = 0.85f
+const val SHOT_LIGHT_PALENESS = 0.3f
+
+// Where a shot is spent, a flash of its light: it lights up what was hit at the moment it is hit, the
+// one moment a creature in the dark most needs to be seen.
+const val IMPACT_LIGHT_RADIUS = 40
+const val IMPACT_LIGHT_SECONDS = 0.2f
+
+// A blast's light: fire-colored, as wide as BLAST_LIGHT_RADIUS for a blast drawn at its own size and
+// in step with bigger ones, and dying with the fireball. Its radius is rounded to BLAST_LIGHT_STEP,
+// since every radius of light is drawn once and kept, and boss blasts come in every size.
+const val BLAST_LIGHT_COLOR = 0xFFFFB464.toInt()
+const val BLAST_LIGHT_RADIUS = 56
+const val BLAST_LIGHT_STEP = 8
+const val BLAST_LIGHT_MAX_RADIUS = 160
+
+// An elite gives off the light of its glow, so it is seen across the dark - it is a prize to chase.
+const val ELITE_LIGHT_RADIUS = 60
+
+// How strongly a light glints off the edge of a creature or a rock on the side it comes from; see
+// Gloss. Just enough to show which way each light reaches it and to lift its outline off the dark,
+// so the player reads where things are and where the light is - not so much that the cave looks wet.
+// Rock a touch more than hide: the cave's limestone is damp.
+const val CREATURE_SHINE = 0.7f
+const val ROCK_SHINE = 0.75f
+
+// The cave's boss smoulders: a dim crimson light about it, enough to see the whole of it from the far
+// side of the cave wherever the bat is.
+const val BOSS_LIGHT_COLOR = 0xFFFF6A50.toInt()
+const val BOSS_LIGHT_RADIUS = 120
+const val BOSS_LIGHT_INTENSITY = 0.55f
+
 
 // --- The bat's death ---------------------------------------------------------------------------
 //

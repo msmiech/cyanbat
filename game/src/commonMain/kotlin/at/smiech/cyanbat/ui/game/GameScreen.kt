@@ -26,6 +26,7 @@ import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_COUNT
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_SECONDS
 import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
+import at.smiech.cyanbat.util.BAT_LIGHT_FADE_SECONDS
 import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_FALLOFF
 import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SCALE
 import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SECONDS
@@ -89,6 +90,8 @@ import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.HitFlashComponent
 import at.smiech.engine.ecs.HitFlashSystem
 import at.smiech.engine.ecs.LifetimeSystem
+import at.smiech.engine.ecs.LightComponent
+import at.smiech.engine.ecs.LightingSystem
 import at.smiech.engine.ecs.MovementSystem
 import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.PierceComponent
@@ -133,7 +136,7 @@ class GameScreen(
     var currentStage = env.assets.stage(stageId)
 
     private val world = World()
-    private val factory = EntityFactory(world)
+    private val factory = EntityFactory(world, lit = currentStage.lighting != null)
 
     /**
      * Canceled in [dispose], so nothing started here outlives the screen. On the main dispatcher,
@@ -347,7 +350,16 @@ class GameScreen(
         // rather than a wash over it. This is also the pass that advances the aura's clock; see
         // [AuraSystem.Layer].
         world.addSystem(AuraSystem(AuraSystem.Layer.HALO))
-        world.addSystem(RenderSystem(layers = SPRITE_LAYERS_FROM..Int.MAX_VALUE))
+        // The sprites in two passes, with the dark of a stage flown in the dark between them: under it
+        // the obstacles and everything hostile, as lit as whatever light reaches them; over it the
+        // shots, the bat and the blasts, each a light itself or the heart of one, and as bright as it
+        // is drawn. The dark goes over the scenery and the halos too, and under every effect after
+        // it. In daylight the two passes draw what one would.
+        world.addSystem(RenderSystem(layers = SPRITE_LAYERS_FROM until LIGHTS_FROM))
+        currentStage.lighting?.let {
+            world.addSystem(LightingSystem(game.frameBufferWidth, game.frameBufferHeight, it.ambient, it.glow))
+        }
+        world.addSystem(RenderSystem(layers = LIGHTS_FROM..Int.MAX_VALUE))
         // Straight after the sprites, so a bubble encloses the enemy it protects rather than being
         // painted over by it; and before the health bars, which must never be lost behind one.
         world.addSystem(ShieldSystem())
@@ -762,13 +774,20 @@ class GameScreen(
         // An enemy burns; a spire of limestone breaks. Sharing one effect between them said the
         // obstacle had been detonated, in a cave where nothing is flammable.
         //
-        // Everything else is left alone. A blast on every shot that lands would bury a tough enemy
-        // behind its own hit effects, and the bat's death has an animation of its own.
+        // Nothing else leaves a blast. A blast on every shot that lands would bury a tough enemy
+        // behind its own hit effects, and the bat's death has an animation of its own. A shot that
+        // gives off light leaves a flash of it where it was spent, though: in the dark that is the
+        // moment the player sees what it struck.
         val (pixmap, spawn, sound) = when (collisionGroupOf(id)) {
             CollisionGroup.ENEMY ->
                 Triple(graphics.explosion, factory::createExplosion, SoundEffect.ENEMY_DEATH)
             CollisionGroup.OBSTACLE ->
                 Triple(graphics.shatter, factory::createShatter, SoundEffect.OBSTACLE_SHATTER)
+            CollisionGroup.PLAYER_PROJECTILE, CollisionGroup.ENEMY_PROJECTILE -> {
+                world.getComponent(id, LightComponent::class)
+                    ?.let { factory.createFlash(rect.centerX, rect.centerY, it.color) }
+                return
+            }
             else -> return
         }
 
@@ -1009,6 +1028,13 @@ class GameScreen(
         // Kept off the previous sprite's rotation, which is zero for the bat but would not be for
         // anything that had been turned before it died.
         world.getComponent(batId, SpriteComponent::class)?.rotationDegrees = sprite.rotationDegrees
+        // In the dark, its light goes out as it falls, rather than going over the bottom edge with it.
+        world.getComponent(batId, LightComponent::class)?.let { light ->
+            world.addComponent(
+                batId,
+                LightComponent(light.color, light.radius, light.strength, fadeSeconds = BAT_LIGHT_FADE_SECONDS),
+            )
+        }
     }
 
     /** One of the pieces coming off the bat on its way down; see [DeathThroesComponent]. */
@@ -1790,6 +1816,13 @@ class GameScreen(
          * every sprite of the run - the obstacles up - at or above it.
          */
         const val SPRITE_LAYERS_FROM = 0
+
+        /**
+         * The lowest z index drawn over the dark, in a stage flown in it: the shots at 15, the bat at
+         * 20 and the blasts at 50. The obstacles, the creatures and the bosses, from 5 to 13, sit
+         * under it and are lit by whatever reaches them.
+         */
+        const val LIGHTS_FROM = 15
 
         /**
          * How big each part of a boss's body goes up, against the part itself. Under one: ten of
