@@ -5,6 +5,8 @@ import at.smiech.cyanbat.resource.ParallaxLayer
 import at.smiech.cyanbat.resource.Stage
 import at.smiech.cyanbat.resource.StageMusic
 import at.smiech.cyanbat.scenery.Daylight
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.engine.Graphics
 import at.smiech.engine.MusicGrid
@@ -44,7 +46,7 @@ class ObstacleGeneratorTest {
     private fun obstacles() = world.query(CollisionComponent::class, TransformComponent::class)
 
     private fun placeFor(seconds: Float, stage: Stage) {
-        val generator = ObstacleGenerator(480, 320, EntityFactory(world), stage, Random(20260926))
+        val generator = ObstacleGenerator(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, EntityFactory(world), stage, Random(20260926))
         repeat((seconds / TICK_INITIAL).toInt()) { generator.update(TICK_INITIAL) }
     }
 
@@ -54,7 +56,7 @@ class ObstacleGeneratorTest {
 
         assertTrue(obstacles().size >= 5, "only ${obstacles().size} obstacles in thirty seconds")
         obstacles().forEach {
-            assertEquals(320f, world.getComponent(it, TransformComponent::class)!!.rect.bottom, "one of them is not standing on the ground")
+            assertEquals(FRAME_BUFFER_HEIGHT.toFloat(), world.getComponent(it, TransformComponent::class)!!.rect.bottom, "one of them is not standing on the ground")
         }
     }
 

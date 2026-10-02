@@ -2,7 +2,7 @@ package at.smiech.engine
 
 /**
  * What a screen draws its frame with: integer coordinates in frame pixels, the frame being the
- * game's 480x320.
+ * game's 640x360.
  *
  * Everything but text is pixel art, and lands on the frame's pixel grid however large the frame is
  * shown; text is drawn smooth at the screen's resolution. `ComposeGraphics` is the one real

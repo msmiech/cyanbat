@@ -1,5 +1,12 @@
 package at.smiech.cyanbat.util
 
+// The frame every screen of the game draws, in framebuffer pixels: 16:9, the shape of most phones
+// held sideways and of most monitors, so on either it fills the screen or near enough. It is also
+// the playfield, the same on every device, and what spawn points, boss stations, the overlays and
+// the desert's sky are laid out against. Each host hands it to the engine; nothing else declares it.
+const val FRAME_BUFFER_WIDTH = 640
+const val FRAME_BUFFER_HEIGHT = 360
+
 const val TICK_INITIAL = 0.019f // in seconds
 
 // The bat fires automatically on this cadence.
@@ -189,7 +196,7 @@ const val STAGE_COMPLETE_BONUS = 10_000
 // How long the wave and boss announcements stay up, in seconds.
 const val WAVE_BANNER_SECONDS = 2.2f
 
-// Wave and boss announcements, sized against the 480px framebuffer.
+// Wave and boss announcements, sized against the 640px framebuffer.
 const val BANNER_FONT_SIZE = 26
 
 // The stage timer, top center.
@@ -367,12 +374,12 @@ const val PLAYER_HIT_COOLDOWN_SECONDS = 0.5f
 const val SECOND_WIND_SECONDS = 0.3f
 const val MAX_HIT_COOLDOWN_SECONDS = 1.5f
 
-// The level up dialog, laid out against the 480x320 framebuffer. Three cards in a row with a gutter
+// The level up dialog, laid out against the 640x360 framebuffer. Three cards in a row with a gutter
 // between them, centered horizontally and sitting just below the middle of the screen.
 const val POWER_UP_CARD_WIDTH = 140
 const val POWER_UP_CARD_HEIGHT = 96
 const val POWER_UP_CARD_GAP = 10
-const val POWER_UP_CARD_TOP = 130
+const val POWER_UP_CARD_TOP = 150
 
 // How long the dialog ignores input. The player was steering with a finger down when the level up
 // landed, and the lift that follows is not them choosing a card.

@@ -35,7 +35,7 @@ from math import cos, pi, sin
 
 from PIL import Image
 
-HEIGHT = 320
+HEIGHT = 360
 OUT = pathlib.Path(__file__).resolve().parent.parent / "assets"
 SEED = 20260927
 

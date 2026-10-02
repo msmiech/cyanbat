@@ -141,11 +141,11 @@ private fun StageCard(
             Image(
                 bitmap = imageResource(stage.preview),
                 contentDescription = stringResource(stage.name),
-                // The previews are pixel art at the game's own 480x320; scaled without filtering
+                // The previews are pixel art at the game's own 640x360; scaled without filtering
                 // they stay crisp instead of going soft.
                 contentScale = ContentScale.Crop,
                 filterQuality = FilterQuality.None,
-                // A strip rather than the whole 3:2 frame, so the name and description still fit
+                // A strip rather than the whole 16:9 frame, so the name and description still fit
                 // above the fold on a landscape phone, which is only about 400dp tall.
                 modifier = Modifier.fillMaxWidth().height(PREVIEW_HEIGHT).alpha(if (unlocked) 1f else 0.35f),
             )

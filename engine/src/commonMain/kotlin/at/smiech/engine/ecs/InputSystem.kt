@@ -17,7 +17,7 @@ import kotlin.math.sqrt
  *
  * A touch that lands on the bat keeps the grab offset, so the bat does not snap its center to the
  * fingertip that just caught it. "On the bat" means within [GRAB_PADDING] of the sprite: a
- * fingertip covers far more of a 480x320 framebuffer than a 45x40 sprite does, and without the
+ * fingertip covers far more of a 640x360 framebuffer than a 45x40 sprite does, and without the
  * padding the player would have to aim precisely at a bat their own finger is hiding.
  *
  * A touch that lands away from the bat still steers - that is how the game played before it was
@@ -223,10 +223,12 @@ class PlayerInputSystem(
         /**
          * How far outside the sprite a touch still counts as grabbing it, in framebuffer pixels.
          *
-         * Roughly a fingertip's width once the 480px framebuffer is stretched over a phone screen,
-         * which is what makes the bat catchable without looking away from the game.
+         * Roughly a fingertip's width once the 640x360 framebuffer is scaled up to a phone screen,
+         * which is what makes the bat catchable without looking away from the game. A fingertip is
+         * a size on the glass rather than in the frame: this was 24 when the frame was 480x320,
+         * which a 1080 pixel tall phone scaled 3.375 times where it now scales this one 3 times.
          */
-        const val GRAB_PADDING = 24f
+        const val GRAB_PADDING = 27f
 
         /** Speed the bat flies at when a touch lands away from it, in framebuffer pixels/second. */
         const val CATCH_UP_SPEED = 420f

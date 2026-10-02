@@ -3,6 +3,8 @@ package at.smiech.cyanbat.ecs
 import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.ParallaxLayer
 import at.smiech.cyanbat.scenery.Daylight
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.CrossfadeComponent
@@ -55,8 +57,8 @@ private class CallRecordingGraphics : Graphics {
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) = Unit
     override fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int) = Unit
     override fun measureString(s: String, fontSize: Int) = 0
-    override val width = 480
-    override val height = 320
+    override val width = FRAME_BUFFER_WIDTH
+    override val height = FRAME_BUFFER_HEIGHT
 }
 
 private const val TICK = 0.019f
@@ -69,11 +71,11 @@ class NightfallSystemTest {
     private val far = NamedSheet("far", 960, 116 * keyframes)
     private val near = NamedSheet("near", 1440, 57 * keyframes)
     private val backdrop = Backdrop.Nightfall(
-        layers = listOf(ParallaxLayer(far, top = 152, speed = 0.2f), ParallaxLayer(near, top = 264, speed = 1f)),
+        layers = listOf(ParallaxLayer(far, top = 192, speed = 0.2f), ParallaxLayer(near, top = 304, speed = 1f)),
         moon = NamedSheet("moon", 24, 24),
     )
     private val world = World().apply {
-        addSystem(NightfallSystem(backdrop, 480, 320, dayPosition = { day }))
+        addSystem(NightfallSystem(backdrop, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, dayPosition = { day }))
         addSystem(RenderSystem())
     }
 
@@ -82,7 +84,7 @@ class NightfallSystemTest {
     private fun obstacle(rowHeight: Int = 57): Obstacle {
         val sheet = NamedSheet("rock", 38, rowHeight * keyframes)
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(200f, 263f, 38f, rowHeight.toFloat())))
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(200f, 303f, 38f, rowHeight.toFloat())))
         val sprite = SpriteComponent(sheet, srcHeight = rowHeight)
         world.addComponent(id, sprite)
         val crossfade = CrossfadeComponent()
@@ -99,7 +101,7 @@ class NightfallSystemTest {
 
         val calls = draw()
 
-        assertEquals(Drawn("rect", x = 0, y = 0, w = 480, h = 3), calls.first(), "the sky did not start the frame")
+        assertEquals(Drawn("rect", x = 0, y = 0, w = FRAME_BUFFER_WIDTH, h = 3), calls.first(), "the sky did not start the frame")
         assertEquals("rock", calls.last { it.kind == "pixmap" }.name, "something was drawn over the scenery's sprites")
     }
 
@@ -157,7 +159,7 @@ class NightfallSystemTest {
         assertEquals(20, farSpans.first().srcX, "the far band did not move at a fifth of the near one's pace")
         assertEquals(100, nearSpans.first().srcX)
         // Each span paints a column short, so together they have to ask for one more than the frame.
-        assertTrue(nearSpans.sumOf { it.w - 1 } >= 480, "the near band does not reach across the frame")
+        assertTrue(nearSpans.sumOf { it.w - 1 } >= FRAME_BUFFER_WIDTH, "the near band does not reach across the frame")
     }
 
     @Test

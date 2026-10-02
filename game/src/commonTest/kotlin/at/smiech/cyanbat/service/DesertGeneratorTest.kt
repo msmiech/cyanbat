@@ -4,6 +4,8 @@ import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.ecs.ShotPattern
 import at.smiech.cyanbat.util.BURROW_SHOWING
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.SAND_WYRM_FRAME
 import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAME
 import at.smiech.cyanbat.util.SAND_WYRM_SPACING
@@ -41,8 +43,8 @@ private class DesertSheet(override val width: Int, override val height: Int) : P
     override fun dispose() = Unit
 }
 
-private const val WIDTH = 480
-private const val HEIGHT = 320
+private const val WIDTH = FRAME_BUFFER_WIDTH
+private const val HEIGHT = FRAME_BUFFER_HEIGHT
 
 /**
  * How the generator turns the desert's designs into things that come up out of the sand, and how

@@ -1,8 +1,9 @@
 package at.smiech.engine
 
 /**
- * How the framebuffer is shown on a screen that is not its own shape - which, for a 3:2 framebuffer
- * and phones anywhere from 16:9 to 21:9, is nearly every screen it will ever be shown on.
+ * How the framebuffer is shown on a screen that is not its own shape. The game's is 16:9, which
+ * fits a good many screens exactly, but phones run on to 21:9, and tablets and some monitors are
+ * squarer than it.
  *
  * The player's choice, in the menu's settings, because each of these is somebody's favorite: some
  * people want the whole screen used, some want the game the shape it was drawn, and some want the

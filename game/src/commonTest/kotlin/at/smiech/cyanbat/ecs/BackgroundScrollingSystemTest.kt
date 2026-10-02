@@ -1,6 +1,8 @@
 package at.smiech.cyanbat.ecs
 
 import at.smiech.cyanbat.service.EntityFactory
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.BackgroundComponent
@@ -28,8 +30,8 @@ private class StripPixmap(override val width: Int, override val height: Int) : P
  */
 class BackgroundScrollingSystemTest {
 
-    private val frameWidth = 480
-    private val strip = StripPixmap(1440, 320)
+    private val frameWidth = FRAME_BUFFER_WIDTH
+    private val strip = StripPixmap(1440, FRAME_BUFFER_HEIGHT)
 
     private val world = World()
     private val factory = EntityFactory(world)

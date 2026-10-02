@@ -100,14 +100,14 @@ class DaylightTest {
         assertTrue(Daylight.sunY(Daylight.SUNSET) - Daylight.sunRadius(Daylight.SUNSET) > 244f, "the sun is not below the dunes when it stops being drawn")
     }
 
-    /** The far dunes' crests run along 230 to 244 of the frame. */
+    /** The far dunes' crests run along 270 to 284 of the frame. */
     @Test
     fun `at sundown the sun sits on the far dunes`() {
         val center = Daylight.sunY(Daylight.SUNDOWN)
         val radius = Daylight.sunRadius(Daylight.SUNDOWN)
 
-        assertTrue(center in 218f..236f, "the sun is not on the horizon at sundown: its center is at $center")
-        assertTrue(center - radius < 214f, "none of the sun shows above the dunes at sundown")
+        assertTrue(center in 258f..276f, "the sun is not on the horizon at sundown: its center is at $center")
+        assertTrue(center - radius < 254f, "none of the sun shows above the dunes at sundown")
     }
 
     @Test

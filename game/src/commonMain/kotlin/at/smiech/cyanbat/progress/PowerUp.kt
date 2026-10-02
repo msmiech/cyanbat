@@ -28,7 +28,7 @@ private fun percent(fraction: Float): String = "${(fraction * 100).roundToInt()}
  * change it makes to a [PlayerLoadout]. Nothing here reaches into the world: a power-up says what
  * the bat is now, and the screen is what makes the bat match.
  *
- * @param title what it is called, kept short enough to fit a card on a 480px framebuffer.
+ * @param title what it is called, kept short enough to fit a card in the level up dialog.
  * @param description what it does, in the player's terms rather than the loadout's.
  */
 enum class PowerUp(val title: String, val description: String) {

@@ -12,6 +12,8 @@ import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.service.StageDesign
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.engine.GameButton
@@ -44,7 +46,7 @@ import kotlin.system.exitProcess
  * without playing through it for anyone; [STAGE_COVERAGE] says how much.
  *
  * Everything on screen is the game's own: the run is a [GameScreen] in a [DesktopGame], driven by
- * the shared [GameLoop], and each frame it presents is drawn at its own 480x320 for the tape
+ * the shared [GameLoop], and each frame it presents is drawn at its own 640x360 for the tape
  * ([DesktopGame.capture]). Nothing is shown and nothing waits on the wall clock - the loop is handed a
  * clock that moves one tick per frame - so a five minute stage records in well under a minute.
  *
@@ -70,9 +72,6 @@ fun main(args: Array<String>) {
     // The run's coroutines and the Swing event thread would otherwise keep the JVM up.
     exitProcess(if (failed.isEmpty()) 0 else 1)
 }
-
-private const val FRAME_WIDTH = 480
-private const val FRAME_HEIGHT = 320
 
 /**
  * What the loop is handed per step: one tick and half a microsecond, so its float accumulator always
@@ -220,7 +219,7 @@ private fun write(reel: List<Footage>, options: Options) {
     val frameCentiseconds = options.frameSeconds * 100f
     var n = 0
     file.outputStream().buffered().use { out ->
-        val gif = GifEncoder(out, FRAME_WIDTH, FRAME_HEIGHT, reel.first().palette.colors)
+        val gif = GifEncoder(out, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, reel.first().palette.colors)
         for (footage in reel) {
             for (frame in footage.frames) {
                 val delay = ((n + 1) * frameCentiseconds).roundToInt() - (n * frameCentiseconds).roundToInt()
@@ -234,14 +233,14 @@ private fun write(reel: List<Footage>, options: Options) {
 
     options.frames?.let { dir ->
         dir.mkdirs()
-        val image = BufferedImage(FRAME_WIDTH, FRAME_HEIGHT, BufferedImage.TYPE_INT_RGB)
+        val image = BufferedImage(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, BufferedImage.TYPE_INT_RGB)
         var written = 0
         for (footage in reel) {
             val colors = footage.palette.colors
             for (frame in footage.frames) {
                 // In the colors the GIF shows, which are the frame's own unless its palette overflowed.
                 val pixels = IntArray(frame.size) { colors[frame[it].toInt() and 0xFF] }
-                image.setRGB(0, 0, FRAME_WIDTH, FRAME_HEIGHT, pixels, 0, FRAME_WIDTH)
+                image.setRGB(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, pixels, 0, FRAME_BUFFER_WIDTH)
                 ImageIO.write(image, "png", File(dir, "%04d.png".format(written++)))
             }
         }
@@ -281,7 +280,7 @@ private class Flight(
     capture: Boolean,
 ) {
     private val controls = ControlHandler()
-    private val game = DesktopGame(FRAME_WIDTH, FRAME_HEIGHT, controls)
+    private val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, controls)
     private val assets = GameAssets.load(game.graphics, game.audio)
     private val screen = GameScreen(
         game,
@@ -307,8 +306,8 @@ private class Flight(
         is Backdrop.Nightfall -> listOf(StageProgression.forStage(stageId).bossTimeSeconds * Daylight.SUNDOWN)
         is Backdrop.Strip -> emptyList()
     }
-    private val autopilot = Autopilot(controls, FRAME_WIDTH, FRAME_HEIGHT)
-    val tape: Tape? = if (capture) Tape(FRAME_WIDTH, FRAME_HEIGHT) else null
+    private val autopilot = Autopilot(controls, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
+    val tape: Tape? = if (capture) Tape(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT) else null
 
     private var offerSteps = 0
     private var heldChoice: GameButton? = null
@@ -415,7 +414,7 @@ private class Flight(
         for (id in world.query(CollisionComponent::class, TransformComponent::class)) {
             if (world.getComponent(id, CollisionComponent::class)?.group != CollisionGroup.ENEMY) continue
             val rect = world.getComponent(id, TransformComponent::class)!!.rect
-            if (rect.right > 0f && rect.left < FRAME_WIDTH) enemies++
+            if (rect.right > 0f && rect.left < FRAME_BUFFER_WIDTH) enemies++
         }
         val explosion = assets.graphics.explosion
         val blasts = world.query(SpriteComponent::class).count {

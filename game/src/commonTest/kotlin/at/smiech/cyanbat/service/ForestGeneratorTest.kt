@@ -1,6 +1,8 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.ecs.GunComponent
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.SWARM_SIZE
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
@@ -48,8 +50,8 @@ class ForestGeneratorTest {
         )
 
     private fun generator(progression: StageProgression) = EnemyGenerator(
-        xSpawnPosition = 480,
-        worldHeight = 320,
+        xSpawnPosition = FRAME_BUFFER_WIDTH,
+        worldHeight = FRAME_BUFFER_HEIGHT,
         factory = factory,
         enemyPixmap = SheetStub(640, 29),
         progression = progression,
@@ -106,7 +108,7 @@ class ForestGeneratorTest {
     fun `every member of a group survives its first moments on the way in`() {
         world.addSystem(EnemyBehaviorSystem())
         world.addSystem(MovementSystem())
-        world.addSystem(LifetimeSystem(480, 320))
+        world.addSystem(LifetimeSystem(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT))
 
         for (species in listOf(EnemySpecies.WASP, EnemySpecies.WISP)) {
             val generator = generator(only(species))
@@ -199,7 +201,8 @@ class ForestGeneratorTest {
         generator(only(EnemySpecies.OWL)).run(20f)
 
         enemies().forEach { id ->
-            assertTrue(behaviorOf(id).holdX in 200f..420f, "a station at ${behaviorOf(id).holdX}")
+            val holdX = behaviorOf(id).holdX
+            assertTrue(holdX in FRAME_BUFFER_WIDTH * 0.4f..FRAME_BUFFER_WIDTH * 0.9f, "a station at $holdX")
         }
     }
 

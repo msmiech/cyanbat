@@ -108,9 +108,9 @@ data class GameAssets(
                             // The far band barely moves and the near one moves with the rocks
                             // standing on it, so the three read as three distances.
                             layers = listOf(
-                                ParallaxLayer(pixmap("desertFar.png"), top = 152, speed = 0.2f),
-                                ParallaxLayer(pixmap("desertMid.png"), top = 214, speed = 0.5f),
-                                ParallaxLayer(pixmap("desertNear.png"), top = 264, speed = 1f),
+                                ParallaxLayer(pixmap("desertFar.png"), top = 192, speed = 0.2f),
+                                ParallaxLayer(pixmap("desertMid.png"), top = 254, speed = 0.5f),
+                                ParallaxLayer(pixmap("desertNear.png"), top = 304, speed = 1f),
                             ),
                             moon = pixmap("desertMoon.png"),
                         ),

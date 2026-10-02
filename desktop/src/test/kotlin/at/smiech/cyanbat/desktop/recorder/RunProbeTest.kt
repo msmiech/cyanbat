@@ -7,6 +7,8 @@ import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.desktop.DesktopGame
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.POINTS_PER_HIT
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Haptics
@@ -30,7 +32,7 @@ class RunProbeTest {
     @Test
     fun `reads a run the autopilot is flying`() {
         val controls = ControlHandler()
-        val game = DesktopGame(480, 320, controls)
+        val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, controls)
         val screen = GameScreen(
             game,
             CyanBatEnvironment(
@@ -52,7 +54,7 @@ class RunProbeTest {
         try {
             game.setScreen(screen)
             val probe = RunProbe(screen)
-            val autopilot = Autopilot(controls, 480, 320)
+            val autopilot = Autopilot(controls, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
             val loop = GameLoop(game)
             var clock = STEP_NANOS
             loop.frame(clock)

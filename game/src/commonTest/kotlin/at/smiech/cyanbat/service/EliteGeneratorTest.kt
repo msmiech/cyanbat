@@ -5,6 +5,8 @@ import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.util.ELITE_FIRE_INTERVAL_FACTOR
 import at.smiech.cyanbat.util.ELITE_HIT_POINT_FACTOR
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
 import at.smiech.engine.Graphics
@@ -49,8 +51,8 @@ class EliteGeneratorTest {
         )
 
     private fun generator(progression: StageProgression) = EnemyGenerator(
-        xSpawnPosition = 480,
-        worldHeight = 320,
+        xSpawnPosition = FRAME_BUFFER_WIDTH,
+        worldHeight = FRAME_BUFFER_HEIGHT,
         factory = factory,
         enemyPixmap = EliteSheet(640, 87),
         progression = progression,

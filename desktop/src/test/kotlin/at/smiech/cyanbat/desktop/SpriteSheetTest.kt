@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.desktop
 
 import at.smiech.cyanbat.ecs.ElitePalette
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -189,13 +190,13 @@ class SpriteSheetTest {
     }
 
     @Test
-    fun `the cave strip is three framebuffers wide`() {
-        assertEquals(480 * 3 to 320, sizeOf("background.png"))
+    fun `the cave strip is as tall as the frame`() {
+        assertEquals(1440 to FRAME_BUFFER_HEIGHT, sizeOf("background.png"))
     }
 
     @Test
-    fun `the forest strip is three framebuffers wide`() {
-        assertEquals(480 * 3 to 320, sizeOf("forestBackground.png"))
+    fun `the forest strip is as tall as the frame`() {
+        assertEquals(1440 to FRAME_BUFFER_HEIGHT, sizeOf("forestBackground.png"))
     }
 
     /**
