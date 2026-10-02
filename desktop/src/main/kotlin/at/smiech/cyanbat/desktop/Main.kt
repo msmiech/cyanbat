@@ -17,15 +17,14 @@ import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.DisplayMode
 import at.smiech.engine.Haptics
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopAudio
 import at.smiech.engine.impl.onComposeKeyEvent
 import kotlin.system.exitProcess
-
-private const val FRAME_BUFFER_WIDTH = 480
-private const val FRAME_BUFFER_HEIGHT = 320
 
 fun main() = application {
     // The handler is hoisted above the window because keys are delivered to the window, not to

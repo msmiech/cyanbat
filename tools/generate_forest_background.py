@@ -11,7 +11,7 @@ The same contract as the cave's `generate_background.py`, and for the same reaso
 * **Seamless.** Tiled end to end while it scrolls, so every feature is built from noise that is
   periodic over the width, and every tree, clump and blade of grass wraps its column index. The
   join is exact by construction, and checked at the end rather than trusted.
-* **1440 wide**, three framebuffers, so the forest repeats every twelve seconds or so.
+* **1440 wide**, two and a quarter framebuffers, so the forest repeats every twelve seconds or so.
 * **Dark, and darker than everything flying over it.** Nothing here goes above about a quarter
   brightness. The forest is green and cool so the warm hostiles keep the only warm hues on screen,
   exactly as the cave's blue-grey kept them.
@@ -30,7 +30,8 @@ from math import floor, pi, sin, sqrt
 from PIL import Image
 
 WIDTH = 1440
-HEIGHT = 320
+# The framebuffer's height: the strip is the whole of the frame from top to bottom.
+HEIGHT = 360
 
 PALETTE = {
     "void0": (7, 14, 13),

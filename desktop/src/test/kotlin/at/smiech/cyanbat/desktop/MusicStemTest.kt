@@ -3,6 +3,8 @@ package at.smiech.cyanbat.desktop
 import at.smiech.cyanbat.music.MusicLayer
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.Stage
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.impl.ImaAdpcmClip
 import kotlin.math.abs
 import kotlin.math.round
@@ -27,7 +29,7 @@ import kotlin.test.assertTrue
  */
 class MusicStemTest {
 
-    private val stages: List<Stage> = DesktopGame(480, 320).let { GameAssets.load(it.graphics, it.audio).stages }
+    private val stages: List<Stage> = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT).let { GameAssets.load(it.graphics, it.audio).stages }
 
     /** The music that is not layered, from `tools/generate_{menu,game_over,victory}_music.py`. */
     private val tracks = listOf("music/menu.wav", "music/game_over.wav", GameAssets.VICTORY_MUSIC)

@@ -1456,9 +1456,9 @@ class GameScreen(
 
     private fun drawPauseOverlay() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-        drawCentered("PAUSED", 140, 30, EngineColors.CYAN)
-        drawCentered("Tap or click to resume", 175, 15, EngineColors.WHITE)
-        drawCentered("Back or Q to quit", 197, 15, EngineColors.WHITE)
+        drawCentered("PAUSED", 160, 30, EngineColors.CYAN)
+        drawCentered("Tap or click to resume", 195, 15, EngineColors.WHITE)
+        drawCentered("Back or Q to quit", 217, 15, EngineColors.WHITE)
     }
 
     fun saveHighscore() {
@@ -1512,8 +1512,8 @@ class GameScreen(
      */
     private fun drawStageCompleteOverlay() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-        drawCentered("STAGE COMPLETE", 120, 30, EngineColors.YELLOW)
-        drawCentered(currentStage.name, 150, 15, EngineColors.CYAN)
+        drawCentered("STAGE COMPLETE", 140, 30, EngineColors.YELLOW)
+        drawCentered(currentStage.name, 170, 15, EngineColors.CYAN)
 
         val score = "Score: ${scoring.score}"
         // Already raised by this run if it beat the record, which is how the player can tell that
@@ -1523,22 +1523,22 @@ class GameScreen(
         // centered, by the wider of the two. Centering each line on its own would stagger them.
         val width = maxOf(g.measureString(score, 20), g.measureString(record, 15))
         val left = (game.frameBufferWidth - width) / 2
-        g.drawString(score, left, 175, 20, EngineColors.WHITE)
-        g.drawString(record, left, 197, 15, EngineColors.CYAN)
+        g.drawString(score, left, 195, 20, EngineColors.WHITE)
+        g.drawString(record, left, 217, 15, EngineColors.CYAN)
 
         if (nextStageId != null) {
-            drawCentered("Tap or press Enter for stage $nextStageId", 227, 15, EngineColors.WHITE)
-            drawCentered("Back or Q for the menu", 249, 15, EngineColors.WHITE)
-            drawCentered("Score, level and power-ups start over", 274, 13, EngineColors.CYAN)
+            drawCentered("Tap or press Enter for stage $nextStageId", 247, 15, EngineColors.WHITE)
+            drawCentered("Back or Q for the menu", 269, 15, EngineColors.WHITE)
+            drawCentered("Score, level and power-ups start over", 294, 13, EngineColors.CYAN)
         } else {
-            drawCentered("Tap or press Enter to continue", 227, 15, EngineColors.WHITE)
+            drawCentered("Tap or press Enter to continue", 247, 15, EngineColors.WHITE)
         }
     }
 
     /**
      * The level up dialog: what the bat just reached, and the three things it can become.
      *
-     * Cards are drawn rather than composed, because this screen draws a 480x320 frame: the
+     * Cards are drawn rather than composed, because this screen draws a 640x360 frame: the
      * row of cards is centered on that frame, and so are the two lines over it, by their measured
      * widths, as the other overlays' lines are. A card is its own tap target, and carries no
      * number: what it does is the whole of what the player needs to read. The number keys still
@@ -1547,8 +1547,8 @@ class GameScreen(
      */
     private fun drawPowerUpOffer() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-        drawCentered("LEVEL ${progress.level}", 70, 30, EngineColors.YELLOW)
-        drawCentered("Choose an upgrade", 100, 15, EngineColors.WHITE)
+        drawCentered("LEVEL ${progress.level}", 90, 30, EngineColors.YELLOW)
+        drawCentered("Choose an upgrade", 120, 15, EngineColors.WHITE)
 
         offer.forEachIndexed { index, powerUp ->
             drawPowerUpCard(index, powerUp)

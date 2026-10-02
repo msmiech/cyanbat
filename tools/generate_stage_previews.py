@@ -8,7 +8,7 @@
 
 Composed from the game's own assets rather than screenshotted, so a preview can never show art the
 game no longer ships - re-run this after regenerating any of the sheets it reads. Each one is a
-full 480x320 frame, the size the game renders at, with the bat, some scenery and the stage's
+full 640x360 frame, the size the game renders at, with the bat, some scenery and the stage's
 hostiles placed where they would be mid-run.
 
 Written to the shared Compose resources, where the menu picks them up on both platforms.
@@ -22,7 +22,7 @@ ROOT = pathlib.Path(__file__).resolve().parent.parent
 ASSETS = ROOT / "assets"
 OUT = ROOT / "game" / "src" / "commonMain" / "composeResources" / "drawable"
 
-WIDTH, HEIGHT = 480, 320
+WIDTH, HEIGHT = 640, 360
 ENEMY_W = 32
 ENEMY_FRAMES = 4
 BAT_W = 45
@@ -50,7 +50,7 @@ def stage(background_name, background_x, top, bottom):
     scene.alpha_composite(top_rock, (top[1], 0))
     bottom_rock = load(bottom[0])
     scene.alpha_composite(bottom_rock, (bottom[1], HEIGHT - bottom_rock.height))
-    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1, WOUND_ROWS), (96, 140))
+    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1, WOUND_ROWS), (128, 160))
     return scene
 
 
@@ -68,28 +68,28 @@ def bubble(scene, cx, cy, radius):
 
 
 def cave():
-    scene = stage("background.png", 300, ("topObstacle2.png", 330), ("bottomObstacle2.png", 190))
+    scene = stage("background.png", 300, ("topObstacle2.png", 440), ("bottomObstacle2.png", 253))
     sheet = load("enemies.png")
-    for species, (x, y), beat in ((0, (300, 110), 0), (1, (380, 170), 2), (2, (250, 200), 1), (0, (410, 90), 3)):
+    for species, (x, y), beat in ((0, (400, 130), 0), (1, (507, 190), 2), (2, (333, 220), 1), (0, (547, 110), 3)):
         scene.alpha_composite(enemy(sheet, species, beat), (x, y))
-    shot(scene, 0, 150, 154)
-    shot(scene, 0, 205, 154)
+    shot(scene, 0, 182, 174)
+    shot(scene, 0, 237, 174)
     return scene
 
 
 def forest():
-    scene = stage("forestBackground.png", 520, ("forestTopObstacle2.png", 250), ("forestBottomObstacle1.png", 360))
+    scene = stage("forestBackground.png", 520, ("forestTopObstacle2.png", 333), ("forestBottomObstacle1.png", 480))
     sheet = load("forestEnemies.png")
     # A swarm up high, a V of wisps low, and a shielded beetle between them.
-    for i, (x, y) in enumerate(((300, 60), (326, 48), (318, 78), (348, 66), (342, 92))):
+    for i, (x, y) in enumerate(((400, 80), (426, 68), (418, 98), (448, 86), (442, 112))):
         scene.alpha_composite(enemy(sheet, 0, i % 4), (x, y))
-    for x, y in ((330, 200), (352, 184), (352, 216), (374, 168), (374, 232)):
+    for x, y in ((440, 220), (462, 204), (462, 236), (484, 188), (484, 252)):
         scene.alpha_composite(enemy(sheet, 4, (x // 11) % 4), (x, y))
-    scene.alpha_composite(enemy(sheet, 1, 1), (400, 130))
-    bubble(scene, 416, 144, 22)
-    scene.alpha_composite(enemy(sheet, 2, 0), (230, 118))
-    shot(scene, 4, 196, 146)
-    shot(scene, 0, 150, 154)
+    scene.alpha_composite(enemy(sheet, 1, 1), (533, 150))
+    bubble(scene, 549, 164, 22)
+    scene.alpha_composite(enemy(sheet, 2, 0), (307, 138))
+    shot(scene, 4, 273, 166)
+    shot(scene, 0, 182, 174)
     return scene
 
 
@@ -100,7 +100,7 @@ def forest():
 GOLDEN_HOUR = ((0xD4, 0x9A, 0x6C), (0xEE, 0xAA, 0x66), (0xFA, 0xC0, 0x70), (0xFF, 0xD6, 0x86))
 SUNSET = ((0x84, 0x4A, 0x6E), (0xD6, 0x68, 0x5C), (0xF6, 0x8C, 0x4C), (0xFF, 0xB2, 0x54))
 SKY_STOPS = (0.0, 0.4, 0.75, 1.0)
-HORIZON = 236
+HORIZON = 276
 BAND = 3
 
 # The desert's scenery is drawn in four lights, stacked; the card is lit by the third, sunset.
@@ -140,7 +140,7 @@ def desert():
         draw.rectangle((0, top, WIDTH, top + BAND - 1), fill=color + (255,))
 
     # The sun, low and swollen, inside the three rings of halo the game gives it.
-    sun_x, sun_y, radius = 372, 216, 19
+    sun_x, sun_y, radius = 496, 256, 19
     sun = (255, 150, 72)
     halo = Image.new("RGBA", scene.size, (0, 0, 0, 0))
     halo_draw = ImageDraw.Draw(halo)
@@ -154,29 +154,29 @@ def desert():
     core = radius * 0.72
     draw.ellipse((sun_x - core, sun_y - core, sun_x + core, sun_y + core), fill=mix(sun, (255, 255, 255), 0.55) + (255,))
 
-    for name, top, x in (("desertFar.png", 152, 120), ("desertMid.png", 214, 300), ("desertNear.png", 264, 700)):
+    for name, top, x in (("desertFar.png", 192, 120), ("desertMid.png", 254, 300), ("desertNear.png", 304, 700)):
         scene.alpha_composite(keyframe(name, SUNSET_ROW, x, WIDTH), (0, top))
 
     obelisk = keyframe("desertObstacle2.png", SUNSET_ROW)
-    scene.alpha_composite(obelisk, (318, HEIGHT - obelisk.height))
+    scene.alpha_composite(obelisk, (424, HEIGHT - obelisk.height))
     wall = keyframe("desertObstacle4.png", SUNSET_ROW)
-    scene.alpha_composite(wall, (24, HEIGHT - wall.height))
+    scene.alpha_composite(wall, (32, HEIGHT - wall.height))
 
     sheet = load("desertEnemies.png")
     # A wyrmling leaping nose first out of the sand, a hawk over the top of its loop, a cloud of
     # locusts, and a djinn throwing a fan of fire at the bat.
-    scene.alpha_composite(turned(enemy(sheet, 2, 1), 38), (236, 176))
-    scene.alpha_composite(turned(enemy(sheet, 1, 1), 150), (330, 56))
-    for i, (x, y) in enumerate(((388, 132), (410, 120), (404, 148), (430, 136), (426, 160), (448, 146))):
+    scene.alpha_composite(turned(enemy(sheet, 2, 1), 38), (315, 216))
+    scene.alpha_composite(turned(enemy(sheet, 1, 1), 150), (440, 76))
+    for i, (x, y) in enumerate(((517, 152), (539, 140), (533, 168), (559, 156), (555, 180), (577, 166))):
         scene.alpha_composite(enemy(sheet, 0, i % 4), (x, y))
-    scene.alpha_composite(enemy(sheet, 3, 0), (286, 100))
+    scene.alpha_composite(enemy(sheet, 3, 0), (381, 120))
     # Its fan, flying left and spreading, as the game turns enemy fire to face where it goes.
     bolt = frame(load("shot.png"), 24, 4).transpose(Image.FLIP_LEFT_RIGHT)
-    for x, y, tilt in ((244, 94, 14), (238, 110, 0), (244, 126, -14)):
+    for x, y, tilt in ((339, 114, 14), (333, 130, 0), (339, 146, -14)):
         scene.alpha_composite(turned(bolt, tilt), (x, y))
-    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1, WOUND_ROWS), (96, 140))
-    shot(scene, 0, 150, 154)
-    shot(scene, 0, 205, 154)
+    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1, WOUND_ROWS), (128, 160))
+    shot(scene, 0, 182, 174)
+    shot(scene, 0, 237, 174)
     return scene
 
 

@@ -309,7 +309,7 @@ class NightfallSystem(
         const val SKY_SEED = 20260926
 
         /** Where the sky's gradient ends: level with the far dunes, where the ground takes over. */
-        const val HORIZON_Y = 236
+        const val HORIZON_Y = 276
         const val BAND_HEIGHT = 3
 
         /** How far the day moves before the sky's colors are worked out again. */
@@ -317,7 +317,7 @@ class NightfallSystem(
 
         const val STAR_COUNT = 130
         const val STAR_TOP = 4
-        const val STAR_BOTTOM = 212
+        const val STAR_BOTTOM = 252
         const val BRIGHT_SHARE = 0.06f
         const val MEDIUM_SHARE = 0.24f
 
@@ -334,7 +334,7 @@ class NightfallSystem(
             0xFFC8D8FF.toInt(), 0xFFFFECC8.toInt(), 0xFFFFD8E6.toInt(),
         )
 
-        const val MOON_X = 150
+        const val MOON_X = 200
         const val MOON_Y = 40
         const val MOON_RISE = 26f
 

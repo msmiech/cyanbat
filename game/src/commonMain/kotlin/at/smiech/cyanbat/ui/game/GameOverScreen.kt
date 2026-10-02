@@ -52,7 +52,13 @@ class GameOverScreen(
     override fun present(deltaTime: Float) {
         game.graphics?.let { graphics ->
             graphics.clear(EngineColors.BLACK)
-            graphics.drawPixmap(env.assets.graphics.gameOver, 0, 0)
+            // The artwork was drawn for the frame the game had before, 480x320, and is hand-drawn
+            // rather than generated, so it is centered on this one rather than redrawn. Its ground
+            // is black, and so is the frame's, so it shows no edge.
+            val artwork = env.assets.graphics.gameOver
+            val artworkLeft = (game.frameBufferWidth - artwork.width) / 2
+            val artworkTop = (game.frameBufferHeight - artwork.height) / 2
+            graphics.drawPixmap(artwork, artworkLeft, artworkTop)
             // In the dark band the artwork leaves under its own two lines. The two share a left
             // edge, so they read as one block, and the block is centered by the wider of them on
             // the column the artwork's lines are.
@@ -62,18 +68,22 @@ class GameOverScreen(
                 graphics.measureString(scoreLine, 20),
                 graphics.measureString(highscoreLine, 15),
             )
-            val left = ARTWORK_CENTER_X - width / 2
-            graphics.drawString(scoreLine, left, 270, 20, EngineColors.WHITE)
-            graphics.drawString(highscoreLine, left, 293, 15, EngineColors.CYAN)
+            val left = artworkLeft + ARTWORK_CENTER_X - width / 2
+            graphics.drawString(scoreLine, left, artworkTop + SCORE_BASELINE, 20, EngineColors.WHITE)
+            graphics.drawString(highscoreLine, left, artworkTop + HIGHSCORE_BASELINE, 15, EngineColors.CYAN)
         }
     }
 
     private companion object {
         /**
-         * The column gameover.png centers its own two lines on, 12px right of the frame's center.
-         * Read off the artwork, which is hand-drawn rather than generated. Centered on the frame
-         * instead, the score would sit visibly left of the lines above it.
+         * The column gameover.png centers its own two lines on, 12px right of its own center, from
+         * its left edge. Read off the artwork. Centered on the artwork instead, the score would sit
+         * visibly left of the lines above it.
          */
         const val ARTWORK_CENTER_X = 252
+
+        /** The two lines' baselines, from the artwork's top edge: in the dark band under its own. */
+        const val SCORE_BASELINE = 270
+        const val HIGHSCORE_BASELINE = 293
     }
 }

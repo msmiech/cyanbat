@@ -32,8 +32,8 @@ data class Moment(
 )
 
 /**
- * Every frame of one run, kept deflated so a whole stage fits in memory: at 480x320 a frame is
- * 600 KB raw and a few tens of KB compressed, and a stage runs to thousands of frames.
+ * Every frame of one run, kept deflated so a whole stage fits in memory: at 640x360 a frame is
+ * 900 KB raw and a few tens of KB compressed, and a stage runs to thousands of frames.
  *
  * Compression runs on worker threads so the run itself is not held up by it.
  */

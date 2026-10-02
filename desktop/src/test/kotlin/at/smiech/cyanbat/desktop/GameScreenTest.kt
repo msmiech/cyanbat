@@ -20,6 +20,8 @@ import at.smiech.cyanbat.util.BURROW_SHOWING
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
 import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
@@ -66,7 +68,7 @@ class GameScreenTest {
      */
     @Test
     fun `a stage won on a record banks the score the overlay shows`() {
-        val game = DesktopGame(480, 320)
+        val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
         val assets = GameAssets.load(game.graphics, game.audio)
         val highscores = RecordingHighscores()
         val screen = GameScreen(
@@ -491,7 +493,7 @@ class GameScreenTest {
         val sheet = assets.stage(DESERT).enemySheet
         val height = (sheet.height / WOUND_ROWS).toFloat()
         val wyrmling = EntityFactory(world).createEnemy(
-            x = 300f, y = 320f - BURROW_SHOWING, width = 28f, height = height, pixmap = sheet,
+            x = 300f, y = FRAME_BUFFER_HEIGHT - BURROW_SHOWING, width = 28f, height = height, pixmap = sheet,
             species = EnemySpecies.WYRMLING, gun = EnemySpecies.ISSUED_GUN, elite = ElitePalette.EMBER,
         )
         val weapon = world.getComponent(wyrmling, WeaponComponent::class)!!
@@ -560,7 +562,7 @@ class GameScreenTest {
      * with its effects played through [sounds] for a test that listens to it.
      */
     private fun flight(stage: Int, sounds: Map<SoundEffect, Sound>? = null, test: Flight.() -> Unit) {
-        val game = DesktopGame(480, 320)
+        val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
         val assets = GameAssets.load(game.graphics, game.audio)
         if (sounds != null) assets.audio.effects = sounds
         val screen = GameScreen(

@@ -1,6 +1,8 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.util.BOSS_WAVE
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
 import at.smiech.engine.Graphics
@@ -25,8 +27,8 @@ private class FakePixmap(override val width: Int = 201, override val height: Int
 }
 
 private const val MINUTE = WAVE_DURATION_SECONDS
-private const val WORLD_WIDTH = 480
-private const val WORLD_HEIGHT = 320
+private const val WORLD_WIDTH = FRAME_BUFFER_WIDTH
+private const val WORLD_HEIGHT = FRAME_BUFFER_HEIGHT
 
 class EnemyGeneratorTest {
 

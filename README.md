@@ -19,7 +19,7 @@ and Linux) from a single shared codebase.
 - **Compose Multiplatform**: one set of menu, settings and credits screens renders on both
   Android and desktop, from shared string and drawable resources. The game itself is drawn
   through Compose's Canvas too — on the GPU through HWUI on Android, through Skia on the
-  desktop — as pixel art on a 480x320 grid at any screen size, with the HUD's text smooth over it.
+  desktop — as pixel art on a 640x360 grid at any screen size, with the HUD's text smooth over it.
 - **Entity Component System**: `:engine`'s ECS decouples game logic from data, so behavior is
   composed from components rather than an inheritance hierarchy.
 - **Value class optimization**: `Vector2` is a bit-packed value class, so movement math

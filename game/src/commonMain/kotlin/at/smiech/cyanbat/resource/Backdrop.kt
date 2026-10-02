@@ -32,7 +32,7 @@ sealed interface Backdrop {
  * Its sheet holds the same strip once per [Daylight.KEYFRAMES] entry, stacked top to bottom from
  * noon to night, and like every strip it is periodic across its width so it can be tiled end to end.
  *
- * @param top where the strip's top row sits on the 480x320 frame. Everything above the ground in it
+ * @param top where the strip's top row sits on the 640x360 frame. Everything above the ground in it
  *   is transparent, so the sky shows through.
  * @param speed in framebuffer pixels a tick, like every velocity in the game. The nearest band moves
  *   with the obstacles standing on it; the farther ones move slower, which is what reads as depth.

@@ -16,8 +16,8 @@ Three things this has to be:
 * **Seamless.** The strip is tiled end to end while it scrolls, so column 0 has to continue from
   column W-1 exactly. That is not eyeballed here - every ridgeline is built from noise that is
   *periodic over the width by construction*, so the wrap is exact rather than nearly right.
-* **Long.** 1440 rather than 838, which is three framebuffers rather than one and three quarters.
-  The strip repeats roughly every 12 seconds at the scroll speed instead of every 7.
+* **Long.** 1440 rather than 838, two and a quarter framebuffers. The strip repeats roughly every
+  12 seconds at the scroll speed instead of every 7.
 * **Dark, and darker than everything that flies over it.** The obstacles are pale limestone and
   the sprites are saturated; the cave has to stay out of their way. Nothing here goes above about a
   quarter brightness, and the palette is cool so the warm hostiles keep the only warm hue on screen.
@@ -34,7 +34,8 @@ from math import cos, pi, sin
 from PIL import Image
 
 WIDTH = 1440
-HEIGHT = 320
+# The framebuffer's height: the strip is the whole of the frame from top to bottom.
+HEIGHT = 360
 
 # Cool and dark. The two crystal tones are the only saturated thing in here and they are used a few
 # dozen times in 1440 columns - they tie the cave to the bat's cyan without lighting the place up.

@@ -49,7 +49,7 @@ app yet: the targets are there so that the shared code stays portable to one.
 
 **Two kinds of UI.** The menu - main screen, stage select, settings, credits - is shared Compose:
 `CyanBatMenu`, fed by a `MenuHost`, navigated by a hand-rolled `MenuBackStack`. The game itself is
-not laid out by Compose, but it is drawn through it: screens draw a fixed **480x320 frame**
+not laid out by Compose, but it is drawn through it: screens draw a fixed **640x360 frame**
 through the engine's `Graphics`, and the host draws that into a Compose `Canvas` - see Rendering.
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
@@ -66,11 +66,14 @@ On Android the loop marks each frame's `Screen.update` and `Screen.present` in t
 (`FrameTrace`), and the activity marks the frame's drawing (`Frame.draw`), so a Perfetto or Android
 Studio trace shows what a slow frame spent its time on.
 
-**The frame's shape is part of the game design.** It is 3:2, and spawn points, boss stations
-and wave pacing are all tuned to 480x320. `FrameFit` fits it to the screen according to the
-player's `DisplayMode` (stretch, black bars, or the default ambient bars) and maps touches back
-through the same rectangle. Do not widen the playfield for wide screens; it would change difficulty
-by device.
+**The frame's shape is part of the game design.** It is 16:9, 640x360 - `FRAME_BUFFER_WIDTH` and
+`FRAME_BUFFER_HEIGHT` in `:game`, which both hosts and the recorder hand the engine - and spawn
+points, boss stations, the overlays' rows and the desert's sky are laid out against it. Speeds are
+in frame pixels, so a wider frame shows more of a stage at once rather than a faster one.
+`gameover.png`, hand-drawn for the 480x320 frame the game had before, is centered on it.
+`FrameFit` fits it to the screen according to the player's `DisplayMode` (stretch, black bars, or
+the default ambient bars) and maps touches back through the same rectangle. Do not widen the
+playfield for wide screens; it would change difficulty by device.
 
 **ECS** (`at.smiech.engine.ecs`):
 - `World` stores components struct-of-arrays with a 64-bit signature per entity, so there can be

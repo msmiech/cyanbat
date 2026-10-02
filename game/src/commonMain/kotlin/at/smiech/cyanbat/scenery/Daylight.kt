@@ -114,10 +114,10 @@ object Daylight {
      */
     const val SUNDOWN = 0.61f
 
-    private const val NOON_X = 312f
+    private const val NOON_X = 416f
     private const val NOON_Y = 48f
-    private const val SET_X = 386f
-    private const val SET_Y = 268f
+    private const val SET_X = 515f
+    private const val SET_Y = 318f
 
     /**
      * The sun's center. It comes down on a slant toward the right of the frame - the way the bat is

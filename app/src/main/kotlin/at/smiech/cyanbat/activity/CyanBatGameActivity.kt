@@ -10,6 +10,8 @@ import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.DisplayMode
 import at.smiech.engine.Screen
 import at.smiech.engine.impl.AndroidGameActivity
@@ -37,8 +39,8 @@ class CyanBatGameActivity : AndroidGameActivity() {
 
     override val displayModes: Flow<DisplayMode> get() = settings.displayMode
 
-    override val frameBufferWidth: Int get() = 480
-    override val frameBufferHeight: Int get() = 320
+    override val frameBufferWidth: Int get() = FRAME_BUFFER_WIDTH
+    override val frameBufferHeight: Int get() = FRAME_BUFFER_HEIGHT
 
     private fun buildEnvironment(): CyanBatEnvironment = CyanBatEnvironment(
         assets = loadAssets(),

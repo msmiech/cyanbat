@@ -7,8 +7,8 @@
 The HUD is the band across the top of the frame: score, wave and combo down the left, the stage
 timer in the middle, and the level in the top right corner.
 
-The game draws a 480x320 frame scaled up evenly to fit the window - with bars beside it on a
-screen wider than 3:2, above and below it on one taller - so HUD text is small in a full-size
+The game draws a 640x360 frame scaled up evenly to fit the window - with bars beside it on a
+screen wider than 16:9, above and below it on one taller - so HUD text is small in a full-size
 capture. This finds where the frame landed and crops that band out of it.
 
 That assumes one of the display modes that keep the game's shape, Ambient bars (the default) or
@@ -23,8 +23,8 @@ import sys
 
 from PIL import Image
 
-FRAME_BUFFER_WIDTH = 480
-FRAME_BUFFER_HEIGHT = 320
+FRAME_BUFFER_WIDTH = 640
+FRAME_BUFFER_HEIGHT = 360
 
 # Fractions of the frame, matching the HUD's position in it: the full width, and down past
 # the third line of the left column, the combo, whose count swells as the streak climbs.
@@ -41,7 +41,7 @@ def main() -> int:
 
     source, destination = sys.argv[1], sys.argv[2]
     with Image.open(source) as image:
-        # Where the game drew it: the largest 3:2 box that fits, centered. See FrameFit.
+        # Where the game drew it: the largest 16:9 box that fits, centered. See FrameFit.
         scale = min(image.width / FRAME_BUFFER_WIDTH, image.height / FRAME_BUFFER_HEIGHT)
         game_width = round(FRAME_BUFFER_WIDTH * scale)
         game_height = round(FRAME_BUFFER_HEIGHT * scale)
