@@ -11,7 +11,6 @@ import at.smiech.cyanbat.util.COMBO_POP_SECONDS
 import at.smiech.cyanbat.util.COMBO_TITLE_POP_GROWTH
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
-import at.smiech.engine.drawOutlinedString
 import kotlin.math.floor
 import kotlin.math.roundToInt
 import kotlin.math.sin

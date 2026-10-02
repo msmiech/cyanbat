@@ -3,7 +3,6 @@ package at.smiech.engine.ecs
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
 import at.smiech.engine.Input
-import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
 import kotlin.math.atan2

@@ -32,7 +32,7 @@ class GameLoop(
         val deltaTime = elapsed.coerceIn(0f, maxDeltaSeconds)
 
         // Marked apart, because they cost different things: update is the game's logic, present
-        // is the rasterizing of the whole frame into the framebuffer.
+        // the recording of the whole frame, which the host draws afterwards.
         traced(UPDATE_SECTION) { game.currentScreen?.update(deltaTime) }
         traced(PRESENT_SECTION) { game.currentScreen?.present(deltaTime) }
     }
@@ -55,7 +55,7 @@ class GameLoop(
         /** The screen's update, as a trace names it. */
         const val UPDATE_SECTION = "Screen.update"
 
-        /** The screen's present, as a trace names it: the frame drawn into the framebuffer. */
+        /** The screen's present, as a trace names it: the frame recorded for the host to draw. */
         const val PRESENT_SECTION = "Screen.present"
 
         /**

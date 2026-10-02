@@ -69,7 +69,6 @@ import at.smiech.engine.Graphics
 import at.smiech.engine.LayeredMusic
 import at.smiech.engine.Music
 import at.smiech.engine.Screen
-import at.smiech.engine.drawOutlinedString
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AnimationSystem
 import at.smiech.engine.ecs.AuraComponent
@@ -1539,7 +1538,7 @@ class GameScreen(
     /**
      * The level up dialog: what the bat just reached, and the three things it can become.
      *
-     * Cards are drawn rather than composed, because this screen owns a 480x320 framebuffer: the
+     * Cards are drawn rather than composed, because this screen draws a 480x320 frame: the
      * row of cards is centered on that frame, and so are the two lines over it, by their measured
      * widths, as the other overlays' lines are. A card is its own tap target, and carries no
      * number: what it does is the whole of what the player needs to read. The number keys still

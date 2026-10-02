@@ -48,6 +48,14 @@ kotlin {
                 implementation(libs.tritonus.share)
             }
         }
+        jvmTest {
+            dependencies {
+                // Skia's native library for the machine the tests run on, which the renderer's
+                // tests draw with. The engine itself needs only Compose's API; the desktop app
+                // brings the natives it runs with.
+                implementation(compose.desktop.currentOs)
+            }
+        }
         androidMain {
             dependencies {
                 implementation(libs.androidx.activity.ktx)

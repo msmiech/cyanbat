@@ -508,7 +508,7 @@ class GameScreenTest {
 
     /**
      * The cave's scenery is a sprite like the rest, and it used to be drawn in one pass with them -
-     * after the halos, and over every one of them, the bat's included. Read off the framebuffer,
+     * after the halos, and over every one of them, the bat's included. Read off the drawn frame,
      * because a draw call that is made and then painted over is exactly what a recorded one misses.
      */
     @Test
@@ -520,11 +520,11 @@ class GameScreenTest {
         val y = 216
 
         screen.present(0f)
-        val glowing = game.frameBuffer.getRGB(x, y)
+        val glowing = game.capture()[y * game.frameBufferWidth + x]
         aura.intensity = 0f
         aura.tier = 0
         screen.present(0f)
-        val dark = game.frameBuffer.getRGB(x, y)
+        val dark = game.capture()[y * game.frameBufferWidth + x]
 
         val red = { rgb: Int -> (rgb shr 16) and 0xFF }
         assertTrue(
@@ -551,7 +551,7 @@ class GameScreenTest {
 
     /**
      * A run of one stage: the screen, what the probe reads of it, the assets it was built from, and
-     * the host whose framebuffer it draws into.
+     * the host that draws its frames.
      */
     private open class Flight(val screen: GameScreen, val probe: RunProbe, val assets: GameAssets, val game: DesktopGame)
 

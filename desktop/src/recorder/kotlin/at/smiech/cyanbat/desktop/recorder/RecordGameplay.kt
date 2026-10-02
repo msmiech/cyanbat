@@ -28,7 +28,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import java.awt.image.BufferedImage
-import java.awt.image.DataBufferInt
 import java.io.File
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
@@ -45,8 +44,8 @@ import kotlin.system.exitProcess
  * without playing through it for anyone; [STAGE_COVERAGE] says how much.
  *
  * Everything on screen is the game's own: the run is a [GameScreen] in a [DesktopGame], driven by
- * the shared [GameLoop] and drawn by the desktop graphics into its 480x320 framebuffer, which is
- * what gets recorded. Nothing is shown and nothing waits on the wall clock - the loop is handed a
+ * the shared [GameLoop], and each frame it presents is drawn at its own 480x320 for the tape
+ * ([DesktopGame.capture]). Nothing is shown and nothing waits on the wall clock - the loop is handed a
  * clock that moves one tick per frame - so a five minute stage records in well under a minute.
  *
  * Runs are not repeatable, since the game rolls its spawns on an unseeded Random, so each recording
@@ -359,7 +358,7 @@ private class Flight(
                 val hit = now < health
                 if (hit) hits++
                 health = now
-                tape?.add((game.frameBuffer.raster.dataBuffer as DataBufferInt).data, moment(hit, landed))
+                tape?.add(game.capture(), moment(hit, landed))
                 landed = null
                 if (enmGen.bossSpawned && bossArrivedAt < 0f) bossArrivedAt = enmGen.elapsedSeconds
 
