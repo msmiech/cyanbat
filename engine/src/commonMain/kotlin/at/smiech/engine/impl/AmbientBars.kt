@@ -19,7 +19,7 @@ import kotlin.time.TimeSource
  *
  * It reads a strip along each edge that faces a bar and averages it into [BANDS] colors, so the
  * light follows what is on screen: the pale rock of an obstacle scrolling in lifts the bar on its
- * side, and the forest's greens tint the sides green. Each bar is painted in those colors and graded
+ * side, and the jungle's greens tint the sides green. Each bar is painted in those colors and graded
  * from the frame's edge out into the dark, so it reads as light spilling out of the frame rather
  * than as a second, blurrier copy of the game competing with the first.
  *

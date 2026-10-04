@@ -243,8 +243,9 @@ data class PlayerControlComponent(
 /**
  * How an enemy flies, run by [EnemyBehaviorSystem].
  *
- * The first four are the cave's. The rest arrived with the forest, where the enemies do more than
- * cross the screen: they flock, they lunge, they stop to shoot.
+ * The first four are the cave's. The rest arrived with the jungle and the desert, where the enemies
+ * do more than cross the screen - they flock, they lunge, they stop to shoot - and with bosses that
+ * do more than hold their ground.
  */
 enum class EnemyMovementType {
     SINE,
@@ -302,6 +303,14 @@ enum class EnemyMovementType {
      * is hard to read; the straight lines either side of it are where it can be lined up and shot.
      */
     LOOP,
+
+    /**
+     * Glides in a straight line until its box's corner is at [EnemyBehaviorComponent.holdX],
+     * [EnemyBehaviorComponent.initialY], at [EnemyBehaviorComponent.baseSpeedX] a tick and easing in
+     * over the last stretch, and then holds still there. How a boss that moves between stations gets
+     * from one to the next: whatever runs its fight hands it the next one.
+     */
+    GLIDE,
 }
 
 /**

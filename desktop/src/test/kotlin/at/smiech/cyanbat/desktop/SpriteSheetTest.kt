@@ -86,11 +86,11 @@ class SpriteSheetTest {
         assertNoBlankFrames("enemies.png", frameWidth = 32, frames = 4 * 3, rows = WOUND_ROWS)
     }
 
-    /** Every creature on the forest's sheet, and every beat of the Moth Queen's wings. */
+    /** Every creature on the jungle's sheet, and every beat of the Moth Queen's wings. */
     @Test
-    fun `no frame of the forest's creatures is empty`() {
-        assertNoBlankFrames("forestEnemies.png", frameWidth = 32, frames = 4 * 5, rows = WOUND_ROWS)
-        assertNoBlankFrames("forestBoss.png", frameWidth = 96, frames = 4, rows = WOUND_ROWS)
+    fun `no frame of the jungle's creatures is empty`() {
+        assertNoBlankFrames("jungleEnemies.png", frameWidth = 32, frames = 4 * 5, rows = WOUND_ROWS)
+        assertNoBlankFrames("jungleBoss.png", frameWidth = 96, frames = 4, rows = WOUND_ROWS)
     }
 
     /**
@@ -114,9 +114,9 @@ class SpriteSheetTest {
         for ((name, frameWidth, frames) in listOf(
             Triple("cyanBat.png", 45, 6),
             Triple("enemies.png", 32, 4 * 3),
-            Triple("forestEnemies.png", 32, 4 * 5),
+            Triple("jungleEnemies.png", 32, 4 * 5),
             Triple("desertEnemies.png", 32, 4 * 5),
-            Triple("forestBoss.png", 96, 4),
+            Triple("jungleBoss.png", 96, 4),
             Triple("desertBoss.png", 48, 6),
         )) {
             val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
@@ -161,7 +161,7 @@ class SpriteSheetTest {
     }
 
     /**
-     * Thirteen colorways of one 24x12 bolt: the player's, one per cave enemy type, then the forest's
+     * Thirteen colorways of one 24x12 bolt: the player's, one per cave enemy type, then the jungle's
      * spitter, wisp and Moth Queen, the Sand Wyrm's, and one per elite palette; see
      * `EnemySpecies.shotVariant`, `SAND_WYRM_SHOT_VARIANT` and `ElitePalette`.
      */
@@ -215,8 +215,8 @@ class SpriteSheetTest {
     }
 
     @Test
-    fun `the forest strip is as tall as the frame`() {
-        assertEquals(1440 to FRAME_BUFFER_HEIGHT, sizeOf("forestBackground.png"))
+    fun `the jungle strip is as tall as the frame`() {
+        assertEquals(1440 to FRAME_BUFFER_HEIGHT, sizeOf("jungleBackground.png"))
     }
 
     /**
@@ -233,10 +233,10 @@ class SpriteSheetTest {
         assertTiles("background.png")
     }
 
-    /** The same claim for the forest, whose trunks and branches wrap round the seam as well. */
+    /** The same claim for the jungle, whose trunks, fronds and vines wrap round the seam as well. */
     @Test
-    fun `the forest strip meets itself`() {
-        assertTiles("forestBackground.png")
+    fun `the jungle strip meets itself`() {
+        assertTiles("jungleBackground.png")
     }
 
     /**
@@ -308,11 +308,11 @@ class SpriteSheetTest {
      * every enemy off either sheet the same way; see `EnemySpecies.strip`.
      */
     @Test
-    fun `the forest's enemy sheet holds five strips of four frames`() {
-        assertEquals(32 * 4 * 5 to 29 * WOUND_ROWS, sizeOf("forestEnemies.png"))
+    fun `the jungle's enemy sheet holds five strips of four frames`() {
+        assertEquals(32 * 4 * 5 to 29 * WOUND_ROWS, sizeOf("jungleEnemies.png"))
     }
 
-    /** Five types of four 32x29 frames, like the forest's; see `EnemySpecies.strip`. */
+    /** Five types of four 32x29 frames, like the jungle's; see `EnemySpecies.strip`. */
     @Test
     fun `the desert's enemy sheet holds five strips of four frames`() {
         assertEquals(32 * 4 * 5 to 29 * WOUND_ROWS, sizeOf("desertEnemies.png"))
@@ -327,7 +327,7 @@ class SpriteSheetTest {
     /** Four 96x80 frames; see `MOTH_QUEEN_FRAME_WIDTH`. */
     @Test
     fun `the Moth Queen's sheet holds four frames`() {
-        assertEquals(96 * 4 to 80 * WOUND_ROWS, sizeOf("forestBoss.png"))
+        assertEquals(96 * 4 to 80 * WOUND_ROWS, sizeOf("jungleBoss.png"))
     }
 
     /**
@@ -356,13 +356,13 @@ class SpriteSheetTest {
         assertEquals(96 to 54 * KEYFRAMES, sizeOf("desertObstacle4.png"))
     }
 
-    /** The forest keeps the cave's footprints, so its scenery is exactly as hard to fly through. */
+    /** The jungle keeps the cave's footprints, so its scenery is exactly as hard to fly through. */
     @Test
-    fun `the forest's obstacles keep the cave's footprints`() {
-        assertEquals(41 to 46, sizeOf("forestTopObstacle1.png"))
-        assertEquals(38 to 57, sizeOf("forestTopObstacle2.png"))
-        assertEquals(76 to 50, sizeOf("forestBottomObstacle1.png"))
-        assertEquals(96 to 54, sizeOf("forestBottomObstacle2.png"))
+    fun `the jungle's obstacles keep the cave's footprints`() {
+        assertEquals(41 to 46, sizeOf("jungleTopObstacle1.png"))
+        assertEquals(38 to 57, sizeOf("jungleTopObstacle2.png"))
+        assertEquals(76 to 50, sizeOf("jungleBottomObstacle1.png"))
+        assertEquals(96 to 54, sizeOf("jungleBottomObstacle2.png"))
     }
 
     /**
@@ -384,13 +384,13 @@ class SpriteSheetTest {
             "topObstacle2.png",
             "bottomObstacle1.png",
             "bottomObstacle2.png",
-            "forestEnemies.png",
-            "forestBoss.png",
-            "forestBackground.png",
-            "forestTopObstacle1.png",
-            "forestTopObstacle2.png",
-            "forestBottomObstacle1.png",
-            "forestBottomObstacle2.png",
+            "jungleEnemies.png",
+            "jungleBoss.png",
+            "jungleBackground.png",
+            "jungleTopObstacle1.png",
+            "jungleTopObstacle2.png",
+            "jungleBottomObstacle1.png",
+            "jungleBottomObstacle2.png",
             "desertEnemies.png",
             "desertBoss.png",
             "desertMoon.png",
@@ -426,7 +426,7 @@ class SpriteSheetTest {
 
     private companion object {
         /**
-         * Above the largest palette in `tools/` - the forest's enemy sheet, which carries five
+         * Above the largest palette in `tools/` - the jungle's enemy sheet, which carries five
          * creatures' ramps at about three dozen colors - and far below a resized photograph.
          */
         const val MAX_COLORS = 48

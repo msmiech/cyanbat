@@ -10,7 +10,8 @@ import kotlin.test.assertTrue
 private const val TICK = 0.019f
 
 /**
- * The forest's movement patterns. Each test drives a pattern the way the game does - behavior,
+ * The jungle's and the desert's movement patterns, and the bosses' glide between stations. Each
+ * test drives a pattern the way the game does - behavior,
  * then movement, a fixed tick at a time - and checks the one thing that pattern promises.
  */
 class EnemyBehaviorSystemTest {
@@ -294,6 +295,47 @@ class EnemyBehaviorSystemTest {
         run(0.5f)
         assertEquals(2, behaviorOf(looper).state)
         assertTrue(rectOf(looper).left < entry.left - 40f, "it did not carry on out")
+    }
+
+    // endregion
+
+    // region glide
+
+    /** Toward its station in a straight line, whichever way that is - right and up included. */
+    @Test
+    fun `a glider flies straight to its station and settles there`() {
+        val glider = enemy(EnemyMovementType.GLIDE, x = 300f, y = 200f, laneY = 80f, holdX = 460f, baseSpeedX = 1.7f)
+        val path = mutableListOf<Rect>()
+
+        repeat((6f / TICK).toInt()) {
+            world.update(TICK, null)
+            path += rectOf(glider)
+        }
+
+        assertEquals(460f, rectOf(glider).left, 0.01f)
+        assertEquals(80f, rectOf(glider).top, 0.01f)
+        assertEquals(1, behaviorOf(glider).state, "it never said it had arrived")
+        assertEquals(Vector2.Zero, velocityOf(glider))
+        // On the line between where it set out and where it was sent: 160 across for every 120 up.
+        path.forEach { assertEquals(200f - (it.left - 300f) * 0.75f, it.top, 0.5f) }
+    }
+
+    @Test
+    fun `a glider goes no faster than its speed and eases in at the end`() {
+        val glider = enemy(EnemyMovementType.GLIDE, x = 500f, y = 150f, holdX = 200f, baseSpeedX = 1.7f)
+        val steps = mutableListOf<Float>()
+
+        repeat((5f / TICK).toInt()) {
+            val before = rectOf(glider).left
+            world.update(TICK, null)
+            steps += before - rectOf(glider).left
+        }
+
+        assertTrue(steps.all { it <= 1.7f + 1e-4f }, "faster than it was sent")
+        assertEquals(1.7f, steps.first(), 1e-4f)
+        val arriving = steps.filter { it > 0f }.takeLast(10)
+        assertTrue(arriving.zipWithNext().all { (a, b) -> b <= a + 1e-4f }, "it did not ease in: $arriving")
+        assertTrue(arriving.last() < 1f, "it stopped dead")
     }
 
     // endregion

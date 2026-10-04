@@ -6,7 +6,7 @@
 
     uv run tools/generate_desert_obstacle_sprites.py
 
-The cave has a ceiling to hang stalactites from and the forest a canopy; the desert has an open
+The cave has a ceiling to hang stalactites from and the jungle a canopy; the desert has an open
 sky, so everything in its way stands on the ground. What is built is Aztec, the ruins of the same
 people whose temples stand on the horizon (see `generate_desert_background.py`):
 

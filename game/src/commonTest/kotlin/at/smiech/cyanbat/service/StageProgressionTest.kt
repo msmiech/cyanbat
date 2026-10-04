@@ -135,9 +135,10 @@ class StageProgressionTest {
     }
 
     @Test
-    fun `every wave of the cave draws only from the cave's three drones`() {
+    fun `every wave of the cave draws only from the cave's three imps`() {
+        val cave = StageProgression.forStage(2)
         (0..BOSS_WAVE).forEach { index ->
-            val types = stage1.waveAt(index * MINUTE).enemyTypes
+            val types = cave.waveAt(index * MINUTE).enemyTypes
             assertTrue(types.isNotEmpty(), "wave $index has nothing to spawn")
             assertTrue(
                 types.all { it in CAVE_SPECIES },

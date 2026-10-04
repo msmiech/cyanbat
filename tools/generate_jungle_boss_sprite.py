@@ -2,17 +2,17 @@
 # requires-python = ">=3.9"
 # dependencies = ["pillow"]
 # ///
-"""Generate the forest's boss: the Moth Queen, four frames of wingbeat.
+"""Generate the jungle's boss: the Moth Queen, four frames of wingbeat.
 
-    uv run tools/generate_forest_boss_sprite.py
+    uv run tools/generate_jungle_boss_sprite.py
 
-Stage 1's boss is the cave's crimson drone drawn three times over, which works because it is the
-toughest thing the cave's waves were already sending. Stage 2 wanted a boss with a design of its
-own, drawn at its own size rather than magnified: at 3x a 32-pixel sprite has 3-pixel "pixels",
-which reads as coarse next to everything else on screen.
+The cave's boss is its crimson imp drawn three times over, which works because it is the toughest
+thing the cave's waves were already sending. The jungle wanted a boss with a design of its own,
+drawn at its own size rather than magnified: at 3x a 32-pixel sprite has 3-pixel "pixels", which
+reads as coarse next to everything else on screen.
 
 So this is drawn natively at 96x80, the same footprint the cave's boss occupies, at the same pixel
-density as the bat. A moth, because the forest's other hostiles are its brood - she summons wasp
+density as the bat. A moth, because the jungle's other hostiles are its brood - she summons wasp
 swarms mid-fight - and because a moth's wings are the one animal shape big enough to fill a boss
 frame and still read as *flying*:
 
@@ -71,7 +71,7 @@ PALETTE = {
     "p": (16, 10, 28, 255),
 }
 
-OUTPUT = pathlib.Path(__file__).resolve().parent.parent / "assets" / "forestBoss.png"
+OUTPUT = pathlib.Path(__file__).resolve().parent.parent / "assets" / "jungleBoss.png"
 
 W, H = FRAME_WIDTH, FRAME_HEIGHT
 

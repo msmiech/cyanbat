@@ -7,7 +7,7 @@ import at.smiech.engine.Pixmap
 sealed interface Backdrop {
 
     /**
-     * One strip, tiled end to end and scrolled at the scenery's speed: the cave, the forest. Laid
+     * One strip, tiled end to end and scrolled at the scenery's speed: the jungle, the cave. Laid
      * down and kept covering the frame by `BackgroundScrollingSystem`.
      */
     class Strip(val pixmap: Pixmap) : Backdrop

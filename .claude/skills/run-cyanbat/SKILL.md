@@ -182,14 +182,14 @@ lifecycle, and there are no instrumentation tests. Verify those on the emulator.
 
 - **Once stage 1 has been cleared, Start Game opens the stage select.** The unlock is
   persisted (DataStore key `highest_stage_unlocked`), so on a device that has ever beaten the
-  cave, `start` lands on the stage select rather than in a run - follow it with
-  `tap "Stage 1: The Cave"`, `tap "Stage 2: The Forest"` or `tap "Stage 3: The Desert"`.
+  jungle, `start` lands on the stage select rather than in a run - follow it with
+  `tap "Stage 1: The Jungle"`, `tap "Stage 2: The Cave"` or `tap "Stage 3: The Desert"`.
   `adb shell pm clear at.smiech.cyanbat`
   resets it (and the highscores). The stage is handed to the game activity as the
   `at.smiech.cyanbat.STAGE_ID` extra.
 
 - **Stages 2 and 3 cannot be reached quickly by playing.** Each opens only after the boss of
-  the one before it, five minutes in. To look at the forest or the desert, unlock it (clear the
+  the one before it, five minutes in. To look at the cave or the desert, unlock it (clear the
   stage before it once) and pick it from the stage select; there is no debug shortcut. The desert
   changes with its clock - noon at the start, sunset in the fourth minute, night at the boss - so
   a screenshot of it is only a screenshot of that hour.

@@ -28,6 +28,13 @@ private class FakePixmap(override val width: Int = 201, override val height: Int
 
 private const val MINUTE = WAVE_DURATION_SECONDS
 private const val WORLD_WIDTH = FRAME_BUFFER_WIDTH
+
+/**
+ * The cave at the baseline difficulty: the plainest stage there is - one enemy at a time, nothing
+ * shielded or armed, and a boss that calls nothing in until its last phase - so what is measured
+ * here is the generator's clock and ramp rather than any stage's design.
+ */
+private val PLAIN = StageProgression(design = StageDesign.CAVE)
 private const val WORLD_HEIGHT = FRAME_BUFFER_HEIGHT
 
 class EnemyGeneratorTest {
@@ -37,7 +44,7 @@ class EnemyGeneratorTest {
     private val wavesAnnounced = mutableListOf<Int>()
     private val bossesSpawned = mutableListOf<EntityId>()
 
-    private fun generator(progression: StageProgression = StageProgression.forStage(1)) =
+    private fun generator(progression: StageProgression = PLAIN) =
         EnemyGenerator(
             xSpawnPosition = WORLD_WIDTH,
             worldHeight = WORLD_HEIGHT,
@@ -195,7 +202,7 @@ class EnemyGeneratorTest {
         generator.run(5 * MINUTE + 1f)
         val boss = generator.bossId!!
 
-        val lastWave = StageProgression.forStage(1).waveAt(BOSS_WAVE * MINUTE - 1f)
+        val lastWave = PLAIN.waveAt(BOSS_WAVE * MINUTE - 1f)
         assertTrue(
             world.getComponent(
                 boss,

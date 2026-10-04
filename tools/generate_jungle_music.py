@@ -2,18 +2,18 @@
 # requires-python = ">=3.11"
 # dependencies = ["numpy==2.5.3", "scipy==1.18.1"]
 # ///
-"""Generate the forest's music, as the eight stems the game layers.
+"""Generate the jungle's music, as the eight stems the game layers.
 
-    uv run tools/generate_forest_music.py
+    uv run tools/generate_jungle_music.py
 
-The second stage goes somewhere older and less friendly than the cave: a jungle, humid and close,
-with something watching from it. The model is the music of a flooded jungle city in an old action
-RPG - wooden drums, a drone that is almost a voice, a bamboo flute calling out and bending into its
-notes - with a trap beat growing under the drums as the fight heats up: 808s riding the sway,
-hi-hats rolling, voices chopped into a hook. The notes are this script's own.
+The first stage is somewhere old and unfriendly: a jungle, humid and close, with something watching
+from it. The model is the music of a flooded jungle city in an old action RPG - wooden drums, a
+drone that is almost a voice, a bamboo flute calling out and bending into its notes - with a trap
+beat growing under the drums as the fight heats up: 808s riding the sway, hi-hats rolling, voices
+chopped into a hook. The notes are this script's own.
 
 D minor at 98 BPM in 4/4, darkened by the flat second of the Phrygian mode: the sixth bar sits on
-E-flat, a half step over the tonic, which is where the forest turns threatening. The eight-bar
+E-flat, a half step over the tonic, which is where the jungle turns threatening. The eight-bar
 progression turns back through a suspended dominant:
 
     Dm | Bb | C | Dm | Dm | Eb | C | Asus4 A
@@ -43,7 +43,7 @@ from musicsynth import (
     shaker, snare, swell, trap_hat, vowel, woodblock, write_stems,
 )
 
-PIECE = Piece("forest", bpm=98, beats_per_bar=4, seed=20260930)
+PIECE = Piece("jungle", bpm=98, beats_per_bar=4, seed=20260930)
 
 # One sixteenth, in beats.
 STEP = 1 / 4

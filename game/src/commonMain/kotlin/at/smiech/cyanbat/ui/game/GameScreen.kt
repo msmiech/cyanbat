@@ -341,7 +341,7 @@ class GameScreen(
         // With the height too: enemy fire is aimed and fanned now, and leaves through the top and
         // bottom as well as the sides.
         world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight))
-        // The scenery strip of the cave and the forest, on a pass of its own under every other
+        // The scenery strip of the jungle and the cave, on a pass of its own under every other
         // sprite: it is a sprite itself, and drawn in one pass with the rest it went down over every
         // halo, so no aura in either stage ever showed one.
         world.addSystem(RenderSystem(layers = Int.MIN_VALUE until SPRITE_LAYERS_FROM))
@@ -954,10 +954,11 @@ class GameScreen(
     private val nextStageId: Int?
         get() = (currentStage.id + 1).takeIf { env.assets.hasStageAfter(currentStage.id) }
 
-    /** What a boss with phases announces on entering phase [phase]. */
+    /** What a boss announces on entering phase [phase]. */
     private fun bossPhaseBanner(phase: Int): String = when (progression.design.boss) {
+        BossKind.CACO_IMP -> if (phase >= 3) "THE IMP BLAZES" else "LIGHTS OUT"
+        BossKind.MOTH_QUEEN -> if (phase >= 3) "QUEEN ENRAGED" else "SWARM CALLED"
         BossKind.SAND_WYRM -> if (phase >= 3) "WYRM ENRAGED" else "THE BROOD RISES"
-        else -> if (phase >= 3) "QUEEN ENRAGED" else "SWARM CALLED"
     }
 
     /** Puts [text] up over the run for [seconds], replacing whatever was there. */
@@ -1673,7 +1674,7 @@ class GameScreen(
      * player is already looking. Nor is the highscore, which is a record to read between runs
      * rather than a number to watch during one - the end screens and the stage select show it.
      *
-     * Every line of it is outlined. The cave and the forest are dark enough for plain cyan, but
+     * Every line of it is outlined. The jungle and the cave are dark enough for plain cyan, but
      * the desert flies under a bleached noon sky, where cyan on pale yellow all but disappears.
      */
     private fun drawStats() {

@@ -5,6 +5,7 @@ import at.smiech.engine.Graphics
 import at.smiech.engine.Input
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
+import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.roundToInt
@@ -110,12 +111,23 @@ private const val LEAP_FORWARD_FACTOR = 1.25f
 
 /**
  * A loop: how much faster than its cruise it flies the circle, and how long one turn takes. At the
- * forest's closing speeds that is a circle of about forty pixels' radius - big enough to read as a
+ * desert's closing speeds that is a circle of about forty pixels' radius - big enough to read as a
  * loop rather than a wobble, small enough to stay on screen from any lane.
  */
 private const val LOOP_SPEED_FACTOR = 1.6f
 private const val LOOP_SECONDS = 1.8f
 private const val LOOP_LEAVE_FACTOR = 1.5f
+
+/**
+ * A glide eases in over its last stretch: once it is near enough, it covers [GLIDE_EASING] of what is
+ * left a tick, and never less than [GLIDE_SLOWEST] of a pixel, so it settles onto its station rather
+ * than creeping up on the last pixel for ever.
+ */
+private const val GLIDE_EASING = 0.05f
+private const val GLIDE_SLOWEST = 0.3f
+
+/** How near its station a glide counts as there, which its last step always lands well inside. */
+private const val GLIDE_ARRIVED = 0.01f
 
 private const val PI_F = 3.1415927f
 private const val TWO_PI_F = 6.2831855f
@@ -228,8 +240,35 @@ class EnemyBehaviorSystem : GameSystem() {
                 EnemyMovementType.BOSS_FIGURE_EIGHT -> figureEight(transform, velocity, behavior)
                 EnemyMovementType.LEAP -> leap(transform, velocity, behavior, deltaTime, pace)
                 EnemyMovementType.LOOP -> loop(transform, velocity, behavior)
+                EnemyMovementType.GLIDE -> glide(transform, velocity, behavior)
             }
         }
+    }
+
+    /**
+     * Straight at the station, at full speed until the last stretch and easing onto it from there,
+     * so it settles where it was sent rather than stopping dead. Not steered by anything else on the
+     * way: whatever sent it there chose the line.
+     */
+    private fun glide(
+        transform: TransformComponent,
+        velocity: VelocityComponent,
+        behavior: EnemyBehaviorComponent,
+    ) {
+        val rect = transform.rect
+        val dx = behavior.holdX - rect.left
+        val dy = behavior.initialY - rect.top
+        val distance = sqrt(dx * dx + dy * dy)
+        if (distance < GLIDE_ARRIVED) {
+            velocity.velocity = Vector2.Zero
+            if (behavior.state == STAGE_APPROACH) enter(behavior, STAGE_HOLD)
+            return
+        }
+        // Never more than what is left, so the last step lands on the station rather than past it.
+        val speed = minOf(abs(behavior.baseSpeedX), distance * GLIDE_EASING)
+            .coerceAtLeast(GLIDE_SLOWEST)
+            .coerceAtMost(distance)
+        velocity.velocity = Vector2(dx / distance * speed, dy / distance * speed)
     }
 
     /**
