@@ -42,15 +42,15 @@ data class EnemyGun(val interval: Float, val volleys: List<Volley>)
  *
  * What a species is *not* is its strength. Health and damage come from the wave that spawns it,
  * and a species only scales them - so a species is the same animal in the first minute and the
- * fifth, just angrier, which is how the cave's three drones have always worked.
+ * fifth, just angrier, which is how the cave's three imps have always worked.
  *
  * @param strip which type strip of its stage's sheet it animates from, the way
- *   [EntityFactory.srcXOf] addresses them. The cave's and the forest's sheets both count from zero.
+ *   [EntityFactory.srcXOf] addresses them. Every stage's sheet counts from zero.
  * @param speedX closing speed in framebuffer pixels per tick, before the wave's multiplier.
  * @param shotVariant the colorway of `shot.png` its bolts are drawn in - the sprite's own color.
  * @param hitPointFactor/damageFactor scale the wave's numbers, so a swarm of small things can each
  *   be weak and a lone tank strong without either needing a table of its own.
- * @param collisionTolerance how far inside its frame the hit box sits. The cave's drones fill
+ * @param collisionTolerance how far inside its frame the hit box sits. The cave's imps fill
  *   their frame; a wasp does not, and a hit box the size of the frame would make a visible miss
  *   count as a hit.
  * @param gun what it fires, for the species that always shoot.
@@ -85,7 +85,7 @@ enum class EnemySpecies(
     WEAVER(strip = 1, speedX = -1.5f, movement = EnemyMovementType.SINE, shotVariant = 2),
     STRIKER(strip = 2, speedX = -1.2f, movement = EnemyMovementType.ZIGZAG, shotVariant = 3),
 
-    // --- the forest, on `forestEnemies.png` ----------------------------------------------------
+    // --- the jungle, on `jungleEnemies.png` ----------------------------------------------------
 
     /**
      * Comes in swarms, each one weak. A swarm is dangerous as a shape, not as six enemies: the
@@ -128,7 +128,7 @@ enum class EnemySpecies(
     // --- the desert, on `desertEnemies.png` ----------------------------------------------------
 
     /**
-     * The desert's swarm: a cloud of locusts, faster and flimsier than the forest's wasps. Better
+     * The desert's swarm: a cloud of locusts, faster and flimsier than the jungle's wasps. Better
      * cut through than flown round.
      */
     LOCUST(

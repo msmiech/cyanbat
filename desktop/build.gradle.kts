@@ -43,7 +43,7 @@ dependencies {
 
 // Flies every stage on an autopilot, headless and faster than real time, and writes one reel of
 // them to docs/gameplay.gif. Arguments pass through:
-// --args="--stages=2 --out=build/forest.gif --frames=build/frames".
+// --args="--stages=2 --out=build/cave.gif --frames=build/frames".
 tasks.register<JavaExec>("recordGameplay") {
     group = "documentation"
     description = "Records the README's gameplay GIF by flying each stage on an autopilot."

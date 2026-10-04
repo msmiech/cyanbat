@@ -9,6 +9,7 @@ import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.SoundEffect
+import at.smiech.cyanbat.service.CacoImpBrain
 import at.smiech.cyanbat.service.EnemyGun
 import at.smiech.cyanbat.service.EnemySpecies
 import at.smiech.cyanbat.service.EntityFactory
@@ -18,6 +19,7 @@ import at.smiech.cyanbat.util.BAT_LIGHT_FADE_SECONDS
 import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SECONDS
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.BURROW_SHOWING
+import at.smiech.cyanbat.util.CACO_IMP_PROWL_BAT_CLEARANCE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
 import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
@@ -49,6 +51,7 @@ import at.smiech.engine.math.Rect
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -422,7 +425,7 @@ class GameScreenTest {
         screen.update(FRAME_SECONDS)
         val next = assertNotNull(game.currentScreen as? GameScreen, "the overlay did not take the player on")
         try {
-            assertEquals(2, next.currentStage.id)
+            assertEquals(CAVE + 1, next.currentStage.id)
         } finally {
             next.dispose()
         }
@@ -631,13 +634,76 @@ class GameScreenTest {
         assertEquals(0f, light().strength)
     }
 
-    /** Only the cave is dark: the forest's bat carries no light, and nothing in it throws a shadow. */
+    /** Only the cave is dark: the jungle's bat carries no light, and nothing in it throws a shadow. */
     @Test
-    fun `the forest is flown in daylight`() = flight(FOREST) {
+    fun `the jungle is flown in daylight`() = flight(JUNGLE) {
         fly(2f)
         assertNull(probe.world.getComponent(probe.batId, LightComponent::class))
-        assertTrue(probe.world.query(LightComponent::class).isEmpty(), "something in the forest gives off light")
-        assertTrue(probe.world.query(OccluderComponent::class).isEmpty(), "something in the forest throws a shadow")
+        assertTrue(probe.world.query(LightComponent::class).isEmpty(), "something in the jungle gives off light")
+        assertTrue(probe.world.query(OccluderComponent::class).isEmpty(), "something in the jungle throws a shadow")
+    }
+
+    /**
+     * The Caco Imp is alight, and lit by it; with its light out it is a shape in the dark. Read off
+     * the frame, over the imp's own box, with it put back in the same place both times - and with the
+     * bat's gun held, since every bolt it fires is a light of its own.
+     */
+    @Test
+    fun `the Caco Imp is seen by its own light, and hides in the dark with it out`() = impFight {
+        fun impBrightness(): Double {
+            imp().rect = STATION
+            placeBat()
+            screen.present(0f)
+            val frame = game.capture()
+            var total = 0L
+            for (y in STATION.top.toInt() until STATION.bottom.toInt()) {
+                for (x in STATION.left.toInt() until STATION.right.toInt()) {
+                    total += brightness(frame[y * FRAME_BUFFER_WIDTH + x])
+                }
+            }
+            return total.toDouble() / (STATION.width * STATION.height)
+        }
+
+        screen.update(TICK_INITIAL * 1.5f)
+        val lit = impBrightness()
+
+        wound(0.6f)
+        flyUntil { brain.dark }
+        assertEquals(0f, probe.world.getComponent(boss, LightComponent::class)!!.intensity)
+        val dark = impBrightness()
+
+        assertTrue(lit > dark * 1.6, "lit %.1f against dark %.1f, of 765".format(lit, dark))
+        assertTrue(dark > 0.0, "unlit, it is still there to be seen")
+    }
+
+    @Test
+    fun `the Caco Imp announces each phase of its fight`() = impFight {
+        wound(0.6f)
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals("LIGHTS OUT", probe.banner)
+
+        wound(0.3f)
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals("THE IMP BLAZES", probe.banner)
+    }
+
+    /**
+     * Its brain is what moves it in the dark, through the run's own systems: to a station clear of the
+     * bat, which in a run is wherever the bat happens to be.
+     */
+    @Test
+    fun `the Caco Imp prowls to a new station in the dark, clear of the bat`() = impFight {
+        wound(0.6f)
+        flyUntil { brain.prowl == CacoImpBrain.Prowl.PROWL }
+        val start = imp().rect
+        flyUntil { brain.prowl == CacoImpBrain.Prowl.LURK }
+
+        val now = imp().rect
+        assertEquals(brain.stationX, now.left, 1f)
+        assertEquals(brain.stationY, now.top, 1f)
+        assertTrue(hypot(now.left - start.left, now.top - start.top) > 20f, "it hardly moved")
+        val bat = probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect
+        assertTrue(hypot(now.centerX - bat.centerX, now.centerY - bat.centerY) >= CACO_IMP_PROWL_BAT_CLEARANCE)
     }
 
     /** Puts the bat at the same place every time, its middle on [BAT_MIDDLE_X] and [ROCK_ROW]. */
@@ -698,6 +764,34 @@ class GameScreenTest {
         }
     }
 
+    /** A cave run at its boss: a [Flight], the Caco Imp, and its brain. */
+    private class ImpFight(flight: Flight, val boss: EntityId, val brain: CacoImpBrain) :
+        Flight(flight.screen, flight.probe, flight.assets, flight.game) {
+        fun imp(): TransformComponent = probe.world.getComponent(boss, TransformComponent::class)!!
+
+        fun wound(fraction: Float) {
+            val health = probe.world.getComponent(boss, HealthComponent::class)!!
+            health.hitPoints = (health.maxHitPoints * fraction).toInt()
+        }
+
+        fun flyUntil(limitSeconds: Float = 20f, done: () -> Boolean) {
+            var left = (limitSeconds / TICK_INITIAL).toInt()
+            while (!done()) {
+                assertTrue(left-- > 0, "it never came round")
+                screen.update(TICK_INITIAL)
+            }
+        }
+    }
+
+    /** A cave run straight at its boss, on its station, with the bat's gun held. */
+    private fun impFight(test: ImpFight.() -> Unit) = flight(CAVE) {
+        probe.world.getComponent(probe.batId, WeaponComponent::class)!!.interval = Float.MAX_VALUE
+        screen.enmGen.update(StageProgression.forStage(CAVE).bossTimeSeconds)
+        val boss = assertNotNull(screen.enmGen.bossId, "the imp should have arrived")
+        probe.world.getComponent(boss, TransformComponent::class)!!.rect = STATION
+        ImpFight(this, boss, screen.enmGen.bossBrain as CacoImpBrain).test()
+    }
+
     /** A desert run at its boss: a [Flight], and the wyrm's head. */
     private class WyrmFight(flight: Flight, val head: EntityId) :
         Flight(flight.screen, flight.probe, flight.assets, flight.game)
@@ -715,9 +809,12 @@ class GameScreenTest {
     }
 
     private companion object {
-        const val CAVE = 1
-        const val FOREST = 2
+        const val JUNGLE = 1
+        const val CAVE = 2
         const val DESERT = 3
+
+        /** Where the Caco Imp holds station: at 62% of the frame across, centered up and down. */
+        val STATION = Rect.fromLTWH(396.8f, 136.5f, 96f, 87f)
 
         /**
          * A row of the flat band of rock across the middle of the cave, clear of the stage's name, and

@@ -12,6 +12,7 @@ import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.ProjectileStyleComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.World
+import at.smiech.engine.math.Rect
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
@@ -91,9 +92,9 @@ class ShotColorwayTest {
         }
     }
 
-    /** The cave's drones fire the colorway laid out behind the player's in their sheet's order. */
+    /** The cave's imps fire the colorway laid out behind the player's in their sheet's order. */
     @Test
-    fun `the cave's drones fire in the colors of their own strip`() {
+    fun `the cave's imps fire in the colors of their own strip`() {
         for (species in listOf(EnemySpecies.SCOUT, EnemySpecies.WEAVER, EnemySpecies.STRIKER)) {
             assertEquals(species.strip + ENEMY_SHOT_VARIANT_OFFSET, species.shotVariant)
         }
@@ -107,15 +108,12 @@ class ShotColorwayTest {
         assertTrue(MOTH_QUEEN_SHOT_VARIANT in 0 until COLORWAYS)
     }
 
-    /**
-     * The boss is the one enemy that actually has a gun today, so this is the case the feature was
-     * asked for: its bolts come out crimson, like the rest of it.
-     */
+    /** The case the feature was asked for: the cave's boss's bolts come out crimson, like the rest of it. */
     @Test
-    fun `the boss fires in its own crimson`() {
+    fun `the Caco Imp fires in its own crimson`() {
         val id = factory.createBoss(
             0f, 0f, holdX = 0f, pixmap = enemySheet, scale = BOSS_SPRITE_SCALE,
-            hitPoints = 100, damage = 10, shotIntervalSeconds = 1.6f,
+            hitPoints = 100, damage = 10, gun = CacoImpBrain.SMOULDERING_GUN, bar = Rect.fromLTWH(0f, 0f, 1f, 1f),
         )
 
         val style = world.getComponent(id, ProjectileStyleComponent::class)
@@ -173,7 +171,7 @@ class ShotColorwayTest {
 
     private companion object {
         /**
-         * How many colorways shot.png lays out: the player's, the cave's three, the forest's three,
+         * How many colorways shot.png lays out: the player's, the cave's three, the jungle's three,
          * the Sand Wyrm's, and the elites' five.
          */
         const val COLORWAYS = 13

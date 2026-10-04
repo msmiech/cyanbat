@@ -13,6 +13,7 @@ import at.smiech.cyanbat.service.EnemySpecies.WASP
 import at.smiech.cyanbat.service.EnemySpecies.WEAVER
 import at.smiech.cyanbat.service.EnemySpecies.WISP
 import at.smiech.cyanbat.service.EnemySpecies.WYRMLING
+import at.smiech.cyanbat.util.STAGE_DIFFICULTY_STEP
 
 /**
  * One minute of a stage's enemies, as designed rather than as scaled.
@@ -35,14 +36,18 @@ data class WaveDesign(
 
 /** Which boss a stage ends on - a different fight, not just a different sprite. */
 enum class BossKind {
-    /** The cave's crimson drone, three times over: weaves on station and fires straight. */
-    CAVE_DRONE,
-
     /**
-     * The forest's Moth Queen: a figure eight on station, three phases, a shield she raises as
+     * The jungle's Moth Queen: a figure eight on station, three phases, a shield she raises as
      * she changes phase, and wasp swarms she calls in. See [MothQueenBrain].
      */
     MOTH_QUEEN,
+
+    /**
+     * The cave's Caco Imp, its crimson imp three times over and alight in the dark: it weaves on
+     * station, then puts its light out and prowls the dark between ambushes, and ends ablaze and
+     * calling in imps. See [CacoImpBrain].
+     */
+    CACO_IMP,
 
     /**
      * The desert's Sand Wyrm: a body of ten armored parts that breaches out of the dunes in arcs
@@ -56,22 +61,59 @@ enum class BossKind {
  * What a stage *is*, separate from how hard it is: its waves, its boss, and what the boss is
  * called when it arrives. [StageProgression] reads this against the clock and scales it by the
  * stage's difficulty.
+ *
+ * @param bossToughness how hard the boss is against the stage's own difficulty: 1 for a boss scaled
+ *   like its waves, more for one kept harder than the waves that lead up to it.
  */
 data class StageDesign(
     val waves: List<WaveDesign>,
     val boss: BossKind,
     val bossName: String,
+    val bossToughness: Float = 1f,
 ) {
     companion object {
         /**
-         * Stage 1. Each minute brings a group that moves in a way the last one did not, and the
-         * escort in the fifth is the two that are hardest to lead.
+         * Stage 1, and the first thing a player flies. Its enemies do more than cross the screen:
+         * they come in groups, they shoot back, and they hide behind shields. Each of those is
+         * introduced before it is combined with the others, and the shields and guns a wave hands
+         * out ramp in over the stage - sparingly, since this is where a player meets all three.
          *
          * Every stage sends its elites on the same ramp: none in the opening minute, which is for
          * learning the stage's own enemies, and then a few groups in a hundred, climbing to the
          * escort. That comes to a couple of elites a minute early on and one every six or seven
-         * seconds in the escort, in any stage: the forest's swarms are more enemies, but no more
+         * seconds in the escort, in any stage: the jungle's swarms are more enemies, but no more
          * groups.
+         *
+         * The Moth Queen is the exception to the easing. She was the second stage's boss, and is
+         * fought as hard as she was there - her health, her bolts and the swarms she calls in -
+         * at the end of a stage that leads up to her more gently.
+         */
+        val JUNGLE = StageDesign(
+            waves = listOf(
+                // A swarm to learn, and a shielded beetle to learn shields on.
+                WaveDesign(listOf(WASP, BEETLE)),
+                // Formations and the first thing that aims at the player, on their own: nothing
+                // is handed a shield or a gun yet.
+                WaveDesign(listOf(WISP, SPITTER, WASP), eliteChance = 0.04f),
+                // Divers, with the swarms and tanks from the opening minute for cover, and the
+                // first few shields and guns handed out.
+                WaveDesign(listOf(OWL, WASP, BEETLE), shieldChance = 0.1f, gunChance = 0.1f, eliteChance = 0.05f),
+                // Everything at once.
+                WaveDesign(listOf(WASP, BEETLE, SPITTER, OWL, WISP), shieldChance = 0.2f, gunChance = 0.15f, eliteChance = 0.06f),
+                // The escort: everything that shoots or dives, and a fair part of it armed or shielded.
+                WaveDesign(listOf(SPITTER, OWL, WISP), shieldChance = 0.25f, gunChance = 0.2f, eliteChance = 0.07f),
+            ),
+            boss = BossKind.MOTH_QUEEN,
+            bossName = "THE MOTH QUEEN",
+            bossToughness = 1f + STAGE_DIFFICULTY_STEP,
+        )
+
+        /**
+         * Stage 2, flown in the dark by the bat's own light. Each minute brings a group that moves
+         * in a way the last one did not, and the escort in the fifth is the two that are hardest
+         * to lead. None of them shoots or hides behind a shield, as the jungle's do: the cave's
+         * difficulty is its stage's, everything tougher and quicker, and the dark it is flown in.
+         * Its boss is where the dark turns on the player.
          */
         val CAVE = StageDesign(
             waves = listOf(
@@ -81,36 +123,12 @@ data class StageDesign(
                 WaveDesign(listOf(SCOUT, WEAVER, STRIKER), eliteChance = 0.06f), // everything at once
                 WaveDesign(listOf(WEAVER, STRIKER), eliteChance = 0.07f),        // the boss escort
             ),
-            boss = BossKind.CAVE_DRONE,
+            boss = BossKind.CACO_IMP,
             bossName = "THE CACO IMP",
         )
 
         /**
-         * Stage 2. Harder than the cave on every axis the cave had - it is scaled by the stage's
-         * difficulty like any later stage - and on three it did not: enemies come in groups, they
-         * shoot back, and they hide behind shields. Each of those is introduced before it is
-         * combined with the others, and the shields and guns ramp in over the stage rather than
-         * arriving all at once.
-         */
-        val FOREST = StageDesign(
-            waves = listOf(
-                // A swarm to learn, and a shielded beetle to learn shields on.
-                WaveDesign(listOf(WASP, BEETLE)),
-                // Formations and the first thing that aims at the player.
-                WaveDesign(listOf(WISP, SPITTER, WASP), shieldChance = 0.1f, eliteChance = 0.04f),
-                // Divers, with the swarms and tanks from the opening minute for cover.
-                WaveDesign(listOf(OWL, WASP, BEETLE), shieldChance = 0.2f, gunChance = 0.15f, eliteChance = 0.05f),
-                // Everything at once.
-                WaveDesign(listOf(WASP, BEETLE, SPITTER, OWL, WISP), shieldChance = 0.3f, gunChance = 0.25f, eliteChance = 0.06f),
-                // The escort: everything that shoots or dives, and most of it armed or shielded.
-                WaveDesign(listOf(SPITTER, OWL, WISP), shieldChance = 0.4f, gunChance = 0.35f, eliteChance = 0.07f),
-            ),
-            boss = BossKind.MOTH_QUEEN,
-            bossName = "THE MOTH QUEEN",
-        )
-
-        /**
-         * Stage 3, flown from noon to nightfall. Harder again than the forest, and it adds one new
+         * Stage 3, flown from noon to nightfall. Harder again than the cave, and it adds one new
          * direction to watch: things come up out of the sand. The first minute is the swarm and the
          * loop, one to cut through and one to read; the wyrmlings arrive in the second, before
          * anything else is shooting; the djinn's fans in the third; and by dusk everything is
@@ -139,8 +157,8 @@ data class StageDesign(
          * to spawn.
          */
         fun forStage(id: Int): StageDesign = when {
-            id <= 1 -> CAVE
-            id == 2 -> FOREST
+            id <= 1 -> JUNGLE
+            id == 2 -> CAVE
             else -> DESERT
         }
     }

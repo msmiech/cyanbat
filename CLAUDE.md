@@ -110,10 +110,14 @@ playfield for wide screens; it would change difficulty by device.
 
 **Stage content is split four ways.**
 - `Stage` (registered in `GameAssets.load`) is how a stage looks and sounds. Its `Backdrop` is
-  either a `Strip` (the cave, the forest: one tiled image) or a `Nightfall` (the desert: a sky the
+  either a `Strip` (the jungle, the cave: one tiled image) or a `Nightfall` (the desert: a sky the
   game draws, going from noon to night on the stage clock, over parallax bands of ground).
-- `StageDesign` is its waves and boss; `StageDesign.forStage` maps a stage id to its design.
-- `StageProgression` turns seconds elapsed into the current wave's stats, scaled up per stage.
+- `StageDesign` is its waves and boss; `StageDesign.forStage` maps a stage id to its design. Its
+  `bossToughness` keeps a boss harder than the waves that lead to it: the Moth Queen is fought at
+  the strength she had as stage 2's boss, at the end of an eased opening stage.
+- `StageProgression` turns seconds elapsed into the current wave's stats, scaled up per stage, and
+  the boss by its own `bossDifficulty`; what a boss calls in arrives as its `escortWave`, at the
+  boss's difficulty.
 - `EnemyGenerator` owns only the clock and the dice, and spawns through `EntityFactory`.
 
 Adding a stage touches all four, plus new generators in `tools/` (its music among them, with a
@@ -131,7 +135,7 @@ carrying a `CrossfadeComponent` (the desert's obstacles) in the same light.
 - The sun the player can see sets on the right, so the desert's scenery is lit from the right; the
   night palettes turn that round, to the moon on the left.
 
-**The cave's dark.** The cave is flown in the dark (`Stage.lighting`, a `StageLighting`); the forest
+**The cave's dark.** The cave is flown in the dark (`Stage.lighting`, a `StageLighting`); the jungle
 and the desert are flown in daylight, and none of this runs there.
 - `LightingSystem` sits between two `RenderSystem` passes split at `LIGHTS_FROM` (z 15). Under it are
   the scenery, the halos, the obstacles and everything hostile, as lit as whatever reaches them; over
@@ -168,6 +172,16 @@ and the desert are flown in daylight, and none of this runs there.
   so a rock's cut base never glints.
 - Silhouettes and glints read the art through `Pixmap.readPixels`. A test double reads nothing and
   counts as its whole frame.
+
+**The Caco Imp's dark.** The cave's boss uses the dark as a weapon. `CacoImpBrain` runs its fight in
+three phases off its health, as the other bosses' brains do: it smoulders, alight; at its first
+wound it puts its light out and goes round a prowl (`CacoImpBrain.Prowl`) - douse, glide unlit to a
+station of its choosing (`EnemyMovementType.GLIDE`), lurk, flare up, fire, burn - and at its second
+it blazes for good and calls in strikers. It never fires in the dark, since its bolts are lights.
+What finds it there is light: the bat's, its shots', the flash of a hit. Its health bar is pinned
+under the timer (`BOSS_BAR_*`, shared with the Sand Wyrm), because one hung under it would show where
+it had got to. Its light is the factory's `LightComponent`, changed in place, and only its intensity
+moves tick to tick: a light's sprite is cached by radius and color, never by strength.
 
 **Bosses with a body.** The Sand Wyrm is a head plus nine plates, each an entity, laid by
 `SandWyrmBrain` along the path the head has flown. Every part carries a `BossPartComponent`: a
@@ -206,7 +220,7 @@ swarm, or a formation's leader.
 - `GameScreen` reads its `EliteComponent` as it dies, to pay `ELITE_SCORE_FACTOR` and
   `ELITE_EXPERIENCE_FACTOR` kills' worth; it is still one kill to the streak.
 - An aura's halo is drawn between two `RenderSystem` passes: the scenery strip (below z 0), then
-  every other sprite. In one pass the strip covered every halo in the cave and the forest.
+  every other sprite. In one pass the strip covered every halo in the jungle and the cave.
 
 **Player progression** is per run and never persisted:
 - `PlayerProgress` tracks experience and the bat's level.
@@ -356,7 +370,7 @@ set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
   each run to a few short clips, and `GifEncoder` writes the stages as one reel, each stage on a
   palette of its own.
 - The reel shows less of each stage than of the one before (`STAGE_COVERAGE`), to leave the later
-  stages to discover: the cave whole, a few glimpses of the forest, fewer of the desert. The desert's
+  stages to discover: the jungle whole, a few glimpses of the cave, fewer of the desert. The desert's
   boss is never shown; its flight stops before the Sand Wyrm arrives, so no frame of it is taped.
 - Runs are random, so unlike the art a re-recording is never byte for byte the same. Re-record after
   a visible change.
@@ -368,10 +382,10 @@ set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
 
 ## Conventions
 
-- **"Stage" vs "level".** The cave, the forest and the desert are *stages*. "Level" only ever means the bat's
-  experience level, which buys power-ups. Keep the two apart in code, comments and on-screen text.
-  The cave enemies are drawn as imps, but some internal names still say drone
-  (`BossKind.CAVE_DRONE`).
+- **"Stage" vs "level".** The jungle, the cave and the desert are *stages*. "Level" only ever means
+  the bat's experience level, which buys power-ups. Keep the two apart in code, comments and
+  on-screen text. The jungle was the forest, and stage 2, until it moved to the front; persisted
+  highscores were moved with it (`StageOrderMigration`, and its desktop twin).
 - **American English** everywhere, identifiers and player-facing text included: color, center,
   behavior, armor.
 - **Comments explain why, in plain sentences.** Types get KDoc saying what they are for.

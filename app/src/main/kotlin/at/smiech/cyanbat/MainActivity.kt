@@ -16,6 +16,7 @@ import at.smiech.cyanbat.data.DataStoreHighscoreStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.data.DataStoreStageUnlockStore
 import at.smiech.cyanbat.data.LegacyHighscoreMigration
+import at.smiech.cyanbat.data.StageOrderMigration
 import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost
 import at.smiech.cyanbat.ui.rememberMenuBackStack
@@ -34,9 +35,13 @@ internal const val PREFS_STAGE_HIGH_SCORE_PREFIX = "highscore_stage_"
 internal fun prefsKeyStageHighScore(stageId: Int) =
     intPreferencesKey(PREFS_STAGE_HIGH_SCORE_PREFIX + stageId)
 internal val PREFS_KEY_HIGHEST_STAGE = intPreferencesKey("highest_stage_unlocked")
+/** Which order the stages' highscores are stored in; see [StageOrderMigration]. */
+internal val PREFS_KEY_STAGE_ORDER = intPreferencesKey("stage_order")
 internal val Context.dataStore by preferencesDataStore(
     name = "cyanbat",
-    produceMigrations = { listOf(LegacyHighscoreMigration) },
+    // In the order they were needed: the single legacy score lands on stage 1, the cave it was earned
+    // in, and the cave's scores then move to where the cave went.
+    produceMigrations = { listOf(LegacyHighscoreMigration, StageOrderMigration) },
 )
 
 /**

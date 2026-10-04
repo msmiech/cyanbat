@@ -186,9 +186,13 @@ const val BOSS_DAMAGE_PER_STAGE = 50
 // it, which is most of what makes it dangerous to sit next to.
 const val BOSS_SPRITE_SCALE = 3f
 
-// Seconds between the boss's shots. Slower than the bat's, because the bat has to spend part of
-// its time dodging and the boss does not.
-const val BOSS_SHOT_INTERVAL_SECONDS = 1.6f
+// A boss's health bar, for the bosses that spend part of their fight where they cannot be seen -
+// the Sand Wyrm under the sand, the Caco Imp in the dark: pinned under the stage timer rather than
+// hung under the boss, where it would go with the head under the sand and give the imp away in the
+// dark. The Moth Queen is always in sight, and wears hers under her.
+const val BOSS_BAR_WIDTH = 200
+const val BOSS_BAR_TOP = 25
+const val BOSS_BAR_HEIGHT = 4
 
 // Banked for clearing the stage, on top of whatever the run scored on the way.
 const val STAGE_COMPLETE_BONUS = 10_000
@@ -238,9 +242,9 @@ const val BOSS_AFTERSHOCK_SCALE = 0.9f
 const val BOSS_AFTERSHOCK_FALLOFF = 0.85f
 
 
-// --- The forest --------------------------------------------------------------------------------
+// --- The jungle --------------------------------------------------------------------------------
 //
-// Stage 2's enemies fly in groups, shoot back and carry shields. What each species does is in
+// Stage 1's enemies fly in groups, shoot back and carry shields. What each species does is in
 // EnemySpecies and which wave sends what is in StageDesign; these are the numbers underneath.
 
 // A shield handed out by a wave's shieldChance, as a fraction of the enemy's own health. Under
@@ -285,7 +289,7 @@ const val FIRST_SHOT_JITTER = 0.6f
 
 // --- The Moth Queen ----------------------------------------------------------------------------
 //
-// Stage 2's boss. Three phases, marked by her health: each one raises her shield, and she gets
+// Stage 1's boss. Three phases, marked by her health: each one raises her shield, and she gets
 // faster and calls in wasps as she goes.
 
 // Her sheet: four frames of wingbeat, drawn at 96x80 - the footprint of the cave's boss, at the
@@ -317,10 +321,11 @@ const val MOTH_QUEEN_ENRAGED_SUMMON_SECONDS = 7f
 // How much faster she flies her figure eight in the last phase.
 const val MOTH_QUEEN_ENRAGED_TEMPO = 1.6f
 
-// What one of her bolts deals, as a share of her contact damage - which at stage 2 is about 67, two
-// thirds of the bat's bar. Her rings put a dozen bolts on screen at once, so each has to be a
-// setback rather than half a death: a ring bolt costs about a fifth of the bar, an aimed one - the
-// ones the player should always be dodging - a little under a third.
+// What one of her bolts deals, as a share of her contact damage - about 67, two thirds of the bat's
+// bar, since she is fought as hard as she was as the second stage's boss (StageDesign.JUNGLE). Her
+// rings put a dozen bolts on screen at once, so each has to be a setback rather than half a death: a
+// ring bolt costs about a fifth of the bar, an aimed one - the ones the player should always be
+// dodging - a little under a third.
 const val MOTH_QUEEN_RING_DAMAGE = 0.3f
 const val MOTH_QUEEN_FAN_DAMAGE = 0.45f
 
@@ -496,7 +501,7 @@ const val MAX_CRITICAL_CHANCE = 0.5f
 // --- Shot colorways ----------------------------------------------------------------------------
 //
 // `shot.png` is one bolt drawn thirteen times over: the player's cyan, then the cave's three enemy
-// palettes in the order the enemy sheet lays them out, then the forest's shooters, the Sand Wyrm's,
+// palettes in the order the enemy sheet lays them out, then the jungle's shooters, the Sand Wyrm's,
 // and one per ElitePalette. Which colorway a species fires is on EnemySpecies, and an elite fires
 // its palette's instead. A shot is the color of whatever fired it, so a screen
 // holding the bat's fire and the boss's at the same time says which is which by color rather than
@@ -534,7 +539,7 @@ val SHOT_BODY_COLORS = intArrayOf(
 //
 // The cave is flown in the dark. The bat carries its own light, every shot and every blast is one,
 // and whatever stands in a light's way - a rock, an imp - throws a shadow away from it; see
-// LightingSystem. These are the whole of how dark it is and how far each light reaches. The forest
+// LightingSystem. These are the whole of how dark it is and how far each light reaches. The jungle
 // and the desert are flown in daylight, and none of it applies there.
 
 // The light where no other reaches, as the color the cave is multiplied by: about a quarter, and a
@@ -585,11 +590,7 @@ const val ELITE_LIGHT_RADIUS = 60
 const val CREATURE_SHINE = 0.7f
 const val ROCK_SHINE = 0.75f
 
-// The cave's boss smoulders: a dim crimson light about it, enough to see the whole of it from the far
-// side of the cave wherever the bat is.
-const val BOSS_LIGHT_COLOR = 0xFFFF6A50.toInt()
-const val BOSS_LIGHT_RADIUS = 120
-const val BOSS_LIGHT_INTENSITY = 0.55f
+// The cave's boss is alight; what its light does through its fight is under "The Caco Imp".
 
 
 // --- The bat's death ---------------------------------------------------------------------------
@@ -727,7 +728,7 @@ const val SAND_WYRM_BODY_DAMAGE = 0.3f
 // How much of a shot into one of its plates carries through to the head, which takes the whole of
 // what hits it. The plates are armor: at full weight a late run's spread lands every shot of its fan
 // on the body, a piercing shot lands on every plate it passes through, and the wyrm went down in
-// seconds - faster than the forest's Moth Queen against the same bat. At half, the head is worth
+// seconds - faster than the jungle's Moth Queen against the same bat. At half, the head is worth
 // aiming for and the body is still worth hitting.
 const val SAND_WYRM_PLATE_SHARE = 0.5f
 
@@ -739,8 +740,61 @@ const val SAND_WYRM_RING_DAMAGE = 0.3f
 // The colorway of shot.png its spit is drawn in: molten gold, like the glow in its throat.
 const val SAND_WYRM_SHOT_VARIANT = 7
 
-// Its health bar, pinned under the stage timer rather than hung under the head: the head spends
-// half the fight under the sand, and a bar that went with it would go too.
-const val SAND_WYRM_BAR_WIDTH = 200
-const val SAND_WYRM_BAR_TOP = 25
-const val SAND_WYRM_BAR_HEIGHT = 4
+// Its health bar is pinned under the stage timer, BOSS_BAR_TOP: the head spends half the fight under
+// the sand, and a bar that went with it would go too.
+
+
+// --- The Caco Imp ------------------------------------------------------------------------------
+//
+// Stage 2's boss: the cave's crimson imp drawn three times over, and alight in the dark. It weaves on
+// station and fires; at its first wound it puts its light out and prowls the dark between ambushes;
+// at its second it blazes up for good and calls in its own kind. See CacoImpBrain.
+
+// The health fractions at which it changes phase; the marks its wounds show at too, see WOUND_MARKS.
+const val CACO_IMP_PHASE_2_AT = WOUNDED_AT
+const val CACO_IMP_PHASE_3_AT = BATTERED_AT
+
+// Its light. Through the first phase it smoulders: a crimson glow, breathing slowly about its
+// strength, that lights the rock around it and shows the whole of it from the far side of the cave -
+// the fight is fought across the cave, and a boss sunk in the dark at its far end could not be read.
+const val CACO_IMP_LIGHT_COLOR = 0xFFFF6A50.toInt()
+const val CACO_IMP_LIGHT_RADIUS = 130
+const val CACO_IMP_SMOULDER_INTENSITY = 0.75f
+const val CACO_IMP_BREATH = 0.1f
+const val CACO_IMP_BREATHS_PER_SECOND = 0.6f
+
+// Lights out, its second phase, played over and over: its light dies away over the douse, it glides
+// through the dark to a station of its own choosing at the prowl's speed and lurks there unlit, and
+// then it flares - the one warning of where it has got to, the light coming up to more than its
+// smoulder - fires on the flare, and burns there, lit, before it puts its light out again.
+//
+// The prowl, at about 90 pixels a second, is the pace its imps fly at and a fifth of the bat's top
+// speed: the dark is where it hides, not where it hunts.
+const val CACO_IMP_DOUSE_SECONDS = 0.6f
+const val CACO_IMP_PROWL_SPEED = 1.7f
+const val CACO_IMP_LURK_SECONDS = 0.6f
+const val CACO_IMP_FLARE_SECONDS = 0.5f
+const val CACO_IMP_FLARE_INTENSITY = 1f
+const val CACO_IMP_BURN_SECONDS = 1.8f
+
+// Where it may settle in the dark: no further left than this fraction of the frame, so it stays on
+// the side hostiles come from, at least this far from the bat between their centers, so it never
+// settles on top of it, and at least this far from where it was, so every prowl is a real move.
+const val CACO_IMP_PROWL_LEFTMOST = 0.35f
+const val CACO_IMP_PROWL_BAT_CLEARANCE = 170f
+const val CACO_IMP_PROWL_LEAST_MOVE = 110f
+
+// Ablaze, its last phase: a hotter, wider light, guttering like a fire; a quicker weave; and two of
+// its own kind called in every few seconds.
+const val CACO_IMP_BLAZE_COLOR = 0xFFFF9A4C.toInt()
+const val CACO_IMP_BLAZE_RADIUS = 170
+const val CACO_IMP_BLAZE_INTENSITY = 0.95f
+const val CACO_IMP_FLICKER = 0.15f
+const val CACO_IMP_BLAZE_TEMPO = 1.6f
+const val CACO_IMP_SUMMON_SECONDS = 8f
+
+// What one of its bolts deals, as a share of its contact damage - about 67 at stage 2, two thirds of
+// the bat's bar - set as the Moth Queen's are: a bolt aimed at the player a little under a third of
+// the bar, one of a ring about a fifth.
+const val CACO_IMP_BOLT_DAMAGE = 0.45f
+const val CACO_IMP_RING_DAMAGE = 0.3f

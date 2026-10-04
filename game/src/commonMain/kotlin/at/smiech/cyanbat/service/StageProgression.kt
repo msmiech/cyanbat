@@ -62,6 +62,8 @@ data class EnemyWave(
  *   default minute-long waves, stage 1's boss is the five minute mark.
  * @param difficulty scales the whole stage against stage 1, so later stages open where earlier
  *   ones left off instead of starting from nothing again.
+ * @param bossDifficulty scales the boss, and whatever it calls in, the same way. The stage's own
+ *   difficulty unless its design keeps the boss harder; see [StageDesign.bossToughness].
  * @param design what the stage's waves and boss are; this class only decides how hard.
  */
 data class StageProgression(
@@ -69,6 +71,7 @@ data class StageProgression(
     val waveDurationSeconds: Float = WAVE_DURATION_SECONDS,
     val bossWave: Int = BOSS_WAVE,
     val difficulty: Float = 1f,
+    val bossDifficulty: Float = difficulty,
     val bossHitPoints: Int = BOSS_HIT_POINTS_PER_STAGE,
     val bossDamage: Int = BOSS_DAMAGE_PER_STAGE,
 ) {
@@ -137,24 +140,36 @@ data class StageProgression(
     fun bossWave(): EnemyWave = EnemyWave(
         index = bossWave,
         enemyTypes = design.waves.last().species,
-        hitPoints = scaled(bossHitPoints),
-        damage = scaled(bossDamage),
+        hitPoints = scaled(bossHitPoints, bossDifficulty),
+        damage = scaled(bossDamage, bossDifficulty),
         speedMultiplier = 1f,
         spawnIntervalSeconds = spawnIntervalAt(bossTimeSeconds),
         burstSize = 1,
     )
 
     /**
+     * What a boss's summons arrive as: the wave that escorted it in, at the boss's own difficulty.
+     * They are part of its fight, so they are as hard as it is, whichever way the stage's waves
+     * were tuned around it.
+     */
+    fun escortWave(): EnemyWave =
+        copy(difficulty = bossDifficulty).waveAt(bossTimeSeconds - ESCORT_LEAD_SECONDS)
+
+    /**
      * How many of the player's shots the boss soaks up. The only honest way to read a boss health
      * pool is as the length of the fight, and at a fixed fire rate that length is a shot count.
      */
-    val bossShotsToKill: Int get() = (scaled(bossHitPoints) + DAMAGE_PER_HIT - 1) / DAMAGE_PER_HIT
+    val bossShotsToKill: Int
+        get() = (scaled(bossHitPoints, bossDifficulty) + DAMAGE_PER_HIT - 1) / DAMAGE_PER_HIT
 
-    private fun scaled(value: Int): Int = (value * difficulty).toInt().coerceAtLeast(1)
+    private fun scaled(value: Int, by: Float = difficulty): Int = (value * by).toInt().coerceAtLeast(1)
 
     companion object {
         /** Waves between each extra enemy per spawn. */
         private const val BURST_EVERY_WAVES = 3
+
+        /** How far before the boss the escort is read, to land inside its last wave. */
+        private const val ESCORT_LEAD_SECONDS = 1f
 
         /**
          * The progression for the stage with this id, where stage 1 is the baseline and each one
@@ -164,9 +179,12 @@ data class StageProgression(
          */
         fun forStage(id: Int): StageProgression {
             val stepsAboveFirst = (id - 1).coerceAtLeast(0)
+            val design = StageDesign.forStage(id)
+            val difficulty = 1f + stepsAboveFirst * STAGE_DIFFICULTY_STEP
             return StageProgression(
-                design = StageDesign.forStage(id),
-                difficulty = 1f + stepsAboveFirst * STAGE_DIFFICULTY_STEP,
+                design = design,
+                difficulty = difficulty,
+                bossDifficulty = difficulty * design.bossToughness,
             )
         }
 

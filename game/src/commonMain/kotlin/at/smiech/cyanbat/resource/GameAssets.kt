@@ -76,7 +76,23 @@ data class GameAssets(
                 stages = listOf(
                     Stage(
                         id = 1,
-                        name = "Stage 1: The Cave",
+                        name = "Stage 1: The Jungle",
+                        backdrop = Backdrop.Strip(pixmap("jungleBackground.png")),
+                        topObstacles = arrayOf(
+                            pixmap("jungleTopObstacle1.png"),
+                            pixmap("jungleTopObstacle2.png"),
+                        ),
+                        bottomObstacles = arrayOf(
+                            pixmap("jungleBottomObstacle1.png"),
+                            pixmap("jungleBottomObstacle2.png"),
+                        ),
+                        music = StageMusic("jungle", MusicGrid(beatsPerMinute = 98.0, beatsPerBar = 4)),
+                        enemySheet = pixmap("jungleEnemies.png"),
+                        bossSheet = pixmap("jungleBoss.png"),
+                    ),
+                    Stage(
+                        id = 2,
+                        name = "Stage 2: The Cave",
                         backdrop = Backdrop.Strip(pixmap("background.png")),
                         topObstacles = arrayOf(pixmap("topObstacle1.png"), pixmap("topObstacle2.png")),
                         bottomObstacles = arrayOf(
@@ -88,22 +104,6 @@ data class GameAssets(
                         enemySheet = pixmap("enemies.png"),
                         // Underground, and so the one stage flown in the dark, by the bat's own light.
                         lighting = StageLighting(ambient = CAVE_AMBIENT, glow = CAVE_GLOW),
-                    ),
-                    Stage(
-                        id = 2,
-                        name = "Stage 2: The Forest",
-                        backdrop = Backdrop.Strip(pixmap("forestBackground.png")),
-                        topObstacles = arrayOf(
-                            pixmap("forestTopObstacle1.png"),
-                            pixmap("forestTopObstacle2.png"),
-                        ),
-                        bottomObstacles = arrayOf(
-                            pixmap("forestBottomObstacle1.png"),
-                            pixmap("forestBottomObstacle2.png"),
-                        ),
-                        music = StageMusic("forest", MusicGrid(beatsPerMinute = 98.0, beatsPerBar = 4)),
-                        enemySheet = pixmap("forestEnemies.png"),
-                        bossSheet = pixmap("forestBoss.png"),
                     ),
                     Stage(
                         id = 3,

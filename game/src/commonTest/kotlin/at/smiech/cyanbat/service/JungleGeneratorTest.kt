@@ -19,6 +19,7 @@ import at.smiech.engine.ecs.ShieldComponent
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.ecs.World
+import kotlin.math.roundToInt
 import kotlin.random.Random
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -31,8 +32,8 @@ private class SheetStub(override val width: Int, override val height: Int) : Pix
     override fun dispose() = Unit
 }
 
-/** How the generator turns the forest's designs into swarms, formations, shields and guns. */
-class ForestGeneratorTest {
+/** How the generator turns the jungle's designs into swarms, formations, shields and guns. */
+class JungleGeneratorTest {
 
     private val world = World()
     private val factory = EntityFactory(world)
@@ -211,7 +212,7 @@ class ForestGeneratorTest {
     // region the Moth Queen
 
     private fun queenFight(): Pair<EnemyGenerator, EntityId> {
-        val generator = generator(StageProgression.forStage(2))
+        val generator = generator(StageProgression.forStage(1))
         generator.run(5 * WAVE_DURATION_SECONDS + 1f)
         enemies().filter { it != generator.bossId }.forEach { world.removeEntity(it) }
         world.update(TICK_INITIAL, null)
@@ -219,7 +220,7 @@ class ForestGeneratorTest {
     }
 
     @Test
-    fun `the forest ends on the Moth Queen flying her figure eight behind a shield not yet raised`() {
+    fun `the jungle ends on the Moth Queen flying her figure eight behind a shield not yet raised`() {
         val (_, queen) = queenFight()
 
         assertEquals(EnemyMovementType.BOSS_FIGURE_EIGHT, behaviorOf(queen).type)
@@ -242,6 +243,10 @@ class ForestGeneratorTest {
         val wasps = enemies().filter { it != queen }
         assertTrue(wasps.size >= SWARM_SIZE, "no swarm was called in")
         assertTrue(wasps.all { behaviorOf(it).type == EnemyMovementType.SWARM })
+        // At her strength, which the jungle's own waves are eased below.
+        val escort = StageProgression.forStage(1).escortWave()
+        val expected = (escort.hitPoints * EnemySpecies.WASP.hitPointFactor).roundToInt()
+        assertTrue(wasps.all { world.getComponent(it, HealthComponent::class)!!.maxHitPoints == expected })
     }
 
     @Test

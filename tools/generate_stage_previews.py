@@ -77,9 +77,10 @@ def cave():
     return scene
 
 
-def forest():
-    scene = stage("forestBackground.png", 520, ("forestTopObstacle2.png", 333), ("forestBottomObstacle1.png", 480))
-    sheet = load("forestEnemies.png")
+def jungle():
+    # Where the strip shows the ruins best: a terrace, a tower and its broken bridge behind it.
+    scene = stage("jungleBackground.png", 330, ("jungleTopObstacle2.png", 333), ("jungleBottomObstacle1.png", 480))
+    sheet = load("jungleEnemies.png")
     # A swarm up high, a V of wisps low, and a shielded beetle between them.
     for i, (x, y) in enumerate(((400, 80), (426, 68), (418, 98), (448, 86), (442, 112))):
         scene.alpha_composite(enemy(sheet, 0, i % 4), (x, y))
@@ -182,7 +183,7 @@ def desert():
 
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, build in (("stage1_preview.png", cave), ("stage2_preview.png", forest), ("stage3_preview.png", desert)):
+    for name, build in (("stage1_preview.png", jungle), ("stage2_preview.png", cave), ("stage3_preview.png", desert)):
         image = build().convert("RGB")
         image.save(OUT / name)
         print(f"{OUT / name} ({image.width}x{image.height})")

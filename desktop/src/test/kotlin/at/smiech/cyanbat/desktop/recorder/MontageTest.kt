@@ -105,7 +105,7 @@ class MontageTest {
         assertTrue(busy.all { it in frames })
     }
 
-    /** The forest's share of the reel: its title, its busiest stretch and its boss arriving. */
+    /** The cave's share of the reel: its title, its busiest stretch and its boss arriving. */
     @Test
     fun `a stage shown in glimpses shows its boss arriving and nothing after`() {
         val glimpses = Montage.cut(

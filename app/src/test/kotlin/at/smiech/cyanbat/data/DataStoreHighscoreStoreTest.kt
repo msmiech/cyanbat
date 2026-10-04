@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.preferencesOf
 import at.smiech.cyanbat.PREFS_KEY_HIGHEST_STAGE
 import at.smiech.cyanbat.PREFS_KEY_LEGACY_HIGH_SCORE
 import at.smiech.cyanbat.PREFS_KEY_MUSIC
+import at.smiech.cyanbat.PREFS_KEY_STAGE_ORDER
 import at.smiech.cyanbat.prefsKeyStageHighScore
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -71,6 +72,48 @@ class DataStoreHighscoreStoreTest {
             preferencesOf(PREFS_KEY_LEGACY_HIGH_SCORE to 4125, prefsKeyStageHighScore(1) to 9000)
         )
         assertEquals(9000, migrated[prefsKeyStageHighScore(1)])
+    }
+
+    @Test
+    fun `the cave's and the forest's highscores follow their stages when the two swap places`() = runBlocking {
+        val old = preferencesOf(
+            prefsKeyStageHighScore(1) to 4125,
+            prefsKeyStageHighScore(2) to 900,
+            prefsKeyStageHighScore(3) to 70,
+        )
+        assertTrue(StageOrderMigration.shouldMigrate(old))
+
+        val migrated = StageOrderMigration.migrate(old)
+
+        assertEquals(900, migrated[prefsKeyStageHighScore(1)], "the jungle's, which was the forest's")
+        assertEquals(4125, migrated[prefsKeyStageHighScore(2)], "the cave's")
+        assertEquals(70, migrated[prefsKeyStageHighScore(3)], "the desert's")
+        assertFalse(StageOrderMigration.shouldMigrate(migrated), "a second swap would undo the first")
+    }
+
+    @Test
+    fun `a stage with no highscore yet still has none after the swap`() = runBlocking {
+        val migrated = StageOrderMigration.migrate(preferencesOf(prefsKeyStageHighScore(1) to 4125))
+
+        assertEquals(null, migrated[prefsKeyStageHighScore(1)])
+        assertEquals(4125, migrated[prefsKeyStageHighScore(2)])
+    }
+
+    @Test
+    fun `a store with nothing in it is marked swapped, so its scores are never moved`() = runBlocking {
+        val migrated = StageOrderMigration.migrate(preferencesOf())
+
+        assertEquals(StageOrderMigration.JUNGLE_FIRST, migrated[PREFS_KEY_STAGE_ORDER])
+        assertFalse(StageOrderMigration.shouldMigrate(migrated))
+    }
+
+    @Test
+    fun `the old single highscore ends up on the cave once both moves have run`() = runBlocking {
+        val legacy = preferencesOf(PREFS_KEY_LEGACY_HIGH_SCORE to 4125)
+        val migrated = StageOrderMigration.migrate(LegacyHighscoreMigration.migrate(legacy))
+
+        assertEquals(4125, migrated[prefsKeyStageHighScore(2)])
+        assertEquals(null, migrated[prefsKeyStageHighScore(1)])
     }
 
     @Test
