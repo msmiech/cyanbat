@@ -207,8 +207,8 @@ const val BANNER_FONT_SIZE = 26
 const val STAGE_TIMER_FONT_SIZE = 18
 
 // How long the victory overlay ignores input, in seconds. Longer than the pause overlay's, because
-// the player may still be steering with a finger down when it comes up, and the fanfare's last
-// chord, which the overlay lands on, deserves a moment to ring.
+// the player may still be steering with a finger down when it comes up, and the fanfare's drop,
+// which the overlay lands on, deserves a moment to be heard.
 const val STAGE_COMPLETE_ARMING_SECONDS = 1.2f
 
 // When the victory's fanfare comes in after the boss goes down, in seconds: once the boss's blast
@@ -216,13 +216,13 @@ const val STAGE_COMPLETE_ARMING_SECONDS = 1.2f
 // over each other.
 const val VICTORY_FANFARE_DELAY_SECONDS = 0.8f
 
-// Where the fanfare's last chord lands, from its first note: seven beats at 140 BPM. Set by
+// Where the fanfare's drop lands, from its first note: six beats at 120 BPM. Set by
 // tools/generate_victory_music.py (LANDING_BEAT); change the two together.
 const val VICTORY_FANFARE_LANDING_SECONDS = 3f
 
 // How long the run plays on after its boss goes down before the stage complete overlay comes up: the
-// overlay lands on the fanfare's last chord. Long enough to watch the boss go up and hear the
-// fanfare out, and the player can keep flying through it.
+// overlay lands on the fanfare's drop. Long enough to watch the boss go up and hear the fanfare
+// climb to it, and the player can keep flying through it.
 const val STAGE_COMPLETE_DELAY_SECONDS = VICTORY_FANFARE_DELAY_SECONDS + VICTORY_FANFARE_LANDING_SECONDS
 
 // How far a blast or a break drifts each tick, in framebuffer pixels: left, the way the scenery

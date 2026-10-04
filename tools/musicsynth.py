@@ -973,7 +973,8 @@ def write_stems(piece: Piece, stems: dict[str, Loop]):
     print(f"  full mix rms {_db(rms)}, peak {np.max(np.abs(full * scale)):.2f} of full scale")
 
 
-def write_track(piece: Piece, loop: Loop, *, loudness_db: float, end_beat: float | None = None):
+def write_track(piece: Piece, loop: Loop, *, loudness_db: float, end_beat: float | None = None,
+                crest_db: float = 10.0):
     """Brings a piece that is not layered - the menu's, the game over's - down to the output rate,
     levels it, and writes it as `music/<piece name>.wav`.
 
@@ -985,8 +986,12 @@ def write_track(piece: Piece, loop: Loop, *, loudness_db: float, end_beat: float
     out, with a moment's fade so it cannot end on a click. Everything here is circular, so the loop
     it was rendered in needs room past that beat: whatever rang on past the loop's end would come
     round again at its start.
+
+    Peaks standing more than [crest_db] over the loop's RMS are tamed first; see [tame]. A track that
+    is quiet for a while and then drops needs more than the default, or the drop is tamed back down
+    to the quiet part's level - the more so since the room past its end counts toward the RMS.
     """
-    audio = to_output_rate(tame(filter_loop(loop.audio, highpass(30))))
+    audio = to_output_rate(tame(filter_loop(loop.audio, highpass(30)), crest_db=crest_db))
     if end_beat is not None:
         end = int(round(piece.at(end_beat))) * OUTPUT_RATE // RENDER_RATE
         fade = int(0.3 * OUTPUT_RATE)
