@@ -10,7 +10,7 @@ The jungle and the cave are one strip each. The desert is three, at three depths
 is drawn by the game rather than painted - it turns from noon to night across the stage - and what
 stands against a sky that big needs depth to be a landscape rather than a stage flat:
 
-* **desertFar.png** - the far dunes, low on the horizon, with the pyramids on them. Barely moves.
+* **desertFar.png** - the far dunes, low on the horizon, with Aztec temples on them. Barely moves.
 * **desertMid.png** - rolling dunes, and a small oasis of palms. Moves at half the scenery's pace.
 * **desertNear.png** - the sand the obstacles stand on, rippled by the wind. Moves with them.
 
@@ -26,7 +26,7 @@ round - the moon rises on the left - which is a palette swap and nothing more: t
 which way a face is turned, and the night says which way is lit.
 
 As with the other strips, each is **periodic** across its width, so it tiles as it scrolls: every
-dune, pyramid and palm wraps its column index, and the seam is checked at the end.
+dune, temple and palm wraps its column index, and the seam is checked at the end.
 """
 
 import pathlib
@@ -54,9 +54,16 @@ FAR = {
     "shadow": ((222, 192, 142), (204, 140, 96), (118, 58, 88), (38, 22, 58)),
     "body": ((234, 208, 160), (224, 164, 108), (148, 74, 92), (30, 18, 48)),
     "lit": ((244, 222, 178), (240, 188, 122), (196, 102, 94), (26, 16, 42)),
+    # the temples' stone, from the left of a face to the right of it
     "pyr_shadow": ((206, 176, 128), (188, 124, 86), (104, 50, 80), (40, 24, 62)),
+    "pyr_body": ((224, 198, 150), (218, 156, 102), (128, 60, 84), (32, 19, 52)),
     "pyr_lit": ((240, 216, 166), (244, 186, 118), (214, 112, 92), (24, 14, 40)),
+    # what faces the sky - terraces, treads - and what stands highest, catching the last light
+    "pyr_ledge": ((248, 232, 192), (252, 206, 140), (176, 88, 90), (50, 34, 76)),
     "pyr_cap": ((252, 238, 200), (255, 222, 150), (255, 168, 110), (58, 40, 84)),
+    # a shrine's doorway, and the red its walls were painted under the roof
+    "pyr_door": ((160, 128, 96), (138, 84, 62), (66, 28, 56), (14, 8, 26)),
+    "pyr_paint": ((206, 130, 96), (214, 110, 70), (150, 52, 70), (40, 20, 52)),
 }
 
 MID = {
@@ -226,37 +233,140 @@ def fill_dunes(grid, width, height, heights, owners, crest_width, face_depth, sk
                     grid[ry][x] = "ripple"
 
 
+def fill_rect(grid, width, left, top, right, bottom, material):
+    """Fills columns [left, right] and rows [top, bottom], both inclusive, wrapping round the seam."""
+    for y in range(top, bottom + 1):
+        for x in range(left, right + 1):
+            grid[y][x % width] = material
+
+
+def face(x, left, right):
+    """
+    Which of three tones a pixel of a front face takes, by how far across the face it is: the sun
+    stands to the right, so the right of a face is lit and its left in shadow.
+    """
+    across = 0.5 if right == left else (x - left) / (right - left)
+    return "pyr_shadow" if across < 0.22 else ("pyr_lit" if across > 0.78 else "pyr_body")
+
+
+def terraces(grid, width, center, ground, half_base, tiers, tier_height, step_in):
+    """
+    The body of a temple pyramid: [tiers] terraces, each set back from the one below and with
+    walls that lean back as they rise. The top row of each is the terrace in front of the next,
+    which catches the light from above - those lines are what make it read as stepped.
+
+    Returns the row of the platform on top and its half width there.
+    """
+    for tier in range(tiers):
+        bottom = ground - tier * tier_height
+        half = half_base - tier * step_in
+        for row in range(tier_height):
+            y = bottom - row
+            # The lean: a tier is a pixel narrower each side for every three rows it rises.
+            span = half - row // 3
+            for x in range(center - span, center + span + 1):
+                grid[y][x % width] = "pyr_ledge" if row == tier_height - 1 else face(x, center - span, center + span)
+    top = ground - tiers * tier_height + 1
+    return top, half_base - (tiers - 1) * step_in - (tier_height - 1) // 3
+
+
+def stair(grid, width, center, half_width, top, ground):
+    """
+    A stair up the front from the sand to the platform, between two balustrades. It stands proud of
+    the terraces, so it runs straight through their ledges.
+    """
+    for y in range(top, ground + 1):
+        tread = (ground - y) % 2 == 1
+        for x in range(center - half_width, center + half_width + 1):
+            grid[y][x % width] = "pyr_ledge" if tread else "pyr_body"
+        grid[y][(center - half_width - 1) % width] = "pyr_shadow"
+        grid[y][(center + half_width + 1) % width] = "pyr_lit"
+
+
+def shrine(grid, width, center, half_width, floor, tall, door):
+    """
+    A shrine on the platform: a block of walls with a dark doorway, a band of painted stone under
+    its roof, and the roof's crenellations along the top.
+    """
+    left, right = center - half_width, center + half_width
+    roof = floor - tall
+    for y in range(roof, floor + 1):
+        for x in range(left, right + 1):
+            grid[y][x % width] = face(x, left, right)
+    fill_rect(grid, width, left, roof, right, roof + 1, "pyr_paint")
+    fill_rect(grid, width, center - door // 2, floor - door - 1, center - door // 2 + door - 1, floor, "pyr_door")
+    for x in range(left, right + 1):
+        if (x - left) % 3 != 2:
+            fill_rect(grid, width, x, roof - 2, x, roof - 1, "pyr_cap")
+
+
+def great_temple(grid, width, center, ground):
+    """
+    The great temple: four terraces, and two shrines side by side on the top, each with its own
+    stair up to it - two gods housed on one pyramid.
+    """
+    top, half = terraces(grid, width, center, ground, half_base=40, tiers=4, tier_height=7, step_in=5)
+    for side in (-1, 1):
+        stair(grid, width, center + side * 7, 5, top, ground)
+        shrine(grid, width, center + side * 10, 8, top - 1, 9, door=4)
+    # The platform's own edge along the front of the shrines.
+    fill_rect(grid, width, center - half, top - 1, center + half, top - 1, "pyr_ledge")
+    # A low wall closing the gap between the two shrines' feet.
+    fill_rect(grid, width, center - 1, top - 4, center + 1, top - 2, "pyr_shadow")
+
+
+def lesser_temple(grid, width, center, ground):
+    """Three terraces, one stair and one shrine."""
+    top, half = terraces(grid, width, center, ground, half_base=27, tiers=3, tier_height=6, step_in=5)
+    stair(grid, width, center, 5, top, ground)
+    fill_rect(grid, width, center - half, top - 1, center + half, top - 1, "pyr_ledge")
+    shrine(grid, width, center, 8, top - 1, 8, door=4)
+
+
+def round_temple(grid, width, center, ground):
+    """
+    A temple to the wind: round terraces with a round shrine on them under a conical roof, a stair
+    up the front. Round, so each terrace is banded across like a drum rather than shaded at its
+    corners.
+    """
+    tiers, tier_height = 3, 5
+    for tier in range(tiers):
+        bottom = ground - tier * tier_height
+        half = 20 - tier * 4
+        for row in range(tier_height):
+            y = bottom - row
+            for x in range(center - half, center + half + 1):
+                grid[y][x % width] = "pyr_ledge" if row == tier_height - 1 else face(x, center - half, center + half)
+    top = ground - tiers * tier_height + 1
+    stair(grid, width, center, 3, top, ground)
+    # The drum of the shrine, and its roof: a cone of thatch with a finial on the point.
+    for y in range(top - 6, top):
+        for x in range(center - 7, center + 8):
+            grid[y][x % width] = face(x, center - 7, center + 7)
+    fill_rect(grid, width, center - 1, top - 4, center + 1, top - 1, "pyr_door")
+    for row in range(11):
+        y = top - 7 - row
+        half = round(8.6 - row * 0.8)
+        for x in range(center - half, center + half + 1):
+            grid[y][x % width] = "pyr_paint" if row == 0 else face(x, center - half, center + half)
+    fill_rect(grid, width, center, top - 19, center, top - 18, "pyr_cap")
+
+
 def far_strip(rng):
     """
-    Low dunes on the horizon with the pyramids standing in them. Tall enough that its sand runs
-    down behind the middle band's lowest hollow, so no sky ever shows between the two.
+    Low dunes on the horizon with the temple pyramids standing in them. Tall enough that its sand
+    runs down behind the middle band's lowest hollow, so no sky ever shows between the two.
     """
     width, height = 960, 116
     grid = blank(width, height)
     ground = height - 30
 
-    # The pyramids first, so the dunes drawn after them bury their feet: a great one with a lesser
-    # beside it, and a third on its own further round. Lit on the right face, the sun's side, with a
-    # cap of dressed stone still catching it.
-    for center, half_base, tall in ((230, 40, 46), (298, 27, 31), (700, 22, 25)):
-        for x in range(int(center - half_base) - 1, int(center + half_base) + 2):
-            dx = x - center
-            if abs(dx) > half_base:
-                continue
-            peak = ground - tall * (1.0 - abs(dx) / half_base)
-            for y in range(int(peak), ground + 1):
-                material = "pyr_lit" if dx >= 0 else "pyr_shadow"
-                if y < ground - tall * 0.84:
-                    material = "pyr_cap"
-                grid[y][x % width] = material
-        # Courses of stone, a broken line every few rows, so a pyramid reads as built rather than
-        # as a triangle.
-        for course in range(4, tall - 6, 5):
-            y = ground - course
-            span = half_base * (1.0 - course / tall)
-            for x in range(int(center - span) + 2, int(center + span) - 1):
-                if (x + course) % 4 != 0:
-                    grid[y][x % width] = "pyr_shadow" if x >= center else "shadow"
+    # The temples first, so the dunes drawn after them bury their feet: the great temple with a
+    # lesser one beside it, and a round one on its own further round. Seen from the front, stair
+    # and all, with the terraces' faces lit on the right, the sun's side.
+    great_temple(grid, width, 230, ground)
+    lesser_temple(grid, width, 300, ground)
+    round_temple(grid, width, 700, ground)
 
     noise = wrapped_noise(width, 12, rng)
     dunes = dune_field(width, 7, (4.0, 12.0), (80.0, 130.0), (24.0, 44.0), rng)
