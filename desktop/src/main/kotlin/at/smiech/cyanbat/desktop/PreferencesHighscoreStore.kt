@@ -22,7 +22,10 @@ class PreferencesHighscoreStore(
 ) : HighscoreStore {
 
     init {
+        // In the order they were needed: the single legacy score lands on stage 1, the cave it was
+        // earned in, and the cave's scores then move to where the cave went.
         migrateLegacyHighscore()
+        migrateStageOrder()
     }
 
     private val scores = MutableStateFlow(readAll())
@@ -53,9 +56,34 @@ class PreferencesHighscoreStore(
         prefs.remove(LEGACY_KEY)
     }
 
+    /**
+     * Moves the highscores of the first two stages to where those stages went when they swapped
+     * places: the jungle, which was stage 2 as the forest, flies first now, and the cave second. Done
+     * once and marked done, since a swap run twice would undo itself; a store with nothing in it is
+     * marked all the same, so the scores of the stages as they are now are never moved.
+     */
+    private fun migrateStageOrder() {
+        if (prefs.getInt(ORDER_KEY, 0) >= JUNGLE_FIRST) return
+        val first = keyFor(1)
+        val second = keyFor(2)
+        val cave = prefs.get(first, null)
+        val forest = prefs.get(second, null)
+        prefs.remove(first)
+        prefs.remove(second)
+        forest?.let { prefs.put(first, it) }
+        cave?.let { prefs.put(second, it) }
+        prefs.putInt(ORDER_KEY, JUNGLE_FIRST)
+    }
+
     private companion object {
         const val KEY_PREFIX = "highscore_stage_"
         const val LEGACY_KEY = "highscore"
+
+        /** Which order the stages' highscores are stored in, the same name the Android store uses. */
+        const val ORDER_KEY = "stage_order"
+
+        /** The order with the jungle first. Each later reordering would get its own number. */
+        const val JUNGLE_FIRST = 1
 
         fun keyFor(stageId: Int) = KEY_PREFIX + stageId
     }

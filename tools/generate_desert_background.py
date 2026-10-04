@@ -6,7 +6,7 @@
 
     uv run tools/generate_desert_background.py
 
-The cave and the forest are one strip each. The desert is three, at three depths, because its sky
+The jungle and the cave are one strip each. The desert is three, at three depths, because its sky
 is drawn by the game rather than painted - it turns from noon to night across the stage - and what
 stands against a sky that big needs depth to be a landscape rather than a stage flat:
 

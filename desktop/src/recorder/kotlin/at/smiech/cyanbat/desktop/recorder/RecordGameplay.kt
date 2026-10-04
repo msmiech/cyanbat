@@ -104,10 +104,11 @@ private const val CLEAN_HITS = 2
 
 /**
  * The stages in the reel, in play order, and how much of each it shows: less of each than of the
- * one before, so a player who has watched it still has most of the game to find. The cave is shown
- * whole, from its title to its boss going down. The forest gets three glimpses: its title, its
- * busiest stretch and the Moth Queen arriving. The desert gets two, its title at noon and the sun
- * going down, and its boss is never shown: the Sand Wyrm is left for the player to find.
+ * one before, so a player who has watched it still has most of the game to find. The jungle is shown
+ * whole, from its title to the Moth Queen going down. The cave gets three glimpses: its title, its
+ * busiest stretch and the Caco Imp arriving - lit, so what it does with its light is left to find.
+ * The desert gets two, its title at noon and the sun going down, and its boss is never shown: the
+ * Sand Wyrm is left for the player to find.
  */
 private val STAGE_COVERAGE = mapOf(
     1 to Coverage.WHOLE,
@@ -150,7 +151,7 @@ private class Options(
 /**
  * One stage's part of the reel: its clips, back to back, as indices into a palette of its own.
  *
- * Each stage gets its own because each fills one by itself - the cave's, the forest's and the
+ * Each stage gets its own because each fills one by itself - the jungle's, the cave's and the
  * desert's colors have little in common - and one palette cut down to hold all three would show.
  */
 private class Footage(val palette: Palette, val frames: List<ByteArray>)

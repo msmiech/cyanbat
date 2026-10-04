@@ -6,7 +6,7 @@
 
     uv run tools/generate_desert_enemy_sprites.py
 
-As in the forest, each silhouette says what the thing is going to do:
+As in the jungle, each silhouette says what the thing is going to do:
 
 * **Locust** - small, long-legged, a flicker of wings. It never comes alone; it comes as a cloud.
 * **Hawk** - wings, a hooked beak and a fanned tail. It throws a loop on its way past, and turns to
@@ -19,7 +19,7 @@ As in the forest, each silhouette says what the thing is going to do:
   grows back.
 
 The desert needs its hostiles to read on two very different skies: a bleached noon that is paler
-than anything in the forest, and a purple night darker than it. So they sit in the middle - warm,
+than anything in the jungle, and a purple night darker than it. So they sit in the middle - warm,
 saturated, mid-dark bodies that stand out against the pale, with bright highlights, glowing eyes
 and throats that stand out against the dark - and the near-black outline every hostile has does
 the rest in daylight. **Hostiles are warm**, as they are everywhere: crimson, rust, magenta and gold.
@@ -29,7 +29,7 @@ Laid out like the other sheets: 32x29 frames, four per type, types left to right
 left, toward the bat. The row is drawn three times over, top to bottom: unhurt, wounded and
 battered (`WoundComponent`).
 
-The wounds follow the forest's rules - wings and feathers tear, shells crack, what sticks out snaps
+The wounds follow the jungle's rules - wings and feathers tear, shells crack, what sticks out snaps
 off, battered eyes narrow - except in the two that burn inside. The wyrmling's plates and the
 djinn's smoke split open onto the fire in them, so their wounds glow: at night, the desert's
 darkest hour, a crack drawn dark would be lost against the sky.

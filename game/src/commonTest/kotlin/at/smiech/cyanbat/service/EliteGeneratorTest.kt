@@ -41,7 +41,7 @@ class EliteGeneratorTest {
     private val bossPhases = mutableListOf<Int>()
 
     /** A stage that sends nothing but [species], every group of it with an elite in it. */
-    private fun only(species: EnemySpecies, eliteChance: Float = 1f, boss: BossKind = BossKind.CAVE_DRONE) =
+    private fun only(species: EnemySpecies, eliteChance: Float = 1f, boss: BossKind = BossKind.CACO_IMP) =
         StageProgression(
             design = StageDesign(
                 waves = listOf(WaveDesign(listOf(species), eliteChance = eliteChance)),

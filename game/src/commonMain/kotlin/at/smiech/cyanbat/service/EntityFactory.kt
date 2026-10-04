@@ -11,10 +11,10 @@ import at.smiech.cyanbat.util.BLAST_LIGHT_COLOR
 import at.smiech.cyanbat.util.BLAST_LIGHT_MAX_RADIUS
 import at.smiech.cyanbat.util.BLAST_LIGHT_RADIUS
 import at.smiech.cyanbat.util.BLAST_LIGHT_STEP
-import at.smiech.cyanbat.util.BOSS_LIGHT_COLOR
-import at.smiech.cyanbat.util.BOSS_LIGHT_INTENSITY
-import at.smiech.cyanbat.util.BOSS_LIGHT_RADIUS
 import at.smiech.cyanbat.util.BURST_DRIFT
+import at.smiech.cyanbat.util.CACO_IMP_LIGHT_COLOR
+import at.smiech.cyanbat.util.CACO_IMP_LIGHT_RADIUS
+import at.smiech.cyanbat.util.CACO_IMP_SMOULDER_INTENSITY
 import at.smiech.cyanbat.util.CREATURE_SHINE
 import at.smiech.cyanbat.util.CRITICAL_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.CRITICAL_TEXT_FONT_SIZE
@@ -272,15 +272,22 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * The stage's boss: the sheet's last enemy drawn [scale] times over, with a health pool worth
-     * a fight and a gun of its own.
+     * The cave's boss, the Caco Imp: the sheet's last enemy drawn [scale] times over, with a health
+     * pool worth a fight and a gun of its own, which [CacoImpBrain] rearms as the fight goes on.
      *
-     * It differs from [createEnemy] in four ways that matter, and each is deliberate. It is never
-     * culled for leaving the frame, because it enters from the edge and a boss that could drift
-     * out of the stage is a boss the player can lose rather than beat. It carries a health bar,
-     * the only thing besides the bat that does, because a fight this long is unreadable without
-     * one. It holds station instead of closing, which is what [EnemyMovementType.BOSS] is for. And
-     * it carries no [PaceComponent]: its wounds show, but they never slow it or thin out its fire.
+     * It differs from [createEnemy] in four ways that matter, and each is deliberate - and so does
+     * every boss, all of which are built by [createBossEntity]. It is never culled for leaving the
+     * frame, because it enters from the edge and a boss that could drift out of the stage is a boss
+     * the player can lose rather than beat. It carries a health bar, the only thing besides the bat
+     * that does, because a fight this long is unreadable without one. It holds station instead of
+     * closing, which is what [EnemyMovementType.BOSS] is for. And it carries no [PaceComponent]: its
+     * wounds show, but they never slow it or thin out its fire.
+     *
+     * In the dark it is alight: the fight is fought across the cave, and a boss sunk in the dark at
+     * its far end is one the player cannot read. Its brain turns the light down, out and up again.
+     *
+     * @param bar where its health bar is pinned: it puts its light out to prowl the dark, and a bar
+     *   hanging under it would show where it had got to.
      */
     fun createBoss(
         x: Float,
@@ -290,9 +297,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         scale: Float,
         hitPoints: Int,
         damage: Int,
-        shotIntervalSeconds: Float,
+        gun: EnemyGun,
+        bar: Rect,
     ): EntityId = createBossEntity(
-        x, y, holdX, pixmap, hitPoints, damage, shotIntervalSeconds,
+        x, y, holdX, pixmap, hitPoints, damage, gun.interval,
         frameWidth = ENEMY_FRAME_WIDTH,
         frameHeight = pixmap.height / WOUND_ROWS,
         frameCount = ENEMY_FRAME_COUNT,
@@ -305,13 +313,18 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         // proportion an ordinary enemy's does.
         collisionTolerance = 5f * scale,
     ).also { id ->
-        // The fight is fought across the cave, and a boss sunk in the dark at its far end is one the
-        // player cannot read; it smoulders, dimly, wherever the bat's light is.
-        if (lit) world.addComponent(id, LightComponent(BOSS_LIGHT_COLOR, BOSS_LIGHT_RADIUS, BOSS_LIGHT_INTENSITY))
+        world.addComponent(id, GunComponent(gun.volleys))
+        world.addComponent(id, HealthBarComponent(pinnedTo = bar))
+        if (lit) {
+            world.addComponent(
+                id,
+                LightComponent(CACO_IMP_LIGHT_COLOR, CACO_IMP_LIGHT_RADIUS, CACO_IMP_SMOULDER_INTENSITY),
+            )
+        }
     }
 
     /**
-     * The forest's boss: drawn at its own size from its own sheet, rather than an enemy magnified.
+     * The jungle's boss: drawn at its own size from its own sheet, rather than an enemy magnified.
      *
      * Everything [createBoss] says about why a boss is built the way it is holds here too. What is
      * different is the flight - a figure eight rather than a weave - and the gun, which starts on
@@ -824,7 +837,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         const val BAT_FRAME_SECONDS = 0.07f
 
         /**
-         * The enemy sheets: three types in the cave's and five in the forest's and the desert's,
+         * The enemy sheets: three types in the cave's and five in the jungle's and the desert's,
          * four frames of wingbeat each, laid out type by type - and the whole row again wounded and
          * battered below it, so the stride along a row is the same on every one of them.
          *

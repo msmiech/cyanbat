@@ -49,7 +49,7 @@ class RunProbeTest {
                     override val soundsEnabled = false
                 },
             ),
-            1,
+            CAVE,
         )
         try {
             game.setScreen(screen)
@@ -84,7 +84,10 @@ class RunProbeTest {
         /** A tick and a hair, as the recorder steps the loop. */
         const val STEP_NANOS = 19_000_500L
 
-        /** About three seconds: long enough to fly, too short for the first enemy to arrive. */
+        /** The cave's stage id: dark, so the probe reads a run with every light in it at work. */
+        const val CAVE = 2
+
+        /** About three seconds: long enough to fly, and about when the first imp arrives. */
         const val TICKS = 160
     }
 }

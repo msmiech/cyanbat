@@ -1,7 +1,9 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.ecs.ElitePalette
-import at.smiech.cyanbat.util.BOSS_SHOT_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.BOSS_BAR_HEIGHT
+import at.smiech.cyanbat.util.BOSS_BAR_TOP
+import at.smiech.cyanbat.util.BOSS_BAR_WIDTH
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.BURROW_SHOWING
 import at.smiech.cyanbat.util.ELITE_FIRE_INTERVAL_FACTOR
@@ -13,9 +15,6 @@ import at.smiech.cyanbat.util.FORMATION_RANK_SPACING_Y
 import at.smiech.cyanbat.util.GROUP_EDGE_MARGIN
 import at.smiech.cyanbat.util.HOLD_X_MAX_FRACTION
 import at.smiech.cyanbat.util.HOLD_X_MIN_FRACTION
-import at.smiech.cyanbat.util.SAND_WYRM_BAR_HEIGHT
-import at.smiech.cyanbat.util.SAND_WYRM_BAR_TOP
-import at.smiech.cyanbat.util.SAND_WYRM_BAR_WIDTH
 import at.smiech.cyanbat.util.SAND_WYRM_BODY_DAMAGE
 import at.smiech.cyanbat.util.SAND_WYRM_FRAME
 import at.smiech.cyanbat.util.SAND_WYRM_HEAD_DAMAGE
@@ -82,7 +81,7 @@ class EnemyGenerator(
     var bossSpawned = false
         private set
 
-    /** The boss's own logic, for a boss that has any; see [MothQueenBrain] and [SandWyrmBrain]. */
+    /** The boss's own logic; see [CacoImpBrain], [MothQueenBrain] and [SandWyrmBrain]. */
     var bossBrain: BossBrain? = null
         private set
 
@@ -311,7 +310,7 @@ class EnemyGenerator(
 
         val wave = progression.bossWave()
         val id = when (progression.design.boss) {
-            BossKind.CAVE_DRONE -> factory.createBoss(
+            BossKind.CACO_IMP -> factory.createBoss(
                 // Level with the edge it enters from, so it slides in rather than appearing in place.
                 x = xSpawnPosition.toFloat(),
                 // Centered, so its weave has the same room above it as below.
@@ -321,8 +320,19 @@ class EnemyGenerator(
                 scale = BOSS_SPRITE_SCALE,
                 hitPoints = wave.hitPoints,
                 damage = wave.damage,
-                shotIntervalSeconds = BOSS_SHOT_INTERVAL_SECONDS,
-            )
+                gun = CacoImpBrain.SMOULDERING_GUN,
+                bar = pinnedBar(),
+            ).also { imp ->
+                bossBrain = CacoImpBrain(
+                    factory.world,
+                    imp,
+                    frameWidth = xSpawnPosition,
+                    frameHeight = worldHeight,
+                    random = random,
+                    onSummon = ::summonImps,
+                    onPhaseChanged = onBossPhaseChanged,
+                )
+            }
 
             BossKind.MOTH_QUEEN -> {
                 val sheet = requireNotNull(bossPixmap) { "The Moth Queen needs her own sheet" }
@@ -356,12 +366,7 @@ class EnemyGenerator(
                     damage = (wave.damage * SAND_WYRM_HEAD_DAMAGE).roundToInt().coerceAtLeast(1),
                     bodyDamage = (wave.damage * SAND_WYRM_BODY_DAMAGE).roundToInt().coerceAtLeast(1),
                     gun = SandWyrmBrain.HUNTING_GUN,
-                    bar = Rect.fromLTWH(
-                        (xSpawnPosition - SAND_WYRM_BAR_WIDTH) / 2f,
-                        SAND_WYRM_BAR_TOP.toFloat(),
-                        SAND_WYRM_BAR_WIDTH.toFloat(),
-                        SAND_WYRM_BAR_HEIGHT.toFloat(),
-                    ),
+                    bar = pinnedBar(),
                 )
                 bossBrain = SandWyrmBrain(
                     factory.world,
@@ -382,18 +387,40 @@ class EnemyGenerator(
     }
 
     /**
+     * Where a boss's health bar is pinned, for the bosses that spend part of their fight out of
+     * sight: centered under the stage timer.
+     */
+    private fun pinnedBar(): Rect = Rect.fromLTWH(
+        (xSpawnPosition - BOSS_BAR_WIDTH) / 2f,
+        BOSS_BAR_TOP.toFloat(),
+        BOSS_BAR_WIDTH.toFloat(),
+        BOSS_BAR_HEIGHT.toFloat(),
+    )
+
+    /**
      * A swarm the boss has called in: the same wasps as the stage's own, at the strength of the
-     * wave that escorted her in, arriving from the edge in a lane away from the middle - she holds
-     * the middle, and a swarm spawned inside her would be a swarm the player never saw arrive.
+     * wave that escorted her in - at her own difficulty, see [StageProgression.escortWave] -
+     * arriving from the edge in a lane away from the middle: she holds the middle, and a swarm
+     * spawned inside her would be a swarm the player never saw arrive.
      *
      * Never with an elite in it, and nor is anything a boss calls up: the fight is the boss's, and
      * a glow in the swarm would pull the player's fire off her.
      */
     private fun summonSwarm() {
-        val escort = progression.waveAt(progression.bossTimeSeconds - 1f)
         val high = random.nextBoolean()
         val centerY = if (high) GROUP_EDGE_MARGIN else worldHeight - GROUP_EDGE_MARGIN
-        spawnSwarm(EnemySpecies.WASP, escort, centerY)
+        spawnSwarm(EnemySpecies.WASP, progression.escortWave(), centerY)
+    }
+
+    /**
+     * Two of the Caco Imp's own kind, called in ablaze: strikers, whose crimson it wears, at the
+     * strength of the wave that escorted it in, one in a lane above it and one below.
+     */
+    private fun summonImps() {
+        val escort = progression.escortWave()
+        for (laneY in floatArrayOf(GROUP_EDGE_MARGIN, worldHeight - GROUP_EDGE_MARGIN)) {
+            spawn(EnemySpecies.STRIKER, escort, x = xSpawnPosition.toFloat(), laneY = laneY - realEnemyHeight / 2f)
+        }
     }
 
     /**
@@ -402,7 +429,7 @@ class EnemyGenerator(
      * its own warning rather than two arriving as one.
      */
     private fun summonWyrmlings(count: Int) {
-        val escort = progression.waveAt(progression.bossTimeSeconds - 1f)
+        val escort = progression.escortWave()
         repeat(count) { spawnBurrowed(EnemySpecies.WYRMLING, escort, x = xSpawnPosition + it * SUMMON_SPACING) }
     }
 

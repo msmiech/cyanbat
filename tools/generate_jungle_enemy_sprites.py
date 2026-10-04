@@ -2,11 +2,11 @@
 # requires-python = ">=3.9"
 # dependencies = ["pillow"]
 # ///
-"""Generate the forest's enemy sheet: five hostiles, four frames each.
+"""Generate the jungle's enemy sheet: five hostiles, four frames each.
 
-    uv run tools/generate_forest_enemy_sprites.py
+    uv run tools/generate_jungle_enemy_sprites.py
 
-Stage 2 needed enemies of its own rather than the cave's drones recolored, because the forest is a
+The jungle needed enemies of its own rather than the cave's imps recolored, because it is a
 different fight: things arrive in swarms and formations, some of them shoot, and some carry a
 shield. A player has to be able to tell at a glance which of those a given sprite is going to do,
 and the only thing a 32-pixel sprite can say that fast is its silhouette.
@@ -20,7 +20,7 @@ So each type has a silhouette that *is* its behavior:
 * **Wisp** - a flame with a face. They fly in formation.
 
 The two rules from the cave's sheet still hold. **Hostiles are warm** - amber, crimson, magenta,
-rust and flame - so over a forest of cool greens they stand out the way the cave's drones did over
+rust and flame - so over a jungle of cool greens they stand out the way the cave's imps do over
 blue-grey rock. And **one outline**: every sprite is ringed in the same near-black, so the five read
 as one bestiary rather than as five pieces of borrowed art.
 
@@ -87,12 +87,12 @@ PALETTE = {
     "h2": (252, 160, 44, 255),
     "h3": (255, 230, 150, 255),
     "h4": (255, 252, 232, 255),
-    # the eye, shared with the cave's drones: the one cold thing on a warm body
+    # the eye, shared with the cave's imps: the one cold thing on a warm body
     "e": (226, 252, 255, 255),
     "p": (16, 10, 28, 255),
 }
 
-OUTPUT = pathlib.Path(__file__).resolve().parent.parent / "assets" / "forestEnemies.png"
+OUTPUT = pathlib.Path(__file__).resolve().parent.parent / "assets" / "jungleEnemies.png"
 
 W, H = FRAME_WIDTH, FRAME_HEIGHT
 

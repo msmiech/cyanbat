@@ -14,7 +14,7 @@ are turned by `FacingSystem`, so one drawing serves both.
 
 Thirteen colorways, laid out left to right and addressed the way the enemy sheet is. The player's
 is cyan, the next three are the cave's enemy palettes from `generate_enemy_sprites.py` - violet,
-amber and crimson - the next three are the forest's shooters, the next is the desert's boss, and
+amber and crimson - the next three are the jungle's shooters, the next is the desert's boss, and
 the last five are the elites', one per `ElitePalette` - so a shot is the same color as whatever
 fired it. That matters more than it sounds:
 the screen can hold the bat's shots and the boss's at once, travelling in opposite directions, and
@@ -59,9 +59,9 @@ COLORWAYS = (
     {"d": (96, 40, 150, 180), "c": (176, 92, 232, 255), "w": (244, 222, 255, 255)},
     # SINE: amber
     {"d": (150, 78, 20, 180), "c": (232, 148, 44, 255), "w": (255, 240, 206, 255)},
-    # ZIGZAG, and so the boss: crimson. The forest's beetle fires these too - it is crimson.
+    # ZIGZAG, and so the boss: crimson. The jungle's beetle fires these too - it is crimson.
     {"d": (140, 30, 50, 180), "c": (220, 66, 80, 255), "w": (255, 222, 216, 255)},
-    # The forest's own, from `generate_forest_enemy_sprites.py` and `generate_forest_boss_sprite.py`.
+    # The jungle's own, from `generate_jungle_enemy_sprites.py` and `generate_jungle_boss_sprite.py`.
     # SPITTER: magenta, the pod's color.
     {"d": (130, 30, 120, 180), "c": (228, 90, 204, 255), "w": (255, 226, 248, 255)},
     # WISP: flame orange.

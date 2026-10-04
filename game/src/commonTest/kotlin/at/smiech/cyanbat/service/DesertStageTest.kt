@@ -17,7 +17,7 @@ private val DESERT_SPECIES = setOf(
 /** Stage 3 as designed: what it sends, how hard, and in what order. */
 class DesertStageTest {
 
-    private val forest = StageProgression.forStage(2)
+    private val cave = StageProgression.forStage(2)
     private val desert = StageProgression.forStage(3)
 
     private fun waves(stage: StageProgression) = (0 until BOSS_WAVE).map { stage.waveAt(it * MINUTE) }
@@ -47,13 +47,13 @@ class DesertStageTest {
     }
 
     @Test
-    fun `every desert wave is tougher than the same wave in the forest`() {
-        waves(forest).zip(waves(desert)).forEach { (forest, desert) ->
-            assertTrue(desert.hitPoints > forest.hitPoints, "wave ${desert.index}: health")
-            assertTrue(desert.damage > forest.damage, "wave ${desert.index}: damage")
-            assertTrue(desert.spawnIntervalSeconds < forest.spawnIntervalSeconds, "wave ${desert.index}: pace")
+    fun `every desert wave is tougher than the same wave in the cave`() {
+        waves(cave).zip(waves(desert)).forEach { (cave, desert) ->
+            assertTrue(desert.hitPoints > cave.hitPoints, "wave ${desert.index}: health")
+            assertTrue(desert.damage > cave.damage, "wave ${desert.index}: damage")
+            assertTrue(desert.spawnIntervalSeconds < cave.spawnIntervalSeconds, "wave ${desert.index}: pace")
         }
-        assertTrue(desert.bossWave().hitPoints > forest.bossWave().hitPoints)
+        assertTrue(desert.bossWave().hitPoints > cave.bossWave().hitPoints)
     }
 
     @Test
