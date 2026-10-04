@@ -1304,7 +1304,7 @@ class GameScreen(
      * The bat still flies, though nothing is left for it to shoot or to be hurt by: everything
      * hostile went down with the boss ([clearHostiles]). The wreck goes up again on each of
      * [BOSS_AFTERSHOCK_SECONDS], the fanfare comes in at [VICTORY_FANFARE_DELAY_SECONDS], and the
-     * overlay lands on its last chord. The stage clock holds where the boss left it, nothing new
+     * overlay lands on its drop. The stage clock holds where the boss left it, nothing new
      * arrives, and no level up is offered: a pick would change nothing now.
      */
     private fun playOutVictory(deltaTime: Float) {
