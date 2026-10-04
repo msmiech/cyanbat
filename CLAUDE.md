@@ -99,7 +99,7 @@ playfield for wide screens; it would change difficulty by device.
   and the run plays on for `STAGE_COMPLETE_DELAY_SECONDS` (`playOutVictory`) under a banner that
   the boss has fallen: the bat flies on, unarmed and untouchable, the wreck bursts again at
   `BOSS_AFTERSHOCK_SECONDS`, the stage's music stops dead for the boss's blast, and a fanfare comes
-  in. The overlay lands on the fanfare's last chord. The aftershocks are timed to the blasts in
+  in. The overlay lands on the fanfare's drop. The aftershocks are timed to the blasts in
   `bossDeath.wav` and the delay to the fanfare's `LANDING_BEAT`; change each with its script.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
