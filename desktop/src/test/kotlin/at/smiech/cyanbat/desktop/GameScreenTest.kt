@@ -672,7 +672,12 @@ class GameScreenTest {
         assertEquals(0f, probe.world.getComponent(boss, LightComponent::class)!!.intensity)
         val dark = impBrightness()
 
-        assertTrue(lit > dark * 1.6, "lit %.1f against dark %.1f, of 765".format(lit, dark))
+        // Wide of what was measured - about two thirds brighter lit, on Windows and on Linux alike -
+        // since the box takes in the rock behind the imp as well as the imp, and the platforms' Skia
+        // builds put a frame read on the CPU a few steps apart.
+        val measured = "lit %.1f against dark %.1f, of 765".format(lit, dark)
+        assertTrue(lit > dark * 1.35, measured)
+        assertTrue(lit - dark > 25.0, measured)
         assertTrue(dark > 0.0, "unlit, it is still there to be seen")
     }
 
