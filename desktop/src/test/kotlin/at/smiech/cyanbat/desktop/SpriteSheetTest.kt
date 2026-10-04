@@ -252,7 +252,7 @@ class SpriteSheetTest {
         assertEquals(24 to 24, sizeOf("desertMoon.png"))
     }
 
-    /** Every band tiles, in every light: the pyramids, the palms and the stones wrap round too. */
+    /** Every band tiles, in every light: the temples, the palms and the stones wrap round too. */
     @Test
     fun `the desert's bands meet themselves`() {
         assertTiles("desertFar.png")

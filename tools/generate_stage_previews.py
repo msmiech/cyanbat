@@ -157,10 +157,10 @@ def desert():
     for name, top, x in (("desertFar.png", 192, 120), ("desertMid.png", 254, 300), ("desertNear.png", 304, 700)):
         scene.alpha_composite(keyframe(name, SUNSET_ROW, x, WIDTH), (0, top))
 
-    obelisk = keyframe("desertObstacle2.png", SUNSET_ROW)
-    scene.alpha_composite(obelisk, (424, HEIGHT - obelisk.height))
-    wall = keyframe("desertObstacle4.png", SUNSET_ROW)
-    scene.alpha_composite(wall, (32, HEIGHT - wall.height))
+    warrior = keyframe("desertObstacle2.png", SUNSET_ROW)
+    scene.alpha_composite(warrior, (424, HEIGHT - warrior.height))
+    platform = keyframe("desertObstacle4.png", SUNSET_ROW)
+    scene.alpha_composite(platform, (32, HEIGHT - platform.height))
 
     sheet = load("desertEnemies.png")
     # A wyrmling leaping nose first out of the sand, a hawk over the top of its loop, a cloud of

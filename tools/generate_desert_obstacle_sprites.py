@@ -7,12 +7,13 @@
     uv run tools/generate_desert_obstacle_sprites.py
 
 The cave has a ceiling to hang stalactites from and the forest a canopy; the desert has an open
-sky, so everything in its way stands on the ground:
+sky, so everything in its way stands on the ground. What is built is Aztec, the ruins of the same
+people whose temples stand on the horizon (see `generate_desert_background.py`):
 
-* **A broken column**, fluted, the top of it snapped off.
-* **An obelisk**, its cap still gilded, a line of carving down its face.
+* **A sun stone**, the great carved calendar disc, stood on its edge with a bite out of its rim.
+* **A stone warrior**, one of the pillars carved as a figure that held up a temple's roof.
 * **A hoodoo**, a slab of harder rock left balanced on a stem the wind has worn thin.
-* **A ruined wall**, courses of dressed blocks crumbling away to one side.
+* **A ruined platform**, the front of a temple's base, broken away to one side.
 
 The four keep the cave's four footprints exactly - the two its ceiling used, turned to stand up,
 and the two its floor did - because an obstacle's size is its hit box: the desert is not made
@@ -27,8 +28,8 @@ player can see; at night the palette turns the light round to the moon, on the l
 """
 
 import pathlib
-import random
 import sys
+from math import atan2, degrees, hypot, radians
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 
@@ -49,7 +50,7 @@ PALETTE = {
     "s3": ((238, 228, 204), (250, 206, 140), (228, 130, 94), (32, 26, 56)),
     # carving, cut into the stone
     "g": ((118, 96, 78), (122, 76, 56), (70, 32, 48), (24, 18, 42)),
-    # the obelisk's gilded cap
+    # gilding: the sun's face on the stone, the warrior's breastplate
     "a0": ((200, 146, 54), (220, 138, 46), (212, 96, 56), (70, 60, 104)),
     "a1": ((250, 214, 112), (255, 208, 100), (255, 170, 98), (128, 118, 170)),
     # sand drifted against the foot of it, in the near dunes' own colors
@@ -63,7 +64,6 @@ STONE_BANDS = ((0.22, "s0"), (0.5, "s1"), (0.8, "s2"), (1.01, "s3"))
 DRIFT_BANDS = ((0.34, "d2"), (0.7, "d1"), (1.01, "d0"))
 
 OUT = pathlib.Path(__file__).resolve().parent.parent / "assets"
-SEED = 20260928
 
 
 def paint(grid, pixels, key):
@@ -89,49 +89,113 @@ def finish(grid, width, height, stone, sand, carving=frozenset()):
     return grid
 
 
-def broken_column():
-    """41x46: a fluted column, two drums and the stump of a third, snapped off at a slant."""
+def rect(left, top, right, bottom):
+    """Pixels [left, right) by [top, bottom), for the squared-off parts of carved stone."""
+    return {(x, y) for y in range(top, bottom) for x in range(left, right)}
+
+
+def sun_stone():
+    """
+    41x46: a great carved disc stood on its edge and half sunk in the sand - a ring of the sun's
+    rays round a ring of day signs, round the sun's gilded face - with a bite out of its rim.
+    """
     width, height = 41, 46
     grid = pa.blank(width, height)
-    shaft = pa.rasterize(pa.polygon([
-        (9, 46), (9, 14), (13, 9), (17, 12), (21, 5), (25, 10), (29, 7), (32, 12), (32, 46),
+    cx, cy, radius = 20.5, 21.5, 20.0
+    disc = pa.rasterize(pa.ellipse(cx, cy, radius, radius), width, height)
+    chipped = pa.rasterize(pa.polygon([
+        (25, -1), (42, -1), (42, 16), (37, 15), (35, 10), (30, 8), (27, 4),
     ]), width, height)
-    # A chunk of the capital fallen against its foot.
-    fallen = pa.rasterize(pa.polygon([(27, 46), (29, 38), (38, 37), (40, 46)]), width, height)
-    stone = shaft | fallen
-    sand = pa.rasterize(drift(width, height, 1, 40, 8), width, height)
-    stone -= sand
-    # Flutes down the shaft and the joints between its drums.
+    sand = pa.rasterize(drift(width, height, -1, 42, 7), width, height)
+    stone = disc - chipped - sand
+
+    def polar(x, y):
+        dx, dy = x + 0.5 - cx, y + 0.5 - cy
+        return hypot(dx, dy), degrees(atan2(dy, dx)) % 360
+
+    def across(distance, angle, step, phase=0.0):
+        """How many pixels round the ring [angle] is from the nearest multiple of [step] degrees."""
+        return radians(abs((angle - phase + step / 2) % step - step / 2)) * distance
+
+    outer, middle, inner = 17.6, 13.2, 9.0
     carving = set()
-    for fx in (13, 17, 21, 25, 29):
-        carving |= {(fx, y) for y in range(12, height) if (fx, y) in shaft}
-    for jy in (24, 36):
-        carving |= {(x, jy) for x in range(9, 33) if (x, jy) in shaft}
-    return finish(grid, width, height, stone, sand, frozenset(carving))
+    face = set()
+    for x, y in disc:
+        distance, angle = polar(x, y)
+        # The rings between the bands, one pixel wide each.
+        if any(abs(distance - ring) < 0.55 for ring in (outer, middle, inner)):
+            carving.add((x, y))
+        # The rays: eight points between the outer two rings, aimed outward, their bases meeting.
+        elif middle < distance < outer:
+            half = (outer - distance) / (outer - middle) * middle * 0.39
+            if abs(across(distance, angle, 45, 22.5) - half) < 0.6:
+                carving.add((x, y))
+        # The day signs: twenty boxes round the middle band.
+        elif inner < distance < middle:
+            if across(distance, angle, 18) < 0.5:
+                carving.add((x, y))
+        elif distance < 5.6:
+            face.add((x, y))
+        # The four arms of the sign of movement, on the diagonals round the face.
+        elif distance < 8.0 and across(distance, angle, 90, 45) < 1.4:
+            carving.add((x, y))
+    grid = finish(grid, width, height, stone, sand, frozenset(carving))
+    gold = face - sand
+    pa.shade_bands_across(grid, gold, ((0.5, "a0"), (1.01, "a1")))
+    # The face: two slits of eyes, and a tongue out of the mouth, down over its chin.
+    paint(grid, rect(17, 20, 19, 21) | rect(22, 20, 24, 21) | rect(19, 23, 22, 24) | rect(20, 24, 21, 27), "O")
+    pa.outline_against(grid, gold, stone - gold, color="O")
+    return grid
 
 
-def obelisk():
-    """38x57: a tapering shaft, a gilded pyramidion, and a line of carving down the middle."""
+def stone_warrior():
+    """
+    38x57: a warrior carved as a pillar, one of the figures a temple's roof once stood on - a crown
+    of feathers, a square face, ear spools, a gilded breastplate, and a belt over a kilt.
+    """
     width, height = 38, 57
     grid = pa.blank(width, height)
-    shaft = pa.rasterize(pa.polygon([(11, 57), (14, 11), (24, 11), (27, 57)]), width, height)
-    cap = pa.rasterize(pa.polygon([(14, 11.5), (19, 2), (24, 11.5)]), width, height)
-    sand = pa.rasterize(drift(width, height, 2, 36, 7), width, height)
-    stone = shaft - sand
+    # The crown: five upright feathers with rounded tips, over a band.
+    feathers = set()
+    for left in (9, 13, 17, 21, 25):
+        feathers |= pa.rasterize(pa.union(
+            pa.polygon([(left, 13), (left, 4), (left + 4, 4), (left + 4, 13)]),
+            pa.ellipse(left + 2, 4, 2, 2.6),
+        ), width, height)
+    band = rect(8, 12, 30, 16)
+    face = rect(11, 16, 27, 28)
+    spools = rect(7, 17, 11, 23) | rect(27, 17, 31, 23)
+    torso = pa.rasterize(pa.polygon([(7, 28), (31, 28), (30, 46), (8, 46)]), width, height)
+    legs = rect(9, 46, 29, 57)
+    sand = pa.rasterize(drift(width, height, 1, 37, 7), width, height)
+    stone = (feathers | band | face | spools | torso | legs) - sand
+    # The breastplate is a butterfly: a broad wing and a smaller one below it, either side of its
+    # body.
+    wings = [
+        [(11.5, 29.5), (18, 32), (18, 35), (13, 35)],
+        [(14, 36.5), (18, 36.5), (17, 40), (14.5, 39.5)],
+    ]
+    breastplate = pa.rasterize(pa.union(*(
+        pa.polygon([(38 - x, y) for x, y in wing] if mirrored else wing) for wing in wings for mirrored in (False, True)
+    )), width, height) | rect(18, 31, 20, 39)
     carving = set()
-    rng = random.Random(SEED)
-    y = 16
-    while y < 47:
-        # A small glyph: a mark two or three pixels across, picked from a few shapes.
-        glyph = (rng.choice(((0, 0), (-1, 0), (1, 0))), rng.choice(((0, 1), (1, 1), (-1, 1))))
-        for dx, dy in glyph:
-            carving.add((19 + dx, y + dy))
-        carving.add((18, y + 2))
-        carving.add((20, y + 2))
-        y += 5
-    pa.shade_bands_across(grid, cap - sand, ((0.5, "a0"), (1.01, "a1")))
-    pa.outline_against(grid, cap, shaft - cap, color="O")
-    return finish(grid, width, height, stone, sand, frozenset(carving))
+    # The gaps between the feathers, and a row of discs along the band.
+    for x in (13, 17, 21, 25):
+        carving |= {(x, y) for y in range(5, 12)}
+    carving |= {(x, 14) for x in range(9, 29) if x % 3 == 1}
+    # The face: brow, eyes, nose and mouth, cut in straight lines.
+    carving |= rect(13, 18, 25, 19) | rect(14, 20, 17, 22) | rect(21, 20, 24, 22) | rect(19, 19, 20, 24)
+    carving |= rect(15, 25, 23, 26)
+    carving |= {(9, 20), (28, 20)}
+    # Arms carved down the sides of the body, and the belt.
+    carving |= {(10, y) for y in range(30, 44)} | {(27, y) for y in range(30, 44)}
+    carving |= {(x, 41) for x in range(8, 31)} | {(x, 46) for x in range(9, 29)}
+    carving |= {(19, y) for y in range(47, 57)}
+    grid = finish(grid, width, height, stone, sand, frozenset(carving - breastplate))
+    gold = breastplate - sand
+    pa.shade_bands_across(grid, gold, ((0.5, "a0"), (1.01, "a1")))
+    pa.outline_against(grid, stone - gold, gold, color="O")
+    return grid
 
 
 def hoodoo():
@@ -154,27 +218,64 @@ def hoodoo():
     return grid
 
 
-def ruined_wall():
-    """96x54: three courses of dressed blocks, the top two crumbling away to the right."""
+# One unit of the step fret along a platform's frieze, cut into the stone: a square hook, and a
+# line stepping down from it.
+FRET = (
+    "ggggggg....",
+    "g.....g....",
+    "g.ggg.g....",
+    "g.g.g.g....",
+    "g...g.g....",
+    "ggggg.gg...",
+    ".......gg..",
+    "........gg.",
+)
+
+
+def ruined_platform():
+    """
+    96x54: the front of a temple platform - a sloping base, an upright panel framed over it with a
+    step fret along it, a cornice, and stepped crenellations along the top - broken away to the
+    right.
+    """
     width, height = 96, 54
     grid = pa.blank(width, height)
-    wall = pa.rasterize(pa.polygon([
-        (4, 54), (4, 18), (8, 14), (44, 14), (48, 18), (54, 18), (58, 26), (68, 27), (72, 34),
-        (84, 35), (90, 42), (92, 54),
+    base = pa.rasterize(pa.polygon([
+        (3, 54), (6, 37), (60, 37), (62, 33), (70, 34), (74, 39), (82, 40), (88, 45), (92, 54),
     ]), width, height)
-    # A cornice along what is left of the top.
-    cornice = pa.rasterize(pa.polygon([(2, 12), (48, 12), (50, 17), (2, 17)]), width, height)
+    panel = pa.rasterize(pa.polygon([
+        (2, 37), (2, 20), (55, 20), (57, 24), (60, 26), (61, 33), (59, 37),
+    ]), width, height)
+    cornice = rect(1, 17, 56, 20)
+    merlons = set()
+    for left in (3, 13, 23, 33, 43):
+        merlons |= rect(left, 13, left + 7, 17)
+        if left < 43:
+            merlons |= rect(left + 1, 10, left + 6, 13) | rect(left + 2, 7, left + 5, 10)
+        else:
+            # The last has broken off above its first step.
+            merlons |= rect(left + 1, 11, left + 4, 13)
     sand = pa.rasterize(pa.union(
         drift(width, height, -4, 34, 9),
         drift(width, height, 50, 100, 12),
     ), width, height)
-    stone = (wall | cornice) - sand
+    stone = (base | panel | cornice | merlons) - sand
     carving = set()
-    for row, y in enumerate(range(24, height, 9)):
+    # Where the panel stands over the base and the cornice over the panel, and the panel's frame.
+    carving |= {(x, 37) for x in range(2, 62)} | {(x, 20) for x in range(1, 56)}
+    carving |= {(x, y) for x, y in rect(5, 23, 60, 35) if y in (23, 34) or x == 5}
+    for left in range(7, 58, 11):
+        for row, line in enumerate(FRET):
+            for column, mark in enumerate(line):
+                if mark == "g":
+                    carving.add((left + column, 25 + row))
+    carving = {p for p in carving if p in panel or p[1] in (20, 37)}
+    # Courses of the base, with the joints between its blocks staggered.
+    for row, y in enumerate((42, 47)):
         carving |= {(x, y) for x in range(0, width)}
-        for x in range(8 + (row % 2) * 8, width, 16):
-            carving |= {(x, yy) for yy in range(y + 1, y + 9)}
-    carving |= {(x, 17) for x in range(2, 49)}
+        for x in range(10 + (row % 2) * 7, width, 14):
+            carving |= {(x, yy) for yy in range(y + 1, y + 5)}
+    carving |= {(x, 52) for x in range(0, width)}
     return finish(grid, width, height, stone, sand, frozenset(carving))
 
 
@@ -192,7 +293,7 @@ def save_keyframes(path, grid):
 
 
 def main() -> int:
-    for index, build in enumerate((broken_column, obelisk, hoodoo, ruined_wall), start=1):
+    for index, build in enumerate((sun_stone, stone_warrior, hoodoo, ruined_platform), start=1):
         path = OUT / f"desertObstacle{index}.png"
         image = save_keyframes(path, build())
         print(f"{path} ({image.width}x{image.height // KEYFRAMES}, {KEYFRAMES} keyframes)")
