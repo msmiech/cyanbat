@@ -249,6 +249,21 @@ swarm, or a formation's leader.
   guarantee it can always be filled.
 - `PlayerLoadout` holds the stats the picks derive.
 - `ScoreTracker` carries fractional points between awards.
+- Three picks are weapons of their own, each on its own clock: Guardian Orb, Charged Trail and Frost
+  Beam. What the first two deal is a share of `shotDamage`, so the gun's upgrades pay into them, and a
+  card can say something else once held (`PowerUp.describe`).
+  - Orbs and charged wake segments collide as `CollisionGroup.PLAYER_CONTACT`, which meets enemies and
+    nothing else, and land through `GameScreen.strike`. They are never spent: a target takes each
+    `ContactWeapon` at most once a rehit time, kept on the target (`ContactCooldownComponent`) so it
+    goes with it. A boss part's is its boss's, or a wake the Sand Wyrm pours through would land once a
+    plate.
+  - `OrbitSystem` carries the orbs round the bat clockwise, evenly spaced in creation order.
+  - `FrostBeamSystem` freezes ordinary enemies only - never a boss, a part of one or an elite
+    (`GameScreen.canFreeze`). A freeze is `FrostSystem` holding the enemy's `PaceComponent` at zero,
+    drifting it with the scenery and washing it blue (`TintComponent`, which `RenderSystem` draws like
+    a flash). `slowWounded` leaves a frozen enemy's pace alone; the thaw hands back its wound's pace.
+    Frozen, it is harmless: `handleCollision` lets the bat through it with no hit either way, while
+    the bat's weapons still land.
 
 **Layered music.** A stage's music is one piece cut into eight stems, one per `MusicLayer` (bed,
 pulse, drive, lead, boom, roll, chop, fury), mixed live the way Doom 2016 and SSX 3 score their
@@ -295,6 +310,12 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   pads) feed it.
 - Android's Back arrives as `GameButton.BACK` from the back-pressed dispatcher, because gesture
   navigation raises no key event.
+- Vibration goes to whatever the player is holding, and only to that. `AndroidGameActivity`
+  remembers the device of the last key, or stick past its dead zone, that the game took, and a
+  touch hands it back to the phone; `AndroidHaptics` rumbles that device's motors if it has any,
+  and the phone's otherwise. The player's switch is applied by `ObservedHaptics`, which the host
+  wraps round the haptics it hands the game. The desktop reads no pads, so it has nothing to
+  vibrate and its Settings leave the switch out (`canVibrate`).
 
 **Rendering.** One `Graphics` for every platform: `ComposeGraphics`, in the engine's common code,
 drawn through Compose's Canvas - HWUI, and so the GPU, on Android; Skia on the desktop (and on

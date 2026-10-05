@@ -106,6 +106,13 @@ punishment, fires faster and in the color of its glow - even if its kind never s
 pays out three times the points and experience. They are rare early on, and in the escort that
 brings in the boss there is one every six or seven seconds.
 
+Kills earn experience, and every level up offers three power-ups to pick from. Most sharpen the
+bat's gun or toughen its hide; three give it weapons of its own, each working while you dodge.
+Guardian Orbs circle the bat and strike whatever they meet, one more with every pick. A Charged
+Trail draws the bat's wake out longer and shocks whatever flies into it. A Frost Beam goes off every
+few seconds at a random enemy and freezes every ordinary one along its line, turning them blue and
+harmless until they thaw - though never a boss or an elite.
+
 ## 🎮 Controls
 
 |            | Move                                   | Pause / resume  | Quit to menu |
@@ -126,6 +133,13 @@ paused until you resume it rather than dropping you straight back into a dodge.
 Controller support is real on Android, where the platform reports pads as key codes and joystick
 axes. On desktop the JDK has no gamepad API, so nothing feeds those events yet: the mapping seam
 is `ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
+
+A hit buzzes whatever you are playing with. That is the controller, if it can rumble: a DualSense,
+a DualShock 4, or an Xbox One or Series pad over Bluetooth. Android's own kernels carry the
+drivers that rumble those, so a phone that came out with Android 12 or later has them; an older one
+may not. Otherwise it is the phone, and that includes pads with no motors of their own, such as
+many of the ones a phone clips into. Touching the screen hands it back to the phone. Settings →
+Vibration turns it off; it is on by default.
 
 ## 🧪 Building and testing
 

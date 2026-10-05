@@ -34,6 +34,8 @@ data class GameAssets(
         var shot: Pixmap,
         /** A shot's hit, played where it strikes: in the colorways of [shot], in the same order. */
         var impact: Pixmap,
+        /** The orb Guardian Orb sends round the bat: six frames of a glint going round it. */
+        var orb: Pixmap,
     )
 
     data class Audio(
@@ -72,6 +74,7 @@ data class GameAssets(
                     shatter = pixmap("shatter.png"),
                     shot = pixmap("shot.png"),
                     impact = pixmap("impact.png"),
+                    orb = pixmap("orb.png"),
                 ),
                 audio = Audio(
                     // Generated like the stages' music, by tools/generate_game_over_music.py.

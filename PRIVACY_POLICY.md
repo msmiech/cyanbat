@@ -1,6 +1,6 @@
 ## CyanBat privacy policy
 
-_Last updated: September 26, 2026_
+_Last updated: October 5, 2026_
 
 Welcome to CyanBat!
 
@@ -27,6 +27,7 @@ The game keeps only the following, and only on your own device:
 | Which stages are unlocked   | Keeps a stage open once you have cleared the stage before it.                                    |
 | Music on/off                | Remembers whether you turned the background music off.                                           |
 | Sound effects on/off        | Remembers whether you turned the sound effects off.                                              |
+| Vibration on/off            | Remembers whether you turned vibration off.                                                      |
 | Display mode                | Remembers whether the game is stretched to fill your screen or shown with black or ambient bars. |
 
 Where it is kept, and how to erase it:
@@ -50,10 +51,10 @@ https://github.com/msmiech/cyanbat/blob/main/app/src/main/AndroidManifest.xml
 
 <br/>
 
-|           Permission           | Why it is required                                                                                                                                               |
-|:------------------------------:|------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-|  `android.permission.VIBRATE`  | Required to vibrate the device briefly when the bat gets hit and when the game is over. Granted automatically by the system; you cannot revoke it.               |
-| `android.permission.WAKE_LOCK` | Allows the game engine to keep the device awake while you play. The engine does not currently use it. Granted automatically by the system; you cannot revoke it. |
+|           Permission           | Why it is required                                                                                                                                                                                                                          |
+|:------------------------------:|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+|  `android.permission.VIBRATE`  | Required to vibrate the device, or the game controller you are playing with, briefly when the bat gets hit and when the game is over. You can turn vibration off under Settings. Granted automatically by the system; you cannot revoke it. |
+| `android.permission.WAKE_LOCK` | Allows the game engine to keep the device awake while you play. The engine does not currently use it. Granted automatically by the system; you cannot revoke it.                                                                            |
 
 ### Changes to this policy
 

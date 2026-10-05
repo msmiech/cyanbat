@@ -7,3 +7,5 @@ import org.jetbrains.compose.resources.StringResource
 internal actual val helpControls: StringResource = Res.string.dialog_help_controls_desktop
 
 internal actual val hasSystemBack: Boolean = false
+
+internal actual val canVibrate: Boolean = false

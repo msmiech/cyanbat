@@ -81,8 +81,15 @@ data class CollisionComponent(
     val group: CollisionGroup = CollisionGroup.OTHER
 ) : Component
 
+/**
+ * Which side something is on, which [CollisionSystem] reads to decide what can meet what.
+ *
+ * [PLAYER_CONTACT] is what the player hurts enemies with by touching them and is not spent by: it
+ * meets enemies and nothing else - not the player, not scenery, not enemy fire - so it never has to
+ * be told apart from a shot once a pair is reported.
+ */
 enum class CollisionGroup {
-    PLAYER, ENEMY, PLAYER_PROJECTILE, ENEMY_PROJECTILE, OBSTACLE, OTHER
+    PLAYER, ENEMY, PLAYER_PROJECTILE, ENEMY_PROJECTILE, OBSTACLE, OTHER, PLAYER_CONTACT
 }
 
 /**
@@ -417,12 +424,16 @@ data class ShieldComponent(
  * @param minScale the fraction of its size a segment is down to at the very end, as 0..1. It
  *   shrinks about its own center, so the wake tapers to a thread rather than stopping at full
  *   width.
+ * @param coreColor a brighter band along the middle of the segment, half its height, fading with
+ *   it; fully transparent for none. What tells a wake that does something from one that is only
+ *   a wake.
  */
 data class TrailComponent(
     var color: Int,
     val duration: Float = 0.5f,
     val minScale: Float = 0.15f,
     var elapsed: Float = 0f,
+    val coreColor: Int = 0,
 ) : Component
 
 /**
@@ -576,6 +587,17 @@ data class HitFlashComponent(
     val strength: Float
         get() = if (duration <= 0f) 0f else (remaining / duration).coerceIn(0f, 1f)
 }
+
+/**
+ * A color laid over an entity's sprite, in the sprite's own shape, for as long as it is set: what
+ * something looks like while a state lasts, where a [HitFlashComponent] is the moment of a hit.
+ * Drawn by [RenderSystem] straight over its sprite, under any flash.
+ *
+ * Disarmed rather than removed, as a flash is: a [color] with no alpha draws nothing.
+ *
+ * @param color what the sprite is washed with; its alpha is how strongly.
+ */
+class TintComponent(var color: Int = 0) : Component
 
 /**
  * Shows how badly an entity is hurt by which row of its sheet it is drawn from, picked by

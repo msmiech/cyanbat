@@ -2,9 +2,13 @@ package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.ColorwayComponent
+import at.smiech.cyanbat.ecs.ContactWeapon
+import at.smiech.cyanbat.ecs.ContactWeaponComponent
 import at.smiech.cyanbat.ecs.EliteComponent
 import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.ecs.GunComponent
+import at.smiech.cyanbat.ecs.OrbComponent
+import at.smiech.cyanbat.ecs.OrbitSystem
 import at.smiech.cyanbat.util.BAT_FRAME_WIDTH
 import at.smiech.cyanbat.util.BAT_LIGHT_COLOR
 import at.smiech.cyanbat.util.BAT_LIGHT_RADIUS
@@ -50,6 +54,10 @@ import at.smiech.cyanbat.util.NAGA_SHOT_VARIANT
 import at.smiech.cyanbat.util.NAGA_SPLASH_FRAME
 import at.smiech.cyanbat.util.NAGA_SPLASH_FRAMES
 import at.smiech.cyanbat.util.NAGA_SPLASH_FRAME_SECONDS
+import at.smiech.cyanbat.util.ORB_COLLISION_TOLERANCE
+import at.smiech.cyanbat.util.ORB_FRAME
+import at.smiech.cyanbat.util.ORB_FRAME_COUNT
+import at.smiech.cyanbat.util.ORB_FRAME_SECONDS
 import at.smiech.cyanbat.util.PLAYER_IMPACT_LIGHT_RADIUS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.PLAYER_SHOT_LIGHT_RADIUS
@@ -76,6 +84,9 @@ import at.smiech.cyanbat.util.TRAIL_DRIFT_PER_TICK
 import at.smiech.cyanbat.util.TRAIL_DURATION_SECONDS
 import at.smiech.cyanbat.util.TRAIL_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.TRAIL_MIN_SCALE
+import at.smiech.cyanbat.util.WAKE_COLOR
+import at.smiech.cyanbat.util.WAKE_CORE_COLOR
+import at.smiech.cyanbat.util.WAKE_MIN_SCALE
 import at.smiech.cyanbat.util.WOUND_MARKS
 import at.smiech.cyanbat.util.WOUND_ROWS
 import at.smiech.engine.EngineColors
@@ -811,21 +822,74 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         }
 
     /**
+     * A flash of light and nothing else, centered on ([centerX], [centerY]) in [color], reaching
+     * [radius]: it lights up what is there at that moment, fades over [seconds] and takes the entity
+     * with it. It drifts with the scenery, so it stays where it went off. The frost beam leaves one on
+     * everything it freezes.
+     */
+    fun createFlash(centerX: Float, centerY: Float, color: Int, radius: Int, seconds: Float): EntityId {
+        val id = world.createEntity()
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX, centerY, 0f, 0f)))
+        world.addComponent(id, VelocityComponent(Vector2(BURST_DRIFT, 0f)))
+        world.addComponent(id, LightComponent(color, radius, fadeSeconds = seconds, removeWhenFaded = true))
+        return id
+    }
+
+    /**
      * One segment of the bat's wake, shed just off its rear by [at.smiech.engine.ecs.TrailSystem].
      *
      * It drifts with the scenery rather than with the bat, so the wake marks where the bat has
      * been instead of following it around, and it is culled at the left edge like anything else
      * that leaves the frame.
+     *
+     * @param seconds how long it lasts, and so how far behind the bat the wake reaches.
+     * @param charged whether Charged Trail has made the wake a weapon: then it shocks the enemies it
+     *   touches, as a [ContactWeapon.WAKE], and carries a bright core so the player can see that it
+     *   does. It keeps more of its size as it dies, so what hurts can be seen to the end.
      */
-    fun createTrail(x: Float, y: Float, width: Float, height: Float): EntityId {
+    fun createTrail(
+        x: Float,
+        y: Float,
+        width: Float,
+        height: Float,
+        seconds: Float = TRAIL_DURATION_SECONDS,
+        charged: Boolean = false,
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
         world.addComponent(id, VelocityComponent(Vector2(TRAIL_DRIFT_PER_TICK, 0f)))
-        world.addComponent(
-            id,
-            TrailComponent(EngineColors.CYAN, TRAIL_DURATION_SECONDS, TRAIL_MIN_SCALE)
-        )
+        if (charged) {
+            world.addComponent(id, TrailComponent(WAKE_COLOR, seconds, WAKE_MIN_SCALE, coreColor = WAKE_CORE_COLOR))
+            world.addComponent(id, CollisionComponent(0f, CollisionGroup.PLAYER_CONTACT))
+            world.addComponent(id, ContactWeaponComponent(ContactWeapon.WAKE))
+        } else {
+            world.addComponent(id, TrailComponent(EngineColors.CYAN, seconds, TRAIL_MIN_SCALE))
+        }
         world.addComponent(id, LifetimeComponent(true))
+        return id
+    }
+
+    /**
+     * One of the orbs circling the bat, centered on ([centerX], [centerY]) until [OrbitSystem] carries
+     * it round.
+     *
+     * Never culled for leaving the frame: the bat can fly along an edge with half its ring past it.
+     * Nothing hurts it - it has no health, and its collision group meets only enemies, which it hurts
+     * as a [ContactWeapon.ORB]. Drawn over the dark, under the bat, and no light of its own: it is
+     * always inside the bat's.
+     *
+     * @param offset its place on the ring; see [OrbComponent] and [OrbitSystem.shareOf].
+     */
+    fun createOrb(centerX: Float, centerY: Float, pixmap: Pixmap, offset: Float): EntityId {
+        val size = ORB_FRAME.toFloat()
+        val id = world.createEntity()
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX - size / 2f, centerY - size / 2f, size, size)))
+        world.addComponent(id, SpriteComponent(pixmap, srcWidth = ORB_FRAME, srcHeight = ORB_FRAME))
+        world.addComponent(id, AnimationComponent(ORB_FRAME, ORB_FRAME, ORB_FRAME_COUNT, ORB_FRAME_SECONDS))
+        world.addComponent(id, OrbComponent(offset))
+        world.addComponent(id, ContactWeaponComponent(ContactWeapon.ORB))
+        world.addComponent(id, CollisionComponent(ORB_COLLISION_TOLERANCE, CollisionGroup.PLAYER_CONTACT))
+        world.addComponent(id, ZIndexComponent(19))
         return id
     }
 

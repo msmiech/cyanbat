@@ -26,6 +26,7 @@ import at.smiech.engine.impl.AndroidAudio
 
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
 internal val PREFS_KEY_SOUNDS = booleanPreferencesKey("sounds_enabled")
+internal val PREFS_KEY_VIBRATION = booleanPreferencesKey("vibration_enabled")
 /** Stored by name, so reordering or adding modes cannot turn one player's choice into another. */
 internal val PREFS_KEY_DISPLAY_MODE = stringPreferencesKey("display_mode")
 /** The single highscore kept before they were per stage; see [LegacyHighscoreMigration]. */

@@ -9,19 +9,24 @@ import java.util.prefs.Preferences
 
 /**
  * [SettingsRepository] on the JDK preferences API - the registry on Windows, a dotfile
- * elsewhere. Avoids putting DataStore and okio on the desktop classpath for three settings.
+ * elsewhere. Avoids putting DataStore and okio on the desktop classpath for a handful of settings.
  *
  * The flows are in-memory mirrors: this process is the only writer, so they cannot go stale.
+ *
+ * Vibration is stored like the rest, although the desktop has nothing to vibrate yet and the menu
+ * does not offer it; a gamepad backend that rumbles would find the player's choice already here.
  */
 class PreferencesSettingsRepository : SettingsRepository {
     private val prefs: Preferences = Preferences.userRoot().node("at/smiech/cyanbat")
 
     private val music = MutableStateFlow(prefs.getBoolean(KEY_MUSIC, true))
     private val sound = MutableStateFlow(prefs.getBoolean(KEY_SOUND, true))
+    private val vibration = MutableStateFlow(prefs.getBoolean(KEY_VIBRATION, true))
     private val display = MutableStateFlow(DisplayMode.fromName(prefs.get(KEY_DISPLAY_MODE, null)))
 
     override val isMusicEnabled: Flow<Boolean> = music.asStateFlow()
     override val isSoundEnabled: Flow<Boolean> = sound.asStateFlow()
+    override val isVibrationEnabled: Flow<Boolean> = vibration.asStateFlow()
     override val displayMode: Flow<DisplayMode> = display.asStateFlow()
 
     override suspend fun setMusicEnabled(enabled: Boolean) {
@@ -34,6 +39,11 @@ class PreferencesSettingsRepository : SettingsRepository {
         sound.value = enabled
     }
 
+    override suspend fun setVibrationEnabled(enabled: Boolean) {
+        prefs.putBoolean(KEY_VIBRATION, enabled)
+        vibration.value = enabled
+    }
+
     override suspend fun setDisplayMode(mode: DisplayMode) {
         prefs.put(KEY_DISPLAY_MODE, mode.name)
         display.value = mode
@@ -42,6 +52,7 @@ class PreferencesSettingsRepository : SettingsRepository {
     private companion object {
         const val KEY_MUSIC = "music_enabled"
         const val KEY_SOUND = "sound_enabled"
+        const val KEY_VIBRATION = "vibration_enabled"
         const val KEY_DISPLAY_MODE = "display_mode"
     }
 }

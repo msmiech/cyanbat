@@ -687,6 +687,7 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
     private lateinit var sprites: ComponentMapper<SpriteComponent>
     private lateinit var zIndices: ComponentMapper<ZIndexComponent>
     private lateinit var flashes: ComponentMapper<HitFlashComponent>
+    private lateinit var tints: ComponentMapper<TintComponent>
     private lateinit var crossfades: ComponentMapper<CrossfadeComponent>
 
     /**
@@ -705,6 +706,7 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
         sprites = world.mapper(SpriteComponent::class)
         zIndices = world.mapper(ZIndexComponent::class)
         flashes = world.mapper(HitFlashComponent::class)
+        tints = world.mapper(TintComponent::class)
         crossfades = world.mapper(CrossfadeComponent::class)
     }
 
@@ -773,30 +775,51 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
             }
 
             // Straight over the frame just drawn, while this sprite is still the top of the
-            // picture. That is the whole reason the flash is drawn here rather than in a system of
-            // its own - see HitFlashSystem.
-            //
-            // Turned with the sprite when the sprite is turned. For a long time only projectiles
-            // turned, and a projectile is spent by what it hits rather than hurt by it; now a boss
-            // whose body bends along its path does both, and an upright flash over a turned segment
-            // lights up a shape that is not there.
+            // picture. That is the whole reason the tint and the flash are drawn here rather than
+            // in a system of their own - see HitFlashSystem. The flash goes over the tint, so a hit
+            // on something tinted still lands as a hit.
+            val tint = tints[id]?.color ?: 0
+            if (tint ushr 24 != 0) drawSilhouette(graphics, sprite, left, top, dstWidth, dstHeight, tint)
+
             val flash = flashes[id] ?: continue
             val strength = flash.strength
             if (strength <= 0f) continue
-            val color = EngineColors.scaleAlpha(flash.color, strength)
-            if (sprite.rotationDegrees != 0f) {
-                graphics.drawPixmapSilhouette(
-                    sprite.pixmap, left, top,
-                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
-                    dstWidth, dstHeight, color, sprite.rotationDegrees,
-                )
-            } else {
-                graphics.drawPixmapSilhouette(
-                    sprite.pixmap, left, top,
-                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
-                    dstWidth, dstHeight, color,
-                )
-            }
+            drawSilhouette(
+                graphics, sprite, left, top, dstWidth, dstHeight,
+                EngineColors.scaleAlpha(flash.color, strength),
+            )
+        }
+    }
+
+    /**
+     * [sprite]'s current frame filled with [color], where it was just drawn.
+     *
+     * Turned with the sprite when the sprite is turned. For a long time only projectiles turned, and
+     * a projectile is spent by what it hits rather than hurt by it; now a boss whose body bends along
+     * its path does both, and an upright flash over a turned segment lights up a shape that is not
+     * there.
+     */
+    private fun drawSilhouette(
+        graphics: Graphics,
+        sprite: SpriteComponent,
+        left: Int,
+        top: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        color: Int,
+    ) {
+        if (sprite.rotationDegrees != 0f) {
+            graphics.drawPixmapSilhouette(
+                sprite.pixmap, left, top,
+                sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                dstWidth, dstHeight, color, sprite.rotationDegrees,
+            )
+        } else {
+            graphics.drawPixmapSilhouette(
+                sprite.pixmap, left, top,
+                sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                dstWidth, dstHeight, color,
+            )
         }
     }
 }
@@ -1173,6 +1196,17 @@ class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
                 width,
                 height,
                 EngineColors.withAlpha(trail.color, 1f - progress),
+            )
+
+            // Half the segment's height, so the band of it runs down the middle of the wake.
+            val coreHeight = height / 2
+            if (trail.coreColor ushr 24 == 0 || coreHeight <= 0) return@forEach
+            graphics.drawRect(
+                (rect.centerX - width / 2f).roundToInt(),
+                (rect.centerY - coreHeight / 2f).roundToInt(),
+                width,
+                coreHeight,
+                EngineColors.scaleAlpha(trail.coreColor, 1f - progress),
             )
         }
     }

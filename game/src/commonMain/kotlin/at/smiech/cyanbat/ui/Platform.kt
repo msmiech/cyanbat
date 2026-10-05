@@ -13,3 +13,9 @@ internal expect val helpControls: StringResource
  * the back button and gesture; a desktop window has nothing, so the menu has to draw a button.
  */
 internal expect val hasSystemBack: Boolean
+
+/**
+ * Whether the platform has anything to vibrate, and so whether Settings offers to turn vibration
+ * off. A phone does; the desktop reads no game controllers yet, so it has nothing to rumble.
+ */
+internal expect val canVibrate: Boolean

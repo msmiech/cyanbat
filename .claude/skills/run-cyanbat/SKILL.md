@@ -199,6 +199,32 @@ lifecycle, and there are no instrumentation tests. Verify those on the emulator.
   `MainActivity` after `tap "Settings"`. Only `Start Game` crosses an activity
   boundary. Assert on a screenshot, not on `focus`, for in-menu navigation.
 
+## Controllers and rumble without a controller
+
+The emulator can plug in a virtual DualSense or Xbox Series pad that goes through the real kernel
+drivers (`hid-playstation`, `hid-microsoft`), so the game sees a pad with motors, and whatever the
+driver sends back to it - rumble included - can be read. `adb shell hid -` reads JSON commands on
+stdin: a `register` with the pad's HID descriptor, then `report`s of its buttons. It prints each
+output report the driver sends as `{"eventId":6,...,"reportData":[...]}`.
+
+- Take the descriptors and reports from CTS, which tests these pads the same way:
+  `platform/cts/tests/tests/hardware/res/raw/` has `sony_dualsense_bluetooth_register.json`,
+  `microsoft_xbox2020_register.json` (the Series pad, `045e:0b13` over Bluetooth) and their
+  `_keyeventtests.json` and `_motioneventtests.json`. Strip their `//` comments, write the hex as
+  decimal, and send one command per line.
+- **Stream the commands, with the pauses on the host**:
+  `(cat register.jsonl; sleep 5; cat press_a.jsonl; sleep 40) | adb shell hid -`. A `delay` inside
+  a file also holds back hid's answers to the driver's probe, which then times out after 5 s and
+  leaves the device with no driver and no input node.
+- In Git Bash, set `MSYS_NO_PATHCONV=1`, or it turns `/data/local/tmp` into a Windows path.
+- The pad has to be what the player is using: press A on it, or steer with its d-pad, and a touch
+  hands vibration back to the phone. Flying the bat right into the enemies gets it hit within
+  seconds. Press A now and then too: a bat that kills levels up, and the offer holds the run
+  until A picks a card.
+- A DualSense rumble is report `0x31` with `0x03` at index 3 and the motors at 5 and 6; an Xbox
+  one is report `0x03` with the motors at 4 and 5, in percent. The phone's own vibrations are in
+  `adb shell dumpsys vibrator_manager`, under "Recent vibrations".
+
 ## Troubleshooting
 
 | Symptom                                         | Cause / fix                                                                                          |
