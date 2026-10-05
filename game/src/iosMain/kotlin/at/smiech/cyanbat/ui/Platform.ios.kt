@@ -11,3 +11,6 @@ internal actual val helpControls: StringResource = Res.string.dialog_help_contro
 // No back button, and the edge swipe is not something a player finds unprompted, so the menu draws
 // its own Back buttons, as it does on the desktop.
 internal actual val hasSystemBack: Boolean = false
+
+// An iPhone vibrates; the app to come supplies the Haptics that do it.
+internal actual val canVibrate: Boolean = true

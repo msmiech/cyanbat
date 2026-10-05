@@ -134,6 +134,13 @@ Controller support is real on Android, where the platform reports pads as key co
 axes. On desktop the JDK has no gamepad API, so nothing feeds those events yet: the mapping seam
 is `ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
 
+A hit buzzes whatever you are playing with. That is the controller, if it can rumble: a DualSense,
+a DualShock 4, or an Xbox One or Series pad over Bluetooth. Android's own kernels carry the
+drivers that rumble those, so a phone that came out with Android 12 or later has them; an older one
+may not. Otherwise it is the phone, and that includes pads with no motors of their own, such as
+many of the ones a phone clips into. Touching the screen hands it back to the phone. Settings →
+Vibration turns it off; it is on by default.
+
 ## 🧪 Building and testing
 
 ```bash

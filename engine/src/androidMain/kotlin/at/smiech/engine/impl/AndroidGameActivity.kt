@@ -37,6 +37,7 @@ import at.smiech.engine.Game
 import at.smiech.engine.GameButton
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Graphics
+import at.smiech.engine.Haptics
 import at.smiech.engine.Input
 import at.smiech.engine.Screen
 import kotlinx.coroutines.flow.Flow
@@ -66,6 +67,20 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
      * screen, because the events it is fed arrive at the window.
      */
     private val controlHandler = ControlHandler()
+
+    /**
+     * The input device the player last played with through a key or a stick, or null once they
+     * touch the screen: what [haptics] rumbles. Written on the main thread, where the game loop
+     * that vibrates also runs.
+     */
+    private var controllerInUse: Int? = null
+
+    /**
+     * Vibration for the host to hand its screens, routed to whatever the player is holding; see
+     * [AndroidHaptics]. Lazily, because it needs the activity's context, which a field initializer
+     * lacks.
+     */
+    protected val haptics: Haptics by lazy { AndroidHaptics(this) { controllerInUse } }
 
     /**
      * How the framebuffer is fitted to the screen, for a host that lets the player choose; null
@@ -239,12 +254,26 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
      * Dispatch rather than `onKeyDown`: a controller's events are delivered to the window, and
      * nothing in the Compose tree below holds focus to receive them.
      */
-    override fun dispatchKeyEvent(event: KeyEvent): Boolean =
-        controlHandler.onAndroidKeyEvent(event) || super.dispatchKeyEvent(event)
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        if (!controlHandler.onAndroidKeyEvent(event)) return super.dispatchKeyEvent(event)
+        controllerInUse = event.deviceId
+        return true
+    }
 
     /** A controller's analog sticks, which arrive as motion rather than as keys. */
-    override fun onGenericMotionEvent(event: MotionEvent): Boolean =
-        controlHandler.onAndroidMotionEvent(event) || super.onGenericMotionEvent(event)
+    override fun onGenericMotionEvent(event: MotionEvent): Boolean {
+        if (!controlHandler.onAndroidMotionEvent(event)) return super.onGenericMotionEvent(event)
+        // Only a stick pushed past its dead zone. A pad left on the table reports a drifting stick
+        // too, and that is not the player picking it up.
+        if (controlHandler.moveX != 0f || controlHandler.moveY != 0f) controllerInUse = event.deviceId
+        return true
+    }
+
+    /** A finger on the screen hands vibration back to the phone, which is then in the player's hands. */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) controllerInUse = null
+        return super.dispatchTouchEvent(event)
+    }
 
     override fun onDestroy() {
         super.onDestroy()

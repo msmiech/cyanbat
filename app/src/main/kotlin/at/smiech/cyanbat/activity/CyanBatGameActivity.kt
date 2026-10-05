@@ -7,6 +7,7 @@ import at.smiech.cyanbat.data.DataStoreHighscoreStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.data.DataStoreStageUnlockStore
 import at.smiech.cyanbat.data.ObservedAudioSettings
+import at.smiech.cyanbat.data.ObservedHaptics
 import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.ui.game.GameScreen
@@ -15,7 +16,6 @@ import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.DisplayMode
 import at.smiech.engine.Screen
 import at.smiech.engine.impl.AndroidGameActivity
-import at.smiech.engine.impl.AndroidHaptics
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -31,7 +31,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen
         get() = GameScreen(this, buildEnvironment(), intent.getIntExtra(EXTRA_STAGE_ID, 1))
 
-    /** Feeds the live audio settings; canceled with the activity. */
+    /** Feeds the live audio and vibration settings; canceled with the activity. */
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
 
     /** Lazily, because DataStore needs the activity's context, which a field initializer lacks. */
@@ -44,7 +44,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
 
     private fun buildEnvironment(): CyanBatEnvironment = CyanBatEnvironment(
         assets = loadAssets(),
-        haptics = AndroidHaptics(this),
+        haptics = ObservedHaptics(haptics, settings, activityScope),
         highscores = DataStoreHighscoreStore(dataStore),
         stageUnlocks = DataStoreStageUnlockStore(dataStore),
         onExitToMenu = {
