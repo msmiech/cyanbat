@@ -32,6 +32,8 @@ data class GameAssets(
         /** Rock coming apart, for an obstacle; the explosion is for things that burn. */
         var shatter: Pixmap,
         var shot: Pixmap,
+        /** A shot's hit, played where it strikes: in the colorways of [shot], in the same order. */
+        var impact: Pixmap,
     )
 
     data class Audio(
@@ -69,6 +71,7 @@ data class GameAssets(
                     explosion = pixmap("explosion.png"),
                     shatter = pixmap("shatter.png"),
                     shot = pixmap("shot.png"),
+                    impact = pixmap("impact.png"),
                 ),
                 audio = Audio(
                     // Generated like the stages' music, by tools/generate_game_over_music.py.

@@ -25,8 +25,11 @@ import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
 import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
+import at.smiech.cyanbat.util.IMPACT_FRAME
+import at.smiech.cyanbat.util.IMPACT_FRAME_COUNT
 import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
+import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
@@ -486,7 +489,7 @@ class GameScreenTest {
 
         val shot = enemyShots().single()
         assertEquals(
-            ElitePalette.VENOM.shotVariant * SHOT_FRAME_WIDTH,
+            ElitePalette.VENOM.shotVariant * SHOT_FRAME_WIDTH * SHOT_FRAME_COUNT,
             probe.world.getComponent(shot, SpriteComponent::class)!!.baseSrcX,
         )
     }
@@ -587,8 +590,13 @@ class GameScreenTest {
         )
     }
 
+    /**
+     * A spent shot leaves its hit at its nose, on the edge of what it struck, and in the dark the hit
+     * flares up wider than the shot's own light. Both go once the spark has played.
+     */
     @Test
-    fun `a spent shot leaves a flash of its light, which goes out by itself`() = flight(CAVE) {
+    fun `a spent shot leaves its hit, which flares up in the dark and goes by itself`() = flight(CAVE) {
+        holdFire()
         val lit = EntityFactory(probe.world, lit = true)
         val imp = lit.createEnemy(
             x = 400f, y = 60f, width = 28f, height = IMP_ROW.toFloat(),
@@ -596,21 +604,62 @@ class GameScreenTest {
         )
         val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
         val shot = assets.graphics.shot
-        lit.createShot(
+        val shotId = lit.createShot(
             x = rect.centerX - SHOT_FRAME_WIDTH / 2f, y = rect.centerY - shot.height / 2f,
             width = SHOT_FRAME_WIDTH.toFloat(), height = shot.height.toFloat(), pixmap = shot, isPlayer = true,
         )
-        val flashes = {
-            probe.world.query(LightComponent::class).filter {
-                probe.world.getComponent(it, LightComponent::class)!!.removeWhenFaded
-            }
-        }
+        val shotLight = probe.world.getComponent(shotId, LightComponent::class)!!.radius
 
         screen.update(TICK_INITIAL * 1.5f)
-        assertEquals(1, flashes().size, "the shot's flash")
+        val hit = hits().single()
+        val light = assertNotNull(probe.world.getComponent(hit, LightComponent::class), "a hit in the dark is a light")
+        assertTrue(light.radius > shotLight, "the hit's light reaches ${light.radius}, the shot's $shotLight")
+        val at = probe.world.getComponent(hit, TransformComponent::class)!!.rect
+        assertTrue(at.centerX > rect.centerX, "the hit went off at ${at.centerX}, short of the shot's nose")
+        assertEquals(rect.centerY, at.centerY, 1f)
 
         fly(IMPACT_LIGHT_SECONDS + 0.05f)
-        assertTrue(flashes().isEmpty(), "the flash outlived its light")
+        assertTrue(hits().isEmpty(), "the hit outlived its spark")
+    }
+
+    /** By day a hit is the spark alone, in the colors of the shot that made it. */
+    @Test
+    fun `a spent shot leaves its hit in daylight, unlit and in its own colors`() = flight(JUNGLE) {
+        holdFire()
+        val imp = imp(x = 400f, y = 60f, elite = null, hitPoints = 1000)
+        val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
+        val shot = assets.graphics.shot
+        EntityFactory(probe.world).createShot(
+            x = rect.centerX - SHOT_FRAME_WIDTH / 2f, y = rect.centerY - shot.height / 2f,
+            width = SHOT_FRAME_WIDTH.toFloat(), height = shot.height.toFloat(), pixmap = shot, isPlayer = true,
+            variant = ElitePalette.VENOM.shotVariant,
+        )
+
+        screen.update(TICK_INITIAL * 1.5f)
+        val hit = hits().single()
+        assertNull(probe.world.getComponent(hit, LightComponent::class))
+        assertEquals(
+            ElitePalette.VENOM.shotVariant * IMPACT_FRAME * IMPACT_FRAME_COUNT,
+            probe.world.getComponent(hit, SpriteComponent::class)!!.baseSrcX,
+        )
+    }
+
+    /** A piercing shot goes through what it pierces, but it struck it: it leaves its hit there. */
+    @Test
+    fun `a piercing shot leaves its hit in what it goes through`() = flight(CAVE) {
+        holdFire()
+        val imp = imp(x = 400f, y = 60f, elite = null, hitPoints = 1000)
+        val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
+        val shot = assets.graphics.shot
+        val shotId = EntityFactory(probe.world).createShot(
+            x = rect.centerX - SHOT_FRAME_WIDTH, y = rect.centerY - shot.height / 2f,
+            width = SHOT_FRAME_WIDTH.toFloat(), height = shot.height.toFloat(), pixmap = shot, isPlayer = true,
+            pierce = 1,
+        )
+
+        screen.update(TICK_INITIAL * 1.5f)
+        assertEquals(1, hits().size, "the pierced imp's hit")
+        assertTrue(probe.world.getComponent(shotId, HealthComponent::class)!!.alive, "the shot should fly on")
     }
 
     @Test
@@ -730,6 +779,16 @@ class GameScreenTest {
         x = x, y = y, width = 28f, height = IMP_ROW.toFloat(), pixmap = assets.stage(CAVE).enemySheet,
         species = EnemySpecies.SCOUT, hitPoints = hitPoints, gun = gun, elite = elite,
     )
+
+    /** Every hit on screen: what shots have left where they struck. */
+    private fun Flight.hits(): List<EntityId> = probe.world.query(SpriteComponent::class).filter {
+        probe.world.getComponent(it, SpriteComponent::class)!!.pixmap == assets.graphics.impact
+    }
+
+    /** Holds the bat's gun, so the only shots in the run are the ones a test puts there. */
+    private fun Flight.holdFire() {
+        probe.world.getComponent(probe.batId, WeaponComponent::class)!!.interval = Float.MAX_VALUE
+    }
 
     private fun Flight.enemyShots(): List<EntityId> = probe.world.query(CollisionComponent::class).filter {
         probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.ENEMY_PROJECTILE

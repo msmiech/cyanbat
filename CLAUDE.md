@@ -80,7 +80,8 @@ playfield for wide screens; it would change difficulty by device.
   at most 64 component types.
 - Entity ids are recycled when removals are finalized at the end of `World.update`. Never keep an
   id across frames to look something up later. Copy what you need at spawn instead: a shot's color
-  is read off its shooter when the shot is created.
+  is read off its shooter when the shot is created, and the shot carries it on (`ColorwayComponent`)
+  to the hit it leaves where it is spent.
 - There is no `removeComponent`. Clamp or disarm a component rather than taking it off.
 - Systems resolve `ComponentMapper`s in `onAttach` and iterate with the allocation-free `forEach`.
 - Engine systems know nothing about CyanBat; game-specific work goes through callbacks
@@ -157,10 +158,10 @@ and the desert are flown in daylight, and none of this runs there.
   it the shots, the bat and the blasts, which are lights and are drawn as bright as they are. In
   daylight the two passes draw what one did.
 - What gives off light (`LightComponent`: the bat, each shot in its bolt's color - `SHOT_BODY_COLORS`,
-  which `SpriteSheetTest` holds to the sheet - blasts, the flash where a shot is spent, elites, the
-  cave's boss) and what throws shadows (`OccluderComponent`: obstacles and creatures) is set in
-  `EntityFactory`, and only when its `lit` is set. The numbers are under "The dark" in
-  `CyanBatConstants`.
+  which `SpriteSheetTest` holds to the sheet - blasts, a shot's hit, which flares wider than the shot's
+  own light, elites, the cave's boss) and what throws shadows (`OccluderComponent`: obstacles and
+  creatures) is set in `EntityFactory`, and only when its `lit` is set. The numbers are under "The
+  dark" in `CyanBatConstants`.
 - The light is worked out on the tick into a `Lighting` and drawn on the frame by
   `Graphics.drawLighting`. `ComposeGraphics` turns it into a picture on the CPU, a pixel of it to
   each 2x2 cell of frame pixels (`LIGHT_CELL`): each light a cached sprite of banded rings in its color

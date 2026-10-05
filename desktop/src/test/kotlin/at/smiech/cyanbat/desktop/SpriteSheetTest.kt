@@ -3,6 +3,7 @@ package at.smiech.cyanbat.desktop
 import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.SHOT_BODY_COLORS
+import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -174,13 +175,80 @@ class SpriteSheetTest {
     }
 
     /**
-     * Fourteen colorways of one 24x12 bolt: the player's, one per cave enemy type, then the jungle's
-     * spitter, wisp and Moth Queen, the Sand Wyrm's, one per elite palette, and the Naga's; see
-     * `EnemySpecies.shotVariant`, `SAND_WYRM_SHOT_VARIANT`, `ElitePalette` and `NAGA_SHOT_VARIANT`.
+     * Fourteen colorways of one 24x12 bolt, four frames of it each: the player's, one per cave enemy
+     * type, then the jungle's spitter, wisp and Moth Queen, the Sand Wyrm's, one per elite palette, and
+     * the Naga's; see `EnemySpecies.shotVariant`, `SAND_WYRM_SHOT_VARIANT`, `ElitePalette`,
+     * `NAGA_SHOT_VARIANT` and `SHOT_FRAME_COUNT`.
      */
     @Test
     fun `the shot sheet holds a colorway per shooter`() {
-        assertEquals(24 * 14 to 12, sizeOf("shot.png"))
+        assertEquals(24 * 4 * 14 to 12, sizeOf("shot.png"))
+    }
+
+    /** The hit, six 21x21 frames of it, in the same fourteen colorways; see `IMPACT_FRAME_*`. */
+    @Test
+    fun `the hit sheet holds a colorway per shooter`() {
+        assertEquals(21 * 6 * 14 to 21, sizeOf("impact.png"))
+    }
+
+    /**
+     * The bolt burns as it flies, so every frame of it is a picture of its own; and the hit is a spark
+     * going off, with no frame of it empty and none the same as the one before.
+     */
+    @Test
+    fun `every frame of a shot and of its hit moves on from the one before`() {
+        for ((name, frameWidth, frames) in listOf(Triple("shot.png", 24, 4), Triple("impact.png", 21, 6))) {
+            assertNoBlankFrames(name, frameWidth = frameWidth, frames = frames * 14)
+            val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
+            for (variant in 0 until 14) {
+                for (frame in 1 until frames) {
+                    val left = (variant * frames + frame) * frameWidth
+                    val changed = (0 until image.height).sumOf { y ->
+                        (0 until frameWidth).count { x -> image.getRGB(left + x, y) != image.getRGB(left - frameWidth + x, y) }
+                    }
+                    assertTrue(changed > 0, "frame $frame of colorway $variant of $name is the frame before it again")
+                }
+            }
+        }
+    }
+
+    /**
+     * Each colorway is one ramp - a tail, a body, a tip, and the hot core and wisps worked out from
+     * them - and a hit is drawn from its shot's ramp and nothing else, so it comes out the color of
+     * what struck. Read per colorway, since fourteen ramps on one sheet are fourteen palettes.
+     */
+    @Test
+    fun `a shot and its hit are drawn in one ramp per colorway`() {
+        val shots = javaClass.getResourceAsStream("/shot.png")!!.use { ImageIO.read(it) }
+        val hits = javaClass.getResourceAsStream("/impact.png")!!.use { ImageIO.read(it) }
+        for (variant in 0 until 14) {
+            val ramp = opaqueColors(shots, variant * 24 * 4, 24 * 4)
+            assertTrue(ramp.size <= 5, "colorway $variant's bolt carries ${ramp.size} colors")
+            val hit = opaqueColors(hits, variant * 21 * 6, 21 * 6)
+            assertTrue(ramp.containsAll(hit), "colorway $variant's hit strays out of its bolt's colors")
+        }
+    }
+
+    /**
+     * In the dark a shot gives off the light of its body's color, which the game declares apart from
+     * the sheet, in `SHOT_BODY_COLORS`. This holds the two together, colorway by colorway: the body is
+     * the color most of every frame of the bolt is drawn in, whatever burns inside it.
+     */
+    @Test
+    fun `every shot gives off the color of its bolt`() {
+        val image = javaClass.getResourceAsStream("/shot.png").use { ImageIO.read(it) }
+        assertEquals(image.width / (24 * 4), SHOT_BODY_COLORS.size, "a light color for every colorway")
+        for (variant in SHOT_BODY_COLORS.indices) {
+            for (frame in 0 until 4) {
+                val body = bodyOfBolt(image, variant, frame)
+                assertEquals(
+                    SHOT_BODY_COLORS[variant] and 0xFFFFFF,
+                    body and 0xFFFFFF,
+                    "frame $frame of colorway $variant's bolt is #%06X, its light #%06X"
+                        .format(body and 0xFFFFFF, SHOT_BODY_COLORS[variant] and 0xFFFFFF),
+                )
+            }
+        }
     }
 
     /**
@@ -188,37 +256,40 @@ class SpriteSheetTest {
      * `ElitePalette`, the bolts in `generate_shot_sprite.py`. This holds them together: the body of
      * each colorway, read off the sheet, is exactly its palette's rim.
      */
-    /**
-     * In the dark a shot gives off the light of its body's color, which the game declares apart from
-     * the sheet, in `SHOT_BODY_COLORS`. This holds the two together, colorway by colorway.
-     */
-    @Test
-    fun `every shot gives off the color of its bolt`() {
-        val image = javaClass.getResourceAsStream("/shot.png").use { ImageIO.read(it) }
-        assertEquals(image.width / 24, SHOT_BODY_COLORS.size, "a light color for every colorway")
-        for (variant in SHOT_BODY_COLORS.indices) {
-            val body = image.getRGB(variant * 24 + 12, 5)
-            assertEquals(
-                SHOT_BODY_COLORS[variant] and 0xFFFFFF,
-                body and 0xFFFFFF,
-                "colorway $variant's bolt is #%06X, its light #%06X"
-                    .format(body and 0xFFFFFF, SHOT_BODY_COLORS[variant] and 0xFFFFFF),
-            )
-        }
-    }
-
     @Test
     fun `every elite's bolts are the color of its glow`() {
         val image = javaClass.getResourceAsStream("/shot.png").use { ImageIO.read(it) }
         for (palette in ElitePalette.entries) {
-            // The middle of the bolt's body, clear of its tail and its tip.
-            val body = image.getRGB(palette.shotVariant * 24 + 12, 5)
+            val body = bodyOfBolt(image, palette.shotVariant, frame = 0)
             assertEquals(
                 palette.aura.rim and 0xFFFFFF,
                 body and 0xFFFFFF,
                 "$palette's bolts are #%06X, its glow's rim #%06X"
                     .format(body and 0xFFFFFF, palette.aura.rim and 0xFFFFFF),
             )
+        }
+    }
+
+    /** The color most of [frame] of colorway [variant]'s bolt is drawn in: its body. */
+    private fun bodyOfBolt(image: BufferedImage, variant: Int, frame: Int): Int {
+        val left = (variant * 4 + frame) * 24
+        val counts = mutableMapOf<Int, Int>()
+        for (y in 0 until image.height) {
+            for (x in left until left + 24) {
+                val argb = image.getRGB(x, y)
+                if (argb ushr 24 != 0) counts[argb] = (counts[argb] ?: 0) + 1
+            }
+        }
+        return counts.maxBy { it.value }.key
+    }
+
+    /** Every color drawn in the [width] columns of [image] from [left], less the transparent. */
+    private fun opaqueColors(image: BufferedImage, left: Int, width: Int): Set<Int> = buildSet {
+        for (y in 0 until image.height) {
+            for (x in left until left + width) {
+                val argb = image.getRGB(x, y)
+                if (argb ushr 24 != 0) add(argb)
+            }
         }
     }
 
@@ -480,7 +551,6 @@ class SpriteSheetTest {
             "cyanBat.png",
             "cyanBatDeath.png",
             "enemies.png",
-            "shot.png",
             "background.png",
             "explosion.png",
             "shatter.png",

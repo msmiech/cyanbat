@@ -1,14 +1,19 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.ecs.ColorwayComponent
 import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.MOTH_QUEEN_SHOT_VARIANT
+import at.smiech.cyanbat.util.NAGA_SHOT_VARIANT
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
+import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
+import at.smiech.engine.ecs.AnimationComponent
+import at.smiech.engine.ecs.AnimationSystem
 import at.smiech.engine.ecs.ProjectileStyleComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.World
@@ -34,7 +39,7 @@ class ShotColorwayTest {
 
     private val world = World()
     private val factory = EntityFactory(world)
-    private val shotSheet = SheetPixmap(SHOT_FRAME_WIDTH * COLORWAYS, 12)
+    private val shotSheet = SheetPixmap(STRIDE * COLORWAYS, 12)
     private val enemySheet = SheetPixmap(32 * 4 * 3, 29)
 
     private fun spriteOf(id: Int) = world.getComponent(id, SpriteComponent::class)!!
@@ -53,9 +58,9 @@ class ShotColorwayTest {
     }
 
     @Test
-    fun `each colorway reads from its own frame`() {
+    fun `each colorway reads from its own frames`() {
         for (variant in 0 until COLORWAYS) {
-            assertEquals(variant * SHOT_FRAME_WIDTH, spriteOf(shot(variant)).baseSrcX)
+            assertEquals(variant * STRIDE, spriteOf(shot(variant)).baseSrcX)
         }
     }
 
@@ -64,9 +69,39 @@ class ShotColorwayTest {
         for (variant in 0 until COLORWAYS) {
             val sprite = spriteOf(shot(variant))
             assertTrue(
-                sprite.baseSrcX + sprite.srcWidth <= shotSheet.width,
+                sprite.baseSrcX + STRIDE <= shotSheet.width,
                 "colorway $variant runs past the sheet",
             )
+        }
+    }
+
+    /**
+     * The bolt burns as it flies: it walks its own colorway's frames and comes round to the first
+     * again, never straying into the next colorway's.
+     */
+    @Test
+    fun `a shot plays its colorway's frames over and over`() {
+        val variant = 3
+        val id = shot(variant)
+        val animation = world.getComponent(id, AnimationComponent::class)
+        assertNotNull(animation, "a shot should be animated")
+        assertEquals(SHOT_FRAME_COUNT, animation.frameCount)
+        assertTrue(animation.isLooping, "a shot burns for as long as it flies")
+
+        val system = AnimationSystem().also { world.addSystem(it) }
+        val seen = mutableSetOf<Int>()
+        repeat(4 * SHOT_FRAME_COUNT) {
+            system.update(world, animation.interval * 1.01f, null)
+            seen += spriteOf(id).srcX
+        }
+        assertEquals(List(SHOT_FRAME_COUNT) { variant * STRIDE + it * SHOT_FRAME_WIDTH }.toSet(), seen)
+    }
+
+    /** What a shot leaves where it is spent is drawn in the shot's colors, so it carries them. */
+    @Test
+    fun `a shot carries its colorway`() {
+        for (variant in 0 until COLORWAYS) {
+            assertEquals(variant, world.getComponent(shot(variant), ColorwayComponent::class)?.variant)
         }
     }
 
@@ -77,7 +112,7 @@ class ShotColorwayTest {
             0f, 0f, SHOT_FRAME_WIDTH.toFloat(), 12f, shotSheet, isPlayer = true, damage = 34,
         )
 
-        assertEquals(PLAYER_SHOT_VARIANT * SHOT_FRAME_WIDTH, spriteOf(id).baseSrcX)
+        assertEquals(PLAYER_SHOT_VARIANT * STRIDE, spriteOf(id).baseSrcX)
     }
 
     // --- who carries a colorway ------------------------------------------------------------------
@@ -106,6 +141,7 @@ class ShotColorwayTest {
             assertTrue(species.shotVariant in 0 until COLORWAYS, "$species fires colorway ${species.shotVariant}")
         }
         assertTrue(MOTH_QUEEN_SHOT_VARIANT in 0 until COLORWAYS)
+        assertTrue(NAGA_SHOT_VARIANT in 0 until COLORWAYS)
     }
 
     /** The case the feature was asked for: the cave's boss's bolts come out crimson, like the rest of it. */
@@ -172,8 +208,11 @@ class ShotColorwayTest {
     private companion object {
         /**
          * How many colorways shot.png lays out: the player's, the cave's three, the jungle's three,
-         * the Sand Wyrm's, and the elites' five.
+         * the Sand Wyrm's, the elites' five, and the Naga's.
          */
-        const val COLORWAYS = 13
+        const val COLORWAYS = 14
+
+        /** One colorway's frames, side by side. */
+        const val STRIDE = SHOT_FRAME_WIDTH * SHOT_FRAME_COUNT
     }
 }
