@@ -1,8 +1,8 @@
 # CyanBat
 
-CyanBat is a side-scrolling 2D action game, inspired by retro classics like *Gradius* and modern
-arcade staples like *Flappy Bird*. It runs on **Android** and on the **desktop** (Windows, macOS
-and Linux) from a single shared codebase.
+CyanBat is a side-scrolling 2D action game, inspired by retro classics like *Gradius*, modern arcade
+staples like *Flappy Bird*, and, of course, *NyanCat*. It runs on **Android** and on the **desktop**
+(Windows, macOS and Linux) from a single shared codebase.
 
 <p align="center">
   <img src="docs/gameplay.gif" alt="Stage 1, the jungle, grown over pale ancient ruins: the bat fans its fire through wasp swarms, wisp formations and shielded beetles past hanging chains and fallen walls, picks Spread Shot at a level up and brings down the Moth Queen. Then glimpses of stage 2, the cave, flown in the dark by the bat's own light, up to the moment the Caco Imp arrives, of stage 3, the desert, at noon and as the sun goes down, and of stage 4, the lagoon, at night and as the sun comes up out of the sea between limestone islands">
@@ -13,13 +13,13 @@ and Linux) from a single shared codebase.
 
 ## 🚀 Architecture
 
-- **Kotlin Multiplatform**: the engine and the whole game — rules, screens, rendering and menu
-  UI — are common code. The platform modules only supply platform pieces: asset decoding, input,
-  audio, haptics and persistence.
-- **Compose Multiplatform**: one set of menu, settings and credits screens renders on both
-  Android and desktop, from shared string and drawable resources. The game itself is drawn
-  through Compose's Canvas too — on the GPU through HWUI on Android, through Skia on the
-  desktop — as pixel art on a 640x360 grid at any screen size, with the HUD's text smooth over it.
+- **Kotlin Multiplatform**: the engine and the whole game — rules, screens, rendering and menu UI —
+  are common code. The platform modules only supply platform pieces: asset decoding, input, audio,
+  haptics and persistence.
+- **Compose Multiplatform**: one set of menu, settings and credits screens renders on both Android
+  and desktop, from shared string and drawable resources. The game itself is drawn through Compose's
+  Canvas too — on the GPU through HWUI on Android, through Skia on the desktop — as pixel art on a
+  640x360 grid at any screen size, with the HUD's text smooth over it.
 - **Entity Component System**: `:engine`'s ECS decouples game logic from data, so behavior is
   composed from components rather than an inheritance hierarchy.
 - **2D lighting**: the cave is lit by point lights - the bat, its shots and the flare of every hit,
@@ -27,27 +27,26 @@ and Linux) from a single shared codebase.
   along the edge of whatever it falls on. The light is worked out on the CPU at half the frame's
   resolution, a few native blits a light, and laid over the frame in one GPU draw, so it stays on
   the pixel grid and cheap on old phones.
-- **Value class optimization**: `Vector2` is a bit-packed value class, so movement math
-  allocates nothing in the game loop.
-- **Sub-pixel precision**: geometry is float-based, and the frame loop clamps its delta so a
-  resume cannot fast-forward the simulation.
-- **Adaptive music**: each stage's music is eight stems mixed live, in the manner of Doom 2016
-  and SSX 3. The waves raise a floor and the combo's fire builds on it, every rung it climbs from
-  HOT to SUPERNOVA bringing more of the piece in on the beat: past the tune, a trap beat grows
-  under the stage's own instruments - 808s, then rolling hi-hats, then chopped voices - and a
-  streak gone SUPERNOVA brings in the boss's own layer as well. A hit knocks the music back with a
-  thud, the level-up dialog holds it under a muffle, and the boss arrives on a drop to silence and
-  a slam back in on the downbeat. The stems are IMA ADPCM, decoded by the shared engine, so they
-  line up to the sample on every platform.
+- **Value class optimization**: `Vector2` is a bit-packed value class, so movement math allocates
+  nothing in the game loop.
+- **Sub-pixel precision**: geometry is float-based, and the frame loop clamps its delta so a resume
+  cannot fast-forward the simulation.
+- **Adaptive music**: each stage's music is eight stems mixed live. The waves raise a floor and the
+  combo's fire builds on it, every rung it climbs from HOT to SUPERNOVA bringing more of the piece
+  in on the beat: past the tune, a trap beat grows under the stage's own instruments - 808s, then
+  rolling hi-hats, then chopped voices - and a streak gone SUPERNOVA brings in the boss's own layer
+  as well. A hit knocks the music back with a thud, the level-up dialog holds it under a muffle, and
+  the boss arrives on a drop to silence and a slam back in on the downbeat. The stems are IMA ADPCM,
+  decoded by the shared engine, so they line up to the sample on every platform.
 
 ## 📁 Project structure
 
-| Module | What it is |
-| --- | --- |
-| `:engine` | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), math (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain` and `jvmMain` hold the platform implementations. |
-| `:game` | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI. Android + JVM, and iOS too, though no iOS app exists yet. |
-| `:app` | Android application — activities, DataStore, and Android asset wiring. |
-| `:desktop` | Compose Desktop application — window, JVM asset wiring, and preferences-backed storage. |
+| Module     | What it is                                                                                                                                                                                                                           |
+|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| `:engine`  | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), math (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain` and `jvmMain` hold the platform implementations. |
+| `:game`    | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI. Android + JVM, and iOS too, though no iOS app exists yet.                                                                                         |
+| `:app`     | Android application — activities, DataStore, and Android asset wiring.                                                                                                                                                               |
+| `:desktop` | Compose Desktop application — window, JVM asset wiring, and preferences-backed storage.                                                                                                                                              |
 
 Game assets live once at the repo root in `assets/`, packaged as Android assets by `:app` and as
 classpath resources by `:desktop`.
@@ -72,11 +71,11 @@ build, install, launch, screenshot, and check persistence. See
 
 ## 🗺 Stages
 
-| Stage | What it throws at you |
-|---|---|
-| 1. The Jungle | A sunlit rainforest grown over pale ancient ruins - stepped terraces, trapezoidal doorways, towers and broken bridges in the haze. Wasp swarms, wisp formations, diving owls, hovering spitters that aim at you, and beetles behind shield bubbles, each met on its own before they come together, ending in the three-phase Moth Queen. |
-| 2. The Cave | Flown in the dark, by the bat's own light: every shot lights its way and flares up where it hits, every blast lights up the rock, and whatever stands in the light throws a shadow. Five one-minute waves of imps, tougher and faster than the jungle's, then the Caco Imp, alight in the dark - until it puts its light out to prowl the cave unseen, flaring up only to ambush, and ends ablaze, calling in its kind. |
-| 3. The Desert | Flown from noon into nightfall: the sun sets as the waves go by and the stars come out for the boss. Locust clouds, looping hawks, djinn throwing fans of fire, scarabs whose shells grow back, and wyrmlings that cruise in under the sand and leap at you - ending in the Sand Wyrm, which breaches out of the dunes in arcs and can be hit anywhere along its body. |
+| Stage         | What it throws at you                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  |
+|---------------|------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| 1. The Jungle | A sunlit rainforest grown over pale ancient ruins - stepped terraces, trapezoidal doorways, towers and broken bridges in the haze. Wasp swarms, wisp formations, diving owls, hovering spitters that aim at you, and beetles behind shield bubbles, each met on its own before they come together, ending in the three-phase Moth Queen.                                                                                                                                                                                                                                                                                                                                                                               |
+| 2. The Cave   | Flown in the dark, by the bat's own light: every shot lights its way and flares up where it hits, every blast lights up the rock, and whatever stands in the light throws a shadow. Five one-minute waves of imps, tougher and faster than the jungle's, then the Caco Imp, alight in the dark - until it puts its light out to prowl the cave unseen, flaring up only to ambush, and ends ablaze, calling in its kind.                                                                                                                                                                                                                                                                                                |
+| 3. The Desert | Flown from noon into nightfall: the sun sets as the waves go by and the stars come out for the boss. Locust clouds, looping hawks, djinn throwing fans of fire, scarabs whose shells grow back, and wyrmlings that cruise in under the sand and leap at you - ending in the Sand Wyrm, which breaches out of the dunes in arcs and can be hit anywhere along its body.                                                                                                                                                                                                                                                                                                                                                 |
 | 4. The Lagoon | The hardest stage, flown from night into noon across a bay of limestone islands: the moon goes down behind you, the dawn comes up pink and violet, and the sun rises out of the sea ahead, banded by the haze, until the sky is cyan. Piranha schools, crabs whose shells grow back, puffers that throw rings of spines, and sharks that come from behind, fins cutting the water, and leap forward at you. A temple comes into sight as the boss nears, its towers on the horizon and its stones in the water - ending in the Naga, a hooded serpent that rears up out of the moat to sway, spit and strike at you, and dives to come up somewhere else, over five phases and twice the health of any boss before it. |
 
 Beating a stage unlocks the next, and from then on Start Game opens a stage select. Every stage is
@@ -86,8 +85,8 @@ the music for all of them are generated by the scripts in `tools/`; the desert's
 skies are drawn by the game itself, from the stage clock. Each stage has a score of its own - wooden
 drums and a bamboo flute in the jungle, a campfire guitar in the cave, an oud and a ney in the
 desert, a gong circle, a reed, tribal toms and whooping voices in the lagoon - that starts out quiet
-and builds as the fight does. The Naga is fought to a piece of its own, faster and wilder, which
-the lagoon's music stops dead for as it rises. The menu has a theme of its own, a warm marimba that
+and builds as the fight does. The Naga is fought to a piece of its own, faster and wilder, which the
+lagoon's music stops dead for as it rises. The menu has a theme of its own, a warm marimba that
 gives way to a slow trap beat, a music box and a choir as night falls, and a lost run gets a lament.
 A won one gets a fanfare: the boss goes up and takes everything it called in with it, the stage's
 music stops dead for the blast, and a choir climbs to a drop that lands with the stage complete
@@ -122,10 +121,9 @@ harmless until they thaw - though never a boss or an elite.
 | Controller | Left stick or d-pad                    | `Start`         | `B`          |
 
 Dragging pins the bat under your finger and keeps the offset you grabbed it by, so it never snaps
-out from under the fingertip; the hit box is padded well past the sprite so it is catchable
-without aiming. A touch landing away from the bat flies it over instead, which is how the game
-played before it was draggable. Holding a key or pushing a stick overrides a drag for as long as
-it lasts.
+out from under the fingertip; the hit box is padded well past the sprite so it is catchable without
+aiming. A touch landing away from the bat flies it over instead, which is how the game played before
+it was draggable. Holding a key or pushing a stick overrides a drag for as long as it lasts.
 
 Backgrounding the app — or, on desktop, the window losing focus — pauses the run, and it stays
 paused until you resume it rather than dropping you straight back into a dodge.
@@ -136,15 +134,15 @@ or `B` goes back a screen. The cursor starts on each screen's first choice, and 
 button you left from.
 
 Controller support is real on Android, where the platform reports pads as key codes and joystick
-axes. On desktop the JDK has no gamepad API, so nothing feeds those events yet: the mapping seam
-is `ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
+axes. On desktop the JDK has no gamepad API, so nothing feeds those events yet: the mapping seam is
+`ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
 
-A hit buzzes whatever you are playing with. That is the controller, if it can rumble: a DualSense,
-a DualShock 4, or an Xbox One or Series pad over Bluetooth. Android's own kernels carry the
-drivers that rumble those, so a phone that came out with Android 12 or later has them; an older one
-may not. Otherwise it is the phone, and that includes pads with no motors of their own, such as
-many of the ones a phone clips into. Touching the screen hands it back to the phone. Settings →
-Vibration turns it off; it is on by default.
+A hit buzzes whatever you are playing with. That is the controller, if it can rumble: a DualSense, a
+DualShock 4, or an Xbox One or Series pad over Bluetooth. Android's own kernels carry the drivers
+that rumble those, so a phone that came out with Android 12 or later has them; an older one may not.
+Otherwise it is the phone, and that includes pads with no motors of their own, such as many of the
+ones a phone clips into. Touching the screen hands it back to the phone. Settings → Vibration turns
+it off; it is on by default.
 
 ## 🧪 Building and testing
 
@@ -153,8 +151,8 @@ Vibration turns it off; it is on by default.
 ```
 
 Assembles every module, runs lint, and runs the unit tests — ECS, math, spawn pacing, the music
-mixer's timing, a check that every stage's music stems fit the grid the game plays them on, and
-one that the MP3 service provider the desktop's death sound depends on is actually present.
+mixer's timing, a check that every stage's music stems fit the grid the game plays them on, and one
+that the MP3 service provider the desktop's death sound depends on is actually present.
 
 `:engine` and `:game` also have iOS targets, groundwork for an iOS app that does not exist yet, so
 shared code cannot quietly come to depend on the JVM. Only a Mac builds them: there `build` also
@@ -172,20 +170,20 @@ The GIF at the top of this page is recorded rather than staged:
 This flies each stage on an autopilot — a virtual game pad that reads the run's world and dodges
 whatever is coming — through the desktop build's own renderer, headless and faster than real time.
 Each run is then cut down to a few short clips, and the stages are strung together into one reel,
-`docs/gameplay.gif`. Each stage gives away less than the one before, so the footage leaves the
-later stages to be discovered: the jungle from its title through a level up and its busiest wave
-to the boss going down; the cave in glimpses, up to the moment its boss arrives; the desert in fewer
-still, and never its boss; and the lagoon only as its sun comes up. Every recording is a different run, because the game rolls its spawns
-fresh each time, and a run the autopilot loses is flown again. Re-record after changing anything
-that shows on screen. `--args="--stages=3 --out=build/desert.gif --frames=build/frames"` records
-just the desert's part, away from the README's copy, and also writes its frames out as PNGs to look
-through.
+`docs/gameplay.gif`. Each stage gives away less than the one before, so the footage leaves the later
+stages to be discovered: the jungle from its title through a level up and its busiest wave to the
+boss going down; the cave in glimpses, up to the moment its boss arrives; the desert in fewer still,
+and never its boss; and the lagoon only as its sun comes up. Every recording is a different run,
+because the game rolls its spawns fresh each time, and a run the autopilot loses is flown again.
+Re-record after changing anything that shows on screen.
+`--args="--stages=3 --out=build/desert.gif --frames=build/frames"` records just the desert's part,
+away from the README's copy, and also writes its frames out as PNGs to look through.
 
 ## 📦 Cutting a release
 
-Every artifact takes its version from `cyanbat.version` in `gradle.properties`. The release
-workflow overrides it with the tag being built, so tagging is what sets the version — the property
-is only what an untagged build stamps.
+Every artifact takes its version from `cyanbat.version` in `gradle.properties`. The release workflow
+overrides it with the tag being built, so tagging is what sets the version — the property is only
+what an untagged build stamps.
 
 Pushing a version tag builds and publishes everything:
 
@@ -201,14 +199,14 @@ nothing.
 
 ### Signing secrets
 
-The APK is signed with a keystore supplied through repository secrets, so nothing sensitive lives
-in the repository.
+The APK is signed with a keystore supplied through repository secrets, so nothing sensitive lives in
+the repository.
 
 2.0 is signed with a **new** keystore. The one the 1.x releases used is gone, and Android identifies
 an app by its signature, so 2.0 is a fresh install rather than an update — anything still running a
 1.x build has to be uninstalled first. That break is a one-off; from 2.0 onwards the same keystore
-has to keep being used, because losing it again would force the same break on whoever is running
-2.x by then.
+has to keep being used, because losing it again would force the same break on whoever is running 2.x
+by then.
 
 Create it once, and back it up somewhere you will still have in a few years:
 
@@ -219,12 +217,12 @@ keytool -genkeypair -v -keystore cyanbat-release.jks -storetype PKCS12 \
 
 Then add four repository secrets, under **Settings → Secrets and variables → Actions**:
 
-| Secret | What it is |
-|---|---|
-| `ANDROID_KEYSTORE_BASE64` | The keystore file, base64-encoded |
-| `ANDROID_KEYSTORE_PASSWORD` | Keystore password |
-| `ANDROID_KEY_ALIAS` | Alias of the signing key inside the keystore — `cyanbat` above |
-| `ANDROID_KEY_PASSWORD` | Password for the key. **Optional on PKCS12**, see below |
+| Secret                      | What it is                                                     |
+|-----------------------------|----------------------------------------------------------------|
+| `ANDROID_KEYSTORE_BASE64`   | The keystore file, base64-encoded                              |
+| `ANDROID_KEYSTORE_PASSWORD` | Keystore password                                              |
+| `ANDROID_KEY_ALIAS`         | Alias of the signing key inside the keystore — `cyanbat` above |
+| `ANDROID_KEY_PASSWORD`      | Password for the key. **Optional on PKCS12**, see below        |
 
 A PKCS12 keystore has only one password. `keytool` refuses to give the key its own — *"Different
 store and key passwords not supported for PKCS12 KeyStores"* — and the store password is what
@@ -239,29 +237,30 @@ base64 -w0 cyanbat-release.jks
 ```
 
 Without these the release job fails rather than publishing an APK nobody can install. Local builds
-and pull requests need no keystore at all — `assembleRelease` simply produces an unsigned APK, as
-it always has.
+and pull requests need no keystore at all — `assembleRelease` simply produces an unsigned APK, as it
+always has.
 
-Desktop installers are unsigned, so Windows SmartScreen and macOS Gatekeeper will warn on first
-run. Fixing that needs a paid code-signing certificate and an Apple developer account.
+Desktop installers are unsigned, so Windows SmartScreen and macOS Gatekeeper will warn on first run.
+Fixing that needs a paid code-signing certificate and an Apple developer account.
 
 ## 🛠 Tech stack
 
 - **Language**: Kotlin 2.x, Kotlin Multiplatform
 - **UI**: Compose Multiplatform
 - **Persistence**: Jetpack DataStore (Android), `java.util.prefs` (desktop)
-- **Audio**: a shared stem mixer for all of the music, played through `AudioTrack` on Android and
-  a `javax.sound.sampled` line on the desktop; sound effects through `SoundPool` and
+- **Audio**: a shared stem mixer for all of the music, played through `AudioTrack` on Android and a
+  `javax.sound.sampled` line on the desktop; sound effects through `SoundPool` and
   `javax.sound.sampled` clips; the mp3spi/jlayer service providers decode the desktop's MP3 death
   sound
 - **CI/CD**: GitHub Actions
 
 ## 📜 History
 
-This project originated as an academic project in 2012, based on the principles from *Beginning
-Android Games* by Mario Zechner and Robert Green. The original framework was provided by DI Robert
-Grüneis. In 2026 it was refactored from legacy OOP to a data-driven ECS architecture, and then
-from an Android-only app to Kotlin Multiplatform with a desktop target.
+This project originated as an academic project in 2012. The initial implementation based on the
+principles from *Beginning Android Games* by Mario Zechner and Robert Green. The original
+implementation of the game framework was provided by DI Robert Grüneis. In 2026 it was rewritten
+from legacy OOP to a completely new data-driven ECS architecture, and then from an Android-only app
+to Kotlin Multiplatform with a desktop target.
 
 ---
 *Developed with ❤️ using Kotlin.*

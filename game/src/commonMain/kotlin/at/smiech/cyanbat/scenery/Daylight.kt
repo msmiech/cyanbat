@@ -1,5 +1,9 @@
 package at.smiech.cyanbat.scenery
 
+import at.smiech.cyanbat.scenery.Daylight.SKY
+import at.smiech.cyanbat.scenery.Daylight.SKY_POSITIONS
+
+
 /**
  * The desert's day, from noon at the stage's first second to night on its boss's: what the sky, the
  * sun, the moon and the stars look like at any point in between.

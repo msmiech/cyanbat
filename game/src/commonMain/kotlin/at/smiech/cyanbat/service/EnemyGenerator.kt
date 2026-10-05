@@ -1,11 +1,11 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.ecs.ElitePalette
+import at.smiech.cyanbat.util.BEHIND_HOLD_X_MAX_FRACTION
+import at.smiech.cyanbat.util.BEHIND_HOLD_X_MIN_FRACTION
 import at.smiech.cyanbat.util.BOSS_BAR_HEIGHT
 import at.smiech.cyanbat.util.BOSS_BAR_TOP
 import at.smiech.cyanbat.util.BOSS_BAR_WIDTH
-import at.smiech.cyanbat.util.BEHIND_HOLD_X_MAX_FRACTION
-import at.smiech.cyanbat.util.BEHIND_HOLD_X_MIN_FRACTION
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.BURROW_SHOWING
 import at.smiech.cyanbat.util.ELITE_FIRE_INTERVAL_FACTOR

@@ -1,5 +1,8 @@
 package at.smiech.cyanbat.scenery
 
+import at.smiech.cyanbat.scenery.Daybreak.SKY_POSITIONS
+
+
 /**
  * The lagoon's day, from night at the stage's first second to noon on its boss's: the desert's
  * [Daylight] run the other way, and in other colors.

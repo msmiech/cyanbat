@@ -2,10 +2,10 @@ package at.smiech.cyanbat.progress
 
 import at.smiech.cyanbat.util.ARMOR_FLOOR
 import at.smiech.cyanbat.util.COUNTERWEIGHT_REDUCTION
-import at.smiech.cyanbat.util.FROST_BEAM_INTERVAL_SECONDS
-import at.smiech.cyanbat.util.FROST_SECONDS
 import at.smiech.cyanbat.util.CRITICAL_CHANCE
 import at.smiech.cyanbat.util.CRITICAL_CHANCE_BONUS
+import at.smiech.cyanbat.util.FROST_BEAM_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.FROST_SECONDS
 import at.smiech.cyanbat.util.HEAVY_ROUNDS_DAMAGE
 import at.smiech.cyanbat.util.MAX_CRITICAL_CHANCE
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS

@@ -3,6 +3,13 @@ package at.smiech.cyanbat.service
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.ecs.ShotPattern
 import at.smiech.cyanbat.ecs.Volley
+import at.smiech.cyanbat.service.NagaBrain.Companion.REARED_HEIGHT
+import at.smiech.cyanbat.service.NagaBrain.Companion.RISE_EDGE_MARGIN
+import at.smiech.cyanbat.service.NagaBrain.Companion.RISE_LEAST_LEAD
+import at.smiech.cyanbat.service.NagaBrain.Companion.RISE_LEFTMOST
+import at.smiech.cyanbat.service.NagaBrain.Companion.SWIM_SPIT_SECONDS
+import at.smiech.cyanbat.service.NagaBrain.Companion.SWIM_WAVELENGTH
+import at.smiech.cyanbat.service.NagaBrain.Companion.SWIM_Y
 import at.smiech.cyanbat.util.NAGA_COIL_SECONDS
 import at.smiech.cyanbat.util.NAGA_ENRAGED_COIL_SECONDS
 import at.smiech.cyanbat.util.NAGA_ENRAGED_SPIT_SECONDS
