@@ -22,9 +22,25 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!--
+            The run lives in this activity and nowhere else, so recreating it starts the run over.
+            Nothing in it needs recreating for a new configuration: it has no theme, reads no
+            resources, lays its text out at density 1 and left to right, and fits its frame to the
+            window on every layout. So it takes in place every change a run can meet:
+            - uiMode: dark theme, which can come on by itself mid-run, on a schedule or with battery
+              saver.
+            - orientation, screenSize, smallestScreenSize, screenLayout: a foldable folding or
+              unfolding, a window resized in multi-window.
+            - density, touchscreen, colorMode: moving to another display, or the display size
+              setting.
+            - keyboard, keyboardHidden, navigation: a keyboard or game pad connecting or dropping
+              out.
+            - fontScale, locale, layoutDirection: font size and language, which in-game text does
+              not follow.
+        -->
         <activity
             android:name=".activity.CyanBatGameActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:configChanges="uiMode|orientation|screenSize|smallestScreenSize|screenLayout|density|touchscreen|colorMode|keyboard|keyboardHidden|navigation|fontScale|locale|layoutDirection"
             android:label="@string/in_game"
             android:screenOrientation="landscape"
             tools:ignore="DiscouragedApi" />

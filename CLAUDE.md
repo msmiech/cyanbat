@@ -100,6 +100,11 @@ playfield for wide screens; it would change difficulty by device.
   `Screen`s, because swapping screens disposes the run. `GameOverScreen` is its own screen.
 - Moving to the next stage builds a fresh `GameScreen`. That is what resets score, experience and
   power-ups.
+- On Android the run lives only in `CyanBatGameActivity`, and recreating it starts the run over. So
+  it takes every configuration change a run can meet in place - dark mode coming on, a fold or a
+  resize, another display's density, a pad dropping out - through its `configChanges`, each with
+  its reason in the manifest. Anything it comes to read from its configuration, a theme or a
+  resource, has to follow a change in `onConfigurationChanged` rather than wait for a recreation.
 - The boss going down does not put "stage complete" up at once. Everything hostile goes with it,
   and the run plays on for `STAGE_COMPLETE_DELAY_SECONDS` (`playOutVictory`) under a banner that
   the boss has fallen: the bat flies on, unarmed and untouchable, the wreck bursts again at
