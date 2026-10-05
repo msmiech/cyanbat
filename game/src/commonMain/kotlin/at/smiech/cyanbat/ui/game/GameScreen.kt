@@ -4,9 +4,16 @@ import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.ScoreTracker
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.ecs.BossPartComponent
+import at.smiech.cyanbat.ecs.ContactCooldownComponent
+import at.smiech.cyanbat.ecs.ContactWeapon
+import at.smiech.cyanbat.ecs.ContactWeaponComponent
 import at.smiech.cyanbat.ecs.EliteComponent
+import at.smiech.cyanbat.ecs.FrostBeamSystem
+import at.smiech.cyanbat.ecs.FrostSystem
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.ecs.NightfallSystem
+import at.smiech.cyanbat.ecs.OrbComponent
+import at.smiech.cyanbat.ecs.OrbitSystem
 import at.smiech.cyanbat.ecs.ShotPattern
 import at.smiech.cyanbat.ecs.Volley
 import at.smiech.cyanbat.music.MusicDirector
@@ -37,9 +44,11 @@ import at.smiech.cyanbat.util.DEATH_PUFF_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.DEATH_PUFF_SCALE
 import at.smiech.cyanbat.util.DEATH_SPIN_DEGREES_PER_SECOND
 import at.smiech.cyanbat.util.DEATH_TERMINAL_VELOCITY
+import at.smiech.cyanbat.util.FROST_LIGHT_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
+import at.smiech.cyanbat.util.ORB_REHIT_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.POWER_UP_ARMING_SECONDS
@@ -57,6 +66,8 @@ import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
 import at.smiech.cyanbat.util.VICTORY_FANFARE_DELAY_SECONDS
+import at.smiech.cyanbat.util.WAKE_HARMLESS_FROM
+import at.smiech.cyanbat.util.WAKE_REHIT_SECONDS
 import at.smiech.cyanbat.util.WAVE_BANNER_SECONDS
 import at.smiech.cyanbat.util.WOUNDED_FIRE_RATE
 import at.smiech.cyanbat.util.WOUNDED_PACE
@@ -101,11 +112,13 @@ import at.smiech.engine.ecs.RenderSystem
 import at.smiech.engine.ecs.ShieldComponent
 import at.smiech.engine.ecs.ShieldSystem
 import at.smiech.engine.ecs.SpriteComponent
+import at.smiech.engine.ecs.TrailComponent
 import at.smiech.engine.ecs.TrailSystem
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.ecs.WeaponSystem
 import at.smiech.engine.ecs.World
+import at.smiech.engine.ecs.WoundComponent
 import at.smiech.engine.ecs.WoundSystem
 import at.smiech.engine.math.Rect
 import kotlinx.coroutines.CoroutineScope
@@ -135,7 +148,10 @@ class GameScreen(
     var currentStage = env.assets.stage(stageId)
 
     private val world = World()
-    private val factory = EntityFactory(world, lit = currentStage.lighting != null)
+
+    /** Whether the stage is flown in the dark, where whatever gives off light carries one. */
+    private val lit = currentStage.lighting != null
+    private val factory = EntityFactory(world, lit)
 
     /**
      * Canceled in [dispose], so nothing started here outlives the screen. On the main dispatcher,
@@ -278,6 +294,26 @@ class GameScreen(
     /** Fractional health owed by Regeneration, carried between ticks; see [regenerate]. */
     private var regenCarry = 0f
 
+    /**
+     * The run's own clock, in ticks flown, which the contact weapons' rehit times are kept on; see
+     * [strike]. Its own rather than the stage clock, which the generator owns.
+     */
+    private var contactClock = 0f
+
+    /** The orbs' ring, kept to place new orbs at once; see [syncOrbs]. */
+    private val orbit = OrbitSystem { batRect() }
+
+    /** The frost beam, armed by the loadout; see [applyLoadout]. */
+    private val frostBeam = FrostBeamSystem(
+        game.frameBufferWidth,
+        game.frameBufferHeight,
+        random,
+        // Not once the stage is won: nothing hostile is left, and the bat flies on unarmed.
+        origin = { if (stageComplete) null else batRect() },
+        canFreeze = ::canFreeze,
+        onFire = { frozen, _ -> frostBeamFired(frozen) },
+    )
+
     /** Set by the player, and by the host backgrounding the app. Cleared only by the player. */
     private var paused = false
 
@@ -322,6 +358,12 @@ class GameScreen(
         // Straight after the movement that carries a shot into an edge, and well before the
         // culling that would remove it there.
         world.addSystem(BounceSystem(game.frameBufferWidth, game.frameBufferHeight))
+        // After the movement, which a frozen enemy's pace has held still, so the drift with the
+        // scenery is the whole of how it moves; and before the weapons, which its pace holds too.
+        world.addSystem(FrostSystem { id -> thaw(id) })
+        // After the movement that carried the bat, so the ring goes round where the bat is now, and
+        // before the collisions, so an orb hits what it is drawn over.
+        world.addSystem(orbit)
         world.addSystem(WeaponSystem { shooterId -> fireShot(shooterId) })
         world.addSystem(BackgroundScrollingSystem(game.frameBufferWidth, factory))
         world.addSystem(EnemyBehaviorSystem())
@@ -367,6 +409,9 @@ class GameScreen(
         // the wake and under the bar, which is the one thing that must never be lost behind an
         // effect - a player who cannot read their own health cannot play the fight.
         world.addSystem(TrailSystem { emitterId -> shedTrail(emitterId) })
+        // Over the wake, and in the cave over the dark: a beam is light. Its update needs nothing of
+        // the tick's but where things are, so it can fire from here.
+        world.addSystem(frostBeam)
         world.addSystem(AuraSystem(AuraSystem.Layer.ARCS))
         world.addSystem(HealthBarSystem(game.frameBufferHeight))
         world.addSystem(FloatingTextSystem())
@@ -556,12 +601,23 @@ class GameScreen(
             y = rect.centerY + height / 2f,
             width = width,
             height = height,
+            // Charged Trail lengthens the wake and makes it a weapon. A segment keeps what it was
+            // shed as, so the wake turns over to a new pick within its own length.
+            seconds = loadout.wakeSeconds,
+            charged = loadout.wakeLevel > 0,
         )
     }
 
     private fun handleCollision(id1: EntityId, id2: EntityId) {
         val group1 = collisionGroupOf(id1)
         val group2 = collisionGroupOf(id2)
+        // Only ever met by an enemy - see CollisionGroup.PLAYER_CONTACT - and on rules of its own.
+        if (group1 == CollisionGroup.PLAYER_CONTACT) return strike(id1, id2)
+        if (group2 == CollisionGroup.PLAYER_CONTACT) return strike(id2, id1)
+        // Something frozen is harmless: the bat flies through it as through nothing. Nor does the bat
+        // wear it down on the way, or a frozen swarm would be a row of free kills for anyone flying
+        // along it. Its shots, its orbs and its wake still hurt it.
+        if (isBatMeetingFrost(group1, id2) || isBatMeetingFrost(group2, id1)) return
         // Read up front: killing the boss clears it from the generator, and this pass still has to
         // know which of the two it was looking at.
         val bossId = enmGen.bossId
@@ -583,18 +639,71 @@ class GameScreen(
         // the opening wave they take more than one.
         if (isEnemyShotDown(group1, group2)) {
             val enemyDied = if (group1 == CollisionGroup.ENEMY) died1 else died2
-            if (enemyDied) {
-                val enemyId = if (group1 == CollisionGroup.ENEMY) id1 else id2
-                val elite = world.hasComponent(enemyId, EliteComponent::class)
-                scoring.registerEnemyDestroyed(elite)
-                // The boss is banked by completeStage, which knows it was the boss - and a part of
-                // its body going down is the boss going down. Everything else is worth what its
-                // wave is worth, and an elite several times that.
-                if (enemyId != bossId && !isBossPart(enemyId)) {
-                    awardExperience(PlayerProgress.experienceForKill(enmGen.currentWave.index, elite))
-                }
-            }
+            if (enemyDied) registerKill(if (group1 == CollisionGroup.ENEMY) id1 else id2, bossId)
         }
+    }
+
+    /**
+     * Scores [enemyId] going down to the bat's weapons: a kill to the streak, and its wave's worth of
+     * experience - an elite several times both.
+     *
+     * @param bossId the boss as it was before the blow landed: killing it clears it from the
+     *   generator, and this still has to know it was the boss.
+     */
+    private fun registerKill(enemyId: EntityId, bossId: EntityId?) {
+        val elite = world.hasComponent(enemyId, EliteComponent::class)
+        scoring.registerEnemyDestroyed(elite)
+        // The boss is banked by completeStage, which knows it was the boss - and a part of its body
+        // going down is the boss going down. Everything else is worth what its wave is worth, and an
+        // elite several times that.
+        if (enemyId != bossId && !isBossPart(enemyId)) {
+            awardExperience(PlayerProgress.experienceForKill(enmGen.currentWave.index, elite))
+        }
+    }
+
+    /**
+     * One of the bat's contact weapons - an orb, a segment of its charged wake - touching [enemyId].
+     *
+     * Not spent, and nothing hurts it back. It lands at most once a rehit time on the same target,
+     * however many ticks the two spend overlapping and however many parts of it are touching; see
+     * [ContactCooldownComponent]. A part of a boss's body is the boss, so a wake the Sand Wyrm pours
+     * through lands on it once, not once a plate.
+     */
+    private fun strike(weaponId: EntityId, enemyId: EntityId) {
+        val weapon = world.getComponent(weaponId, ContactWeaponComponent::class)?.weapon ?: return
+        if (weapon == ContactWeapon.WAKE && !stillCharged(weaponId)) return
+        val bossId = enmGen.bossId
+        val target = if (isBossPart(enemyId)) bossId ?: return else enemyId
+        if (world.getComponent(target, HealthComponent::class)?.alive != true) return
+
+        val (amount, rehitSeconds) = when (weapon) {
+            ContactWeapon.ORB -> loadout.orbDamage to ORB_REHIT_SECONDS
+            ContactWeapon.WAKE -> loadout.wakeDamage to WAKE_REHIT_SECONDS
+        }
+        val cooldown = world.getComponent(target, ContactCooldownComponent::class)
+            ?: ContactCooldownComponent().also { world.addComponent(target, it) }
+        if (!cooldown.take(weapon, contactClock, rehitSeconds)) return
+
+        if (damage(enemyId, amount, dealtBy = weaponId)) registerKill(enemyId, bossId)
+    }
+
+    /**
+     * Whether a segment of the charged wake still shocks: not once it has faded past
+     * [WAKE_HARMLESS_FROM] of its life, where it is too faint for the player to see it doing anything.
+     */
+    private fun stillCharged(segmentId: EntityId): Boolean {
+        val trail = world.getComponent(segmentId, TrailComponent::class) ?: return false
+        return trail.elapsed < trail.duration * WAKE_HARMLESS_FROM
+    }
+
+    /** Whether the bat, in [group], is meeting [other] while [other] is frozen. */
+    private fun isBatMeetingFrost(group: CollisionGroup?, other: EntityId): Boolean =
+        group == CollisionGroup.PLAYER && FrostSystem.isFrozen(world, other)
+
+    /** Whether [id] is one of the bat's weapons: a shot, or something that hurts by touch. */
+    private fun isBatsWeapon(id: EntityId): Boolean = when (collisionGroupOf(id)) {
+        CollisionGroup.PLAYER_PROJECTILE, CollisionGroup.PLAYER_CONTACT -> true
+        else -> false
     }
 
     /**
@@ -691,12 +800,12 @@ class GameScreen(
         }
 
         // A shot that hits a part of a boss's body lands on the boss, and is shown - number and
-        // flash - on the part it hit, which is where the player was aiming. The bat flying into it
-        // lands nothing. The body sweeping over the bat is the boss's attack, and every tick of the
-        // overlap, part by part, would otherwise hand the boss a hit: one pass through the bat
-        // would cost it a third of its health. See [BossPartComponent].
+        // flash - on the part it hit, which is where the player was aiming; so does an orb or the
+        // wake. The bat flying into it lands nothing. The body sweeping over the bat is the boss's
+        // attack, and every tick of the overlap, part by part, would otherwise hand the boss a hit:
+        // one pass through the bat would cost it a third of its health. See [BossPartComponent].
         val part = world.getComponent(id, BossPartComponent::class)
-        if (part != null && collisionGroupOf(dealtBy) != CollisionGroup.PLAYER_PROJECTILE) return false
+        if (part != null && !isBatsWeapon(dealtBy)) return false
         val target = if (part != null) enmGen.bossId ?: return false else id
         // A plate is armor and passes on only its share; see [BossPartComponent.share].
         val landing =
@@ -718,9 +827,9 @@ class GameScreen(
             // What is left behind depends on what died; see [burst], which is also what decides
             // that most things leave nothing at all.
             burst(target)
-        } else if (dealt > 0 && collisionGroupOf(dealtBy) == CollisionGroup.PLAYER_PROJECTILE) {
-            // A shot that lands is heard landing, in an enemy or in a rock it is wearing down. One
-            // that kills is heard in what it killed instead.
+        } else if (dealt > 0 && isBatsWeapon(dealtBy)) {
+            // A shot that lands is heard landing, in an enemy or in a rock it is wearing down, and so
+            // is an orb or the wake. One that kills is heard in what it killed instead.
             sounds.play(SoundEffect.HIT)
         }
         return died
@@ -1019,6 +1128,14 @@ class GameScreen(
                 LightComponent(light.color, light.radius, light.strength, fadeSeconds = BAT_LIGHT_FADE_SECONDS),
             )
         }
+        // Its orbs go out with it, each in a puff of its own: nothing circles a falling bat, and an
+        // orb left hanging where the ring was would go on hurting whatever flew into it.
+        for (orb in world.query(OrbComponent::class)) {
+            world.getComponent(orb, TransformComponent::class)?.rect?.let { rect ->
+                factory.createExplosion(rect.centerX, rect.centerY, env.assets.graphics.explosion, DEATH_PUFF_SCALE)
+            }
+            world.removeEntity(orb)
+        }
     }
 
     /** One of the pieces coming off the bat on its way down; see [DeathThroesComponent]. */
@@ -1075,11 +1192,22 @@ class GameScreen(
      * Only ordinary enemies carry a pace, so the bat and the bosses go on at full pace however hurt
      * they look. Called on the way back up a row too, which nothing hostile does yet, so the pace
      * would follow a heal the way the picture does.
+     *
+     * A frozen enemy's pace is the frost's until it thaws; see [thaw].
      */
     private fun slowWounded(id: EntityId, row: Int) {
+        if (FrostSystem.isFrozen(world, id)) return
         val pace = world.getComponent(id, PaceComponent::class) ?: return
         pace.motion = WOUNDED_PACE[row]
         pace.fire = WOUNDED_FIRE_RATE[row]
+    }
+
+    /**
+     * A frozen enemy coming free: it goes back to the pace of the row of wounds it has reached by
+     * now, which a hit while it was frozen may have moved it down.
+     */
+    private fun thaw(id: EntityId) {
+        slowWounded(id, world.getComponent(id, WoundComponent::class)?.row ?: 0)
     }
 
     /** Puts the number at the enemy's leading edge, which is the side the bat's shots arrive from. */
@@ -1140,6 +1268,7 @@ class GameScreen(
         tickTime += deltaTime
         while (tickTime > tick) {
             tickTime -= tick
+            contactClock += tick
             world.update(tick, game.input)
             regenerate(tick)
             // After the world, so a kill or a hit in this tick's collisions shows on this tick.
@@ -1265,6 +1394,9 @@ class GameScreen(
     private fun applyLoadout() {
         world.getComponent(batId, WeaponComponent::class)?.interval = loadout.shotIntervalSeconds
         scoring.bonusMultiplier = loadout.scoreMultiplier
+        syncOrbs()
+        frostBeam.intervalSeconds = if (loadout.frostLevel > 0) loadout.frostIntervalSeconds else 0f
+        frostBeam.freezeSeconds = loadout.frostSeconds
 
         val health = world.getComponent(batId, HealthComponent::class) ?: return
         health.maxHitPoints = loadout.maxHitPoints
@@ -1272,6 +1404,52 @@ class GameScreen(
         // whatever room is actually left in it.
         val heal = loadout.takePendingHeal()
         if (heal > 0) health.hitPoints = (health.hitPoints + heal).coerceAtMost(health.maxHitPoints)
+    }
+
+    /**
+     * Sends round as many orbs as the loadout says the bat has, each made at its share of the ring as
+     * it will be with every new one in; the orbs already circling ease over to theirs.
+     */
+    private fun syncOrbs() {
+        val circling = world.query(OrbComponent::class).size
+        if (circling >= loadout.orbs) return
+        val bat = batRect() ?: return
+        for (index in circling until loadout.orbs) {
+            factory.createOrb(bat.centerX, bat.centerY, env.assets.graphics.orb, OrbitSystem.shareOf(index, loadout.orbs))
+        }
+        // Out on the ring at once, rather than on the bat until the next tick: the run is drawn under
+        // the dialog that bought them, which is still up.
+        orbit.arrange(world)
+    }
+
+    /** The living bat's box, or null once it has died. */
+    private fun batRect(): Rect? {
+        if (world.getComponent(batId, HealthComponent::class)?.alive != true) return null
+        return world.getComponent(batId, TransformComponent::class)?.rect
+    }
+
+    /**
+     * What the frost beam may freeze: an ordinary enemy, which carries a pace for the frost to hold
+     * still. Never the boss or a part of its body, which carry none - a boss fight that could be
+     * stopped dead would not be one - and never an elite, which carries one but is a prize to chase
+     * rather than a hazard to be switched off.
+     */
+    private fun canFreeze(id: EntityId): Boolean =
+        id != enmGen.bossId && !isBossPart(id) &&
+                world.hasComponent(id, PaceComponent::class) &&
+                !world.hasComponent(id, EliteComponent::class)
+
+    /**
+     * A frost beam going off is heard, and in the dark it leaves a flash of its cold light on everything
+     * it froze, the way a shot does where it lands: there, that is when the player sees what it caught.
+     */
+    private fun frostBeamFired(frozen: List<EntityId>) {
+        sounds.play(SoundEffect.FROST_BEAM)
+        if (!lit) return
+        for (id in frozen) {
+            val rect = world.getComponent(id, TransformComponent::class)?.rect ?: continue
+            factory.createFlash(rect.centerX, rect.centerY, FROST_LIGHT_COLOR)
+        }
     }
 
     /**
@@ -1320,6 +1498,7 @@ class GameScreen(
         tickTime += deltaTime
         while (tickTime > tick) {
             tickTime -= tick
+            contactClock += tick
             world.update(tick, game.input)
             comboMeter.update(tick, scoring.hitStreak, scoring.multiplier)
             // The blasts drift with the scenery, so the wreck they go off in drifts with them.
@@ -1582,7 +1761,7 @@ class GameScreen(
             )
             // Broken on whole words by measured width rather than by counting characters: a count
             // that fits in Arial runs off the card in the wider DejaVu Sans.
-            wrapped(powerUp.description, POWER_UP_CARD_WIDTH - 2 * CARD_PADDING, 11)
+            wrapped(powerUp.describe(loadout), POWER_UP_CARD_WIDTH - 2 * CARD_PADDING, 11)
                 .forEachIndexed { line, text ->
                     drawString(
                         text,

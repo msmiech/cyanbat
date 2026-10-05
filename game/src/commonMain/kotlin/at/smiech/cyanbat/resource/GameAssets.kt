@@ -30,6 +30,8 @@ data class GameAssets(
         /** Rock coming apart, for an obstacle; the explosion is for things that burn. */
         var shatter: Pixmap,
         var shot: Pixmap,
+        /** The orb Guardian Orb sends round the bat: six frames of a glint going round it. */
+        var orb: Pixmap,
     )
 
     data class Audio(
@@ -67,6 +69,7 @@ data class GameAssets(
                     explosion = pixmap("explosion.png"),
                     shatter = pixmap("shatter.png"),
                     shot = pixmap("shot.png"),
+                    orb = pixmap("orb.png"),
                 ),
                 audio = Audio(
                     // Generated like the stages' music, by tools/generate_game_over_music.py.

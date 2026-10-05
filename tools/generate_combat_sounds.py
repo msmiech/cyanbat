@@ -7,7 +7,8 @@
     uv run tools/generate_combat_sounds.py
 
 The bat's gun and the aura's surge have scripts of their own; this one writes everything that
-answers them - every effect that says a shot landed, something died, or something fired back:
+answers them - every effect that says a shot landed, something died, or something fired back - and
+the frost beam:
 
 * enemyShot.wav    - an enemy's volley. Low and buzzy where the bat's gun is a bright blip falling
                      away, because the palette rule holds for sound too: the bat is cool, everything
@@ -24,6 +25,8 @@ answers them - every effect that says a shot landed, something died, or somethin
 * bossDeath.wav    - the boss going down: an enormous boom, a roar rolling on under it, and three
                      more blasts going off after it, at [AFTERSHOCKS], where the game lights its
                      wreck up again. They are over before the victory's fanfare comes in.
+* frostBeam.wav    - the bat's frost beam going off: a zap falling into a glassy shimmer, and ice
+                     crackling as it sets.
 
 They share a palette and a level. Each is written near full scale and played at the volume its
 `SoundEffect` gives it, which is where the balance between them and against the music is set.
@@ -263,6 +266,34 @@ def bat_hit(rng) -> np.ndarray:
     return finish(out, release=0.03)
 
 
+def frost_beam(rng) -> np.ndarray:
+    """The frost beam: a zap dropping out of the top of the range into a glassy shimmer, and ice
+    crackling as it sets.
+
+    Cool and high, as everything of the bat's is. Glassy where the shield's ping is a single ring: a
+    cluster of close partials that beat against one another, which is what makes it read as ice
+    setting rather than as a bell. Short, since at its quickest it goes off every couple of seconds.
+    """
+    seconds = 0.55
+    out = silence(seconds)
+    lay(out, burst(rng, 0.25, (3500, 9500), 0.05), 0, 0.3)
+    zap = sweep(5200, 1700, 0.14, glide=0.03) * decay(seconds_to_samples(0.14), 0.05)
+    lay(out, zap, 0, 0.55)
+
+    n = seconds_to_samples(seconds - 0.02)
+    t = np.arange(n) / RENDER_RATE
+    shimmer = np.zeros(n)
+    for ratio, level, fall in ((1.0, 1.0, 0.17), (1.51, 0.7, 0.13), (2.27, 0.5, 0.09), (3.42, 0.3, 0.06)):
+        f = 2300 * ratio
+        # Each wobbles at its own rate, so the cluster beats rather than sitting still.
+        wobble = 1 + 0.006 * np.sin(2 * np.pi * rng.uniform(13, 23) * t + rng.random() * 6.28)
+        shimmer += level * np.sin(2 * np.pi * np.cumsum(f * wobble) / RENDER_RATE) * decay(n, fall) * (f < 10000)
+    shimmer *= np.clip(t / 0.01, 0, 1)
+    lay(out, shimmer, 0.02, 0.5)
+    lay(out, crackle(rng, 0.42, per_second=150, fall=0.12), 0.03, 0.4)
+    return finish(out, release=0.06)
+
+
 def boss_death(rng) -> np.ndarray:
     """The boss going down: one enormous boom, a roar that rolls on and darkens under it, embers,
     and three more blasts at [AFTERSHOCKS] as the wreck goes up again - each smaller than the last -
@@ -309,6 +340,7 @@ EFFECTS = {
     "rockShatter.wav": (rock_shatter, 5),
     "batHit.wav": (bat_hit, 6),
     "bossDeath.wav": (boss_death, 7),
+    "frostBeam.wav": (frost_beam, 8),
 }
 
 SEED = 20261001

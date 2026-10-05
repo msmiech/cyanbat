@@ -312,6 +312,42 @@ class RenderSystemTest {
         assertEquals(35f, graphics.flashes.single().rotationDegrees)
     }
 
+    // --- tint ------------------------------------------------------------------------
+
+    /** Over its own sprite like a flash, and under the flash, so a hit still shows on it. */
+    @Test
+    fun `a tint is drawn straight over its own sprite and under its flash`() {
+        val frozen = spawn("frozen", zIndex = 10)
+        world.addComponent(frozen, TintComponent(TINT))
+        world.addComponent(frozen, HitFlashComponent(duration = 0.1f, color = FLASH))
+        spawn("in front", zIndex = 20)
+
+        val graphics = RecordingGraphics().also { world.draw(it) }
+
+        assertContentEquals(listOf("frozen", "frozen:flash", "frozen:flash", "in front"), graphics.drawn)
+        assertContentEquals(listOf(TINT, FLASH), graphics.flashes.map { it.color })
+    }
+
+    @Test
+    fun `a tint is turned with its sprite`() {
+        val frozen = spawn("leaper")
+        world.getComponent(frozen, SpriteComponent::class)!!.rotationDegrees = -40f
+        world.addComponent(frozen, TintComponent(TINT))
+
+        val graphics = RecordingGraphics().also { world.draw(it) }
+
+        assertEquals(DrawnFlash("leaper", TINT, -40f), graphics.flashes.single())
+    }
+
+    /** Disarmed rather than removed: a tint with no alpha left is not drawn at all. */
+    @Test
+    fun `a clear tint draws nothing`() {
+        val thawed = spawn("thawed")
+        world.addComponent(thawed, TintComponent(TINT and 0x00FFFFFF))
+
+        assertContentEquals(listOf("thawed"), drawnOrder())
+    }
+
     // --- crossfade -------------------------------------------------------------------
 
     /** Straight over its own sprite, so anything layered above covers both pictures. */
@@ -337,5 +373,6 @@ class RenderSystemTest {
 
     private companion object {
         const val FLASH = 0xE6FFFFFF.toInt()
+        const val TINT = 0x9970C8FF.toInt()
     }
 }

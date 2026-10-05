@@ -84,12 +84,13 @@ class TrailSystemTest {
     private fun segment(
         duration: Float = 0.5f,
         minScale: Float = 0.2f,
-        drift: Float = 0f
+        drift: Float = 0f,
+        coreColor: Int = 0,
     ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(80f, 100f, 20f, 10f)))
         world.addComponent(id, VelocityComponent(Vector2(drift, 0f)))
-        world.addComponent(id, TrailComponent(EngineColors.CYAN, duration, minScale))
+        world.addComponent(id, TrailComponent(EngineColors.CYAN, duration, minScale, coreColor = coreColor))
         return id
     }
 
@@ -210,5 +211,28 @@ class TrailSystemTest {
         // Measured center to center, because the shrink has taken a little off the width by now.
         val after = draw().single().let { it.x + it.width / 2 }
         assertEquals(4, before - after)
+    }
+
+    /** A band half the segment's height down its middle, on top of it and fading with it. */
+    @Test
+    fun `a core runs down the middle of its segment`() {
+        segment(duration = 1f, coreColor = EngineColors.WHITE)
+
+        val (body, core) = draw()
+        assertEquals(TrailRect(80, 100, 20, 10, EngineColors.CYAN), body)
+        assertEquals(TrailRect(80, 103, 20, 5, EngineColors.WHITE), core)
+
+        repeat(25) { world.update(0.02f, null) }
+
+        val (agedBody, agedCore) = draw()
+        assertEquals(agedBody.height / 2, agedCore.height)
+        assertEquals(alphaOf(agedBody.color).toFloat(), alphaOf(agedCore.color).toFloat(), 1f, "the core faded apart from its segment")
+    }
+
+    @Test
+    fun `a segment without a core is one block`() {
+        segment()
+
+        assertEquals(1, draw().size)
     }
 }

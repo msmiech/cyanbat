@@ -62,4 +62,11 @@ enum class SoundEffect(val file: String, val volume: Float, val gapSeconds: Floa
      * level up banner and the power-up dialog, over music that is still playing.
      */
     AURA_SURGE("auraSurge.wav", 0.35f),
+
+    /**
+     * The bat's frost beam going off: between a hit and a kill, about 4 dB under the music. It is an
+     * event the player is waiting on, a few seconds apart, rather than the patter of the fight. All
+     * of it is high, so it loses nothing through a phone's speaker.
+     */
+    FROST_BEAM("frostBeam.wav", 0.36f),
 }
