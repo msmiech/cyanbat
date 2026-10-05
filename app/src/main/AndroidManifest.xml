@@ -8,9 +8,12 @@
     <application
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name">
+        <!-- uiMode: the menu follows the system into dark or light by recomposing in place. Being
+             recreated instead put the player back on the main screen and the menu track back to
+             its start. -->
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
             android:exported="true"
             android:screenOrientation="landscape"
             tools:ignore="DiscouragedApi">

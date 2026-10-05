@@ -54,6 +54,9 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
 - Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`.
+- The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
+  `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
+  stay light over it (`SystemBarIcons`). The game's frame is not themed.
 - Each host builds a `CyanBatEnvironment` (assets, haptics, highscore and stage unlock stores,
   audio settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in `:game`,
   backed by DataStore in `:app` and `java.util.prefs` in `:desktop`.

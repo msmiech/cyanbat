@@ -29,6 +29,8 @@ internal val PREFS_KEY_SOUNDS = booleanPreferencesKey("sounds_enabled")
 internal val PREFS_KEY_VIBRATION = booleanPreferencesKey("vibration_enabled")
 /** Stored by name, so reordering or adding modes cannot turn one player's choice into another. */
 internal val PREFS_KEY_DISPLAY_MODE = stringPreferencesKey("display_mode")
+/** Stored by name, for the same reason as the display mode. */
+internal val PREFS_KEY_THEME_MODE = stringPreferencesKey("theme_mode")
 /** The single highscore kept before they were per stage; see [LegacyHighscoreMigration]. */
 internal val PREFS_KEY_LEGACY_HIGH_SCORE = intPreferencesKey("highscore")
 /** A stage's highscore is stored under this followed by its id: "highscore_stage_1". */

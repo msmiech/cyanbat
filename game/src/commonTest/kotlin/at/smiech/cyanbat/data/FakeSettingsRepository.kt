@@ -9,11 +9,13 @@ internal class FakeSettingsRepository : SettingsRepository {
     val sound = MutableStateFlow(true)
     val vibration = MutableStateFlow(true)
     val display = MutableStateFlow(DisplayMode.DEFAULT)
+    val theme = MutableStateFlow(ThemeMode.DEFAULT)
 
     override val isMusicEnabled = music
     override val isSoundEnabled = sound
     override val isVibrationEnabled = vibration
     override val displayMode = display
+    override val themeMode = theme
 
     override suspend fun setMusicEnabled(enabled: Boolean) {
         music.value = enabled
@@ -29,5 +31,9 @@ internal class FakeSettingsRepository : SettingsRepository {
 
     override suspend fun setDisplayMode(mode: DisplayMode) {
         display.value = mode
+    }
+
+    override suspend fun setThemeMode(mode: ThemeMode) {
+        theme.value = mode
     }
 }

@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.ui
 
+import androidx.compose.runtime.Composable
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -19,3 +20,11 @@ internal expect val hasSystemBack: Boolean
  * off. A phone does; the desktop reads no game controllers yet, so it has nothing to rumble.
  */
 internal expect val canVibrate: Boolean
+
+/**
+ * Sets the system's status and navigation bar icons to read against what the menu draws under them:
+ * light over a dark screen, dark over a light one. Android draws the menu edge to edge, under its
+ * bars; the desktop's window has none over it.
+ */
+@Composable
+internal expect fun SystemBarIcons(overDark: Boolean)

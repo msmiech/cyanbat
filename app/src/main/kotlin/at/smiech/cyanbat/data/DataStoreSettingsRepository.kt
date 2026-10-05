@@ -6,6 +6,7 @@ import androidx.datastore.preferences.core.edit
 import at.smiech.cyanbat.PREFS_KEY_DISPLAY_MODE
 import at.smiech.cyanbat.PREFS_KEY_MUSIC
 import at.smiech.cyanbat.PREFS_KEY_SOUNDS
+import at.smiech.cyanbat.PREFS_KEY_THEME_MODE
 import at.smiech.cyanbat.PREFS_KEY_VIBRATION
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
@@ -28,6 +29,9 @@ class DataStoreSettingsRepository(
     override val displayMode: Flow<DisplayMode> =
         dataStore.data.map { DisplayMode.fromName(it[PREFS_KEY_DISPLAY_MODE]) }
 
+    override val themeMode: Flow<ThemeMode> =
+        dataStore.data.map { ThemeMode.fromName(it[PREFS_KEY_THEME_MODE]) }
+
     override suspend fun setMusicEnabled(enabled: Boolean) {
         dataStore.edit { it[PREFS_KEY_MUSIC] = enabled }
     }
@@ -42,5 +46,9 @@ class DataStoreSettingsRepository(
 
     override suspend fun setDisplayMode(mode: DisplayMode) {
         dataStore.edit { it[PREFS_KEY_DISPLAY_MODE] = mode.name }
+    }
+
+    override suspend fun setThemeMode(mode: ThemeMode) {
+        dataStore.edit { it[PREFS_KEY_THEME_MODE] = mode.name }
     }
 }

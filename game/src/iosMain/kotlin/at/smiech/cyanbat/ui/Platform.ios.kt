@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.ui
 
+import androidx.compose.runtime.Composable
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.dialog_help_controls_touch
 import org.jetbrains.compose.resources.StringResource
@@ -14,3 +15,7 @@ internal actual val hasSystemBack: Boolean = false
 
 // An iPhone vibrates; the app to come supplies the Haptics that do it.
 internal actual val canVibrate: Boolean = true
+
+// The status bar's style belongs to the app's view controller, which the app to come supplies.
+@Composable
+internal actual fun SystemBarIcons(overDark: Boolean) = Unit

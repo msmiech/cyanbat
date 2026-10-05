@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.ui
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
@@ -7,12 +8,17 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.SettingsRepository
+import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.button_back
 import at.smiech.engine.Music
@@ -37,11 +43,14 @@ class MenuHost(
     val onExit: () -> Unit,
 )
 
+private val LightColors = lightColorScheme()
+private val DarkColors = darkColorScheme()
+
 /**
  * The whole menu: main screen, stage select, settings and credits, with a back stack.
  *
  * Shared by both platforms - this is the entry point Android's MainActivity and the desktop
- * window each render.
+ * window each render. It is drawn light or dark by the player's [ThemeMode].
  */
 @Composable
 fun CyanBatMenu(
@@ -49,7 +58,14 @@ fun CyanBatMenu(
     /** Pass a host-owned stack to route a platform back gesture into [MenuBackStack.back]. */
     backStack: MenuBackStack = rememberMenuBackStack(),
 ) {
-    MaterialTheme {
+    // The default until the store is read, a frame or two in, rather than a blank frame: the menu
+    // opens on the main screen, whose sky is the same in either theme, so at worst its buttons
+    // change color, and only for a player who chose against the system.
+    val themeMode by host.settings.themeMode.collectAsState(ThemeMode.DEFAULT)
+    val dark = themeMode.isDark(isSystemInDarkTheme())
+    MaterialTheme(colorScheme = if (dark) DarkColors else LightColors) {
+        // The main screen draws its night sky in either theme, so the bars over it stay light.
+        SystemBarIcons(overDark = dark || backStack.current == MenuDestination.Main)
         // Hoisted above the destinations, so the main screen and the stage select share one - and
         // with it one menu track, which keeps playing as the player moves between them.
         val menuViewModel = viewModel {
