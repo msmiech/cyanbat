@@ -46,6 +46,14 @@ kotlin {
                 implementation(libs.androidx.core.ktx)
             }
         }
+        jvmTest {
+            dependencies {
+                // The menu's own tests work it as a player would, through Compose's test harness,
+                // which draws with Skia's native library for the machine the tests run on.
+                implementation(compose.desktop.uiTestJUnit4)
+                implementation(compose.desktop.currentOs)
+            }
+        }
     }
 }
 

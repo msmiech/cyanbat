@@ -130,6 +130,11 @@ it lasts.
 Backgrounding the app — or, on desktop, the window losing focus — pauses the run, and it stays
 paused until you resume it rather than dropping you straight back into a dodge.
 
+The menus need no touch screen or mouse either. The arrow keys, `WASD`, a d-pad or a stick move a
+cursor between the buttons, `Enter`, `Space` or `A` takes the one it is on, and `Esc`, `Backspace`
+or `B` goes back a screen. The cursor starts on each screen's first choice, and comes back to the
+button you left from.
+
 Controller support is real on Android, where the platform reports pads as key codes and joystick
 axes. On desktop the JDK has no gamepad API, so nothing feeds those events yet: the mapping seam
 is `ControlHandler.onAxis`/`onButton`, and a backend only has to call them.

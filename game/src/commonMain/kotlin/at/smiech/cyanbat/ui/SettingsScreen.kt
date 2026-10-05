@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
@@ -21,11 +23,16 @@ import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.data.ThemeMode
@@ -71,6 +78,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     )
 }
 
+/**
+ * How far the rows reach past the text on either side, for the cursor's ring and a touch's ripple
+ * to have room around what they are on. The column is inset by that much less, so the text stays
+ * in line with the headings.
+ */
+private val ROW_INSET = 8.dp
+
+private val ROW_SHAPE = RoundedCornerShape(8.dp)
+
 @Composable
 private fun SettingsContent(
     musicEnabled: Boolean,
@@ -84,40 +100,50 @@ private fun SettingsContent(
     onThemeModeChanged: (ThemeMode) -> Unit,
     onDisplayModeChanged: (DisplayMode) -> Unit,
 ) {
+    val music = remember { FocusRequester() }
+    HomeCursor(music)
     Surface {
         // Scrolls, because a phone held landscape is only about 400dp tall and the display choices
         // alone take most of that.
-        Column(modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(16.dp)) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = 16.dp - ROW_INSET, vertical = 16.dp)
+        ) {
             Text(
                 text = stringResource(Res.string.settings),
-                style = MaterialTheme.typography.headlineMedium
+                style = MaterialTheme.typography.headlineMedium,
+                modifier = Modifier.padding(horizontal = ROW_INSET),
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             SettingRow(
                 stringResource(Res.string.settings_music_title),
                 musicEnabled,
-                onMusicEnabledChanged
+                onMusicEnabledChanged,
+                Modifier.focusRequester(music),
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             SettingRow(
                 stringResource(Res.string.settings_sound_title),
                 soundEnabled,
                 onSoundEnabledChanged
             )
             if (vibrationEnabled != null) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
                 SettingRow(
                     stringResource(Res.string.settings_vibration_title),
                     vibrationEnabled,
                     onVibrationEnabledChanged
                 )
             }
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             ThemeRow(themeMode, onThemeModeChanged)
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = stringResource(Res.string.settings_display_title),
-                style = MaterialTheme.typography.titleMedium
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.padding(horizontal = ROW_INSET),
             )
             Spacer(modifier = Modifier.height(8.dp))
             Column(Modifier.selectableGroup()) {
@@ -129,37 +155,64 @@ private fun SettingsContent(
     }
 }
 
+/**
+ * A setting that is on or off. The whole row is the switch, so a keyboard's or a pad's cursor lands
+ * on the row and Enter flips it - and a finger can hit the label as well as the switch.
+ */
 @Composable
-private fun SettingRow(label: String, checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun SettingRow(
+    label: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val cursor = rememberCursorMark()
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .then(cursor.modifier)
+            .clip(ROW_SHAPE)
+            .toggleable(
+                value = checked,
+                interactionSource = null,
+                indication = ripple(),
+                role = Role.Switch,
+                onValueChange = onCheckedChange,
+            )
+            .cursorRing(cursor.border(), ROW_SHAPE)
+            .padding(horizontal = ROW_INSET, vertical = 8.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = label)
-        Switch(checked = checked, onCheckedChange = onCheckedChange)
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
 /**
  * The menu's theme, as one row of three segments beside its label, in line with the switches: three
  * short words need no hints, and radio rows like the display's would push those below the fold on a
- * landscape phone.
+ * landscape phone. Each segment takes the cursor on its own, and the arrows walk along them.
  */
 @Composable
 private fun ThemeRow(themeMode: ThemeMode, onThemeModeChanged: (ThemeMode) -> Unit) {
     Row(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(horizontal = ROW_INSET),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(text = stringResource(Res.string.settings_theme_title))
         SingleChoiceSegmentedButtonRow {
             ThemeMode.entries.forEachIndexed { index, mode ->
+                val cursor = rememberCursorMark()
                 SegmentedButton(
                     selected = mode == themeMode,
                     onClick = { onThemeModeChanged(mode) },
                     shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
+                    modifier = cursor.modifier,
+                    // The cursor's ring in place of the segment's outline, which is the Material
+                    // default the rest of the time.
+                    border = cursor.border() ?: SegmentedButtonDefaults.borderStroke(MaterialTheme.colorScheme.outline),
                 ) {
                     Text(stringResource(mode.label))
                 }
@@ -171,11 +224,21 @@ private fun ThemeRow(themeMode: ThemeMode, onThemeModeChanged: (ThemeMode) -> Un
 /** One of the display choices: the whole row picks it, not just the radio button. */
 @Composable
 private fun DisplayModeOption(mode: DisplayMode, selected: Boolean, onSelected: (DisplayMode) -> Unit) {
+    val cursor = rememberCursorMark()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .selectable(selected = selected, onClick = { onSelected(mode) }, role = Role.RadioButton)
-            .padding(vertical = 6.dp),
+            .then(cursor.modifier)
+            .clip(ROW_SHAPE)
+            .selectable(
+                selected = selected,
+                interactionSource = null,
+                indication = ripple(),
+                role = Role.RadioButton,
+                onClick = { onSelected(mode) },
+            )
+            .cursorRing(cursor.border(), ROW_SHAPE)
+            .padding(horizontal = ROW_INSET, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
         RadioButton(selected = selected, onClick = null)
