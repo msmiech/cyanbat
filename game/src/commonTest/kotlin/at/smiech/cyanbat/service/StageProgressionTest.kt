@@ -1,9 +1,12 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.util.BOSS_WAVE
+import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.ENEMY_BASE_DAMAGE
 import at.smiech.cyanbat.util.ENEMY_BASE_HIT_POINTS
+import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
 import at.smiech.cyanbat.util.MINIMUM_SPAWN_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.MIN_SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.OPENING_SPAWN_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
 import kotlin.random.Random
@@ -171,6 +174,20 @@ class StageProgressionTest {
     @Test
     fun `the boss fight lasts long enough to be one`() {
         assertTrue(stage1.bossShotsToKill >= 20, "the boss dies in ${stage1.bossShotsToKill} shots")
+    }
+
+    /**
+     * The bat that meets a boss has been leveling up all stage, and the fight is measured against
+     * that bat: here its gun at the most Spread Shot and Rapid Fire make of it, every shot landing,
+     * before Heavy Rounds or the weapons of its own. The bosses once went down to it in six seconds.
+     */
+    @Test
+    fun `every boss outlasts a full fan fired as fast as the gun goes`() {
+        val damagePerSecond = (1 + MAX_EXTRA_SHOTS) * DAMAGE_PER_HIT / MIN_SHOT_INTERVAL_SECONDS
+        for (stage in 1..4) {
+            val seconds = StageProgression.forStage(stage).bossWave().hitPoints / damagePerSecond
+            assertTrue(seconds >= 20f, "stage $stage's boss goes down in $seconds seconds")
+        }
     }
 
     // endregion

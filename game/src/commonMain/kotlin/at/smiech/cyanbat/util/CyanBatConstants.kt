@@ -176,10 +176,15 @@ const val ENEMY_SPEED_PER_WAVE = 0.1f
 // What each wave draws from - the species mix - is part of a stage's design rather than its
 // difficulty, so it lives with the rest of the design in StageDesign.
 
-// The boss. Its health is a fight length: at one 34-damage shot a second, 2560 points is roughly
-// 30 seconds of landed hits, which leaves room to be driven off and come back without the fight
-// resetting. Its contact damage is deliberately worse than anything else in the stage.
-const val BOSS_HIT_POINTS_PER_STAGE = 2560
+// The boss. Its health is a fight length, against the bat that reaches it rather than the one that
+// set out: five minutes in, that bat is twenty-odd levels up, its gun fanned out, quickened and
+// heavier, with weapons of its own besides. A quarter of this, which the bosses had before the
+// power-ups grew, went down to it in ten to thirty seconds - to a bat built for damage in five or
+// ten - before the later phases had shown what they do. At this, a bat built for damage takes half
+// a minute or so and one built otherwise a minute or more, which leaves every phase room to play
+// out and the player room to be driven off and come back without the fight resetting. Its contact
+// damage is deliberately worse than anything else in the stage.
+const val BOSS_HIT_POINTS_PER_STAGE = 10240
 const val BOSS_DAMAGE_PER_STAGE = 50
 
 // How much bigger the boss is drawn than the sprite sheet's enemies. Its collision box grows with
