@@ -44,7 +44,8 @@ class DesktopAudio(private val assetStream: (String) -> InputStream) : Audio {
         layered.clear()
     }
 
-    private fun clip(name: String): ImaAdpcmClip = ImaAdpcmClip.parse(assetStream(name).use { it.readBytes() })
+    private fun clip(name: String): ImaAdpcmClip =
+        ImaAdpcmClip.parse(assetStream(name).use { it.readBytes() })
 
     private fun play(mixer: StemMixer): LayeredMusic =
         DesktopLayeredMusic(mixer) { layered.remove(it) }.also { layered.add(it) }

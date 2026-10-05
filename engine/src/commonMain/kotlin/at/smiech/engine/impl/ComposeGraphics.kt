@@ -104,7 +104,8 @@ class ComposeGraphics(
      * larger than the default eight, because the HUD alone lays out more strings than that every
      * frame, and each one is measured where it is placed and again where it is drawn.
      */
-    private val textMeasurer = TextMeasurer(fontFamilyResolver, FRAME_DENSITY, LayoutDirection.Ltr, TEXT_CACHE_SIZE)
+    private val textMeasurer =
+        TextMeasurer(fontFamilyResolver, FRAME_DENSITY, LayoutDirection.Ltr, TEXT_CACHE_SIZE)
     private val styles = HashMap<Int, TextStyle>()
 
     /**
@@ -125,9 +126,12 @@ class ComposeGraphics(
     // Every paint is aliased: an antialiased edge, scaled up, would soften the grid it is meant to
     // land on. Compose's Paint() is antialiased unless told otherwise.
     private val shapePaint = Paint().apply { isAntiAlias = false }
-    private val imagePaint = Paint().apply { isAntiAlias = false; filterQuality = FilterQuality.None }
-    private val fadePaint = Paint().apply { isAntiAlias = false; filterQuality = FilterQuality.None }
-    private val silhouettePaint = Paint().apply { isAntiAlias = false; filterQuality = FilterQuality.None }
+    private val imagePaint =
+        Paint().apply { isAntiAlias = false; filterQuality = FilterQuality.None }
+    private val fadePaint =
+        Paint().apply { isAntiAlias = false; filterQuality = FilterQuality.None }
+    private val silhouettePaint =
+        Paint().apply { isAntiAlias = false; filterQuality = FilterQuality.None }
     private var silhouetteRgb = 0
     private val erasePaint = Paint().apply { blendMode = BlendMode.Clear }
 
@@ -169,11 +173,19 @@ class ComposeGraphics(
     // on every platform; adding light, or tinting it as it is drawn, costs several times as much a pixel.
     private val ambientPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src }
     private val ringPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src }
-    private val copyPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src; filterQuality = FilterQuality.None }
+    private val copyPaint = Paint().apply {
+        isAntiAlias = false; blendMode = BlendMode.Src; filterQuality = FilterQuality.None
+    }
     private val shadowPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Clear }
-    private val overPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.SrcOver; filterQuality = FilterQuality.None }
-    private val lightPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Modulate; filterQuality = FilterQuality.None }
-    private val glowPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Plus; filterQuality = FilterQuality.None }
+    private val overPaint = Paint().apply {
+        isAntiAlias = false; blendMode = BlendMode.SrcOver; filterQuality = FilterQuality.None
+    }
+    private val lightPaint = Paint().apply {
+        isAntiAlias = false; blendMode = BlendMode.Modulate; filterQuality = FilterQuality.None
+    }
+    private val glowPaint = Paint().apply {
+        isAntiAlias = false; blendMode = BlendMode.Plus; filterQuality = FilterQuality.None
+    }
 
     /**
      * How each frame of the art glints, in each direction a light can come from: a picture the frame's
@@ -183,13 +195,20 @@ class ComposeGraphics(
     private var framePixels = IntArray(0)
     private val surfaces = FrameCache { pixmap, x, y, width, height, _ ->
         if (framePixels.size < width * height) framePixels = IntArray(width * height)
-        if (pixmap.readPixels(framePixels, x, y, width, height)) Gloss.surface(framePixels, width, height) else null
+        if (pixmap.readPixels(framePixels, x, y, width, height)) Gloss.surface(
+            framePixels,
+            width,
+            height
+        ) else null
     }
-    private val glintMasks = FrameCache(Gloss.DIRECTIONS) { pixmap, x, y, width, height, direction ->
-        surfaces[pixmap, x, y, width, height]?.let { glintMask(it, direction) }
-    }
+    private val glintMasks =
+        FrameCache(Gloss.DIRECTIONS) { pixmap, x, y, width, height, direction ->
+            surfaces[pixmap, x, y, width, height]?.let { glintMask(it, direction) }
+        }
     private val maskPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src }
-    private val glintPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Plus; filterQuality = FilterQuality.None }
+    private val glintPaint = Paint().apply {
+        isAntiAlias = false; blendMode = BlendMode.Plus; filterQuality = FilterQuality.None
+    }
 
     /** A light's color, as the filter its glints are tinted with, one for each color seen; see [tint]. */
     private val tintColors = IntArray(MAX_TINTS)
@@ -199,7 +218,8 @@ class ComposeGraphics(
     /** Which slot the next new tint takes once every one is in use: the oldest. */
     private var nextTint = 0
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat): Pixmap = ImagePixmap(loadImage(filename))
+    override fun newPixmap(filename: String, format: Graphics.PixmapFormat): Pixmap =
+        ImagePixmap(loadImage(filename))
 
     /**
      * Starts the recording over, since nothing recorded before a clear could show through it. Every
@@ -231,10 +251,30 @@ class ComposeGraphics(
         shape(OUTLINE, x, y, width, height, color)
 
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) {
-        image(IMAGE, imageOf(pixmap), 0, 0, pixmap.width, pixmap.height, x, y, pixmap.width, pixmap.height, 1)
+        image(
+            IMAGE,
+            imageOf(pixmap),
+            0,
+            0,
+            pixmap.width,
+            pixmap.height,
+            x,
+            y,
+            pixmap.width,
+            pixmap.height,
+            1
+        )
     }
 
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int) =
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int
+    ) =
         drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, srcWidth, srcHeight)
 
     /**
@@ -246,15 +286,50 @@ class ComposeGraphics(
         pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
         dstWidth: Int, dstHeight: Int,
     ) {
-        image(IMAGE, imageOf(pixmap), srcX, srcY, srcWidth - 1, srcHeight - 1, x, y, dstWidth - 1, dstHeight - 1, 1)
+        image(
+            IMAGE,
+            imageOf(pixmap),
+            srcX,
+            srcY,
+            srcWidth - 1,
+            srcHeight - 1,
+            x,
+            y,
+            dstWidth - 1,
+            dstHeight - 1,
+            1
+        )
     }
 
     override fun drawPixmap(
         pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
         dstWidth: Int, dstHeight: Int, rotationDegrees: Float,
     ) {
-        val turn = turn(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, rotationDegrees) ?: return
-        image(IMAGE, turn.image, 0, 0, turn.width, turn.height, turn.left, turn.top, turn.width, turn.height, grid)
+        val turn = turn(
+            pixmap,
+            x,
+            y,
+            srcX,
+            srcY,
+            srcWidth,
+            srcHeight,
+            dstWidth,
+            dstHeight,
+            rotationDegrees
+        ) ?: return
+        image(
+            IMAGE,
+            turn.image,
+            0,
+            0,
+            turn.width,
+            turn.height,
+            turn.left,
+            turn.top,
+            turn.width,
+            turn.height,
+            grid
+        )
     }
 
     /**
@@ -262,11 +337,31 @@ class ComposeGraphics(
      * same steps it did when the frame was a bitmap.
      */
     override fun drawPixmapFaded(
-        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, alpha: Float,
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        alpha: Float,
     ) {
         val steps = (alpha.coerceIn(0f, 1f) * 255f).roundToInt()
         if (steps <= 0) return
-        if (!image(FADED, imageOf(pixmap), srcX, srcY, srcWidth - 1, srcHeight - 1, x, y, srcWidth - 1, srcHeight - 1, 1)) return
+        if (!image(
+                FADED,
+                imageOf(pixmap),
+                srcX,
+                srcY,
+                srcWidth - 1,
+                srcHeight - 1,
+                x,
+                y,
+                srcWidth - 1,
+                srcHeight - 1,
+                1
+            )
+        ) return
         if (floatCount == floats.size) floats = floats.copyOf(floats.size * 2)
         floats[floatCount++] = steps / 255f
     }
@@ -276,7 +371,20 @@ class ComposeGraphics(
         dstWidth: Int, dstHeight: Int, color: Int,
     ) {
         if (color ushr 24 == 0) return
-        if (image(SILHOUETTE, imageOf(pixmap), srcX, srcY, srcWidth - 1, srcHeight - 1, x, y, dstWidth - 1, dstHeight - 1, 1)) {
+        if (image(
+                SILHOUETTE,
+                imageOf(pixmap),
+                srcX,
+                srcY,
+                srcWidth - 1,
+                srcHeight - 1,
+                x,
+                y,
+                dstWidth - 1,
+                dstHeight - 1,
+                1
+            )
+        ) {
             ints[intCount++] = color
         }
     }
@@ -287,8 +395,32 @@ class ComposeGraphics(
         dstWidth: Int, dstHeight: Int, color: Int, rotationDegrees: Float,
     ) {
         if (color ushr 24 == 0) return
-        val turn = turn(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, rotationDegrees) ?: return
-        if (image(SILHOUETTE, turn.image, 0, 0, turn.width, turn.height, turn.left, turn.top, turn.width, turn.height, grid)) {
+        val turn = turn(
+            pixmap,
+            x,
+            y,
+            srcX,
+            srcY,
+            srcWidth,
+            srcHeight,
+            dstWidth,
+            dstHeight,
+            rotationDegrees
+        ) ?: return
+        if (image(
+                SILHOUETTE,
+                turn.image,
+                0,
+                0,
+                turn.width,
+                turn.height,
+                turn.left,
+                turn.top,
+                turn.width,
+                turn.height,
+                grid
+            )
+        ) {
             ints[intCount++] = color
         }
     }
@@ -319,8 +451,9 @@ class ComposeGraphics(
         // blit's own `- 1` and all, so a magnified sprite's glint is magnified with it.
         for (g in 0 until lighting.glintCount) {
             val glint = lighting.glint(g)
-            val mask = glintMasks[glint.pixmap, glint.srcX, glint.srcY, glint.srcWidth, glint.srcHeight, glint.direction]
-                ?: continue
+            val mask =
+                glintMasks[glint.pixmap, glint.srcX, glint.srcY, glint.srcWidth, glint.srcHeight, glint.direction]
+                    ?: continue
             val recorded = image(
                 GLINT, mask, 0, 0, glint.srcWidth - 1, glint.srcHeight - 1,
                 glint.x, glint.y, glint.dstWidth - 1, glint.dstHeight - 1, 1,
@@ -341,7 +474,14 @@ class ComposeGraphics(
         if (s != null) text(s, x, y, fontSize, col, outline = 0, outlined = false)
     }
 
-    override fun drawOutlinedString(s: String, x: Int, y: Int, fontSize: Int, color: Int, outlineColor: Int) =
+    override fun drawOutlinedString(
+        s: String,
+        x: Int,
+        y: Int,
+        fontSize: Int,
+        color: Int,
+        outlineColor: Int
+    ) =
         text(s, x, y, fontSize, color, outlineColor, outlined = true)
 
     /**
@@ -362,7 +502,12 @@ class ComposeGraphics(
      * [clip] lets it: the ambient bars read the frame's edges, and draw nothing else.
      */
     internal fun drawInto(canvas: Canvas, targetWidth: Int, targetHeight: Int, clip: Path? = null) {
-        offscreen.draw(FRAME_DENSITY, LayoutDirection.Ltr, canvas, Size(targetWidth.toFloat(), targetHeight.toFloat())) {
+        offscreen.draw(
+            FRAME_DENSITY,
+            LayoutDirection.Ltr,
+            canvas,
+            Size(targetWidth.toFloat(), targetHeight.toFloat())
+        ) {
             canvas.save()
             if (clip != null) canvas.clipPath(clip)
             // Black first, for a frame that has not been recorded yet.
@@ -457,7 +602,13 @@ class ComposeGraphics(
     private fun drawLine(canvas: Canvas, at: Int) {
         shapePaint.color = Color(ints[at + 5])
         Raster.line(ints[at + 1], ints[at + 2], ints[at + 3], ints[at + 4]) { left, top, w, h ->
-            canvas.drawRect(left.toFloat(), top.toFloat(), (left + w).toFloat(), (top + h).toFloat(), shapePaint)
+            canvas.drawRect(
+                left.toFloat(),
+                top.toFloat(),
+                (left + w).toFloat(),
+                (top + h).toFloat(),
+                shapePaint
+            )
         }
     }
 
@@ -536,7 +687,12 @@ class ComposeGraphics(
     private fun layout(text: String, fontSize: Int): TextLayoutResult =
         textMeasurer.measure(
             text,
-            styles.getOrPut(fontSize) { TextStyle(fontSize = fontSize.sp, fontFamily = FontFamily.SansSerif) },
+            styles.getOrPut(fontSize) {
+                TextStyle(
+                    fontSize = fontSize.sp,
+                    fontFamily = FontFamily.SansSerif
+                )
+            },
         )
 
     /**
@@ -566,7 +722,9 @@ class ComposeGraphics(
     private fun renderLight(lighting: Lighting) {
         val cellsWide = (width + LIGHT_CELL - 1) / LIGHT_CELL
         val cellsHigh = (height + LIGHT_CELL - 1) / LIGHT_CELL
-        val canvas = lightCanvas ?: Canvas(ImageBitmap(cellsWide, cellsHigh).also { lightImage = it }).also { lightCanvas = it }
+        val canvas = lightCanvas ?: Canvas(ImageBitmap(cellsWide, cellsHigh).also {
+            lightImage = it
+        }).also { lightCanvas = it }
         ambientPaint.color = Color(lighting.ambient or OPAQUE)
         val first = if (lighting.count > 0) lighting[0] else null
         if (first != null && first.intensity >= 1f && cellRadius(first) > 0) {
@@ -579,13 +737,20 @@ class ComposeGraphics(
     }
 
     /** A light's radius in cells of the light picture. */
-    private fun cellRadius(light: Lighting.Light): Int = (light.radius + LIGHT_CELL / 2) / LIGHT_CELL
+    private fun cellRadius(light: Lighting.Light): Int =
+        (light.radius + LIGHT_CELL / 2) / LIGHT_CELL
 
     /**
      * Lays the first light down whole, onto nothing: its rings over the [ambient] dark, as one copy,
      * its shadows painted on in the dark's color, and the dark filled in round its square.
      */
-    private fun layFirst(canvas: Canvas, light: Lighting.Light, ambient: Int, cellsWide: Int, cellsHigh: Int) {
+    private fun layFirst(
+        canvas: Canvas,
+        light: Lighting.Light,
+        ambient: Int,
+        cellsWide: Int,
+        cellsHigh: Int
+    ) {
         val radius = cellRadius(light)
         val size = 2 * radius + 1
         val left = light.x.floorDiv(LIGHT_CELL) - radius
@@ -605,12 +770,26 @@ class ComposeGraphics(
     }
 
     /** The dark over the part of the cells from [left], [top] to [right], [bottom] that is in the picture. */
-    private fun fillDark(canvas: Canvas, left: Int, top: Int, right: Int, bottom: Int, cellsWide: Int, cellsHigh: Int) {
+    private fun fillDark(
+        canvas: Canvas,
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int,
+        cellsWide: Int,
+        cellsHigh: Int
+    ) {
         val l = left.coerceIn(0, cellsWide)
         val t = top.coerceIn(0, cellsHigh)
         val r = right.coerceIn(0, cellsWide)
         val b = bottom.coerceIn(0, cellsHigh)
-        if (r > l && b > t) canvas.drawRect(l.toFloat(), t.toFloat(), r.toFloat(), b.toFloat(), ambientPaint)
+        if (r > l && b > t) canvas.drawRect(
+            l.toFloat(),
+            t.toFloat(),
+            r.toFloat(),
+            b.toFloat(),
+            ambientPaint
+        )
     }
 
     /**
@@ -634,7 +813,14 @@ class ComposeGraphics(
         val rings = lightSprite(radius, light.color)
         val source = if (light.shadowCount > 0) shadowed(rings, light, left, top, size) else rings
         overPaint.alpha = light.intensity
-        canvas.drawImageRect(source, IntOffset.Zero, IntSize(size, size), IntOffset(left, top), IntSize(size, size), overPaint)
+        canvas.drawImageRect(
+            source,
+            IntOffset.Zero,
+            IntSize(size, size),
+            IntOffset(left, top),
+            IntSize(size, size),
+            overPaint
+        )
     }
 
     /**
@@ -642,14 +828,27 @@ class ComposeGraphics(
      * whatever stands in its way. One scratch picture serves every light, since each is laid over the
      * light picture before the next is cut, and on the CPU the draws happen as they are made.
      */
-    private fun shadowed(rings: ImageBitmap, light: Lighting.Light, left: Int, top: Int, size: Int): ImageBitmap {
+    private fun shadowed(
+        rings: ImageBitmap,
+        light: Lighting.Light,
+        left: Int,
+        top: Int,
+        size: Int
+    ): ImageBitmap {
         val scratch = shadowScratch?.takeIf { it.width >= size && it.height >= size }
             ?: ImageBitmap(roundUp(size), roundUp(size)).also {
                 shadowScratch = it
                 shadowCanvas = Canvas(it)
             }
         val canvas = shadowCanvas ?: return rings
-        canvas.drawImageRect(rings, IntOffset.Zero, IntSize(size, size), IntOffset.Zero, IntSize(size, size), copyPaint)
+        canvas.drawImageRect(
+            rings,
+            IntOffset.Zero,
+            IntSize(size, size),
+            IntOffset.Zero,
+            IntSize(size, size),
+            copyPaint
+        )
         traceShadows(light, left, top)
         canvas.drawPath(shadowPath, shadowPaint)
         return scratch
@@ -667,10 +866,16 @@ class ComposeGraphics(
         var start = 0
         for (shadow in 0 until light.shadowCount) {
             val end = light.shadowEnd(shadow)
-            shadowPath.moveTo(points[start] / LIGHT_CELL - left, points[start + 1] / LIGHT_CELL - top)
+            shadowPath.moveTo(
+                points[start] / LIGHT_CELL - left,
+                points[start + 1] / LIGHT_CELL - top
+            )
             var point = start + 2
             while (point < end) {
-                shadowPath.lineTo(points[point] / LIGHT_CELL - left, points[point + 1] / LIGHT_CELL - top)
+                shadowPath.lineTo(
+                    points[point] / LIGHT_CELL - left,
+                    points[point + 1] / LIGHT_CELL - top
+                )
                 point += 2
             }
             shadowPath.close()
@@ -696,13 +901,25 @@ class ComposeGraphics(
         canvas.drawRect(0f, 0f, size.toFloat(), size.toFloat(), ringPaint)
         overPaint.alpha = 1f
         val rings = lightSprite(radius, rgb)
-        canvas.drawImageRect(rings, IntOffset.Zero, IntSize(size, size), IntOffset.Zero, IntSize(size, size), overPaint)
+        canvas.drawImageRect(
+            rings,
+            IntOffset.Zero,
+            IntSize(size, size),
+            IntOffset.Zero,
+            IntSize(size, size),
+            overPaint
+        )
         darkLights += DarkLight(radius, rgb, dark, image)
         return image
     }
 
     /** A first light, already laid over the dark; see [darkLightSprite]. */
-    private class DarkLight(val radius: Int, val color: Int, val ambient: Int, val image: ImageBitmap)
+    private class DarkLight(
+        val radius: Int,
+        val color: Int,
+        val ambient: Int,
+        val image: ImageBitmap
+    )
 
     /**
      * A light of [radius] in [color], as a picture 2 * [radius] + 1 across: the color, as opaque at its
@@ -713,8 +930,10 @@ class ComposeGraphics(
      * frame.
      */
     private fun lightSprite(radius: Int, color: Int): ImageBitmap {
-        if (radius >= lightSprites.size) lightSprites = lightSprites.copyOf(maxOf(radius + 1, lightSprites.size * 2))
-        val tinted = lightSprites[radius] ?: ArrayList<TintedLight>(2).also { lightSprites[radius] = it }
+        if (radius >= lightSprites.size) lightSprites =
+            lightSprites.copyOf(maxOf(radius + 1, lightSprites.size * 2))
+        val tinted =
+            lightSprites[radius] ?: ArrayList<TintedLight>(2).also { lightSprites[radius] = it }
         val rgb = color or OPAQUE
         for (i in tinted.indices) {
             if (tinted[i].color == rgb) return tinted[i].image
@@ -727,8 +946,19 @@ class ComposeGraphics(
         for (i in rings.indices step 2) {
             val ring = rings[i]
             ringPaint.color = Color(rgb).copy(alpha = rings[i + 1] / 255f)
-            Raster.oval(radius - ring, radius - ring, 2 * ring + 1, 2 * ring + 1) { left, top, w, h ->
-                canvas.drawRect(left.toFloat(), top.toFloat(), (left + w).toFloat(), (top + h).toFloat(), ringPaint)
+            Raster.oval(
+                radius - ring,
+                radius - ring,
+                2 * ring + 1,
+                2 * ring + 1
+            ) { left, top, w, h ->
+                canvas.drawRect(
+                    left.toFloat(),
+                    top.toFloat(),
+                    (left + w).toFloat(),
+                    (top + h).toFloat(),
+                    ringPaint
+                )
             }
         }
         tinted += TintedLight(rgb, image)
@@ -823,7 +1053,15 @@ class ComposeGraphics(
         return true
     }
 
-    private fun text(s: String, x: Int, y: Int, fontSize: Int, color: Int, outline: Int, outlined: Boolean) {
+    private fun text(
+        s: String,
+        x: Int,
+        y: Int,
+        fontSize: Int,
+        color: Int,
+        outline: Int,
+        outlined: Boolean
+    ) {
         reserve(TEXT_LENGTH)
         ints[intCount++] = TEXT
         ints[intCount++] = x
@@ -861,7 +1099,20 @@ class ComposeGraphics(
         if (srcWidth <= 1 || srcHeight <= 1 || dstWidth <= 1 || dstHeight <= 1) return null
         if (turnsUsed > 0) {
             val last = turns[turnsUsed - 1]
-            if (last.holds(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, degrees, grid)) return last
+            if (last.holds(
+                    pixmap,
+                    x,
+                    y,
+                    srcX,
+                    srcY,
+                    srcWidth,
+                    srcHeight,
+                    dstWidth,
+                    dstHeight,
+                    degrees,
+                    grid
+                )
+            ) return last
         }
 
         // The box the blit fills, its `- 1` included, and its pivot, all in grid pixels.
@@ -916,7 +1167,19 @@ class ComposeGraphics(
             imagePaint,
         )
         canvas.restore()
-        turn.hold(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, degrees, scale)
+        turn.hold(
+            pixmap,
+            x,
+            y,
+            srcX,
+            srcY,
+            srcWidth,
+            srcHeight,
+            dstWidth,
+            dstHeight,
+            degrees,
+            scale
+        )
         turn.left = left
         turn.top = top
         turn.width = width
@@ -931,15 +1194,19 @@ class ComposeGraphics(
      */
     private fun slot(width: Int, height: Int): Turn {
         val existing = turns.getOrNull(turnsUsed)
-        val turn = if (existing != null && existing.image.width >= width && existing.image.height >= height) {
-            existing
-        } else {
-            val image = ImageBitmap(
-                roundUp(maxOf(width, existing?.image?.width ?: 0)),
-                roundUp(maxOf(height, existing?.image?.height ?: 0)),
-            )
-            Turn(image, Canvas(image)).also { if (existing == null) turns += it else turns[turnsUsed] = it }
-        }
+        val turn =
+            if (existing != null && existing.image.width >= width && existing.image.height >= height) {
+                existing
+            } else {
+                val image = ImageBitmap(
+                    roundUp(maxOf(width, existing?.image?.width ?: 0)),
+                    roundUp(maxOf(height, existing?.image?.height ?: 0)),
+                )
+                Turn(
+                    image,
+                    Canvas(image)
+                ).also { if (existing == null) turns += it else turns[turnsUsed] = it }
+            }
         turnsUsed++
         return turn
     }
@@ -1000,8 +1267,8 @@ class ComposeGraphics(
             pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
             dstWidth: Int, dstHeight: Int, degrees: Float, grid: Int,
         ): Boolean = this.pixmap === pixmap && this.degrees == degrees &&
-            box[0] == x && box[1] == y && box[2] == srcX && box[3] == srcY && box[4] == srcWidth &&
-            box[5] == srcHeight && box[6] == dstWidth && box[7] == dstHeight && box[8] == grid
+                box[0] == x && box[1] == y && box[2] == srcX && box[3] == srcY && box[4] == srcWidth &&
+                box[5] == srcHeight && box[6] == dstWidth && box[7] == dstHeight && box[8] == grid
     }
 
     companion object {

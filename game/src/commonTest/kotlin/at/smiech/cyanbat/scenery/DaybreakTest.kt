@@ -19,7 +19,11 @@ class DaybreakTest {
     fun `the ground is in each keyframe's own palette exactly at that keyframe`() {
         Daybreak.KEYFRAMES.forEachIndexed { index, at ->
             assertEquals(index, Daybreak.keyframeBelow(at))
-            assertEquals(0f, Daybreak.keyframeBlend(at), "keyframe $index was blended at its own hour")
+            assertEquals(
+                0f,
+                Daybreak.keyframeBlend(at),
+                "keyframe $index was blended at its own hour"
+            )
         }
     }
 
@@ -40,7 +44,10 @@ class DaybreakTest {
 
         val noon = Daybreak.skyColor(1f, 0f)
         assertTrue(brightness(noon) > 500, "the noon sky overhead is not bright")
-        assertTrue(blue(noon) > red(noon) + 100 && green(noon) > red(noon) + 100, "the noon sky overhead is not cyan")
+        assertTrue(
+            blue(noon) > red(noon) + 100 && green(noon) > red(noon) + 100,
+            "the noon sky overhead is not cyan"
+        )
     }
 
     /** The dawn comes up from the horizon: pink there while the sky overhead is still dark. */
@@ -50,7 +57,10 @@ class DaybreakTest {
         val horizon = Daybreak.skyColor(dawn, 1f)
         val overhead = Daybreak.skyColor(dawn, 0f)
         assertTrue(red(horizon) > blue(horizon), "the dawn's horizon is not pink")
-        assertTrue(brightness(horizon) > brightness(overhead) + 150, "the dawn has not come up from the horizon")
+        assertTrue(
+            brightness(horizon) > brightness(overhead) + 150,
+            "the dawn has not come up from the horizon"
+        )
     }
 
     @Test
@@ -72,7 +82,10 @@ class DaybreakTest {
         assertFalse(Daybreak.sunUp(0.2f), "the sun is up in the night")
         assertTrue(Daybreak.sunUp(Daybreak.SUNRISE))
         assertTrue(Daybreak.sunX(Daybreak.SUNRISE) > 400f, "it rose behind the bat")
-        assertTrue(Daybreak.sunY(Daybreak.SUNRISE) - Daybreak.sunRadius(Daybreak.SUNRISE) > 220f, "it rose in the sky, not out of the sea")
+        assertTrue(
+            Daybreak.sunY(Daybreak.SUNRISE) - Daybreak.sunRadius(Daybreak.SUNRISE) > 220f,
+            "it rose in the sky, not out of the sea"
+        )
         var last = Float.MAX_VALUE
         for (step in 36..100) {
             val y = Daybreak.sunY(step / 100f)
@@ -94,7 +107,11 @@ class DaybreakTest {
     fun `the sun lays its path on the water while it is low and not at noon`() {
         assertTrue(Daybreak.sunGlitter(Daybreak.SUNUP) > 0.5f, "no path under the rising sun")
         assertEquals(0f, Daybreak.sunGlitter(0.95f))
-        assertEquals(0f, Daylight.sunGlitter(Daylight.SUNDOWN), "the desert has no water to lay it on")
+        assertEquals(
+            0f,
+            Daylight.sunGlitter(Daylight.SUNDOWN),
+            "the desert has no water to lay it on"
+        )
     }
 
     // endregion

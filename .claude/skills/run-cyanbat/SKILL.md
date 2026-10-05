@@ -5,16 +5,16 @@ description: Build, install, launch, drive and screenshot the CyanBat game - on 
 
 # Running CyanBat
 
-CyanBat is a landscape game sharing one Kotlin Multiplatform codebase between Android and
-desktop. On Android a Compose menu (`MainActivity`) launches the game activity
-(`CyanBatGameActivity`), which draws the game's 640x360 frame through a Compose Canvas; on desktop a
-single Compose window swaps between the two.
+CyanBat is a landscape game sharing one Kotlin Multiplatform codebase between Android and desktop.
+On Android a Compose menu (`MainActivity`) launches the game activity (`CyanBatGameActivity`), which
+draws the game's 640x360 frame through a Compose Canvas; on desktop a single Compose window swaps
+between the two.
 
-Unit tests cover the ECS, math and spawn pacing, but nothing covers rendering, input or the
-activity lifecycle - for those, run it.
+Unit tests cover the ECS, math and spawn pacing, but nothing covers rendering, input or the activity
+lifecycle - for those, run it.
 
-Everything is driven by `.claude/skills/run-cyanbat/driver.sh`. All paths below are relative to
-the repo root; run the driver from there.
+Everything is driven by `.claude/skills/run-cyanbat/driver.sh`. All paths below are relative to the
+repo root; run the driver from there.
 
 ## Prerequisites
 
@@ -26,14 +26,13 @@ The driver finds the SDK via `$ANDROID_HOME`, `$ANDROID_SDK_ROOT`, or
 `%LOCALAPPDATA%\Android\Sdk`, and picks the first AVD from `emulator -list-avds` (override with
 `$CYANBAT_AVD`).
 
-A git worktree (e.g. under `.claude/worktrees/`) has no `local.properties`, since it is
-gitignored, so Gradle has no `sdk.dir`; `install` passes it the SDK it found as `ANDROID_HOME`
+A git worktree (e.g. under `.claude/worktrees/`) has no `local.properties`, since it is gitignored,
+so Gradle has no `sdk.dir`; `install` passes it the SDK it found as `ANDROID_HOME`
 instead. A bare `./gradlew` on an Android task there still fails with "SDK location not found":
 set `ANDROID_HOME`, or copy `local.properties` over from the main checkout.
 
-Verified on Windows 11 + Git Bash against `Medium_Phone` (API 37, 1080x2400). Nothing in the
-driver is Windows-specific.
-JDK 21 comes from the Gradle toolchain; no separate install needed.
+Verified on Windows 11 + Git Bash against `Medium_Phone` (API 37, 1080x2400). Nothing in the driver
+is Windows-specific. JDK 21 comes from the Gradle toolchain; no separate install needed.
 
 ```bash
 emulator -list-avds
@@ -41,8 +40,8 @@ emulator -list-avds
 
 ## Run (agent path)
 
-One command does the whole loop — boot, install, launch, screenshot, pause/resume,
-read persisted state, check for crashes:
+One command does the whole loop — boot, install, launch, screenshot, pause/resume, read persisted
+state, check for crashes:
 
 ```bash
 .claude/skills/run-cyanbat/driver.sh smoke
@@ -68,20 +67,18 @@ Individual commands, for iterating:
 .claude/skills/run-cyanbat/driver.sh desktop     # Compose Desktop build - no emulator
 ```
 
-**Always look at the screenshots.** `shot` only asserts the PNG is non-trivial in
-size; it cannot tell gameplay from a black frame.
+**Always look at the screenshots.** `shot` only asserts the PNG is non-trivial in size; it cannot
+tell gameplay from a black frame.
 
-Use `hud` rather than `shot` whenever you need to read the HUD - score, wave and
-combo down the left, the stage timer in the middle, the level top right. The
-highscore is not on it: the game over screen, the stage complete overlay and the
-stage select show that. The game draws a 640x360 frame scaled up to the
-window; the HUD's text is drawn smooth at the screen's resolution, but it is small
-in a full-size capture.
-How it is scaled is the player's choice, under Settings > Display (see the
+Use `hud` rather than `shot` whenever you need to read the HUD - score, wave and combo down the
+left, the stage timer in the middle, the level top right. The highscore is not on it: the game over
+screen, the stage complete overlay and the stage select show that. The game draws a 640x360 frame
+scaled up to the window; the HUD's text is drawn smooth at the screen's resolution, but it is small
+in a full-size capture. How it is scaled is the player's choice, under Settings > Display (see the
 gotcha on `input swipe` below).
 
-`tap` finds nodes by label through the accessibility tree, so it survives a
-different screen size — never hardcode coordinates:
+`tap` finds nodes by label through the accessibility tree, so it survives a different screen size —
+never hardcode coordinates:
 
 ```bash
 .claude/skills/run-cyanbat/driver.sh tap "Settings"
@@ -105,31 +102,31 @@ Then tap Start Game on the emulator window. Useless without a display.
 ```
 
 Assembles debug + release, runs lint, and runs the unit tests. Those live in
-`engine/src/commonTest`, `engine/src/jvmTest`, `game/src/commonTest` and `desktop/src/test` and
-run on the JVM only; on their own:
+`engine/src/commonTest`, `engine/src/jvmTest`, `game/src/commonTest` and `desktop/src/test` and run
+on the JVM only; on their own:
 
 ```bash
 ./gradlew :engine:jvmTest :game:jvmTest :desktop:test
 ```
 
-They exercise game logic headlessly - ECS systems, math, spawning, stage progression, scoring -
-so a green build still says nothing about rendering, touch input on a device, or the activity
-lifecycle, and there are no instrumentation tests. Verify those on the emulator.
+They exercise game logic headlessly - ECS systems, math, spawning, stage progression, scoring - so a
+green build still says nothing about rendering, touch input on a device, or the activity lifecycle,
+and there are no instrumentation tests. Verify those on the emulator.
 
 ## Gotchas
 
 - **`CyanBatGameActivity` is not exported.**
   `am start -n at.smiech.cyanbat/.activity.CyanBatGameActivity`
-  fails with `SecurityException: Permission Denial ... not exported from uid`.
-  Tapping "Start Game" on the menu is the only way in — which is why `start`
+  fails with `SecurityException: Permission Denial ... not exported from uid`. Tapping "Start Game"
+  on the menu is the only way in — which is why `start`
   goes through `uiautomator`.
 
 - **`monkey -c android.intent.category.LAUNCHER` destroys the game activity.**
-  The usual "bring the app back to front" trick delivers a launcher intent, which
-  resets the task to `MainActivity` and finishes the game activity. It looks like
-  the app crashed. `pause-resume` covers the game with the Settings window and
-  presses BACK instead, which keeps the same window ID — check that the driver
-  prints `same window`, otherwise you measured an activity recreation, not a resume.
+  The usual "bring the app back to front" trick delivers a launcher intent, which resets the task to
+  `MainActivity` and finishes the game activity. It looks like the app crashed. `pause-resume`
+  covers the game with the Settings window and presses BACK instead, which keeps the same window
+  ID — check that the driver prints `same window`, otherwise you measured an activity recreation,
+  not a resume.
 
 - **A configuration change the game activity does not declare restarts the run.**
   `adb logcat -b events -d | grep relaunch` shows each relaunch as `wm_relaunch_resume_activity`,
@@ -140,73 +137,72 @@ lifecycle, and there are no instrumentation tests. Verify those on the emulator.
   (`night no`, `wm density reset`, `wm size reset`, `font_scale 1.0`, `--locales ''`). A pad or a
   keyboard connecting changes nothing on `Medium_Phone`, which already has a keyboard and a d-pad.
 
-- **`adb shell cat` corrupts binary output.** It rewrites every `0x0a` as `0d 0a`,
-  so the DataStore protobuf decodes to a wrong number (a stored 1350 reads back as
-  1734). Use `adb exec-out` for anything binary, screenshots included.
+- **`adb shell cat` corrupts binary output.** It rewrites every `0x0a` as `0d 0a`, so the DataStore
+  protobuf decodes to a wrong number (a stored 1350 reads back as 1734). Use `adb exec-out` for
+  anything binary, screenshots included.
 
-- **The game comes back from a pause still paused.** `onPause` sets the run's own
-  pause flag, and `onResume` deliberately does not clear it, so `pause-resume`
-  leaves `pr_after` showing the PAUSED overlay with the score frozen where it was.
-  That is correct, not a hang: tap the screen (or press BACK twice to quit) to get
-  moving again. Score and health do not advance across the pause any more.
+- **The game comes back from a pause still paused.** `onPause` sets the run's own pause flag, and
+  `onResume` deliberately does not clear it, so `pause-resume`
+  leaves `pr_after` showing the PAUSED overlay with the score frozen where it was. That is correct,
+  not a hang: tap the screen (or press BACK twice to quit) to get moving again. Score and health do
+  not advance across the pause any more.
 
-- **An unattended bat dies within seconds.** It holds position with no finger on
-  it and takes hits standing still, scoring a few hundred before game over.
-  Capture what you need immediately after `start`, or use `play`.
+- **An unattended bat dies within seconds.** It holds position with no finger on it and takes hits
+  standing still, scoring a few hundred before game over. Capture what you need immediately after
+  `start`, or use `play`.
 
-- **The bat is dragged, so `input swipe` places it precisely.** It ends the swipe
-  centered on the release point when the swipe started away from it, or offset by
-  wherever on the sprite it was grabbed. A press and hold (`input swipe x y x y
-  1200`) also works: one `TOUCH_DOWN` is enough, and the bat flies over to it.
-  That makes screenshots of a chosen position repeatable - see
-  `PlayerInputSystem`. Where screen pixels land depends on Settings > Display
-  (`DisplayMode`, stored as `display_mode` in the DataStore). In the default,
-  Ambient bars, and in Black bars, the frame is scaled evenly to the screen's
-  full height and centered (`FrameFit`): on a 2400x1080 capture it spans x 240-2160
-  with the bars either side, and screen pixels map to it at (x - 240) / 3 and
-  y / 3. A touch on a bar still steers, toward that edge. In Stretch to fit
-  screen it fills the capture instead, at x / 3.75 and y / 3, and `hud` crops the
-  wrong corner. `pm clear` puts the default back.
+- **The bat is dragged, so `input swipe` places it precisely.** It ends the swipe centered on the
+  release point when the swipe started away from it, or offset by wherever on the sprite it was
+  grabbed. A press and hold (`input swipe x y x y
+  1200`) also works: one `TOUCH_DOWN` is enough, and the bat flies over to it. That makes
+  screenshots of a chosen position repeatable - see
+  `PlayerInputSystem`. Where screen pixels land depends on Settings > Display (`DisplayMode`, stored
+  as `display_mode` in the DataStore). In the default, Ambient bars, and in Black bars, the frame is
+  scaled evenly to the screen's full height and centered (`FrameFit`): on a 2400x1080 capture it
+  spans x 240-2160 with the bars either side, and screen pixels map to it at (x - 240) / 3 and y /
+  3. A touch on a bar still steers, toward that edge. In Stretch to fit screen it fills the capture
+  instead, at x / 3.75 and y / 3, and `hud` crops the wrong corner. `pm clear` puts the default
+  back.
 
-- **`play` finishes runs, it does not survive them.** Once the bat dies, the next
-  swipe's `TOUCH_UP` dismisses `GameOverScreen` back to the menu. That is the way
-  to exercise the highscore write path, not a way to reach late-game state.
+- **`play` finishes runs, it does not survive them.** Once the bat dies, the next swipe's `TOUCH_UP`
+  dismisses `GameOverScreen` back to the menu. That is the way to exercise the highscore write path,
+  not a way to reach late-game state.
 
-- **Highscores are per stage, and persist on death, on clearing the stage, or on
-  quitting from the pause screen.** `saveHighscore()` runs at each of those, so
+- **Highscores are per stage, and persist on death, on clearing the stage, or on quitting from the
+  pause screen.** `saveHighscore()` runs at each of those, so
   `highscore` reads stale until one happens. They are stored as
-  `highscore_stage_<id>`. A bare `highscore` key is the single score from before
-  they were per stage; the app moves it onto stage 1 the first time it opens its
-  DataStore, so seeing one means that build has not been launched yet.
+  `highscore_stage_<id>`. A bare `highscore` key is the single score from before they were per
+  stage; the app moves it onto stage 1 the first time it opens its DataStore, so seeing one means
+  that build has not been launched yet.
 
-- **BACK no longer finishes the game activity; it pauses.** A second BACK on the
-  paused screen quits to the menu. So `input keyevent KEYCODE_BACK` once looks
-  like nothing happened to `focus` — assert on a screenshot. `adb shell input
+- **BACK no longer finishes the game activity; it pauses.** A second BACK on the paused screen quits
+  to the menu. So `input keyevent KEYCODE_BACK` once looks like nothing happened to `focus` — assert
+  on a screenshot. `adb shell input
   keyevent 111` (ESCAPE) toggles pause too, and `input keyevent 51/29/47/32`
   (W/A/S/D) steers the bat, which is a far cheaper way to move it than swiping.
 
 - **Screenshots are 2400x1080** (landscape) even though `adb shell wm size` reports
-  `1080x2400`. The app is locked to landscape; `uiautomator` bounds are already in
-  the rotated frame, so they match `input tap` directly.
+  `1080x2400`. The app is locked to landscape; `uiautomator` bounds are already in the rotated
+  frame, so they match `input tap` directly.
 
-- **Once stage 1 has been cleared, Start Game opens the stage select.** The unlock is
-  persisted (DataStore key `highest_stage_unlocked`), so on a device that has ever beaten the
-  jungle, `start` lands on the stage select rather than in a run - follow it with
+- **Once stage 1 has been cleared, Start Game opens the stage select.** The unlock is persisted
+  (DataStore key `highest_stage_unlocked`), so on a device that has ever beaten the jungle, `start`
+  lands on the stage select rather than in a run - follow it with
   `tap "Stage 1: The Jungle"`, `tap "Stage 2: The Cave"` or `tap "Stage 3: The Desert"`.
   `adb shell pm clear at.smiech.cyanbat`
   resets it (and the highscores). The stage is handed to the game activity as the
   `at.smiech.cyanbat.STAGE_ID` extra.
 
-- **Stages 2 and 3 cannot be reached quickly by playing.** Each opens only after the boss of
-  the one before it, five minutes in. To look at the cave or the desert, unlock it (clear the
-  stage before it once) and pick it from the stage select; there is no debug shortcut. The desert
-  changes with its clock - noon at the start, sunset in the fourth minute, night at the boss - so
-  a screenshot of it is only a screenshot of that hour.
+- **Stages 2 and 3 cannot be reached quickly by playing.** Each opens only after the boss of the one
+  before it, five minutes in. To look at the cave or the desert, unlock it (clear the stage before
+  it once) and pick it from the stage select; there is no debug shortcut. The desert changes with
+  its clock - noon at the start, sunset in the fourth minute, night at the boss - so a screenshot of
+  it is only a screenshot of that hour.
 
-- **Menu navigation does not change the foreground activity.** Settings and Credits
-  are Navigation3 destinations inside `MainActivity`, so `focus` still reports
-  `MainActivity` after `tap "Settings"`. Only `Start Game` crosses an activity
-  boundary. Assert on a screenshot, not on `focus`, for in-menu navigation.
+- **Menu navigation does not change the foreground activity.** Settings and Credits are Navigation3
+  destinations inside `MainActivity`, so `focus` still reports
+  `MainActivity` after `tap "Settings"`. Only `Start Game` crosses an activity boundary. Assert on a
+  screenshot, not on `focus`, for in-menu navigation.
 
 ## Controllers and rumble without a controller
 
@@ -222,16 +218,16 @@ output report the driver sends as `{"eventId":6,...,"reportData":[...]}`.
   `_keyeventtests.json` and `_motioneventtests.json`. Strip their `//` comments, write the hex as
   decimal, and send one command per line.
 - **Stream the commands, with the pauses on the host**:
-  `(cat register.jsonl; sleep 5; cat press_a.jsonl; sleep 40) | adb shell hid -`. A `delay` inside
-  a file also holds back hid's answers to the driver's probe, which then times out after 5 s and
+  `(cat register.jsonl; sleep 5; cat press_a.jsonl; sleep 40) | adb shell hid -`. A `delay` inside a
+  file also holds back hid's answers to the driver's probe, which then times out after 5 s and
   leaves the device with no driver and no input node.
 - In Git Bash, set `MSYS_NO_PATHCONV=1`, or it turns `/data/local/tmp` into a Windows path.
 - The pad has to be what the player is using: press A on it, or steer with its d-pad, and a touch
   hands vibration back to the phone. Flying the bat right into the enemies gets it hit within
-  seconds. Press A now and then too: a bat that kills levels up, and the offer holds the run
-  until A picks a card.
-- A DualSense rumble is report `0x31` with `0x03` at index 3 and the motors at 5 and 6; an Xbox
-  one is report `0x03` with the motors at 4 and 5, in percent. The phone's own vibrations are in
+  seconds. Press A now and then too: a bat that kills levels up, and the offer holds the run until A
+  picks a card.
+- A DualSense rumble is report `0x31` with `0x03` at index 3 and the motors at 5 and 6; an Xbox one
+  is report `0x03` with the motors at 4 and 5, in percent. The phone's own vibrations are in
   `adb shell dumpsys vibrator_manager`, under "Recent vibrations".
 
 ## Troubleshooting

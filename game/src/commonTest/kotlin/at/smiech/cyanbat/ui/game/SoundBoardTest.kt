@@ -26,7 +26,10 @@ class SoundBoardTest {
     @Test
     fun `an effect plays at its own volume`() {
         board.play(SoundEffect.ENEMY_DEATH)
-        assertEquals(listOf(SoundEffect.ENEMY_DEATH.volume), recorders.getValue(SoundEffect.ENEMY_DEATH).volumes)
+        assertEquals(
+            listOf(SoundEffect.ENEMY_DEATH.volume),
+            recorders.getValue(SoundEffect.ENEMY_DEATH).volumes
+        )
     }
 
     @Test

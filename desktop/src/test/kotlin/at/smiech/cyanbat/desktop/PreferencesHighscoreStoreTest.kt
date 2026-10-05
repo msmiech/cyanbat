@@ -38,17 +38,21 @@ class PreferencesHighscoreStoreTest {
     }
 
     @Test
-    fun `the cave's and the forest's highscores follow their stages when the two swap places`() = runBlocking {
-        node.putInt("highscore_stage_1", 4125)
-        node.putInt("highscore_stage_2", 900)
-        node.putInt("highscore_stage_3", 70)
+    fun `the cave's and the forest's highscores follow their stages when the two swap places`() =
+        runBlocking {
+            node.putInt("highscore_stage_1", 4125)
+            node.putInt("highscore_stage_2", 900)
+            node.putInt("highscore_stage_3", 70)
 
-        val store = PreferencesHighscoreStore(node)
+            val store = PreferencesHighscoreStore(node)
 
-        assertEquals(mapOf(1 to 900, 2 to 4125, 3 to 70), store.byStage.first())
-        // Once: a store opened again does not swap them back.
-        assertEquals(mapOf(1 to 900, 2 to 4125, 3 to 70), PreferencesHighscoreStore(node).byStage.first())
-    }
+            assertEquals(mapOf(1 to 900, 2 to 4125, 3 to 70), store.byStage.first())
+            // Once: a store opened again does not swap them back.
+            assertEquals(
+                mapOf(1 to 900, 2 to 4125, 3 to 70),
+                PreferencesHighscoreStore(node).byStage.first()
+            )
+        }
 
     @Test
     fun `a store that starts empty never has its scores swapped`() = runBlocking {

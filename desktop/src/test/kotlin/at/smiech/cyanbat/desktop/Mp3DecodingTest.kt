@@ -86,7 +86,11 @@ class Mp3DecodingTest {
 
             resource.buffered().use { raw ->
                 AudioSystem.getAudioInputStream(raw).use { stream ->
-                    assertEquals(AudioFormat.Encoding.PCM_SIGNED, stream.format.encoding, "$name's encoding")
+                    assertEquals(
+                        AudioFormat.Encoding.PCM_SIGNED,
+                        stream.format.encoding,
+                        "$name's encoding"
+                    )
                     assertTrue(
                         stream.readNBytes(DECODE_PROBE_BYTES).isNotEmpty(),
                         "$name produced no PCM"

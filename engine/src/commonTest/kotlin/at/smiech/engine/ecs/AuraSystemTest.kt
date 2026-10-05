@@ -284,9 +284,15 @@ class AuraSystemTest {
         assertEquals(PATCHWORK.rim.rgb, drawn.ovals.first().color.rgb, "the outermost ring")
         assertEquals(PATCHWORK.core.rgb, drawn.ovals.last().color.rgb, "the innermost ring")
         assertTrue(drawn.lines.isNotEmpty(), "no bolt struck to check the color of")
-        assertTrue(drawn.lines.all { it.color.rgb == PATCHWORK.bolt.rgb }, "a bolt not in the bolt color")
+        assertTrue(
+            drawn.lines.all { it.color.rgb == PATCHWORK.bolt.rgb },
+            "a bolt not in the bolt color"
+        )
         assertTrue(drawn.blips.isNotEmpty(), "no spark to check the color of")
-        assertTrue(drawn.blips.all { it.color.rgb == PATCHWORK.spark.rgb }, "a spark not in the spark color")
+        assertTrue(
+            drawn.blips.all { it.color.rgb == PATCHWORK.spark.rgb },
+            "a spark not in the spark color"
+        )
     }
 
     private val Int.rgb: Int get() = this and 0xFFFFFF

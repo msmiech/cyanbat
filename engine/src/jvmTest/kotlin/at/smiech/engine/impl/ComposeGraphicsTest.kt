@@ -69,13 +69,19 @@ class ComposeGraphicsTest {
     fun `ovals outlines and lines land on exactly the pixels Raster gives them`() {
         val gray = EngineColors.withAlpha(EngineColors.WHITE, 0.5f)
         val cases = listOf(
-            Triple("oval", lit { it.drawOval(5, 4, 37, 29, gray) }, runs { Raster.oval(5, 4, 37, 29, it) }),
+            Triple(
+                "oval",
+                lit { it.drawOval(5, 4, 37, 29, gray) },
+                runs { Raster.oval(5, 4, 37, 29, it) }),
             Triple(
                 "outline",
                 lit { it.drawOvalOutline(5, 4, 37, 29, gray) },
                 runs { Raster.ovalOutline(5, 4, 37, 29, it) },
             ),
-            Triple("line", lit { it.drawLine(3, 40, 58, 9, gray) }, runs { Raster.line(3, 40, 58, 9, it) }),
+            Triple(
+                "line",
+                lit { it.drawLine(3, 40, 58, 9, gray) },
+                runs { Raster.line(3, 40, 58, 9, it) }),
         )
         for ((shape, drawn, expected) in cases) {
             assertEquals(expected, drawn.keys, "the $shape's pixels")
@@ -103,7 +109,12 @@ class ComposeGraphicsTest {
             val block = large[x - x % 3, y - y % 3]
             val actual = large[x, y]
             if (actual != block) {
-                throw AssertionError("view pixel ($x, $y) is #%08X in a block of #%08X".format(actual, block))
+                throw AssertionError(
+                    "view pixel ($x, $y) is #%08X in a block of #%08X".format(
+                        actual,
+                        block
+                    )
+                )
             }
             val expected = small[x / 3, y / 3]
             if (!near(actual, expected)) {
@@ -127,8 +138,12 @@ class ComposeGraphicsTest {
         graphics.drawScene()
         val frameColors = graphics.render(1f).colors()
         // Within a step a channel, for the reason the whole-number test gives.
-        val stray = graphics.render(2.5f).colors().filter { color -> frameColors.none { near(it, color) } }
-        assertTrue(stray.isEmpty(), "colors the frame never had: ${stray.take(8).map { "#%08X".format(it) }}")
+        val stray =
+            graphics.render(2.5f).colors().filter { color -> frameColors.none { near(it, color) } }
+        assertTrue(
+            stray.isEmpty(),
+            "colors the frame never had: ${stray.take(8).map { "#%08X".format(it) }}"
+        )
     }
 
     /** The deliberate `- 1`: a blit paints a column and a row short of the sprite it is given. */
@@ -136,7 +151,15 @@ class ComposeGraphicsTest {
     fun `a blit leaves its last column and row undrawn`() {
         val graphics = graphics(16, 16, "white" to solid(4, 4, EngineColors.WHITE))
         graphics.clear(EngineColors.BLACK)
-        graphics.drawPixmap(graphics.newPixmap("white", Graphics.PixmapFormat.ARGB8888), 2, 2, 0, 0, 4, 4)
+        graphics.drawPixmap(
+            graphics.newPixmap("white", Graphics.PixmapFormat.ARGB8888),
+            2,
+            2,
+            0,
+            0,
+            4,
+            4
+        )
         val frame = graphics.render(1f)
         val lit = (0 until 16).flatMap { y -> (0 until 16).map { x -> x to y } }
             .filter { (x, y) -> frame[x, y] == EngineColors.WHITE }
@@ -152,13 +175,28 @@ class ComposeGraphicsTest {
             val sprite = graphics.newPixmap("sprite", Graphics.PixmapFormat.ARGB8888)
             graphics.clear(EngineColors.BLACK)
             graphics.drawPixmap(sprite, 10, 12, 0, 0, 6, 5, 18, 15, 33f)
-            if (flash) graphics.drawPixmapSilhouette(sprite, 10, 12, 0, 0, 6, 5, 18, 15, EngineColors.WHITE, 33f)
+            if (flash) graphics.drawPixmapSilhouette(
+                sprite,
+                10,
+                12,
+                0,
+                0,
+                6,
+                5,
+                18,
+                15,
+                EngineColors.WHITE,
+                33f
+            )
             return graphics.render(1f)
         }
+
         val plain = frame(flash = false)
         val flashed = frame(flash = true)
-        val sprite = plain.pixels().filter { plain[it.first, it.second] != EngineColors.BLACK }.toSet()
-        val lit = flashed.pixels().filter { flashed[it.first, it.second] == EngineColors.WHITE }.toSet()
+        val sprite =
+            plain.pixels().filter { plain[it.first, it.second] != EngineColors.BLACK }.toSet()
+        val lit =
+            flashed.pixels().filter { flashed[it.first, it.second] == EngineColors.WHITE }.toSet()
         assertTrue(sprite.size > 100, "the turned sprite drew ${sprite.size} pixels")
         assertEquals(sprite, lit)
     }
@@ -222,7 +260,7 @@ class ComposeGraphicsTest {
         assertTrue(ovalColors.size == 2, "the oval's box holds ${ovalColors.size} colors")
         assertTrue(
             fineView.region(OVAL_X * 4, OVAL_Y * 4, OVAL_W * 4, OVAL_H * 4) !=
-                coarseView.region(OVAL_X * 4, OVAL_Y * 4, OVAL_W * 4, OVAL_H * 4),
+                    coarseView.region(OVAL_X * 4, OVAL_Y * 4, OVAL_W * 4, OVAL_H * 4),
             "the oval came out the same on the finer grid",
         )
     }
@@ -241,7 +279,10 @@ class ComposeGraphicsTest {
         })
         val frame = graphics.render(1f)
 
-        assertTrue(near(frame[2, 2], 0xFF202020.toInt()), "far from the light: #%08X".format(frame[2, 2]))
+        assertTrue(
+            near(frame[2, 2], 0xFF202020.toInt()),
+            "far from the light: #%08X".format(frame[2, 2])
+        )
         assertTrue(near(frame[32, 24], GRAY), "in the light: #%08X".format(frame[32, 24]))
         // Out at the edge of its disc, part of the way between the two.
         val edge = green(frame[32 + 8, 24])
@@ -265,8 +306,14 @@ class ComposeGraphicsTest {
         val frame = graphics.render(1f)
 
         assertTrue(near(frame[30, 24], GRAY), "beside the shadow: #%08X".format(frame[30, 24]))
-        assertTrue(near(frame[35, 24], 0xFF202020.toInt()), "in the shadow: #%08X".format(frame[35, 24]))
-        assertTrue(near(frame[33, 24], GRAY), "the pixel before the shadow's edge: #%08X".format(frame[33, 24]))
+        assertTrue(
+            near(frame[35, 24], 0xFF202020.toInt()),
+            "in the shadow: #%08X".format(frame[35, 24])
+        )
+        assertTrue(
+            near(frame[33, 24], GRAY),
+            "the pixel before the shadow's edge: #%08X".format(frame[33, 24])
+        )
     }
 
     /**
@@ -293,6 +340,7 @@ class ComposeGraphicsTest {
             })
             return graphics.render(1f)
         }
+
         val first = frame(behind = false)
         val laidOver = frame(behind = true)
         for ((x, y) in first.pixels()) {
@@ -321,7 +369,10 @@ class ComposeGraphicsTest {
         for (y in 0 until large.height) for (x in 0 until large.width) {
             val block = large[x - x % 3, y - y % 3]
             assertEquals(block, large[x, y], "view pixel ($x, $y) is not its block's color")
-            assertTrue(near(block, small[x / 3, y / 3]), "view pixel ($x, $y) against frame pixel (${x / 3}, ${y / 3})")
+            assertTrue(
+                near(block, small[x / 3, y / 3]),
+                "view pixel ($x, $y) against frame pixel (${x / 3}, ${y / 3})"
+            )
         }
     }
 
@@ -344,8 +395,14 @@ class ComposeGraphicsTest {
 
         val glinting = frame.pixels().filter { (x, y) -> green(frame[x, y]) > green(GRAY) + 8 }
         assertTrue(glinting.isNotEmpty(), "nothing glints")
-        assertTrue(glinting.all { (x, _) -> x >= 16 + 8 }, "a glint on the left half: ${glinting.filter { it.first < 24 }}")
-        assertTrue(glinting.all { (x, y) -> red(frame[x, y]) == red(GRAY) }, "the cyan glint changed red")
+        assertTrue(
+            glinting.all { (x, _) -> x >= 16 + 8 },
+            "a glint on the left half: ${glinting.filter { it.first < 24 }}"
+        )
+        assertTrue(
+            glinting.all { (x, y) -> red(frame[x, y]) == red(GRAY) },
+            "the cyan glint changed red"
+        )
     }
 
     /**
@@ -359,9 +416,32 @@ class ComposeGraphicsTest {
         drawPixmap(sprite, SPRITE_X, SPRITE_Y, 0, 0, 6, 5)
         drawPixmap(sprite, 12, 2, 0, 0, 6, 5, 11, 9)
         drawPixmapFaded(sprite, 26, 3, 0, 0, 6, 5, 0.4f)
-        drawPixmapSilhouette(sprite, 34, 3, 0, 0, 6, 5, 6, 5, EngineColors.withAlpha(EngineColors.RED, 0.5f))
+        drawPixmapSilhouette(
+            sprite,
+            34,
+            3,
+            0,
+            0,
+            6,
+            5,
+            6,
+            5,
+            EngineColors.withAlpha(EngineColors.RED, 0.5f)
+        )
         drawPixmap(sprite, 44, 2, 0, 0, 6, 5, 12, 10, 30f)
-        drawPixmapSilhouette(sprite, 44, 2, 0, 0, 6, 5, 12, 10, EngineColors.withAlpha(EngineColors.WHITE, 0.3f), 30f)
+        drawPixmapSilhouette(
+            sprite,
+            44,
+            2,
+            0,
+            0,
+            6,
+            5,
+            12,
+            10,
+            EngineColors.withAlpha(EngineColors.WHITE, 0.3f),
+            30f
+        )
         drawRect(2, 14, 7, 4, EngineColors.withAlpha(EngineColors.CYAN, 0.6f))
         drawPixel(12, 15, EngineColors.YELLOW)
         drawOval(OVAL_X, OVAL_Y, OVAL_W, OVAL_H, EngineColors.withAlpha(EngineColors.WHITE, 0.5f))
@@ -392,7 +472,11 @@ class ComposeGraphicsTest {
         return pixels
     }
 
-    private fun graphics(width: Int, height: Int, vararg images: Pair<String, ImageBitmap>): ComposeGraphics {
+    private fun graphics(
+        width: Int,
+        height: Int,
+        vararg images: Pair<String, ImageBitmap>
+    ): ComposeGraphics {
         val byName = mapOf("sprite" to sprite()) + images
         return ComposeGraphics(width, height, { byName.getValue(it) }, createFontFamilyResolver())
     }
@@ -403,7 +487,10 @@ class ComposeGraphicsTest {
         val viewHeight = (height * scale).roundToInt()
         val image = ImageBitmap(viewWidth, viewHeight)
         CanvasDrawScope().draw(
-            Density(1f), LayoutDirection.Ltr, Canvas(image), Size(viewWidth.toFloat(), viewHeight.toFloat()),
+            Density(1f),
+            LayoutDirection.Ltr,
+            Canvas(image),
+            Size(viewWidth.toFloat(), viewHeight.toFloat()),
         ) {
             drawGameFrame(this@render, FrameFit.fitted(width, height, viewWidth, viewHeight))
         }
@@ -416,9 +503,18 @@ class ComposeGraphicsTest {
     private class Picture(val width: Int, val height: Int, private val argb: IntArray) {
         operator fun get(x: Int, y: Int): Int = argb[y * width + x]
         fun colors(): Set<Int> = argb.toSet()
-        fun pixels(): List<Pair<Int, Int>> = (0 until height).flatMap { y -> (0 until width).map { x -> x to y } }
+        fun pixels(): List<Pair<Int, Int>> =
+            (0 until height).flatMap { y -> (0 until width).map { x -> x to y } }
+
         fun region(left: Int, top: Int, width: Int, height: Int): List<Int> =
-            (top until top + height).flatMap { y -> (left until left + width).map { x -> get(x, y) } }
+            (top until top + height).flatMap { y ->
+                (left until left + width).map { x ->
+                    get(
+                        x,
+                        y
+                    )
+                }
+            }
     }
 
     private companion object {
@@ -461,7 +557,8 @@ class ComposeGraphicsTest {
             val paint = Paint().apply { isAntiAlias = false }
             for (y in 0 until 5) for (x in 0 until 6) {
                 if (x == 5 && y == 0) continue
-                paint.color = Color(0xFF000000.toInt() or ((x * 40 + 20) shl 16) or ((y * 45 + 10) shl 8) or ((x + y) * 20 + 30))
+                paint.color =
+                    Color(0xFF000000.toInt() or ((x * 40 + 20) shl 16) or ((y * 45 + 10) shl 8) or ((x + y) * 20 + 30))
                 canvas.drawRect(x.toFloat(), y.toFloat(), x + 1f, y + 1f, paint)
             }
             return image
@@ -473,7 +570,13 @@ class ComposeGraphicsTest {
             val canvas = Canvas(image)
             val paint = Paint().apply { isAntiAlias = false; this.color = Color(color) }
             Raster.oval(0, 0, size, size) { left, top, width, height ->
-                canvas.drawRect(left.toFloat(), top.toFloat(), (left + width).toFloat(), (top + height).toFloat(), paint)
+                canvas.drawRect(
+                    left.toFloat(),
+                    top.toFloat(),
+                    (left + width).toFloat(),
+                    (top + height).toFloat(),
+                    paint
+                )
             }
             return image
         }

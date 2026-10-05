@@ -85,7 +85,10 @@ class ComboHeatTest {
                     val r = (color ushr 16) and 0xFF
                     val g = (color ushr 8) and 0xFF
                     val b = color and 0xFF
-                    assertTrue(g <= maxOf(r, b), "x$multiplier at ${seconds}s is green: ${color.toUInt().toString(16)}")
+                    assertTrue(
+                        g <= maxOf(r, b),
+                        "x$multiplier at ${seconds}s is green: ${color.toUInt().toString(16)}"
+                    )
                 }
             }
         }

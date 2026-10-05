@@ -15,7 +15,11 @@ import kotlin.test.assertTrue
 private const val MINUTE = WAVE_DURATION_SECONDS
 
 private val LAGOON_SPECIES = setOf(
-    EnemySpecies.PIRANHA, EnemySpecies.CRAB, EnemySpecies.SHARK, EnemySpecies.PUFFER, EnemySpecies.KRAIT,
+    EnemySpecies.PIRANHA,
+    EnemySpecies.CRAB,
+    EnemySpecies.SHARK,
+    EnemySpecies.PUFFER,
+    EnemySpecies.KRAIT,
 )
 
 /** Stage 4 as designed: what it sends, how hard, in what order, and the Naga at the end of it. */
@@ -24,7 +28,8 @@ class LagoonStageTest {
     private val desert = StageProgression.forStage(3)
     private val lagoon = StageProgression.forStage(4)
 
-    private fun waves(stage: StageProgression) = (0 until BOSS_WAVE).map { stage.waveAt(it * MINUTE) }
+    private fun waves(stage: StageProgression) =
+        (0 until BOSS_WAVE).map { stage.waveAt(it * MINUTE) }
 
     @Test
     fun `stage 4 is the lagoon with five waves and the Naga`() {
@@ -47,7 +52,8 @@ class LagoonStageTest {
 
     @Test
     fun `no two lagoon waves in a row send the same mix`() {
-        waves(lagoon).map { it.enemyTypes }.zipWithNext { earlier, later -> assertNotEquals(earlier, later) }
+        waves(lagoon).map { it.enemyTypes }
+            .zipWithNext { earlier, later -> assertNotEquals(earlier, later) }
     }
 
     /** The hardest stage in the game, wave for wave. */
@@ -56,7 +62,10 @@ class LagoonStageTest {
         waves(desert).zip(waves(lagoon)).forEach { (desert, lagoon) ->
             assertTrue(lagoon.hitPoints > desert.hitPoints, "wave ${lagoon.index}: health")
             assertTrue(lagoon.damage > desert.damage, "wave ${lagoon.index}: damage")
-            assertTrue(lagoon.spawnIntervalSeconds <= desert.spawnIntervalSeconds, "wave ${lagoon.index}: pace")
+            assertTrue(
+                lagoon.spawnIntervalSeconds <= desert.spawnIntervalSeconds,
+                "wave ${lagoon.index}: pace"
+            )
             assertTrue(lagoon.shieldChance >= desert.shieldChance, "wave ${lagoon.index}: shields")
             assertTrue(lagoon.gunChance >= desert.gunChance, "wave ${lagoon.index}: guns")
             assertTrue(lagoon.eliteChance >= desert.eliteChance, "wave ${lagoon.index}: elites")
@@ -68,8 +77,14 @@ class LagoonStageTest {
         val lagoonWaves = waves(lagoon)
 
         lagoonWaves.zipWithNext { earlier, later ->
-            assertTrue(later.shieldChance >= earlier.shieldChance, "shields backed off into wave ${later.index}")
-            assertTrue(later.gunChance >= earlier.gunChance, "guns backed off into wave ${later.index}")
+            assertTrue(
+                later.shieldChance >= earlier.shieldChance,
+                "shields backed off into wave ${later.index}"
+            )
+            assertTrue(
+                later.gunChance >= earlier.gunChance,
+                "guns backed off into wave ${later.index}"
+            )
         }
         assertEquals(0f, lagoonWaves.first().shieldChance)
         assertEquals(0f, lagoonWaves.first().gunChance)
@@ -79,25 +94,40 @@ class LagoonStageTest {
     @Test
     fun `nothing comes from behind in the opening minute`() {
         assertTrue(waves(lagoon).first().enemyTypes.none { it.squad == Squad.FROM_BEHIND })
-        assertTrue(waves(lagoon)[1].enemyTypes.any { it.squad == Squad.FROM_BEHIND }, "the sharks never arrive early")
+        assertTrue(
+            waves(lagoon)[1].enemyTypes.any { it.squad == Squad.FROM_BEHIND },
+            "the sharks never arrive early"
+        )
     }
 
     @Test
     fun `the lagoon has a school and a shell and something from behind and a ring of spines and a brood`() {
         assertTrue(LAGOON_SPECIES.any { it.squad == Squad.SWARM }, "nothing schools")
-        assertTrue(LAGOON_SPECIES.any { it.innateShield > 0f && it.shieldRegrowth > 0f }, "no shell grows back")
-        assertTrue(LAGOON_SPECIES.any { it.squad == Squad.FROM_BEHIND && it.drawnFacingRight }, "nothing comes from behind")
+        assertTrue(
+            LAGOON_SPECIES.any { it.innateShield > 0f && it.shieldRegrowth > 0f },
+            "no shell grows back"
+        )
+        assertTrue(
+            LAGOON_SPECIES.any { it.squad == Squad.FROM_BEHIND && it.drawnFacingRight },
+            "nothing comes from behind"
+        )
         assertTrue(
             LAGOON_SPECIES.any { species -> species.gun?.volleys?.any { it.pattern == at.smiech.cyanbat.ecs.ShotPattern.RADIAL } == true },
             "nothing throws a ring",
         )
-        assertTrue(LAGOON_SPECIES.any { it.movement == EnemyMovementType.SINE && it.facesHeading }, "nothing weaves")
+        assertTrue(
+            LAGOON_SPECIES.any { it.movement == EnemyMovementType.SINE && it.facesHeading },
+            "nothing weaves"
+        )
     }
 
     /** The one that comes from behind is the only one drawn facing the way it flies, right. */
     @Test
     fun `only what comes from behind is drawn facing right`() {
-        assertEquals(setOf(EnemySpecies.SHARK), EnemySpecies.entries.filter { it.drawnFacingRight }.toSet())
+        assertEquals(
+            setOf(EnemySpecies.SHARK),
+            EnemySpecies.entries.filter { it.drawnFacingRight }.toSet()
+        )
         assertTrue(EnemySpecies.SHARK.speedX > 0f, "it does not fly right")
     }
 

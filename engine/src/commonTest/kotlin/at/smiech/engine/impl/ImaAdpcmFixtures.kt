@@ -17,7 +17,8 @@ internal fun imaAdpcmWav(
     val data = ByteArray(blocks * blockAlign)
     val stepIndex = IntArray(channels)
 
-    fun frame(index: Int, ch: Int): Int = if (index < frames) samples[index * channels + ch].toInt() else 0
+    fun frame(index: Int, ch: Int): Int =
+        if (index < frames) samples[index * channels + ch].toInt() else 0
 
     for (block in 0 until blocks) {
         val first = block * framesPerBlock
@@ -53,6 +54,7 @@ internal fun imaAdpcmWav(
     fun int16(value: Int) {
         out.add(value.toByte()); out.add((value shr 8).toByte())
     }
+
     fun int32(value: Int) {
         int16(value and 0xFFFF); int16(value ushr 16)
     }
@@ -106,4 +108,10 @@ private val STEPS = intArrayOf(
 
 /** A mono clip of [frames] frames holding [value] throughout: IMA ADPCM carries a constant exactly. */
 internal fun constantClip(value: Short, frames: Int, sampleRate: Int): ImaAdpcmClip =
-    ImaAdpcmClip.parse(imaAdpcmWav(ShortArray(frames) { value }, channels = 1, sampleRate = sampleRate))
+    ImaAdpcmClip.parse(
+        imaAdpcmWav(
+            ShortArray(frames) { value },
+            channels = 1,
+            sampleRate = sampleRate
+        )
+    )

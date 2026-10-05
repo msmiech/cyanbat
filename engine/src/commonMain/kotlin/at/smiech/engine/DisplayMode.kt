@@ -27,6 +27,7 @@ enum class DisplayMode {
         val DEFAULT = AMBIENT
 
         /** The mode stored as [name], or [DEFAULT] for anything unrecognized - a newer build's mode, say. */
-        fun fromName(name: String?): DisplayMode = entries.firstOrNull { it.name == name } ?: DEFAULT
+        fun fromName(name: String?): DisplayMode =
+            entries.firstOrNull { it.name == name } ?: DEFAULT
     }
 }

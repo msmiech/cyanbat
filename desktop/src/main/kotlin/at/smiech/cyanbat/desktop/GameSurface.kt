@@ -101,7 +101,10 @@ fun GameSurface(game: DesktopGame, displayMode: DisplayMode) {
             @Suppress("UNUSED_VARIABLE")
             val trigger = frameTrigger
 
-            drawGameFrame(game.graphics, fit, ambientBars.takeIf { displayMode == DisplayMode.AMBIENT })
+            drawGameFrame(
+                game.graphics,
+                fit,
+                ambientBars.takeIf { displayMode == DisplayMode.AMBIENT })
         }
     }
 }

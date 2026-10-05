@@ -22,23 +22,61 @@ private class LightRecordingGraphics : Graphics {
         draws++
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) = throw UnsupportedOperationException()
+    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+        throw UnsupportedOperationException()
+
     override fun clear(color: Int) = Unit
     override fun drawPixel(x: Int, y: Int, color: Int) = Unit
     override fun drawRect(x: Int, y: Int, width: Int, height: Int, color: Int) = Unit
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int) = Unit
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int
+    ) = Unit
+
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) = Unit
     override fun drawPixmap(
-        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int,
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
     ) = Unit
+
     override fun drawPixmap(
-        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int,
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
         rotationDegrees: Float,
     ) = Unit
+
     override fun drawPixmapSilhouette(
-        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int,
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
         color: Int,
     ) = Unit
+
     override fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int) = Unit
     override fun measureString(s: String, fontSize: Int) = 0
     override val width = 640
@@ -79,14 +117,34 @@ class LightingSystemTest {
         size: Float = 2f,
     ): EntityId {
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(x - size / 2f, y - size / 2f, size, size)))
-        world.addComponent(id, LightComponent(color, radius, fadeSeconds = fadeSeconds, removeWhenFaded = removeWhenFaded))
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(x - size / 2f, y - size / 2f, size, size))
+        )
+        world.addComponent(
+            id,
+            LightComponent(
+                color,
+                radius,
+                fadeSeconds = fadeSeconds,
+                removeWhenFaded = removeWhenFaded
+            )
+        )
         return id
     }
 
-    private fun occluder(left: Float, top: Float, size: Int = 16, shine: Float = 0f, round: Boolean = true): EntityId {
+    private fun occluder(
+        left: Float,
+        top: Float,
+        size: Int = 16,
+        shine: Float = 0f,
+        round: Boolean = true
+    ): EntityId {
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(left, top, size.toFloat(), size.toFloat())))
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(left, top, size.toFloat(), size.toFloat()))
+        )
         world.addComponent(id, SpriteComponent(ShapeSheet(size, round)))
         world.addComponent(id, OccluderComponent(shine))
         return id
@@ -136,7 +194,10 @@ class LightingSystemTest {
         assertTrue(later.zip(early).all { (now, then) -> now < then }, "$early, then $later")
 
         repeat(10) { world.update(TICK, null) }
-        assertFalse(world.hasComponent(flash, LightComponent::class), "the flash outlived its light")
+        assertFalse(
+            world.hasComponent(flash, LightComponent::class),
+            "the flash outlived its light"
+        )
         assertTrue(world.hasComponent(ember, LightComponent::class), "a fire went with its light")
         assertEquals(0, frame().count, "a light gone out still shines")
     }
@@ -171,7 +232,10 @@ class LightingSystemTest {
         // Just inside the ray that grazes the top left corner of the box, past the box: a square's
         // shadow, and well clear of a disc's.
         val pastTheCorner = 159.5f to 60.5f
-        assertFalse(disc.inShadow(pastTheCorner.first, pastTheCorner.second), "the disc's corner is air")
+        assertFalse(
+            disc.inShadow(pastTheCorner.first, pastTheCorner.second),
+            "the disc's corner is air"
+        )
 
         val square = World().apply { addSystem(LightingSystem(640, 360, AMBIENT)) }
         val recorded = LightRecordingGraphics()
@@ -186,7 +250,10 @@ class LightingSystemTest {
         }
         square.update(TICK, null)
         square.draw(recorded)
-        assertTrue(recorded.lighting!![0].inShadow(pastTheCorner.first, pastTheCorner.second), "a square stops it")
+        assertTrue(
+            recorded.lighting!![0].inShadow(pastTheCorner.first, pastTheCorner.second),
+            "a square stops it"
+        )
     }
 
     @Test

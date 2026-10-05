@@ -28,7 +28,8 @@ class StemMixerTest {
         return FloatArray(frames) { pcm[2 * it] / 32767f }
     }
 
-    private fun quarterLevel() = StemMixer(listOf(constantClip(8192, frames = 64000, sampleRate = rate)), grid)
+    private fun quarterLevel() =
+        StemMixer(listOf(constantClip(8192, frames = 64000, sampleRate = rate)), grid)
 
     @Test
     fun `a layer is silent until it is asked for`() {
@@ -117,8 +118,13 @@ class StemMixerTest {
         val bar = 4 * beat
         fun marked(frames: Int, mark: Short) =
             ImaAdpcmClip.parse(
-                imaAdpcmWav(ShortArray(frames) { if (it == 0) mark else 0 }, channels = 1, sampleRate = rate)
+                imaAdpcmWav(
+                    ShortArray(frames) { if (it == 0) mark else 0 },
+                    channels = 1,
+                    sampleRate = rate
+                )
             )
+
         val mixer = StemMixer(listOf(marked(bar, 8000), marked(4 * bar, 16000)), grid)
         mixer.setLayerLevel(0, 1f, Quantum.IMMEDIATE, 0f)
         mixer.setLayerLevel(1, 1f, Quantum.IMMEDIATE, 0f)
@@ -134,7 +140,9 @@ class StemMixerTest {
     @Test
     fun `muffling takes the treble out and leaves the bass`() {
         fun level(hz: Double, muffle: Float): Double {
-            val tone = ShortArray(22050) { (sin(2 * PI * hz * it / 22050) * 0.5 * 32767).toInt().toShort() }
+            val tone = ShortArray(22050) {
+                (sin(2 * PI * hz * it / 22050) * 0.5 * 32767).toInt().toShort()
+            }
             val mixer = StemMixer(
                 listOf(ImaAdpcmClip.parse(imaAdpcmWav(tone, channels = 1, sampleRate = 22050))),
                 grid,
@@ -150,7 +158,10 @@ class StemMixerTest {
         val muffledTreble = level(4000.0, 1f)
         val clearBass = level(80.0, 0f)
         val muffledBass = level(80.0, 1f)
-        assertTrue(muffledTreble < clearTreble / 20, "4 kHz: $clearTreble clear, $muffledTreble muffled")
+        assertTrue(
+            muffledTreble < clearTreble / 20,
+            "4 kHz: $clearTreble clear, $muffledTreble muffled"
+        )
         assertTrue(muffledBass > clearBass * 0.7, "80 Hz: $clearBass clear, $muffledBass muffled")
     }
 
@@ -180,8 +191,13 @@ class StemMixerTest {
     @Test
     fun `music that has ended starts again from the top`() {
         fun marked() = ImaAdpcmClip.parse(
-            imaAdpcmWav(ShortArray(8000) { (if (it < 100) 16000 else 4000).toShort() }, channels = 1, sampleRate = rate)
+            imaAdpcmWav(
+                ShortArray(8000) { (if (it < 100) 16000 else 4000).toShort() },
+                channels = 1,
+                sampleRate = rate
+            )
         )
+
         val mixer = StemMixer(listOf(marked()), grid)
         mixer.isLooping = false
         mixer.setLayerLevel(0, 1f, Quantum.IMMEDIATE, 0f)

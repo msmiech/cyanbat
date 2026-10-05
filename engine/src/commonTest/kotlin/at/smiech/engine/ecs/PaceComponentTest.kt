@@ -40,7 +40,10 @@ class PaceComponentTest {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, 28f, 29f)))
         world.addComponent(id, VelocityComponent(Vector2(baseSpeedX, 0f)))
-        world.addComponent(id, EnemyBehaviorComponent(type, y, holdX = holdX, baseSpeedX = baseSpeedX))
+        world.addComponent(
+            id,
+            EnemyBehaviorComponent(type, y, holdX = holdX, baseSpeedX = baseSpeedX)
+        )
         world.addComponent(id, PaceComponent(motion = pace))
         return id
     }
@@ -73,8 +76,16 @@ class PaceComponentTest {
      */
     @Test
     fun `a slowed loop is the same size and takes longer`() {
-        val full = enemy(EnemyMovementType.LOOP, x = 330f, y = 150f, holdX = 320f, baseSpeedX = -1.7f)
-        val slowed = enemy(EnemyMovementType.LOOP, x = 330f, y = 150f, holdX = 320f, baseSpeedX = -1.7f, pace = 0.5f)
+        val full =
+            enemy(EnemyMovementType.LOOP, x = 330f, y = 150f, holdX = 320f, baseSpeedX = -1.7f)
+        val slowed = enemy(
+            EnemyMovementType.LOOP,
+            x = 330f,
+            y = 150f,
+            holdX = 320f,
+            baseSpeedX = -1.7f,
+            pace = 0.5f
+        )
         var fullTop = Float.MAX_VALUE
         var slowedTop = Float.MAX_VALUE
         var fullLooped = 0
@@ -85,11 +96,20 @@ class PaceComponentTest {
             fullTop = minOf(fullTop, rectOf(full).top)
             slowedTop = minOf(slowedTop, rectOf(slowed).top)
             if (world.getComponent(full, EnemyBehaviorComponent::class)!!.state == 1) fullLooped++
-            if (world.getComponent(slowed, EnemyBehaviorComponent::class)!!.state == 1) slowedLooped++
+            if (world.getComponent(
+                    slowed,
+                    EnemyBehaviorComponent::class
+                )!!.state == 1
+            ) slowedLooped++
         }
 
         assertEquals(fullTop, slowedTop, 3f, "the slowed loop is a different size")
-        assertEquals(2f, slowedLooped.toFloat() / fullLooped, 0.1f, "the slowed loop did not take twice as long")
+        assertEquals(
+            2f,
+            slowedLooped.toFloat() / fullLooped,
+            0.1f,
+            "the slowed loop did not take twice as long"
+        )
     }
 
     /**
@@ -134,6 +154,7 @@ class PaceComponentTest {
             guns.addComponent(id, WeaponComponent(interval = 1f))
             guns.addComponent(id, PaceComponent(fire = fire))
         }
+
         val full = gun(1f)
         val halved = gun(0.5f)
 

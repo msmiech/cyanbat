@@ -45,7 +45,13 @@ class ImaAdpcmClipTest {
     @Test
     fun `a rewound cursor reads the clip from its first frame again`() {
         val rate = 8000
-        val clip = ImaAdpcmClip.parse(imaAdpcmWav(sine(1234, 330.0, rate), channels = 1, sampleRate = rate))
+        val clip = ImaAdpcmClip.parse(
+            imaAdpcmWav(
+                sine(1234, 330.0, rate),
+                channels = 1,
+                sampleRate = rate
+            )
+        )
         val cursor = clip.cursor()
         val first = FloatArray(200).also { cursor.read(it, 0, 100) }
         cursor.read(FloatArray(1800), 0, 900)
@@ -62,12 +68,22 @@ class ImaAdpcmClipTest {
     fun `the clip loops to its first frame without a gap`() {
         val rate = 8000
         val frames = 1234
-        val clip = ImaAdpcmClip.parse(imaAdpcmWav(sine(frames, 330.0, rate), channels = 1, sampleRate = rate))
+        val clip = ImaAdpcmClip.parse(
+            imaAdpcmWav(
+                sine(frames, 330.0, rate),
+                channels = 1,
+                sampleRate = rate
+            )
+        )
 
         val decoded = readAll(clip, frames * 3)
         for (i in 0 until frames) {
             assertEquals(decoded[2 * i], decoded[2 * (i + frames)], "frame $i, second time round")
-            assertEquals(decoded[2 * i], decoded[2 * (i + 2 * frames)], "frame $i, third time round")
+            assertEquals(
+                decoded[2 * i],
+                decoded[2 * (i + 2 * frames)],
+                "frame $i, third time round"
+            )
         }
     }
 

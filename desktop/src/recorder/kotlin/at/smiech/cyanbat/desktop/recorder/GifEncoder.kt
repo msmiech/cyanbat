@@ -87,7 +87,15 @@ class GifEncoder(
         // An index means another color on another palette, so a frame that changes palettes cannot
         // be told apart from the one before it by its indices; it is written whole.
         if (base == null || pendingPalette !== shownPalette) {
-            writeFrame(0, 0, width, height, pendingDelay, useTransparency = false, lzw.encode(frame))
+            writeFrame(
+                0,
+                0,
+                width,
+                height,
+                pendingDelay,
+                useTransparency = false,
+                lzw.encode(frame)
+            )
         } else {
             writeChanges(frame, base)
         }
@@ -137,7 +145,8 @@ class GifEncoder(
                     var end = x
                     while (end < boxWidth && frame[source + end] == base[source + end]) end++
                     val clear = end - x >= minRun
-                    for (i in x until end) box[target + i] = if (clear) transparent else frame[source + i]
+                    for (i in x until end) box[target + i] =
+                        if (clear) transparent else frame[source + i]
                     anyTransparent = anyTransparent || clear
                     x = end
                 }

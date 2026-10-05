@@ -18,7 +18,14 @@ internal class FrameCache<T : Any>(
 ) {
     private val sheets = HashMap<Pixmap, MutableList<Sheet>>()
 
-    operator fun get(pixmap: Pixmap, x: Int, y: Int, width: Int, height: Int, variant: Int = 0): T? {
+    operator fun get(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        variant: Int = 0
+    ): T? {
         if (width <= 0 || height <= 0) return null
         val sheet = sheetOf(pixmap, width, height)
         val column = x / width
@@ -41,7 +48,12 @@ internal class FrameCache<T : Any>(
             val sheet = cuts[i]
             if (sheet.width == width && sheet.height == height) return sheet
         }
-        return Sheet(width, height, pixmap.width / width, pixmap.height / height).also { cuts += it }
+        return Sheet(
+            width,
+            height,
+            pixmap.width / width,
+            pixmap.height / height
+        ).also { cuts += it }
     }
 
     /** One sheet cut into [width] by [height] frames, [columns] across and [rows] down. */

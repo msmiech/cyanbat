@@ -45,12 +45,18 @@ class RunProbe(private val screen: GameScreen) {
     val score: Int get() = (scoringField.get(screen) as ScoreTracker).score
 
     /** The wave or boss announcement on screen, if one is. */
-    val banner: String? get() = if (bannerTimeField.getFloat(screen) > 0f) bannerTextField.get(screen) as String? else null
+    val banner: String?
+        get() = if (bannerTimeField.getFloat(screen) > 0f) bannerTextField.get(
+            screen
+        ) as String? else null
 
     private fun field(name: String): Field =
         try {
             GameScreen::class.java.getDeclaredField(name).apply { isAccessible = true }
         } catch (e: NoSuchFieldException) {
-            throw IllegalStateException("GameScreen has no field '$name' any more; update RunProbe to match", e)
+            throw IllegalStateException(
+                "GameScreen has no field '$name' any more; update RunProbe to match",
+                e
+            )
         }
 }

@@ -135,7 +135,11 @@ class ScoreTrackerTest {
         repeat(3) { scoring.registerEnemyDestroyed() }
         assertEquals(2, scoring.multiplier, "three kills should be the first step")
         repeat(100) { scoring.registerEnemyDestroyed() }
-        assertEquals(35, scoring.multiplier, "and it should keep climbing, past where it used to stop at eight")
+        assertEquals(
+            35,
+            scoring.multiplier,
+            "and it should keep climbing, past where it used to stop at eight"
+        )
     }
 
     // region the Bounty Hunter bonus

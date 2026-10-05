@@ -108,7 +108,10 @@ class AndroidLayeredMusic(
                     }
 
                     else -> lock.withLock {
-                        if (!wantPlaying && !disposed) wake.await(IDLE_WAIT_MILLIS, TimeUnit.MILLISECONDS)
+                        if (!wantPlaying && !disposed) wake.await(
+                            IDLE_WAIT_MILLIS,
+                            TimeUnit.MILLISECONDS
+                        )
                     }
                 }
             }

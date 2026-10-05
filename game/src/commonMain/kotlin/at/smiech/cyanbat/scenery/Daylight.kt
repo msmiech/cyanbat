@@ -74,8 +74,11 @@ object Daylight : Day {
      * The sun's center. It comes down on a slant toward the right of the frame - the way the bat is
      * flying, so the stage flies into its sunset - at a steady rate, the way the real one sets.
      */
-    override fun sunX(position: Float): Float = NOON_X + (SET_X - NOON_X) * fraction(position, 0f, SUNSET)
-    override fun sunY(position: Float): Float = NOON_Y + (SET_Y - NOON_Y) * fraction(position, 0f, SUNSET)
+    override fun sunX(position: Float): Float =
+        NOON_X + (SET_X - NOON_X) * fraction(position, 0f, SUNSET)
+
+    override fun sunY(position: Float): Float =
+        NOON_Y + (SET_Y - NOON_Y) * fraction(position, 0f, SUNSET)
 
     /** A little larger the lower it gets, which is how a low sun looks even though it is not. */
     override fun sunRadius(position: Float): Float = 14f + 5f * smoothstep(0.3f, SUNSET, position)

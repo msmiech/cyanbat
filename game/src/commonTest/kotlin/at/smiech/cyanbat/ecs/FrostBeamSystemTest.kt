@@ -83,7 +83,8 @@ class FrostBeamSystemTest {
 
         assertNull(FrostBeamSystem.clipSegment(0f, 150f, 100f, 150f, box), "passes under it")
         assertNull(FrostBeamSystem.clipSegment(0f, 50f, 30f, 50f, box), "stops short of it")
-        val inside = assertNotNull(FrostBeamSystem.clipSegment(50f, 50f, 100f, 50f, box), "starts inside it")
+        val inside =
+            assertNotNull(FrostBeamSystem.clipSegment(50f, 50f, 100f, 50f, box), "starts inside it")
         assertEquals(0f, inside.start)
     }
 
@@ -130,10 +131,16 @@ class FrostBeamSystemTest {
 
         world.step(INTERVAL + TICK)
 
-        assertTrue(world.frozen(near) && world.frozen(far) && world.frozen(edge), "the line is not all frozen")
+        assertTrue(
+            world.frozen(near) && world.frozen(far) && world.frozen(edge),
+            "the line is not all frozen"
+        )
         assertFalse(world.frozen(elite), "it froze something it may not")
         assertFalse(world.frozen(above), "it froze something off its line")
-        assertTrue(shots.single().first() in setOf(near, far), "it aimed at something it could not see whole")
+        assertTrue(
+            shots.single().first() in setOf(near, far),
+            "it aimed at something it could not see whole"
+        )
     }
 
     /** Never at a boss or an elite: with nothing else on screen it does not go off at all. */
@@ -172,7 +179,11 @@ class FrostBeamSystemTest {
 
             world.step(INTERVAL + TICK)
 
-            assertEquals(fresh, shots.single().first(), "seed $seed aimed at the one already frozen")
+            assertEquals(
+                fresh,
+                shots.single().first(),
+                "seed $seed aimed at the one already frozen"
+            )
         }
     }
 

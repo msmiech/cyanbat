@@ -100,7 +100,12 @@ internal class ComboFire(
                     continue
                 }
                 var end = x + 1
-                while (end < width && levelOf(cells[row + end].toInt(), levels, fullHeat) == level) end++
+                while (end < width && levelOf(
+                        cells[row + end].toInt(),
+                        levels,
+                        fullHeat
+                    ) == level
+                ) end++
                 g.drawRect(left + x * cell, top + y * cell, (end - x) * cell, cell, palette[level])
                 x = end
             }

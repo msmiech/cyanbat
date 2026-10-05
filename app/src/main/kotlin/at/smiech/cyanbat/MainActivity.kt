@@ -27,17 +27,23 @@ import at.smiech.engine.impl.AndroidAudio
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
 internal val PREFS_KEY_SOUNDS = booleanPreferencesKey("sounds_enabled")
 internal val PREFS_KEY_VIBRATION = booleanPreferencesKey("vibration_enabled")
+
 /** Stored by name, so reordering or adding modes cannot turn one player's choice into another. */
 internal val PREFS_KEY_DISPLAY_MODE = stringPreferencesKey("display_mode")
+
 /** Stored by name, for the same reason as the display mode. */
 internal val PREFS_KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+
 /** The single highscore kept before they were per stage; see [LegacyHighscoreMigration]. */
 internal val PREFS_KEY_LEGACY_HIGH_SCORE = intPreferencesKey("highscore")
+
 /** A stage's highscore is stored under this followed by its id: "highscore_stage_1". */
 internal const val PREFS_STAGE_HIGH_SCORE_PREFIX = "highscore_stage_"
 internal fun prefsKeyStageHighScore(stageId: Int) =
     intPreferencesKey(PREFS_STAGE_HIGH_SCORE_PREFIX + stageId)
+
 internal val PREFS_KEY_HIGHEST_STAGE = intPreferencesKey("highest_stage_unlocked")
+
 /** Which order the stages' highscores are stored in; see [StageOrderMigration]. */
 internal val PREFS_KEY_STAGE_ORDER = intPreferencesKey("stage_order")
 internal val Context.dataStore by preferencesDataStore(

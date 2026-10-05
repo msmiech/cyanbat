@@ -155,7 +155,12 @@ class RenderSystemTest {
     fun `passes over separate layers each draw only their own and between them all of it in order`() {
         fun drawnBy(vararg passes: IntRange): List<String> {
             val layered = World().apply { passes.forEach { addSystem(RenderSystem(layers = it)) } }
-            for ((tag, zIndex) in listOf("enemy" to 10, "background" to -100, "unlayered" to null, "below" to -5)) {
+            for ((tag, zIndex) in listOf(
+                "enemy" to 10,
+                "background" to -100,
+                "unlayered" to null,
+                "below" to -5
+            )) {
                 val id = layered.createEntity()
                 layered.addComponent(id, TransformComponent(Rect.fromLTWH(0f, 0f, 10f, 10f)))
                 layered.addComponent(id, SpriteComponent(TaggedPixmap(tag)))
@@ -163,12 +168,16 @@ class RenderSystemTest {
             }
             return RecordingGraphics().also { layered.draw(it) }.drawn
         }
+
         val below = Int.MIN_VALUE until 0
         val rest = 0..Int.MAX_VALUE
 
         assertContentEquals(listOf("background", "below"), drawnBy(below))
         assertContentEquals(listOf("unlayered", "enemy"), drawnBy(rest))
-        assertContentEquals(listOf("background", "below", "unlayered", "enemy"), drawnBy(below, rest))
+        assertContentEquals(
+            listOf("background", "below", "unlayered", "enemy"),
+            drawnBy(below, rest)
+        )
     }
 
     @Test
@@ -324,7 +333,10 @@ class RenderSystemTest {
 
         val graphics = RecordingGraphics().also { world.draw(it) }
 
-        assertContentEquals(listOf("frozen", "frozen:flash", "frozen:flash", "in front"), graphics.drawn)
+        assertContentEquals(
+            listOf("frozen", "frozen:flash", "frozen:flash", "in front"),
+            graphics.drawn
+        )
         assertContentEquals(listOf(TINT, FLASH), graphics.flashes.map { it.color })
     }
 

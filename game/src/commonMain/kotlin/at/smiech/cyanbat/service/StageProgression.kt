@@ -160,13 +160,17 @@ data class StageProgression(
      * pool is as the length of the fight, and at a fixed fire rate that length is a shot count.
      */
     val bossShotsToKill: Int
-        get() = (scaled(bossHitPointsBeforeDifficulty, bossDifficulty) + DAMAGE_PER_HIT - 1) / DAMAGE_PER_HIT
+        get() = (scaled(
+            bossHitPointsBeforeDifficulty,
+            bossDifficulty
+        ) + DAMAGE_PER_HIT - 1) / DAMAGE_PER_HIT
 
     /** The boss's health before its difficulty scales it: the stage's, times its design's vitality. */
     private val bossHitPointsBeforeDifficulty: Int
         get() = (bossHitPoints * design.bossVitality).toInt()
 
-    private fun scaled(value: Int, by: Float = difficulty): Int = (value * by).toInt().coerceAtLeast(1)
+    private fun scaled(value: Int, by: Float = difficulty): Int =
+        (value * by).toInt().coerceAtLeast(1)
 
     companion object {
         /** Waves between each extra enemy per spawn. */

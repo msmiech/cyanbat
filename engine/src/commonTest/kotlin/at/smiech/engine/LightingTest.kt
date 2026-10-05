@@ -14,18 +14,31 @@ class LightingTest {
         assertEquals(1f, Lighting.falloff(Lighting.FULL_REACH))
         assertEquals(0f, Lighting.falloff(1f))
         val steps = (0..100).map { Lighting.falloff(it / 100f) }
-        assertTrue(steps.zipWithNext().all { (near, far) -> far <= near }, "it brightens somewhere going out")
+        assertTrue(
+            steps.zipWithNext().all { (near, far) -> far <= near },
+            "it brightens somewhere going out"
+        )
     }
 
     /** Pixel-art light: bands of brightness, each a ring the next one in is brighter than. */
     @Test
     fun `a light's rings brighten inward out to its radius and no further`() {
         for (radius in listOf(8, 50, 160)) {
-            val rings = Lighting.rings(radius).toList().chunked(2) { (ring, level) -> ring to level }
+            val rings =
+                Lighting.rings(radius).toList().chunked(2) { (ring, level) -> ring to level }
             assertTrue(rings.isNotEmpty(), "a light of $radius has no rings")
-            assertTrue(rings.first().first <= radius, "a light of $radius reaches ${rings.first().first}")
-            assertTrue(rings.zipWithNext().all { (outer, inner) -> inner.first <= outer.first }, "rings out of order at $radius")
-            assertTrue(rings.zipWithNext().all { (outer, inner) -> inner.second > outer.second }, "brightness out of order at $radius")
+            assertTrue(
+                rings.first().first <= radius,
+                "a light of $radius reaches ${rings.first().first}"
+            )
+            assertTrue(
+                rings.zipWithNext().all { (outer, inner) -> inner.first <= outer.first },
+                "rings out of order at $radius"
+            )
+            assertTrue(
+                rings.zipWithNext().all { (outer, inner) -> inner.second > outer.second },
+                "brightness out of order at $radius"
+            )
             assertEquals(255, rings.last().second, "a light of $radius is not full at its heart")
         }
     }

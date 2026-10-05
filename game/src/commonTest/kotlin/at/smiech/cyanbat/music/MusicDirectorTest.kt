@@ -9,7 +9,12 @@ import kotlin.test.assertTrue
 
 /** Records what the director asks of the music, and plays nothing. */
 private class RecordingMusic : LayeredMusic {
-    data class Order(val layer: MusicLayer, val level: Float, val quantum: Quantum, val fadeBeats: Float)
+    data class Order(
+        val layer: MusicLayer,
+        val level: Float,
+        val quantum: Quantum,
+        val fadeBeats: Float
+    )
 
     val orders = mutableListOf<Order>()
     var muffled = 0f
@@ -104,7 +109,8 @@ class MusicDirectorTest {
      */
     @Test
     fun `the combo is heard a rung of its fire at a time`() {
-        fun at(combo: Int) = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = combo, difficulty = 1f)
+        fun at(combo: Int) =
+            MusicDirector.intensity(0, bossWave = 5, comboMultiplier = combo, difficulty = 1f)
         assertEquals(at(2), at(3), "x3 is still HOT")
         assertTrue(at(4) > at(3), "x4 is BLAZING")
         assertEquals(at(4), at(5), "x5 is still BLAZING")
@@ -177,7 +183,10 @@ class MusicDirectorTest {
 
         director.fly(waveIndex = 4, suspended = true)
         assertEquals(before, music.playing())
-        assertTrue(music.muffled > 0.5f && music.loudness < 1f, "muffle ${music.muffled}, volume ${music.loudness}")
+        assertTrue(
+            music.muffled > 0.5f && music.loudness < 1f,
+            "muffle ${music.muffled}, volume ${music.loudness}"
+        )
 
         director.fly(waveIndex = 4)
         assertEquals(0f, music.muffled)
@@ -207,7 +216,14 @@ class MusicDirectorTest {
 
     @Test
     fun `the intensity floor rises evenly across the waves`() {
-        val floors = (0..4).map { MusicDirector.intensity(it, bossWave = 5, comboMultiplier = 1, difficulty = 1f) }
+        val floors = (0..4).map {
+            MusicDirector.intensity(
+                it,
+                bossWave = 5,
+                comboMultiplier = 1,
+                difficulty = 1f
+            )
+        }
         for (i in 1 until floors.size) {
             assertEquals(0.1f, floors[i] - floors[i - 1], 1e-4f)
         }
@@ -216,7 +232,9 @@ class MusicDirectorTest {
     /** Every title the HUD's fire climbs through, HOT to SUPERNOVA, is a step up for the music. */
     @Test
     fun `every rung of the fire is a step up to SUPERNOVA and no further`() {
-        fun at(combo: Int) = MusicDirector.intensity(0, bossWave = 5, comboMultiplier = combo, difficulty = 1f)
+        fun at(combo: Int) =
+            MusicDirector.intensity(0, bossWave = 5, comboMultiplier = combo, difficulty = 1f)
+
         val rungs = listOf(1, 2, 4, 6, 9, 13, 18, 25, 35)
         for ((lower, higher) in rungs.zipWithNext()) {
             assertTrue(at(higher) > at(lower), "x$higher climbs past x$lower")
@@ -272,6 +290,9 @@ class MusicDirectorTest {
         director.fly(waveIndex = 4, combo = 1)
         assertEquals(setOf(MusicLayer.BED, MusicLayer.PULSE, MusicLayer.DRIVE), music.playing())
         val falls = music.orders.drop(beforeHit).filter { it.level == 0f }.map { it.layer }.toSet()
-        assertEquals(setOf(MusicLayer.LEAD, MusicLayer.BOOM, MusicLayer.ROLL, MusicLayer.CHOP), falls)
+        assertEquals(
+            setOf(MusicLayer.LEAD, MusicLayer.BOOM, MusicLayer.ROLL, MusicLayer.CHOP),
+            falls
+        )
     }
 }

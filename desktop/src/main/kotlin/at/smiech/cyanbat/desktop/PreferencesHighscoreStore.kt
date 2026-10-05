@@ -42,7 +42,9 @@ class PreferencesHighscoreStore(
     /** Every stage with a score stored, read back off the key names. */
     private fun readAll(): Map<Int, Int> = prefs.keys()
         .filter { it.startsWith(KEY_PREFIX) }
-        .mapNotNull { key -> key.removePrefix(KEY_PREFIX).toIntOrNull()?.let { it to prefs.getInt(key, 0) } }
+        .mapNotNull { key ->
+            key.removePrefix(KEY_PREFIX).toIntOrNull()?.let { it to prefs.getInt(key, 0) }
+        }
         .toMap()
 
     /**

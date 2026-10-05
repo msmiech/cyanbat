@@ -228,7 +228,8 @@ const val VICTORY_FANFARE_LANDING_SECONDS = 3f
 // How long the run plays on after its boss goes down before the stage complete overlay comes up: the
 // overlay lands on the fanfare's drop. Long enough to watch the boss go up and hear the fanfare
 // climb to it, and the player can keep flying through it.
-const val STAGE_COMPLETE_DELAY_SECONDS = VICTORY_FANFARE_DELAY_SECONDS + VICTORY_FANFARE_LANDING_SECONDS
+const val STAGE_COMPLETE_DELAY_SECONDS =
+    VICTORY_FANFARE_DELAY_SECONDS + VICTORY_FANFARE_LANDING_SECONDS
 
 // How far a blast or a break drifts each tick, in framebuffer pixels: left, the way the scenery
 // goes, so it stays where the thing was rather than where the screen was.

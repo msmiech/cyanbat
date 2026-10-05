@@ -69,8 +69,20 @@ class GameOverScreen(
                 graphics.measureString(highscoreLine, 15),
             )
             val left = artworkLeft + ARTWORK_CENTER_X - width / 2
-            graphics.drawString(scoreLine, left, artworkTop + SCORE_BASELINE, 20, EngineColors.WHITE)
-            graphics.drawString(highscoreLine, left, artworkTop + HIGHSCORE_BASELINE, 15, EngineColors.CYAN)
+            graphics.drawString(
+                scoreLine,
+                left,
+                artworkTop + SCORE_BASELINE,
+                20,
+                EngineColors.WHITE
+            )
+            graphics.drawString(
+                highscoreLine,
+                left,
+                artworkTop + HIGHSCORE_BASELINE,
+                15,
+                EngineColors.CYAN
+            )
         }
     }
 

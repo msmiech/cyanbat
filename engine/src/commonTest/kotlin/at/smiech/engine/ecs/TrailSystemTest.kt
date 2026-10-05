@@ -90,7 +90,10 @@ class TrailSystemTest {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(80f, 100f, 20f, 10f)))
         world.addComponent(id, VelocityComponent(Vector2(drift, 0f)))
-        world.addComponent(id, TrailComponent(EngineColors.CYAN, duration, minScale, coreColor = coreColor))
+        world.addComponent(
+            id,
+            TrailComponent(EngineColors.CYAN, duration, minScale, coreColor = coreColor)
+        )
         return id
     }
 
@@ -226,7 +229,12 @@ class TrailSystemTest {
 
         val (agedBody, agedCore) = draw()
         assertEquals(agedBody.height / 2, agedCore.height)
-        assertEquals(alphaOf(agedBody.color).toFloat(), alphaOf(agedCore.color).toFloat(), 1f, "the core faded apart from its segment")
+        assertEquals(
+            alphaOf(agedBody.color).toFloat(),
+            alphaOf(agedCore.color).toFloat(),
+            1f,
+            "the core faded apart from its segment"
+        )
     }
 
     @Test

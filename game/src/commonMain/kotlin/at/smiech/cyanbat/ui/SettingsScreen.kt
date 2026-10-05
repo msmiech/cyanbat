@@ -148,7 +148,11 @@ private fun SettingsContent(
             Spacer(modifier = Modifier.height(8.dp))
             Column(Modifier.selectableGroup()) {
                 for (mode in DisplayMode.entries) {
-                    DisplayModeOption(mode, selected = mode == displayMode, onSelected = onDisplayModeChanged)
+                    DisplayModeOption(
+                        mode,
+                        selected = mode == displayMode,
+                        onSelected = onDisplayModeChanged
+                    )
                 }
             }
         }
@@ -212,7 +216,8 @@ private fun ThemeRow(themeMode: ThemeMode, onThemeModeChanged: (ThemeMode) -> Un
                     modifier = cursor.modifier,
                     // The cursor's ring in place of the segment's outline, which is the Material
                     // default the rest of the time.
-                    border = cursor.border() ?: SegmentedButtonDefaults.borderStroke(MaterialTheme.colorScheme.outline),
+                    border = cursor.border()
+                        ?: SegmentedButtonDefaults.borderStroke(MaterialTheme.colorScheme.outline),
                 ) {
                     Text(stringResource(mode.label))
                 }
@@ -223,7 +228,11 @@ private fun ThemeRow(themeMode: ThemeMode, onThemeModeChanged: (ThemeMode) -> Un
 
 /** One of the display choices: the whole row picks it, not just the radio button. */
 @Composable
-private fun DisplayModeOption(mode: DisplayMode, selected: Boolean, onSelected: (DisplayMode) -> Unit) {
+private fun DisplayModeOption(
+    mode: DisplayMode,
+    selected: Boolean,
+    onSelected: (DisplayMode) -> Unit
+) {
     val cursor = rememberCursorMark()
     Row(
         modifier = Modifier

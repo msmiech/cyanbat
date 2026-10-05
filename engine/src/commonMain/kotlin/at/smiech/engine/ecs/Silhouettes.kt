@@ -14,7 +14,8 @@ import at.smiech.engine.Pixmap
  */
 internal class Silhouettes {
     private var pixels = IntArray(0)
-    private val hulls = FrameCache { pixmap, x, y, width, height, _ -> hull(pixmap, x, y, width, height) }
+    private val hulls =
+        FrameCache { pixmap, x, y, width, height, _ -> hull(pixmap, x, y, width, height) }
 
     /**
      * The hull of the [width] by [height] frame of [pixmap] at [x], [y], as x, y pairs of pixel corners
@@ -22,7 +23,8 @@ internal class Silhouettes {
      * nothing opaque in it. A pixmap that has no pixels to read, as a test double has none, is taken
      * to fill its frame.
      */
-    fun of(pixmap: Pixmap, x: Int, y: Int, width: Int, height: Int): FloatArray? = hulls[pixmap, x, y, width, height]
+    fun of(pixmap: Pixmap, x: Int, y: Int, width: Int, height: Int): FloatArray? =
+        hulls[pixmap, x, y, width, height]
 
     private fun hull(pixmap: Pixmap, x: Int, y: Int, width: Int, height: Int): FloatArray? {
         if (pixels.size < width * height) pixels = IntArray(width * height)
@@ -99,7 +101,9 @@ internal object ConvexHull {
 
     /** Whether going from [a] through [b] to [c] turns one way (positive), the other, or not at all. */
     private fun turn(a: Long, b: Long, c: Long): Long =
-        (xOf(b) - xOf(a)).toLong() * (yOf(c) - yOf(a)) - (yOf(b) - yOf(a)).toLong() * (xOf(c) - xOf(a))
+        (xOf(b) - xOf(a)).toLong() * (yOf(c) - yOf(a)) - (yOf(b) - yOf(a)).toLong() * (xOf(c) - xOf(
+            a
+        ))
 
     /** An x and a y in one Long that sorts by x and then by y; both are frame pixels, never negative. */
     fun pack(x: Int, y: Int): Long = (x.toLong() shl 32) or y.toLong()

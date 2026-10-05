@@ -153,24 +153,31 @@ class GameScreenTest {
      * because the plates are armor and the head is the place to aim.
      */
     @Test
-    fun `a shot into a plate lands part of its damage on the wyrm, and into the head all of it`() = wyrmFight {
-        val world = probe.world
-        val health = world.getComponent(head, HealthComponent::class)!!
+    fun `a shot into a plate lands part of its damage on the wyrm, and into the head all of it`() =
+        wyrmFight {
+            val world = probe.world
+            val health = world.getComponent(head, HealthComponent::class)!!
 
-        // The tail: the part with the most empty frame around it, so a shot at its middle meets
-        // nothing else of the body.
-        val tail = world.query(BossPartComponent::class).maxBy {
-            world.getComponent(it, CollisionComponent::class)!!.tolerance
+            // The tail: the part with the most empty frame around it, so a shot at its middle meets
+            // nothing else of the body.
+            val tail = world.query(BossPartComponent::class).maxBy {
+                world.getComponent(it, CollisionComponent::class)!!.tolerance
+            }
+            val beforeTail = health.hitPoints
+            shootInto(world.getComponent(tail, TransformComponent::class)!!.rect.centerY, at = tail)
+            assertEquals(
+                (DAMAGE_PER_HIT * SAND_WYRM_PLATE_SHARE).roundToInt(),
+                beforeTail - health.hitPoints
+            )
+
+            // High on the head, clear of the plate that hangs below it.
+            val beforeHead = health.hitPoints
+            shootInto(
+                world.getComponent(head, TransformComponent::class)!!.rect.top + 12f,
+                at = head
+            )
+            assertEquals(DAMAGE_PER_HIT, beforeHead - health.hitPoints)
         }
-        val beforeTail = health.hitPoints
-        shootInto(world.getComponent(tail, TransformComponent::class)!!.rect.centerY, at = tail)
-        assertEquals((DAMAGE_PER_HIT * SAND_WYRM_PLATE_SHARE).roundToInt(), beforeTail - health.hitPoints)
-
-        // High on the head, clear of the plate that hangs below it.
-        val beforeHead = health.hitPoints
-        shootInto(world.getComponent(head, TransformComponent::class)!!.rect.top + 12f, at = head)
-        assertEquals(DAMAGE_PER_HIT, beforeHead - health.hitPoints)
-    }
 
     /** One of the bat's shots, just short of [at]'s middle at the height [y], and a tick to land. */
     private fun BodyFight.shootInto(y: Float, at: EntityId? = null) {
@@ -243,8 +250,15 @@ class GameScreenTest {
             screen.update(TICK_INITIAL)
         }
 
-        assertTrue(batHealth.hitPoints < batBefore, "the boss flew through the bat without hurting it")
-        assertEquals(bossBefore, bossHealth.hitPoints, "the bat wore the boss down by flying into it")
+        assertTrue(
+            batHealth.hitPoints < batBefore,
+            "the boss flew through the bat without hurting it"
+        )
+        assertEquals(
+            bossBefore,
+            bossHealth.hitPoints,
+            "the bat wore the boss down by flying into it"
+        )
     }
 
     /**
@@ -283,19 +297,20 @@ class GameScreenTest {
      * first part met would have landed it as a plate every time.
      */
     @Test
-    fun `a shot that meets the wyrm's head and its plates at once lands on the head, whole`() = wyrmFight {
-        holdFire()
-        val world = probe.world
-        val health = world.getComponent(head, HealthComponent::class)!!
-        val before = health.hitPoints
-        val rect = world.getComponent(head, TransformComponent::class)!!.rect
-        for (plate in plates().take(3)) pin(plate, on = rect)
-        shotAt(left = rect.centerX - SHOT_FRAME_WIDTH, y = rect.centerY)
+    fun `a shot that meets the wyrm's head and its plates at once lands on the head, whole`() =
+        wyrmFight {
+            holdFire()
+            val world = probe.world
+            val health = world.getComponent(head, HealthComponent::class)!!
+            val before = health.hitPoints
+            val rect = world.getComponent(head, TransformComponent::class)!!.rect
+            for (plate in plates().take(3)) pin(plate, on = rect)
+            shotAt(left = rect.centerX - SHOT_FRAME_WIDTH, y = rect.centerY)
 
-        screen.update(TICK_INITIAL * 1.5f)
+            screen.update(TICK_INITIAL * 1.5f)
 
-        assertEquals(DAMAGE_PER_HIT, before - health.hitPoints)
-    }
+            assertEquals(DAMAGE_PER_HIT, before - health.hitPoints)
+        }
 
     /**
      * A piercing shot goes through a boss's body as through any one enemy: it lands on it once and
@@ -311,16 +326,30 @@ class GameScreenTest {
         // Strung out along the shot's way, each plate half over the one before, as the body lies in
         // flight.
         val row = plates().take(5).mapIndexed { i, plate ->
-            plate to Rect.fromLTWH(BUNCH.left - 100f + i * 24f, BUNCH.top, BUNCH.width, BUNCH.height)
+            plate to Rect.fromLTWH(
+                BUNCH.left - 100f + i * 24f,
+                BUNCH.top,
+                BUNCH.width,
+                BUNCH.height
+            )
         }
-        val shot = shotAt(left = row.first().second.left - SHOT_FRAME_WIDTH, y = BUNCH.centerY, pierce = 2)
-        fun pierce() = assertNotNull(world.getComponent(shot, PierceComponent::class), "the shot stopped in the body")
+        val shot =
+            shotAt(left = row.first().second.left - SHOT_FRAME_WIDTH, y = BUNCH.centerY, pierce = 2)
+
+        fun pierce() = assertNotNull(
+            world.getComponent(shot, PierceComponent::class),
+            "the shot stopped in the body"
+        )
 
         // Half a tick in, so that each frame after it is one tick: the wyrm's brain lays its body out
         // again after every tick, and the row is pinned back in place before each.
         screen.update(TICK_INITIAL / 2f)
         var ticks = 0
-        while (world.getComponent(shot, TransformComponent::class)!!.rect.left < row.last().second.right) {
+        while (world.getComponent(
+                shot,
+                TransformComponent::class
+            )!!.rect.left < row.last().second.right
+        ) {
             assertTrue(ticks++ < 100, "the shot never got through")
             clearStrays(keep = emptySet())
             for ((plate, at) in row) pin(plate, on = at)
@@ -328,7 +357,11 @@ class GameScreenTest {
             pierce()
         }
 
-        assertEquals((DAMAGE_PER_HIT * SAND_WYRM_PLATE_SHARE).roundToInt(), before - health.hitPoints, "landed more than once")
+        assertEquals(
+            (DAMAGE_PER_HIT * SAND_WYRM_PLATE_SHARE).roundToInt(),
+            before - health.hitPoints,
+            "landed more than once"
+        )
         assertEquals(1, pierce().remaining, "pierces left")
     }
 
@@ -357,25 +390,29 @@ class GameScreenTest {
      * the one its health calls for. Drawn whole, the bat would be three bats, one above the other.
      */
     @Test
-    fun `the bat is drawn from the row its health calls for, and healing puts it back`() = flight(CAVE) {
-        val world = probe.world
-        val sprite = world.getComponent(probe.batId, SpriteComponent::class)!!
-        val health = world.getComponent(probe.batId, HealthComponent::class)!!
-        assertEquals(BAT_ROW, sprite.srcHeight, "the bat is drawn a row at a time")
-        assertEquals(BAT_ROW.toFloat(), world.getComponent(probe.batId, TransformComponent::class)!!.rect.height)
+    fun `the bat is drawn from the row its health calls for, and healing puts it back`() =
+        flight(CAVE) {
+            val world = probe.world
+            val sprite = world.getComponent(probe.batId, SpriteComponent::class)!!
+            val health = world.getComponent(probe.batId, HealthComponent::class)!!
+            assertEquals(BAT_ROW, sprite.srcHeight, "the bat is drawn a row at a time")
+            assertEquals(
+                BAT_ROW.toFloat(),
+                world.getComponent(probe.batId, TransformComponent::class)!!.rect.height
+            )
 
-        health.hitPoints = 50
-        screen.update(TICK_INITIAL * 1.5f)
-        assertEquals(BAT_ROW, sprite.srcY, "wounded")
+            health.hitPoints = 50
+            screen.update(TICK_INITIAL * 1.5f)
+            assertEquals(BAT_ROW, sprite.srcY, "wounded")
 
-        health.hitPoints = 20
-        screen.update(TICK_INITIAL * 1.5f)
-        assertEquals(2 * BAT_ROW, sprite.srcY, "battered")
+            health.hitPoints = 20
+            screen.update(TICK_INITIAL * 1.5f)
+            assertEquals(2 * BAT_ROW, sprite.srcY, "battered")
 
-        health.hitPoints = health.maxHitPoints
-        screen.update(TICK_INITIAL * 1.5f)
-        assertEquals(0, sprite.srcY, "healed")
-    }
+            health.hitPoints = health.maxHitPoints
+            screen.update(TICK_INITIAL * 1.5f)
+            assertEquals(0, sprite.srcY, "healed")
+        }
 
     /**
      * The cave's boss is an imp drawn three times its size: one row of the imps' sheet magnified,
@@ -388,7 +425,10 @@ class GameScreenTest {
         val world = probe.world
         val sprite = world.getComponent(boss, SpriteComponent::class)!!
         assertEquals(IMP_ROW, sprite.srcHeight)
-        assertEquals(IMP_ROW * BOSS_SPRITE_SCALE, world.getComponent(boss, TransformComponent::class)!!.rect.height)
+        assertEquals(
+            IMP_ROW * BOSS_SPRITE_SCALE,
+            world.getComponent(boss, TransformComponent::class)!!.rect.height
+        )
 
         val health = world.getComponent(boss, HealthComponent::class)!!
         health.hitPoints = health.maxHitPoints / 4
@@ -439,8 +479,16 @@ class GameScreenTest {
 
         screen.update(TICK_INITIAL)
 
-        assertNull(world.getComponent(boss, PaceComponent::class), "the boss was given a pace to slow")
-        assertEquals(TICK_INITIAL, weapon.timeSinceLastShot - before, 0.0001f, "its gun slowed down")
+        assertNull(
+            world.getComponent(boss, PaceComponent::class),
+            "the boss was given a pace to slow"
+        )
+        assertEquals(
+            TICK_INITIAL,
+            weapon.timeSinceLastShot - before,
+            0.0001f,
+            "its gun slowed down"
+        )
     }
 
     /**
@@ -540,7 +588,14 @@ class GameScreenTest {
 
             game.touchHandler.onPointer(1, 0, 180, pressed = true, previouslyPressed = false)
             screen.update(FRAME_SECONDS)
-            game.touchHandler.onPointer(1, 0, 180, pressed = false, previouslyPressed = true, canceled = true)
+            game.touchHandler.onPointer(
+                1,
+                0,
+                180,
+                pressed = false,
+                previouslyPressed = true,
+                canceled = true
+            )
             fly(0.2f)
             assertEquals(clock, screen.enmGen.elapsedSeconds, "the swipe resumed the run")
 
@@ -564,10 +619,11 @@ class GameScreenTest {
         assertTrue(screen.enmGen.elapsedSeconds > clock, "the tap did not resume the run")
     }
 
-    private fun Flight.hostiles(): List<EntityId> = probe.world.query(CollisionComponent::class).filter {
-        probe.world.getComponent(it, CollisionComponent::class)?.group in
-            setOf(CollisionGroup.ENEMY, CollisionGroup.ENEMY_PROJECTILE)
-    }
+    private fun Flight.hostiles(): List<EntityId> =
+        probe.world.query(CollisionComponent::class).filter {
+            probe.world.getComponent(it, CollisionComponent::class)?.group in
+                    setOf(CollisionGroup.ENEMY, CollisionGroup.ENEMY_PROJECTILE)
+        }
 
     /**
      * The run plays on for a few seconds after its boss, and nothing may be left in them to shoot
@@ -579,8 +635,12 @@ class GameScreenTest {
         val impRect = probe.world.getComponent(straggler, TransformComponent::class)!!.rect
         val shot = assets.graphics.shot
         EntityFactory(probe.world).createShot(
-            x = impRect.left - SHOT_FRAME_WIDTH, y = impRect.centerY, width = SHOT_FRAME_WIDTH.toFloat(),
-            height = shot.height.toFloat(), pixmap = shot, isPlayer = false,
+            x = impRect.left - SHOT_FRAME_WIDTH,
+            y = impRect.centerY,
+            width = SHOT_FRAME_WIDTH.toFloat(),
+            height = shot.height.toFloat(),
+            pixmap = shot,
+            isPlayer = false,
         )
 
         downBoss()
@@ -611,9 +671,14 @@ class GameScreenTest {
     fun `the overlay waits for the boss's fall to play out`() = flight(CAVE) {
         downBoss()
         assertEquals("THE CACO IMP FALLS", probe.banner)
-        val blasts = { probe.world.query(SpriteComponent::class).count {
-            probe.world.getComponent(it, SpriteComponent::class)?.pixmap === assets.graphics.explosion
-        } }
+        val blasts = {
+            probe.world.query(SpriteComponent::class).count {
+                probe.world.getComponent(
+                    it,
+                    SpriteComponent::class
+                )?.pixmap === assets.graphics.explosion
+            }
+        }
         val first = BOSS_AFTERSHOCK_SECONDS.first()
         fly(first + 0.05f)
         assertTrue(blasts() >= 2, "the wreck did not go up again: ${blasts()} blasts")
@@ -625,7 +690,10 @@ class GameScreenTest {
 
         game.controlHandler.onButtonPress(GameButton.CONFIRM)
         screen.update(FRAME_SECONDS)
-        val next = assertNotNull(game.currentScreen as? GameScreen, "the overlay did not take the player on")
+        val next = assertNotNull(
+            game.currentScreen as? GameScreen,
+            "the overlay did not take the player on"
+        )
         try {
             assertEquals(CAVE + 1, next.currentStage.id)
         } finally {
@@ -674,13 +742,18 @@ class GameScreenTest {
             imp(x = 300f, y = 200f, elite = null)
             downBoss()
             fly(0.1f)
-            assertEquals(listOf(SoundEffect.BOSS_DEATH), fight(), "the boss and its escort going down")
+            assertEquals(
+                listOf(SoundEffect.BOSS_DEATH),
+                fight(),
+                "the boss and its escort going down"
+            )
         }
     }
 
     @Test
     fun `an elite fires in the colors of its glow`() = flight(CAVE) {
-        val elite = imp(x = 300f, y = 60f, elite = ElitePalette.VENOM, gun = EnemySpecies.ISSUED_GUN)
+        val elite =
+            imp(x = 300f, y = 60f, elite = ElitePalette.VENOM, gun = EnemySpecies.ISSUED_GUN)
         val weapon = probe.world.getComponent(elite, WeaponComponent::class)!!
         weapon.timeSinceLastShot = weapon.interval
 
@@ -703,8 +776,14 @@ class GameScreenTest {
         val sheet = assets.stage(DESERT).enemySheet
         val height = (sheet.height / WOUND_ROWS).toFloat()
         val wyrmling = EntityFactory(world).createEnemy(
-            x = 300f, y = FRAME_BUFFER_HEIGHT - BURROW_SHOWING, width = 28f, height = height, pixmap = sheet,
-            species = EnemySpecies.WYRMLING, gun = EnemySpecies.ISSUED_GUN, elite = ElitePalette.EMBER,
+            x = 300f,
+            y = FRAME_BUFFER_HEIGHT - BURROW_SHOWING,
+            width = 28f,
+            height = height,
+            pixmap = sheet,
+            species = EnemySpecies.WYRMLING,
+            gun = EnemySpecies.ISSUED_GUN,
+            elite = ElitePalette.EMBER,
         )
         val weapon = world.getComponent(wyrmling, WeaponComponent::class)!!
 
@@ -712,7 +791,8 @@ class GameScreenTest {
         screen.update(TICK_INITIAL * 1.5f)
         assertTrue(enemyShots().isEmpty(), "it fired from under the sand")
 
-        world.getComponent(wyrmling, TransformComponent::class)!!.rect = Rect.fromLTWH(300f, 150f, 28f, height)
+        world.getComponent(wyrmling, TransformComponent::class)!!.rect =
+            Rect.fromLTWH(300f, 150f, 28f, height)
         weapon.timeSinceLastShot = weapon.interval
         screen.update(TICK_INITIAL * 1.5f)
         assertEquals(1, enemyShots().size, "it held its fire once it was up")
@@ -741,7 +821,10 @@ class GameScreenTest {
         val red = { rgb: Int -> (rgb shr 16) and 0xFF }
         assertTrue(
             red(glowing) > red(dark) + 20,
-            "the scarlet glow did not show: #%06X with it, #%06X without".format(glowing and 0xFFFFFF, dark and 0xFFFFFF),
+            "the scarlet glow did not show: #%06X with it, #%06X without".format(
+                glowing and 0xFFFFFF,
+                dark and 0xFFFFFF
+            ),
         )
     }
 
@@ -761,7 +844,10 @@ class GameScreenTest {
         val across = frame[ROCK_ROW * FRAME_BUFFER_WIDTH + 600]
         assertTrue(
             brightness(beside) > brightness(across) + 30,
-            "beside the bat #%06X, across the cave #%06X".format(beside and 0xFFFFFF, across and 0xFFFFFF),
+            "beside the bat #%06X, across the cave #%06X".format(
+                beside and 0xFFFFFF,
+                across and 0xFFFFFF
+            ),
         )
     }
 
@@ -794,32 +880,51 @@ class GameScreenTest {
      * flares up wider than the shot's own light. Both go once the spark has played.
      */
     @Test
-    fun `a spent shot leaves its hit, which flares up in the dark and goes by itself`() = flight(CAVE) {
-        holdFire()
-        val lit = EntityFactory(probe.world, lit = true)
-        val imp = lit.createEnemy(
-            x = 400f, y = 60f, width = 28f, height = IMP_ROW.toFloat(),
-            pixmap = assets.stage(CAVE).enemySheet, species = EnemySpecies.SCOUT, hitPoints = 1000,
-        )
-        val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
-        val shot = assets.graphics.shot
-        val shotId = lit.createShot(
-            x = rect.centerX - SHOT_FRAME_WIDTH / 2f, y = rect.centerY - shot.height / 2f,
-            width = SHOT_FRAME_WIDTH.toFloat(), height = shot.height.toFloat(), pixmap = shot, isPlayer = true,
-        )
-        val shotLight = probe.world.getComponent(shotId, LightComponent::class)!!.radius
+    fun `a spent shot leaves its hit, which flares up in the dark and goes by itself`() =
+        flight(CAVE) {
+            holdFire()
+            val lit = EntityFactory(probe.world, lit = true)
+            val imp = lit.createEnemy(
+                x = 400f,
+                y = 60f,
+                width = 28f,
+                height = IMP_ROW.toFloat(),
+                pixmap = assets.stage(CAVE).enemySheet,
+                species = EnemySpecies.SCOUT,
+                hitPoints = 1000,
+            )
+            val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
+            val shot = assets.graphics.shot
+            val shotId = lit.createShot(
+                x = rect.centerX - SHOT_FRAME_WIDTH / 2f,
+                y = rect.centerY - shot.height / 2f,
+                width = SHOT_FRAME_WIDTH.toFloat(),
+                height = shot.height.toFloat(),
+                pixmap = shot,
+                isPlayer = true,
+            )
+            val shotLight = probe.world.getComponent(shotId, LightComponent::class)!!.radius
 
-        screen.update(TICK_INITIAL * 1.5f)
-        val hit = hits().single()
-        val light = assertNotNull(probe.world.getComponent(hit, LightComponent::class), "a hit in the dark is a light")
-        assertTrue(light.radius > shotLight, "the hit's light reaches ${light.radius}, the shot's $shotLight")
-        val at = probe.world.getComponent(hit, TransformComponent::class)!!.rect
-        assertTrue(at.centerX > rect.centerX, "the hit went off at ${at.centerX}, short of the shot's nose")
-        assertEquals(rect.centerY, at.centerY, 1f)
+            screen.update(TICK_INITIAL * 1.5f)
+            val hit = hits().single()
+            val light = assertNotNull(
+                probe.world.getComponent(hit, LightComponent::class),
+                "a hit in the dark is a light"
+            )
+            assertTrue(
+                light.radius > shotLight,
+                "the hit's light reaches ${light.radius}, the shot's $shotLight"
+            )
+            val at = probe.world.getComponent(hit, TransformComponent::class)!!.rect
+            assertTrue(
+                at.centerX > rect.centerX,
+                "the hit went off at ${at.centerX}, short of the shot's nose"
+            )
+            assertEquals(rect.centerY, at.centerY, 1f)
 
-        fly(IMPACT_LIGHT_SECONDS + 0.05f)
-        assertTrue(hits().isEmpty(), "the hit outlived its spark")
-    }
+            fly(IMPACT_LIGHT_SECONDS + 0.05f)
+            assertTrue(hits().isEmpty(), "the hit outlived its spark")
+        }
 
     /** By day a hit is the spark alone, in the colors of the shot that made it. */
     @Test
@@ -829,8 +934,12 @@ class GameScreenTest {
         val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
         val shot = assets.graphics.shot
         EntityFactory(probe.world).createShot(
-            x = rect.centerX - SHOT_FRAME_WIDTH / 2f, y = rect.centerY - shot.height / 2f,
-            width = SHOT_FRAME_WIDTH.toFloat(), height = shot.height.toFloat(), pixmap = shot, isPlayer = true,
+            x = rect.centerX - SHOT_FRAME_WIDTH / 2f,
+            y = rect.centerY - shot.height / 2f,
+            width = SHOT_FRAME_WIDTH.toFloat(),
+            height = shot.height.toFloat(),
+            pixmap = shot,
+            isPlayer = true,
             variant = ElitePalette.VENOM.shotVariant,
         )
 
@@ -851,14 +960,21 @@ class GameScreenTest {
         val rect = probe.world.getComponent(imp, TransformComponent::class)!!.rect
         val shot = assets.graphics.shot
         val shotId = EntityFactory(probe.world).createShot(
-            x = rect.centerX - SHOT_FRAME_WIDTH, y = rect.centerY - shot.height / 2f,
-            width = SHOT_FRAME_WIDTH.toFloat(), height = shot.height.toFloat(), pixmap = shot, isPlayer = true,
+            x = rect.centerX - SHOT_FRAME_WIDTH,
+            y = rect.centerY - shot.height / 2f,
+            width = SHOT_FRAME_WIDTH.toFloat(),
+            height = shot.height.toFloat(),
+            pixmap = shot,
+            isPlayer = true,
             pierce = 1,
         )
 
         screen.update(TICK_INITIAL * 1.5f)
         assertEquals(1, hits().size, "the pierced imp's hit")
-        assertTrue(probe.world.getComponent(shotId, HealthComponent::class)!!.alive, "the shot should fly on")
+        assertTrue(
+            probe.world.getComponent(shotId, HealthComponent::class)!!.alive,
+            "the shot should fly on"
+        )
     }
 
     @Test
@@ -875,8 +991,14 @@ class GameScreenTest {
             height = shot.height.toFloat(), pixmap = shot, isPlayer = false,
         )
         screen.update(TICK_INITIAL * 1.5f)
-        assertFalse(world.getComponent(probe.batId, HealthComponent::class)!!.alive, "the bat should be dead")
-        assertTrue(light().strength in 0.5f..<1f, "the light, as the bat starts to fall: ${light().strength}")
+        assertFalse(
+            world.getComponent(probe.batId, HealthComponent::class)!!.alive,
+            "the bat should be dead"
+        )
+        assertTrue(
+            light().strength in 0.5f..<1f,
+            "the light, as the bat starts to fall: ${light().strength}"
+        )
 
         fly(BAT_LIGHT_FADE_SECONDS)
         assertEquals(0f, light().strength)
@@ -887,8 +1009,14 @@ class GameScreenTest {
     fun `the jungle is flown in daylight`() = flight(JUNGLE) {
         fly(2f)
         assertNull(probe.world.getComponent(probe.batId, LightComponent::class))
-        assertTrue(probe.world.query(LightComponent::class).isEmpty(), "something in the jungle gives off light")
-        assertTrue(probe.world.query(OccluderComponent::class).isEmpty(), "something in the jungle throws a shadow")
+        assertTrue(
+            probe.world.query(LightComponent::class).isEmpty(),
+            "something in the jungle gives off light"
+        )
+        assertTrue(
+            probe.world.query(OccluderComponent::class).isEmpty(),
+            "something in the jungle throws a shadow"
+        )
     }
 
     /**
@@ -956,7 +1084,12 @@ class GameScreenTest {
         assertEquals(brain.stationY, now.top, 1f)
         assertTrue(hypot(now.left - start.left, now.top - start.top) > 20f, "it hardly moved")
         val bat = probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect
-        assertTrue(hypot(now.centerX - bat.centerX, now.centerY - bat.centerY) >= CACO_IMP_PROWL_BAT_CLEARANCE)
+        assertTrue(
+            hypot(
+                now.centerX - bat.centerX,
+                now.centerY - bat.centerY
+            ) >= CACO_IMP_PROWL_BAT_CLEARANCE
+        )
     }
 
     // region the bat's weapons of its own
@@ -971,7 +1104,12 @@ class GameScreenTest {
         holdFire()
         val world = probe.world
         val orb = world.query(OrbComponent::class).single()
-        assertEquals(ORB_RADIUS, distanceFromBat(orb), 0.5f, "the orb did not go straight out onto its ring")
+        assertEquals(
+            ORB_RADIUS,
+            distanceFromBat(orb),
+            0.5f,
+            "the orb did not go straight out onto its ring"
+        )
 
         val imp = imp(x = 0f, y = 0f, elite = null, hitPoints = 500)
         val health = world.getComponent(imp, HealthComponent::class)!!
@@ -982,7 +1120,11 @@ class GameScreenTest {
         assertTrue(oneHit > 0, "the orb went through the imp without hurting it")
 
         repeat(18) { onTheOrb(); screen.update(TICK_INITIAL) }
-        assertEquals(2 * oneHit, 500 - health.hitPoints, "an orb held on an imp should land once a rehit, no more")
+        assertEquals(
+            2 * oneHit,
+            500 - health.hitPoints,
+            "an orb held on an imp should land once a rehit, no more"
+        )
     }
 
     /**
@@ -1000,7 +1142,11 @@ class GameScreenTest {
 
         screen.update(TICK_INITIAL * 1.5f)
 
-        assertEquals(PlayerProgress.experienceForKill(waveIndex = 0), probe.experience - experience, "the kill paid nothing")
+        assertEquals(
+            PlayerProgress.experienceForKill(waveIndex = 0),
+            probe.experience - experience,
+            "the kill paid nothing"
+        )
     }
 
     /** Every pick adds an orb, and the ring spreads out to give each an even share of it. */
@@ -1018,10 +1164,19 @@ class GameScreenTest {
         val angles = orbs.map { orb ->
             assertEquals(ORB_RADIUS, distanceFromBat(orb), 0.5f)
             val rect = probe.world.getComponent(orb, TransformComponent::class)!!.rect
-            atan2(rect.centerY - bat.centerY, rect.centerX - bat.centerX).let { if (it < 0f) it + 2 * PI.toFloat() else it }
+            atan2(
+                rect.centerY - bat.centerY,
+                rect.centerX - bat.centerX
+            ).let { if (it < 0f) it + 2 * PI.toFloat() else it }
         }.sorted()
-        val gaps = angles.zipWithNext { a, b -> b - a } + (angles.first() + 2 * PI.toFloat() - angles.last())
-        for (gap in gaps) assertEquals((2 * PI / 3).toFloat(), gap, 0.05f, "the orbs are not evenly spaced: $angles")
+        val gaps =
+            angles.zipWithNext { a, b -> b - a } + (angles.first() + 2 * PI.toFloat() - angles.last())
+        for (gap in gaps) assertEquals(
+            (2 * PI / 3).toFloat(),
+            gap,
+            0.05f,
+            "the orbs are not evenly spaced: $angles"
+        )
     }
 
     @Test
@@ -1034,8 +1189,14 @@ class GameScreenTest {
 
         screen.update(TICK_INITIAL * 1.5f)
 
-        assertFalse(probe.world.getComponent(probe.batId, HealthComponent::class)!!.alive, "the bat should be down")
-        assertTrue(probe.world.query(OrbComponent::class).isEmpty(), "an orb went on circling a dead bat")
+        assertFalse(
+            probe.world.getComponent(probe.batId, HealthComponent::class)!!.alive,
+            "the bat should be down"
+        )
+        assertTrue(
+            probe.world.query(OrbComponent::class).isEmpty(),
+            "an orb went on circling a dead bat"
+        )
     }
 
     /** The wake every run starts with is only a wake; charged, it shocks what lingers in it. */
@@ -1081,7 +1242,14 @@ class GameScreenTest {
         val plates = world.query(BossPartComponent::class).filter { it != head }.drop(2)
         for (plate in plates) {
             val rect = world.getComponent(plate, TransformComponent::class)!!.rect
-            factory.createTrail(rect.centerX - 4f, rect.centerY - 4f, 8f, 8f, seconds = 1f, charged = true)
+            factory.createTrail(
+                rect.centerX - 4f,
+                rect.centerY - 4f,
+                8f,
+                8f,
+                seconds = 1f,
+                charged = true
+            )
         }
 
         screen.update(TICK_INITIAL * 1.5f)
@@ -1089,7 +1257,11 @@ class GameScreenTest {
         val oneShock = before - health.hitPoints
         assertTrue(oneShock > 0, "the wake did not reach the wyrm")
         val charged = PlayerLoadout().apply { chargeWake() }
-        assertEquals((charged.wakeDamage * SAND_WYRM_PLATE_SHARE).roundToInt(), oneShock, "more than one plate's worth landed")
+        assertEquals(
+            (charged.wakeDamage * SAND_WYRM_PLATE_SHARE).roundToInt(),
+            oneShock,
+            "more than one plate's worth landed"
+        )
     }
 
     /**
@@ -1109,8 +1281,10 @@ class GameScreenTest {
         val boss = assertNotNull(screen.enmGen.bossId, "the boss should have arrived")
         val line = batRect().centerY
         val imp = imp(x = 420f, y = line - IMP_ROW / 2f, elite = null, hitPoints = 500)
-        val elite = imp(x = 320f, y = line - IMP_ROW / 2f, elite = ElitePalette.SCARLET, hitPoints = 500)
-        val bossOnTheLine = Rect.fromLTWH(480f, line - STATION.height / 2f, STATION.width, STATION.height)
+        val elite =
+            imp(x = 320f, y = line - IMP_ROW / 2f, elite = ElitePalette.SCARLET, hitPoints = 500)
+        val bossOnTheLine =
+            Rect.fromLTWH(480f, line - STATION.height / 2f, STATION.width, STATION.height)
         val impOnTheLine = world.getComponent(imp, TransformComponent::class)!!.rect
         val eliteOnTheLine = world.getComponent(elite, TransformComponent::class)!!.rect
 
@@ -1126,16 +1300,38 @@ class GameScreenTest {
 
         assertFalse(FrostSystem.isFrozen(world, elite), "the beam froze an elite")
         assertFalse(FrostSystem.isFrozen(world, boss), "the beam froze the boss")
-        assertEquals(0, (world.getComponent(elite, TintComponent::class)?.color ?: 0) ushr 24, "the elite turned blue")
-        assertEquals(PaceComponent(0f, 0f), world.getComponent(imp, PaceComponent::class), "the frozen imp kept moving")
-        assertTrue((world.getComponent(imp, TintComponent::class)!!.color ushr 24) > 0, "the frozen imp is not blue")
+        assertEquals(
+            0,
+            (world.getComponent(elite, TintComponent::class)?.color ?: 0) ushr 24,
+            "the elite turned blue"
+        )
+        assertEquals(
+            PaceComponent(0f, 0f),
+            world.getComponent(imp, PaceComponent::class),
+            "the frozen imp kept moving"
+        )
+        assertTrue(
+            (world.getComponent(imp, TintComponent::class)!!.color ushr 24) > 0,
+            "the frozen imp is not blue"
+        )
 
         val frozenAt = world.getComponent(imp, TransformComponent::class)!!.rect
         world.getComponent(imp, HealthComponent::class)!!.hitPoints = 250
         screen.update(TICK_INITIAL)
-        assertEquals(PaceComponent(0f, 0f), world.getComponent(imp, PaceComponent::class), "a wound thawed it")
-        assertTrue(world.getComponent(imp, TransformComponent::class)!!.rect.left < frozenAt.left, "it hung on the screen")
-        assertEquals(frozenAt.top, world.getComponent(imp, TransformComponent::class)!!.rect.top, "it flew on frozen")
+        assertEquals(
+            PaceComponent(0f, 0f),
+            world.getComponent(imp, PaceComponent::class),
+            "a wound thawed it"
+        )
+        assertTrue(
+            world.getComponent(imp, TransformComponent::class)!!.rect.left < frozenAt.left,
+            "it hung on the screen"
+        )
+        assertEquals(
+            frozenAt.top,
+            world.getComponent(imp, TransformComponent::class)!!.rect.top,
+            "it flew on frozen"
+        )
 
         var thawing = (FROST_SECONDS / TICK_INITIAL).toInt() + 5
         while (FrostSystem.isFrozen(world, imp)) {
@@ -1143,7 +1339,11 @@ class GameScreenTest {
             clearStrays(keep = setOf(imp, elite, boss))
             screen.update(TICK_INITIAL)
         }
-        assertEquals(PaceComponent(motion = 0.8f, fire = 0.75f), world.getComponent(imp, PaceComponent::class), "it thawed to the wrong pace")
+        assertEquals(
+            PaceComponent(motion = 0.8f, fire = 0.75f),
+            world.getComponent(imp, PaceComponent::class),
+            "it thawed to the wrong pace"
+        )
     }
 
     /**
@@ -1191,7 +1391,8 @@ class GameScreenTest {
         health.hitPoints = 100_000
     }
 
-    private fun Flight.batRect(): Rect = probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect
+    private fun Flight.batRect(): Rect =
+        probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect
 
     private fun Flight.distanceFromBat(id: EntityId): Float {
         val rect = probe.world.getComponent(id, TransformComponent::class)!!.rect
@@ -1203,7 +1404,12 @@ class GameScreenTest {
     private fun Flight.pinOn(id: EntityId, on: Rect) {
         val transform = probe.world.getComponent(id, TransformComponent::class)!!
         val rect = transform.rect
-        transform.rect = Rect.fromLTWH(on.centerX - rect.width / 2f, on.centerY - rect.height / 2f, rect.width, rect.height)
+        transform.rect = Rect.fromLTWH(
+            on.centerX - rect.width / 2f,
+            on.centerY - rect.height / 2f,
+            rect.width,
+            rect.height
+        )
     }
 
     /** Takes away every enemy the stage has sent but [keep], before it can come into the frame. */
@@ -1211,7 +1417,11 @@ class GameScreenTest {
         val world = probe.world
         for (id in world.query(CollisionComponent::class)) {
             val group = world.getComponent(id, CollisionComponent::class)?.group
-            if (group == CollisionGroup.ENEMY && id !in keep && !world.hasComponent(id, BossPartComponent::class)) {
+            if (group == CollisionGroup.ENEMY && id !in keep && !world.hasComponent(
+                    id,
+                    BossPartComponent::class
+                )
+            ) {
                 world.removeEntity(id)
             }
         }
@@ -1225,7 +1435,8 @@ class GameScreenTest {
             Rect.fromLTWH(BAT_MIDDLE_X - 22.5f, ROCK_ROW - BAT_ROW / 2f, 45f, BAT_ROW.toFloat())
     }
 
-    private fun brightness(argb: Int): Int = ((argb shr 16) and 0xFF) + ((argb shr 8) and 0xFF) + (argb and 0xFF)
+    private fun brightness(argb: Int): Int =
+        ((argb shr 16) and 0xFF) + ((argb shr 8) and 0xFF) + (argb and 0xFF)
 
     /** One of the cave's scouts at ([x], [y]), as an [elite] or an ordinary one for null. */
     private fun Flight.imp(
@@ -1235,8 +1446,15 @@ class GameScreenTest {
         hitPoints: Int = 100,
         gun: EnemyGun? = null,
     ): EntityId = EntityFactory(probe.world).createEnemy(
-        x = x, y = y, width = 28f, height = IMP_ROW.toFloat(), pixmap = assets.stage(CAVE).enemySheet,
-        species = EnemySpecies.SCOUT, hitPoints = hitPoints, gun = gun, elite = elite,
+        x = x,
+        y = y,
+        width = 28f,
+        height = IMP_ROW.toFloat(),
+        pixmap = assets.stage(CAVE).enemySheet,
+        species = EnemySpecies.SCOUT,
+        hitPoints = hitPoints,
+        gun = gun,
+        elite = elite,
     )
 
     /** Every hit on screen: what shots have left where they struck. */
@@ -1244,15 +1462,24 @@ class GameScreenTest {
         probe.world.getComponent(it, SpriteComponent::class)!!.pixmap == assets.graphics.impact
     }
 
-    private fun Flight.enemyShots(): List<EntityId> = probe.world.query(CollisionComponent::class).filter {
-        probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.ENEMY_PROJECTILE
-    }
+    private fun Flight.enemyShots(): List<EntityId> =
+        probe.world.query(CollisionComponent::class).filter {
+            probe.world.getComponent(
+                it,
+                CollisionComponent::class
+            )?.group == CollisionGroup.ENEMY_PROJECTILE
+        }
 
     /**
      * A run of one stage: the screen, what the probe reads of it, the assets it was built from, and
      * the host that draws its frames.
      */
-    private open class Flight(val screen: GameScreen, val probe: RunProbe, val assets: GameAssets, val game: DesktopGame)
+    private open class Flight(
+        val screen: GameScreen,
+        val probe: RunProbe,
+        val assets: GameAssets,
+        val game: DesktopGame
+    )
 
     /**
      * A run of [stage] on the desktop's own host, disposed of when [test] is done with it: silent, or
@@ -1320,7 +1547,8 @@ class GameScreenTest {
     private class BodyFight(flight: Flight, val head: EntityId) :
         Flight(flight.screen, flight.probe, flight.assets, flight.game) {
         /** Every part of the body but the head. */
-        fun plates(): List<EntityId> = probe.world.query(BossPartComponent::class).filter { it != head }
+        fun plates(): List<EntityId> =
+            probe.world.query(BossPartComponent::class).filter { it != head }
     }
 
     /** A desert run straight at its boss, with the escort cleared away. */
@@ -1335,7 +1563,11 @@ class GameScreenTest {
         val world = probe.world
         for (id in world.query(CollisionComponent::class)) {
             val group = world.getComponent(id, CollisionComponent::class)?.group
-            if (group == CollisionGroup.ENEMY && !world.hasComponent(id, BossPartComponent::class)) world.removeEntity(id)
+            if (group == CollisionGroup.ENEMY && !world.hasComponent(
+                    id,
+                    BossPartComponent::class
+                )
+            ) world.removeEntity(id)
         }
         BodyFight(this, head).test()
     }

@@ -63,9 +63,9 @@ class CollisionSystem(
         val toleranceA = collisions[a]?.tolerance ?: return false
         val toleranceB = collisions[b]?.tolerance ?: return false
         return rectA.left + toleranceA < rectB.right - toleranceB &&
-            rectA.right - toleranceA > rectB.left + toleranceB &&
-            rectA.top + toleranceA < rectB.bottom - toleranceB &&
-            rectA.bottom - toleranceA > rectB.top + toleranceB
+                rectA.right - toleranceA > rectB.left + toleranceB &&
+                rectA.top + toleranceA < rectB.bottom - toleranceB &&
+                rectA.bottom - toleranceA > rectB.top + toleranceB
     }
 
     /** Snapshots the collidables into the parallel arrays, returning how many there are. */

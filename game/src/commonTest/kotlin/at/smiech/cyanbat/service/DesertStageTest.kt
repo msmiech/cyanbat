@@ -11,7 +11,11 @@ import kotlin.test.assertTrue
 private const val MINUTE = WAVE_DURATION_SECONDS
 
 private val DESERT_SPECIES = setOf(
-    EnemySpecies.LOCUST, EnemySpecies.HAWK, EnemySpecies.WYRMLING, EnemySpecies.DJINN, EnemySpecies.SCARAB,
+    EnemySpecies.LOCUST,
+    EnemySpecies.HAWK,
+    EnemySpecies.WYRMLING,
+    EnemySpecies.DJINN,
+    EnemySpecies.SCARAB,
 )
 
 /** Stage 3 as designed: what it sends, how hard, and in what order. */
@@ -20,7 +24,8 @@ class DesertStageTest {
     private val cave = StageProgression.forStage(2)
     private val desert = StageProgression.forStage(3)
 
-    private fun waves(stage: StageProgression) = (0 until BOSS_WAVE).map { stage.waveAt(it * MINUTE) }
+    private fun waves(stage: StageProgression) =
+        (0 until BOSS_WAVE).map { stage.waveAt(it * MINUTE) }
 
     @Test
     fun `stage 3 is the desert with five waves and the Sand Wyrm`() {
@@ -43,7 +48,8 @@ class DesertStageTest {
 
     @Test
     fun `no two desert waves in a row send the same mix`() {
-        waves(desert).map { it.enemyTypes }.zipWithNext { earlier, later -> assertNotEquals(earlier, later) }
+        waves(desert).map { it.enemyTypes }
+            .zipWithNext { earlier, later -> assertNotEquals(earlier, later) }
     }
 
     @Test
@@ -51,7 +57,10 @@ class DesertStageTest {
         waves(cave).zip(waves(desert)).forEach { (cave, desert) ->
             assertTrue(desert.hitPoints > cave.hitPoints, "wave ${desert.index}: health")
             assertTrue(desert.damage > cave.damage, "wave ${desert.index}: damage")
-            assertTrue(desert.spawnIntervalSeconds < cave.spawnIntervalSeconds, "wave ${desert.index}: pace")
+            assertTrue(
+                desert.spawnIntervalSeconds < cave.spawnIntervalSeconds,
+                "wave ${desert.index}: pace"
+            )
         }
         assertTrue(desert.bossWave().hitPoints > cave.bossWave().hitPoints)
     }
@@ -61,8 +70,14 @@ class DesertStageTest {
         val desertWaves = waves(desert)
 
         desertWaves.zipWithNext { earlier, later ->
-            assertTrue(later.shieldChance >= earlier.shieldChance, "shields backed off into wave ${later.index}")
-            assertTrue(later.gunChance >= earlier.gunChance, "guns backed off into wave ${later.index}")
+            assertTrue(
+                later.shieldChance >= earlier.shieldChance,
+                "shields backed off into wave ${later.index}"
+            )
+            assertTrue(
+                later.gunChance >= earlier.gunChance,
+                "guns backed off into wave ${later.index}"
+            )
         }
         assertEquals(0f, desertWaves.first().shieldChance)
         assertEquals(0f, desertWaves.first().gunChance)
@@ -72,16 +87,25 @@ class DesertStageTest {
     @Test
     fun `nothing comes up out of the sand in the opening minute`() {
         assertTrue(waves(desert).first().enemyTypes.none { it.squad == Squad.BURROW })
-        assertTrue(waves(desert)[1].enemyTypes.any { it.squad == Squad.BURROW }, "the leapers never arrive early")
+        assertTrue(
+            waves(desert)[1].enemyTypes.any { it.squad == Squad.BURROW },
+            "the leapers never arrive early"
+        )
     }
 
     @Test
     fun `the desert has a swarm and a leaper and a looper and a shooter and a shell that grows back`() {
         assertTrue(DESERT_SPECIES.any { it.squad == Squad.SWARM }, "nothing swarms")
-        assertTrue(DESERT_SPECIES.any { it.squad == Squad.BURROW }, "nothing comes up out of the sand")
+        assertTrue(
+            DESERT_SPECIES.any { it.squad == Squad.BURROW },
+            "nothing comes up out of the sand"
+        )
         assertTrue(DESERT_SPECIES.any { it.movement == EnemyMovementType.LOOP }, "nothing loops")
         assertTrue(DESERT_SPECIES.any { it.gun != null }, "nothing shoots")
-        assertTrue(DESERT_SPECIES.any { it.innateShield > 0f && it.shieldRegrowth > 0f }, "no shell grows back")
+        assertTrue(
+            DESERT_SPECIES.any { it.innateShield > 0f && it.shieldRegrowth > 0f },
+            "no shell grows back"
+        )
     }
 
     /**
@@ -94,7 +118,7 @@ class DesertStageTest {
         assertTrue(EnemySpecies.WYRMLING.facesHeading)
         assertTrue(EnemySpecies.entries.filter { it.facesHeading }.all {
             it.movement == EnemyMovementType.LOOP || it.movement == EnemyMovementType.LEAP ||
-                it.movement == EnemyMovementType.SINE
+                    it.movement == EnemyMovementType.SINE
         })
     }
 }

@@ -103,7 +103,8 @@ class MusicDirector(
             }
             // The heavy layer always comes in on a downbeat: whether it is the boss's slam or a
             // streak going supernova, it is a moment the music should be seen to make.
-            val quantum = if (slamming || (wanted && layer == MusicLayer.FURY)) Quantum.BAR else Quantum.BEAT
+            val quantum =
+                if (slamming || (wanted && layer == MusicLayer.FURY)) Quantum.BAR else Quantum.BEAT
             order(layer, if (wanted) 1f else 0f, quantum, fade)
         }
         slamming = false
@@ -148,8 +149,14 @@ class MusicDirector(
          * BLUE FLAME at 51, WHITE HOT at 72 and SUPERNOVA at 102. Past that a longer streak is more
          * points, and a faster fire on the HUD, but not more music.
          */
-        fun intensity(waveIndex: Int, bossWave: Int, comboMultiplier: Int, difficulty: Float): Float {
-            val progress = if (bossWave <= 1) 1f else (waveIndex.toFloat() / (bossWave - 1)).coerceIn(0f, 1f)
+        fun intensity(
+            waveIndex: Int,
+            bossWave: Int,
+            comboMultiplier: Int,
+            difficulty: Float
+        ): Float {
+            val progress =
+                if (bossWave <= 1) 1f else (waveIndex.toFloat() / (bossWave - 1)).coerceIn(0f, 1f)
             val floor = OPENING + WAVE_RISE * progress + (difficulty - 1f) * PER_DIFFICULTY
             val combo = COMBO_STEP * ComboHeat.rung(comboMultiplier).coerceAtMost(COMBO_RUNGS)
             return floor + combo

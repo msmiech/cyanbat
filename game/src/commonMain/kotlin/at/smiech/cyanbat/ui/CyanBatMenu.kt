@@ -88,7 +88,11 @@ fun CyanBatMenu(
 }
 
 @Composable
-private fun Destination(backStack: MenuBackStack, host: MenuHost, menuViewModel: MainMenuViewModel) {
+private fun Destination(
+    backStack: MenuBackStack,
+    host: MenuHost,
+    menuViewModel: MainMenuViewModel
+) {
     when (backStack.current) {
         MenuDestination.Main -> {
             MainMenuScreen(
@@ -125,7 +129,11 @@ private fun Destination(backStack: MenuBackStack, host: MenuHost, menuViewModel:
  *   on it to choose; see [HomeCursor].
  */
 @Composable
-private fun SubScreen(onBack: () -> Unit, backIsHome: Boolean = false, content: @Composable () -> Unit) {
+private fun SubScreen(
+    onBack: () -> Unit,
+    backIsHome: Boolean = false,
+    content: @Composable () -> Unit
+) {
     if (hasSystemBack) {
         content()
         return

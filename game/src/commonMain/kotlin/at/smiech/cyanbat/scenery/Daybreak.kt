@@ -76,8 +76,11 @@ object Daybreak : Day {
 
     override fun sunUp(position: Float): Boolean = position >= SUNRISE
 
-    override fun sunX(position: Float): Float = RISE_X + (NOON_X - RISE_X) * fraction(position, SUNRISE, HIGH)
-    override fun sunY(position: Float): Float = RISE_Y + (NOON_Y - RISE_Y) * fraction(position, SUNRISE, HIGH)
+    override fun sunX(position: Float): Float =
+        RISE_X + (NOON_X - RISE_X) * fraction(position, SUNRISE, HIGH)
+
+    override fun sunY(position: Float): Float =
+        RISE_Y + (NOON_Y - RISE_Y) * fraction(position, SUNRISE, HIGH)
 
     /** Swollen while it is low, shrinking as it climbs. */
     override fun sunRadius(position: Float): Float = 23f - 8f * smoothstep(0.42f, 0.88f, position)
@@ -93,7 +96,8 @@ object Daybreak : Day {
     override fun sunLowColor(position: Float): Int = ramp(SUN_POSITIONS, SUN_FOOT_COLORS, position)
 
     /** A halo that sets the dawn alight while it is low, and settles to a pale haze as it climbs. */
-    override fun sunGlow(position: Float): Float = 0.35f + 0.65f * (1f - smoothstep(0.46f, 0.8f, position))
+    override fun sunGlow(position: Float): Float =
+        0.35f + 0.65f * (1f - smoothstep(0.46f, 0.8f, position))
 
     /** Banded through the haze over the sea as it rises, and clear of it by the middle of the morning. */
     override fun sunBands(position: Float): Float = 1f - smoothstep(0.46f, 0.62f, position)
