@@ -1,58 +1,21 @@
 package at.smiech.cyanbat.scenery
 
-import at.smiech.cyanbat.scenery.Daylight.SKY
-import at.smiech.cyanbat.scenery.Daylight.SKY_POSITIONS
-import at.smiech.cyanbat.scenery.Daylight.fraction
-import at.smiech.engine.EngineColors
-
 /**
  * The desert's day, from noon at the stage's first second to night on its boss's: what the sky, the
  * sun, the moon and the stars look like at any point in between.
- *
- * Everything here is a pure function of one number, how far through its day the stage is - see
- * [position]. That is what lets the whole sunset be tested without drawing a pixel of it, and what
- * ties it to the stage clock: a paused game is a paused sunset, and a stage flown slowly gets no
- * darker for it than one flown fast.
  *
  * The day follows the waves. Noon for the first; the long afternoon through the second and third,
  * the light going gold; the sun going down in the fourth; dusk in the fifth, with the first stars;
  * and night - black and purple, the moon up and every star out - the moment the boss arrives.
  */
-object Daylight {
-
-    /** How far through its day a stage is, as 0..1: noon at its first second, night on its boss's. */
-    fun position(elapsedSeconds: Float, bossTimeSeconds: Float): Float =
-        if (bossTimeSeconds <= 0f) 1f else (elapsedSeconds / bossTimeSeconds).coerceIn(0f, 1f)
+object Daylight : Day {
 
     // --- the ground ------------------------------------------------------------------------------
 
-    /**
-     * Where each of the ground's palettes is at full strength: noon, the golden hour, sunset and
-     * night. Every piece of scenery a day-lit stage scrolls past is drawn once in each, a row apiece
-     * down its sheet, in this order - the generators in `tools/` write them that way.
-     *
-     * Four rather than a palette computed per frame, because the art is pixel art: each of these was
-     * picked by eye, shadows and all, and the hours between them are crossfades of two pictures
-     * that already look right, where a computed ramp would be a guess at every pixel.
-     */
+    /** Noon, the golden hour, sunset and night. */
     val KEYFRAMES = floatArrayOf(0f, 0.46f, 0.66f, 0.9f)
 
-    /** The keyframe the ground is leaving at [position]: the row drawn underneath. */
-    fun keyframeBelow(position: Float): Int {
-        var index = 0
-        while (index < KEYFRAMES.lastIndex && position >= KEYFRAMES[index + 1]) index++
-        return index
-    }
-
-    /** The keyframe after [keyframeBelow], which is the one fading in over it; the last is its own. */
-    fun keyframeAbove(position: Float): Int = (keyframeBelow(position) + 1).coerceAtMost(KEYFRAMES.lastIndex)
-
-    /** How far the ground has faded from [keyframeBelow] toward [keyframeAbove], as 0..1. */
-    fun keyframeBlend(position: Float): Float {
-        val below = keyframeBelow(position)
-        if (below == KEYFRAMES.lastIndex) return 0f
-        return fraction(position, KEYFRAMES[below], KEYFRAMES[below + 1])
-    }
+    override val keyframes: FloatArray get() = KEYFRAMES
 
     // --- the sky ---------------------------------------------------------------------------------
 
@@ -80,28 +43,8 @@ object Daylight {
         colors(0x06040E, 0x0C081A, 0x1A0E2C, 0x341846), // night
     )
 
-    /**
-     * The sky's color at [position], [height] of the way from the top of the frame down to the
-     * horizon: blended between the two keyframes either side of the hour, then between the two
-     * stops either side of the height.
-     */
-    fun skyColor(position: Float, height: Float): Int {
-        var index = 0
-        while (index < SKY_POSITIONS.lastIndex - 1 && position >= SKY_POSITIONS[index + 1]) index++
-        val t = fraction(position, SKY_POSITIONS[index], SKY_POSITIONS[index + 1])
-        val from = SKY[index]
-        val to = SKY[index + 1]
-
-        val h = height.coerceIn(0f, 1f)
-        var stop = 0
-        while (stop < SKY_STOPS.lastIndex - 1 && h >= SKY_STOPS[stop + 1]) stop++
-        val s = fraction(h, SKY_STOPS[stop], SKY_STOPS[stop + 1])
-        return EngineColors.lerp(
-            EngineColors.lerp(from[stop], to[stop], t),
-            EngineColors.lerp(from[stop + 1], to[stop + 1], t),
-            s,
-        )
-    }
+    override fun skyColor(position: Float, height: Float): Int =
+        skyBetween(SKY_POSITIONS, SKY, SKY_STOPS, position, height)
 
     // --- the sun ---------------------------------------------------------------------------------
 
@@ -114,68 +57,55 @@ object Daylight {
      */
     const val SUNDOWN = 0.61f
 
+    override val showcase: Float get() = SUNDOWN
+
     private const val NOON_X = 416f
     private const val NOON_Y = 48f
     private const val SET_X = 515f
     private const val SET_Y = 318f
 
+    override fun sunUp(position: Float): Boolean = position < SUNSET
+
     /**
      * The sun's center. It comes down on a slant toward the right of the frame - the way the bat is
      * flying, so the stage flies into its sunset - at a steady rate, the way the real one sets.
      */
-    fun sunX(position: Float): Float = NOON_X + (SET_X - NOON_X) * fraction(position, 0f, SUNSET)
-    fun sunY(position: Float): Float = NOON_Y + (SET_Y - NOON_Y) * fraction(position, 0f, SUNSET)
+    override fun sunX(position: Float): Float = NOON_X + (SET_X - NOON_X) * fraction(position, 0f, SUNSET)
+    override fun sunY(position: Float): Float = NOON_Y + (SET_Y - NOON_Y) * fraction(position, 0f, SUNSET)
 
     /** A little larger the lower it gets, which is how a low sun looks even though it is not. */
-    fun sunRadius(position: Float): Float = 14f + 5f * smoothstep(0.3f, SUNSET, position)
+    override fun sunRadius(position: Float): Float = 14f + 5f * smoothstep(0.3f, SUNSET, position)
 
     private val SUN_POSITIONS = floatArrayOf(0f, 0.46f, 0.66f, SUNSET)
     private val SUN_COLORS = colors(0xFFFBE2, 0xFFE896, 0xFF9C4A, 0xF45E3C)
 
     /** White-hot at noon, gold in the afternoon, and deep orange going red as it touches the dunes. */
-    fun sunColor(position: Float): Int = ramp(SUN_POSITIONS, SUN_COLORS, position)
+    override fun sunColor(position: Float): Int = ramp(SUN_POSITIONS, SUN_COLORS, position)
 
     /**
-     * How strongly the sun's halo shows, as 0..1: a pale haze while it is high, strongest as it
-     * sinks toward the dunes, and gone with it.
+     * A pale haze while it is high, strongest as it sinks toward the dunes, and gone with it.
      */
-    fun sunGlow(position: Float): Float =
+    override fun sunGlow(position: Float): Float =
         0.35f + 0.65f * smoothstep(0.3f, 0.64f, position) - smoothstep(0.66f, SUNSET, position)
 
     // --- the night -------------------------------------------------------------------------------
 
     /**
-     * How much of the night sky shows, as 0..1: nothing until the sun is down, then the stars come
-     * out through dusk, the brightest first, until every one is up at nightfall.
+     * Nothing until the sun is down, then the stars come out through dusk, the brightest first,
+     * until every one is up at nightfall.
      */
-    fun starlight(position: Float): Float = smoothstep(0.66f, 0.95f, position)
+    override fun starlight(position: Float): Float = smoothstep(0.66f, 0.95f, position)
 
-    /** How far the moon has come up, as 0..1. It rises into the dusk behind the first stars. */
-    fun moonlight(position: Float): Float = smoothstep(0.76f, 0.96f, position)
+    /** It rises into the dusk behind the first stars. */
+    override fun moonlight(position: Float): Float = smoothstep(0.76f, 0.96f, position)
 
-    // --- helpers ---------------------------------------------------------------------------------
+    private const val MOON_X = 188f
+    private const val MOON_Y = 40f
+    private const val MOON_RISE = 26f
 
-    private fun colors(vararg rgb: Int) = IntArray(rgb.size) { rgb[it] or OPAQUE }
+    /** Where it stands, over the far pyramids. */
+    override fun moonX(position: Float): Float = MOON_X
 
-    private fun ramp(positions: FloatArray, colors: IntArray, position: Float): Int {
-        if (position <= positions.first()) return colors.first()
-        for (i in 0 until positions.lastIndex) {
-            if (position < positions[i + 1]) {
-                return EngineColors.lerp(colors[i], colors[i + 1], fraction(position, positions[i], positions[i + 1]))
-            }
-        }
-        return colors.last()
-    }
-
-    /** Where [value] sits between [from] and [to], as 0..1. */
-    private fun fraction(value: Float, from: Float, to: Float): Float =
-        if (to <= from) 1f else ((value - from) / (to - from)).coerceIn(0f, 1f)
-
-    /** [fraction] eased in and out, so a change starts and finishes gently instead of on a corner. */
-    fun smoothstep(from: Float, to: Float, value: Float): Float {
-        val t = fraction(value, from, to)
-        return t * t * (3f - 2f * t)
-    }
-
-    private const val OPAQUE = 0xFF000000.toInt()
+    /** It climbs a little as it comes out, rather than fading in on the spot. */
+    override fun moonY(position: Float): Float = MOON_Y + MOON_RISE * (1f - moonlight(position))
 }

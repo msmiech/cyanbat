@@ -3,6 +3,7 @@ package at.smiech.cyanbat.desktop
 import at.smiech.cyanbat.music.MusicLayer
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.Stage
+import at.smiech.cyanbat.resource.StageMusic
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.impl.ImaAdpcmClip
@@ -40,17 +41,24 @@ class MusicStemTest {
         return ImaAdpcmClip.parse(stream.use { it.readBytes() })
     }
 
+    /**
+     * Every piece a stage plays, by the stage's name: its own, and its boss fight's where the boss is
+     * fought to a piece of its own.
+     */
+    private val pieces: List<Pair<String, StageMusic>> =
+        stages.flatMap { stage -> stage.music.pieces.map { stage.name to it } }
+
     @Test
     fun `every stage has a stem for every layer`() {
-        for (stage in stages) {
-            assertEquals(MusicLayer.entries.size, stage.music.stems.size)
-            stage.music.stems.forEach { clip(it) }
+        for ((_, piece) in pieces) {
+            assertEquals(MusicLayer.entries.size, piece.stems.size)
+            piece.stems.forEach { clip(it) }
         }
     }
 
     @Test
     fun `stems and tracks are stereo at the output rate`() {
-        for (name in stages.flatMap { it.music.stems } + tracks) {
+        for (name in pieces.flatMap { (_, piece) -> piece.stems } + tracks) {
             val stem = clip(name)
             assertEquals(OUTPUT_RATE, stem.sampleRate, "$name's sample rate")
             assertEquals(2, stem.channels, "$name's channels")
@@ -64,10 +72,10 @@ class MusicStemTest {
      */
     @Test
     fun `stems are whole bars at the tempo the game lands changes on`() {
-        for (stage in stages) {
-            val framesPerBar = stage.music.grid.framesPerBar(OUTPUT_RATE)
-            assertEquals(framesPerBar, round(framesPerBar), "${stage.name}: a bar is not whole frames")
-            for (name in stage.music.stems) {
+        for ((stage, piece) in pieces) {
+            val framesPerBar = piece.grid.framesPerBar(OUTPUT_RATE)
+            assertEquals(framesPerBar, round(framesPerBar), "$stage (${piece.name}): a bar is not whole frames")
+            for (name in piece.stems) {
                 val frames = clip(name).frames
                 assertEquals(0, frames % framesPerBar.toInt(), "$name is ${frames / framesPerBar} bars long")
             }
@@ -77,8 +85,8 @@ class MusicStemTest {
     /** A short loop under a long one has to come round a whole number of times per turn of it. */
     @Test
     fun `every stem divides the longest`() {
-        for (stage in stages) {
-            val lengths = stage.music.stems.associateWith { clip(it).frames }
+        for ((_, piece) in pieces) {
+            val lengths = piece.stems.associateWith { clip(it).frames }
             val longest = lengths.values.max()
             for ((name, frames) in lengths) {
                 assertEquals(0, longest % frames, "$name ($frames frames) against the longest ($longest)")
@@ -93,7 +101,7 @@ class MusicStemTest {
      */
     @Test
     fun `stems and tracks carry sound without clipping`() {
-        for (name in stages.flatMap { it.music.stems } + tracks) {
+        for (name in pieces.flatMap { (_, piece) -> piece.stems } + tracks) {
             val stem = clip(name)
             val samples = FloatArray(stem.frames * 2).also { stem.cursor().read(it, 0, stem.frames) }
             val rms = sqrt(samples.sumOf { (it * it).toDouble() } / samples.size)

@@ -12,11 +12,11 @@ and re-run, instead of reverse-engineering colors out of the image.
 The bolt points right, which is the only direction the *player* fires; enemy shots travel left and
 are turned by `FacingSystem`, so one drawing serves both.
 
-Thirteen colorways, laid out left to right and addressed the way the enemy sheet is. The player's
+Fourteen colorways, laid out left to right and addressed the way the enemy sheet is. The player's
 is cyan, the next three are the cave's enemy palettes from `generate_enemy_sprites.py` - violet,
-amber and crimson - the next three are the jungle's shooters, the next is the desert's boss, and
-the last five are the elites', one per `ElitePalette` - so a shot is the same color as whatever
-fired it. That matters more than it sounds:
+amber and crimson - the next three are the jungle's shooters, the next is the desert's boss, the
+next five are the elites', one per `ElitePalette`, and the last is the lagoon's boss - so a shot is
+the same color as whatever fired it. That matters more than it sounds:
 the screen can hold the bat's shots and the boss's at once, travelling in opposite directions, and
 before this they were the same cyan bolt. Which ones were dangerous had to be worked out from
 which way they were moving.
@@ -86,6 +86,11 @@ COLORWAYS = (
     {"d": (84, 36, 160, 180), "c": (164, 88, 255, 255), "w": (240, 228, 255, 255)},
     # FUCHSIA
     {"d": (150, 24, 112, 180), "c": (255, 64, 196, 255), "w": (255, 226, 246, 255)},
+    # The lagoon's, from `generate_lagoon_boss_sprite.py`. The Naga: neon pink, the light in its hood -
+    # hotter and less violet than the fuchsia elite's, so the boss's spit and an elite's bolt read
+    # apart. The lagoon's other shooters fire in colorways already here - the crab in crimson, the
+    # puffer in amber, an armed krait in flame - each the color of the thing firing it.
+    {"d": (160, 20, 80, 180), "c": (255, 61, 142, 255), "w": (255, 224, 238, 255)},
 )
 
 TRANSPARENT = (0, 0, 0, 0)

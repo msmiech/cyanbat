@@ -1,18 +1,24 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.service.EnemySpecies.BEETLE
+import at.smiech.cyanbat.service.EnemySpecies.CRAB
 import at.smiech.cyanbat.service.EnemySpecies.DJINN
 import at.smiech.cyanbat.service.EnemySpecies.HAWK
+import at.smiech.cyanbat.service.EnemySpecies.KRAIT
 import at.smiech.cyanbat.service.EnemySpecies.LOCUST
 import at.smiech.cyanbat.service.EnemySpecies.OWL
+import at.smiech.cyanbat.service.EnemySpecies.PIRANHA
+import at.smiech.cyanbat.service.EnemySpecies.PUFFER
 import at.smiech.cyanbat.service.EnemySpecies.SCARAB
 import at.smiech.cyanbat.service.EnemySpecies.SCOUT
+import at.smiech.cyanbat.service.EnemySpecies.SHARK
 import at.smiech.cyanbat.service.EnemySpecies.SPITTER
 import at.smiech.cyanbat.service.EnemySpecies.STRIKER
 import at.smiech.cyanbat.service.EnemySpecies.WASP
 import at.smiech.cyanbat.service.EnemySpecies.WEAVER
 import at.smiech.cyanbat.service.EnemySpecies.WISP
 import at.smiech.cyanbat.service.EnemySpecies.WYRMLING
+import at.smiech.cyanbat.util.NAGA_VITALITY
 import at.smiech.cyanbat.util.STAGE_DIFFICULTY_STEP
 
 /**
@@ -55,6 +61,13 @@ enum class BossKind {
      * part of it can be hit. See [SandWyrmBrain].
      */
     SAND_WYRM,
+
+    /**
+     * The lagoon's Naga: a hooded serpent of thirteen parts that rears up out of the water, sways
+     * and spits, strikes at the bat, and dives to come up somewhere else - in five phases, with its
+     * brood, a shield and a swim across the frame among them. See [NagaBrain].
+     */
+    NAGA,
 }
 
 /**
@@ -64,12 +77,15 @@ enum class BossKind {
  *
  * @param bossToughness how hard the boss is against the stage's own difficulty: 1 for a boss scaled
  *   like its waves, more for one kept harder than the waves that lead up to it.
+ * @param bossVitality how much more health the boss has on top of that, and nothing else: a longer
+ *   fight, where [bossToughness] would also make every one of its blows hit harder.
  */
 data class StageDesign(
     val waves: List<WaveDesign>,
     val boss: BossKind,
     val bossName: String,
     val bossToughness: Float = 1f,
+    val bossVitality: Float = 1f,
 ) {
     companion object {
         /**
@@ -152,6 +168,37 @@ data class StageDesign(
         )
 
         /**
+         * Stage 4, flown from night to noon across a bay of limestone islands to a temple in the
+         * water, and the hardest stage in the game. Harder again than the desert on every axis it
+         * had, and it adds one more direction to watch: sharks come in from behind, along the
+         * waterline with their fins showing, and leap forward at the bat. They arrive in the second
+         * minute, as the wyrmlings did, before anything else is shooting; the puffers' rings of
+         * spines - a boss's pattern, in an ordinary enemy - in the third; the Naga's brood in the
+         * fourth, as the temple comes into sight. Shields, guns and elites ramp higher than any stage
+         * before it.
+         *
+         * The Naga is fought at the stage's own difficulty, with nearly twice the health it would
+         * have for it: its fight is five phases long rather than three.
+         */
+        val LAGOON = StageDesign(
+            waves = listOf(
+                // Night: a school of piranhas, and a crab's shell to learn.
+                WaveDesign(listOf(PIRANHA, CRAB)),
+                // Dawn, and something behind the bat: fins along the waterline.
+                WaveDesign(listOf(SHARK, PIRANHA, CRAB), shieldChance = 0.15f, eliteChance = 0.05f),
+                // Sunrise: the puffers and their rings, with the sharks and the schools for cover.
+                WaveDesign(listOf(PUFFER, SHARK, PIRANHA), shieldChance = 0.25f, gunChance = 0.2f, eliteChance = 0.06f),
+                // Morning, the temple in sight, and everything at once.
+                WaveDesign(listOf(KRAIT, PUFFER, SHARK, CRAB, PIRANHA), shieldChance = 0.35f, gunChance = 0.3f, eliteChance = 0.07f),
+                // Noon, and the escort: the Naga's brood with everything that shoots or comes from behind.
+                WaveDesign(listOf(KRAIT, PUFFER, SHARK, CRAB), shieldChance = 0.45f, gunChance = 0.4f, eliteChance = 0.08f),
+            ),
+            boss = BossKind.NAGA,
+            bossName = "THE NAGA",
+            bossVitality = NAGA_VITALITY,
+        )
+
+        /**
          * The design of the stage with this 1-based id. Past the last one the last design repeats,
          * scaled harder by [StageProgression.forStage], rather than a later stage having nothing
          * to spawn.
@@ -159,7 +206,8 @@ data class StageDesign(
         fun forStage(id: Int): StageDesign = when {
             id <= 1 -> JUNGLE
             id == 2 -> CAVE
-            else -> DESERT
+            id == 3 -> DESERT
+            else -> LAGOON
         }
     }
 }

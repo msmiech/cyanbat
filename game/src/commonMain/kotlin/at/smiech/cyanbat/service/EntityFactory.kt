@@ -41,6 +41,14 @@ import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_COUNT
 import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_SECONDS
 import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_WIDTH
 import at.smiech.cyanbat.util.MOTH_QUEEN_SHOT_VARIANT
+import at.smiech.cyanbat.util.NAGA_FRAME
+import at.smiech.cyanbat.util.NAGA_HEAD_FRAMES
+import at.smiech.cyanbat.util.NAGA_HEAD_FRAME_SECONDS
+import at.smiech.cyanbat.util.NAGA_PLATE_SHARE
+import at.smiech.cyanbat.util.NAGA_SHOT_VARIANT
+import at.smiech.cyanbat.util.NAGA_SPLASH_FRAME
+import at.smiech.cyanbat.util.NAGA_SPLASH_FRAMES
+import at.smiech.cyanbat.util.NAGA_SPLASH_FRAME_SECONDS
 import at.smiech.cyanbat.util.ORB_COLLISION_TOLERANCE
 import at.smiech.cyanbat.util.ORB_FRAME
 import at.smiech.cyanbat.util.ORB_FRAME_COUNT
@@ -271,8 +279,12 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
                 ),
             )
         }
-        // Drawn facing left, as every hostile is, and turned from there to point along its arc.
-        if (species.facesHeading) world.addComponent(id, FacesVelocityComponent(HOSTILE_ARTWORK_DEGREES))
+        // Drawn facing left, as every hostile is - but for the one that comes from behind - and turned
+        // from there to point along its arc.
+        if (species.facesHeading) {
+            val artwork = if (species.drawnFacingRight) RIGHT_FACING_ARTWORK_DEGREES else HOSTILE_ARTWORK_DEGREES
+            world.addComponent(id, FacesVelocityComponent(artwork))
+        }
 
         world.addComponent(id, CollisionComponent(species.collisionTolerance, CollisionGroup.ENEMY))
         world.addComponent(id, HealthComponent(hitPoints))
@@ -488,6 +500,109 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         return id
     }
 
+    /**
+     * The lagoon's boss: a hooded head and a body of twelve parts behind it, each an entity of its
+     * own so it can be run into, shot and lit up wherever it is along the body - the Sand Wyrm's build,
+     * bigger, and moved by its own brain.
+     *
+     * The head is the boss: it carries the health, the pinned health bar, the gun, and a shield its
+     * hood raises late in the fight. The parts carry no health: a shot into one lands on the head,
+     * though only [NAGA_PLATE_SHARE] of it. Neither carries a movement of the engine's: [NagaBrain]
+     * places every part every tick - rearing up out of the water, striking, swimming - which is why
+     * nothing else may move or remove them, and why none is culled for leaving the frame: it spends
+     * a good part of its fight under the water, below it. Every part, head included, is a
+     * [BossPartComponent], so the bat is not wearing it down by being hit by it.
+     *
+     * The parts are created tail first, so each is drawn over the one behind it and the body
+     * overlaps toward the head. Only the head carries a [WoundComponent]; the brain draws the parts
+     * from its row.
+     *
+     * @param bodyDamage what a part of the body deals on contact; less than the head's.
+     * @param bar where the health bar is pinned.
+     * @return the head, then the body from the neck back to the tail.
+     */
+    fun createNaga(
+        x: Float,
+        y: Float,
+        pixmap: Pixmap,
+        hitPoints: Int,
+        damage: Int,
+        bodyDamage: Int,
+        gun: EnemyGun,
+        bar: Rect,
+    ): List<EntityId> {
+        val frame = NAGA_FRAME.toFloat()
+        val body = NAGA_BODY.reversed().map { (sheetFrame, tolerance) ->
+            val id = world.createEntity()
+            world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
+            world.addComponent(id, VelocityComponent(Vector2.Zero))
+            world.addComponent(
+                id,
+                SpriteComponent(pixmap, baseSrcX = sheetFrame * NAGA_FRAME, srcWidth = NAGA_FRAME, srcHeight = NAGA_FRAME),
+            )
+            world.addComponent(id, CollisionComponent(tolerance, CollisionGroup.ENEMY))
+            world.addComponent(id, DamageComponent(bodyDamage))
+            world.addComponent(id, BossPartComponent(share = NAGA_PLATE_SHARE))
+            if (lit) world.addComponent(id, OccluderComponent(CREATURE_SHINE))
+            world.addComponent(id, LifetimeComponent(false))
+            world.addComponent(id, ZIndexComponent(12))
+            id
+        }.reversed()
+
+        val head = world.createEntity()
+        world.addComponent(head, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
+        world.addComponent(head, VelocityComponent(Vector2.Zero))
+        world.addComponent(head, SpriteComponent(pixmap, srcWidth = NAGA_FRAME, srcHeight = NAGA_FRAME))
+        world.addComponent(
+            head,
+            AnimationComponent(NAGA_FRAME, NAGA_FRAME, NAGA_HEAD_FRAMES, NAGA_HEAD_FRAME_SECONDS),
+        )
+        world.addComponent(head, WoundComponent(NAGA_FRAME, WOUND_MARKS))
+        world.addComponent(head, ProjectileStyleComponent(NAGA_SHOT_VARIANT))
+        world.addComponent(head, CollisionComponent(NAGA_HEAD_TOLERANCE, CollisionGroup.ENEMY))
+        world.addComponent(head, HealthComponent(hitPoints))
+        world.addComponent(head, DamageComponent(damage))
+        world.addComponent(head, HealthBarComponent(pinnedTo = bar))
+        world.addComponent(head, BossPartComponent())
+        world.addComponent(head, WeaponComponent(gun.interval))
+        world.addComponent(head, GunComponent(gun.volleys))
+        // Down until its hood raises it, but present, so the brain only ever has to raise it.
+        world.addComponent(head, ShieldComponent(0))
+        if (lit) world.addComponent(head, OccluderComponent(CREATURE_SHINE))
+        world.addComponent(head, LifetimeComponent(false))
+        world.addComponent(head, ZIndexComponent(13))
+        return listOf(head) + body
+    }
+
+    /**
+     * Water thrown up out of the sea, standing on [bottom] and centered on [centerX]: the boiling
+     * before the Naga rises, and the burst as it does. Stays where it was thrown, like the Sand Wyrm's
+     * sand, since the Naga comes up where the water boiled.
+     */
+    fun createSplash(centerX: Float, bottom: Float, pixmap: Pixmap, scale: Float = 1f): EntityId {
+        val size = NAGA_FRAME * scale
+        val id = world.createEntity()
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX - size / 2f, bottom - size, size, size)))
+        world.addComponent(id, VelocityComponent(Vector2.Zero))
+        world.addComponent(
+            id,
+            SpriteComponent(
+                pixmap,
+                baseSrcX = NAGA_SPLASH_FRAME * NAGA_FRAME,
+                srcWidth = NAGA_FRAME,
+                srcHeight = NAGA_FRAME,
+                scale = scale,
+            ),
+        )
+        world.addComponent(
+            id,
+            AnimationComponent(NAGA_FRAME, NAGA_FRAME, NAGA_SPLASH_FRAMES, NAGA_SPLASH_FRAME_SECONDS, isLooping = false),
+        )
+        world.addComponent(id, LifetimeComponent(true))
+        world.addComponent(id, ZIndexComponent(50))
+        return id
+    }
+
     private fun createBossEntity(
         x: Float,
         y: Float,
@@ -574,7 +689,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
 
     /**
      * @param keyframed whether [pixmap] holds the obstacle once per time of day, a row of [height]
-     *   apiece, for a stage whose light changes; see [at.smiech.cyanbat.ecs.NightfallSystem], which
+     *   apiece, for a stage whose light changes; see [at.smiech.cyanbat.ecs.SkySystem], which
      *   picks the rows.
      */
     fun createObstacle(
@@ -950,6 +1065,9 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         /** Which way every hostile's artwork points: left, toward the bat. */
         const val HOSTILE_ARTWORK_DEGREES = 180f
 
+        /** Which way the artwork of something that comes from behind points: right, the way it goes. */
+        const val RIGHT_FACING_ARTWORK_DEGREES = 0f
+
         /**
          * The Sand Wyrm's body from the neck back, as the frame of its sheet each part is drawn
          * from and how far inside that frame its hit box sits: three big plates, three middling,
@@ -964,5 +1082,21 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
 
         /** Its head fills most of its frame: jaws, crest and all. */
         const val SAND_WYRM_HEAD_TOLERANCE = 8f
+
+        /**
+         * The Naga's body from the neck back, as the frame of its sheet each part is drawn from and how
+         * far inside that frame its hit box sits: two of its neck, four great coils, three lesser, two
+         * small, and the tail. The tolerance grows as the parts shrink inside their frames.
+         */
+        val NAGA_BODY = listOf(
+            2 to 10f, 2 to 10f,
+            3 to 11f, 3 to 11f, 3 to 11f, 3 to 11f,
+            4 to 15f, 4 to 15f, 4 to 15f,
+            5 to 19f, 5 to 19f,
+            6 to 21f,
+        )
+
+        /** Its hood is wide and its corners are air: the box sits well in from the frame. */
+        const val NAGA_HEAD_TOLERANCE = 12f
     }
 }

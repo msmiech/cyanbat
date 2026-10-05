@@ -112,6 +112,17 @@ class SpriteSheetTest {
     }
 
     /**
+     * Every creature on the lagoon's sheet, and every part of the Naga and its water. The water is
+     * never hurt, so its four frames are only drawn in the top row.
+     */
+    @Test
+    fun `no frame of the lagoon's creatures is empty`() {
+        assertNoBlankFrames("lagoonEnemies.png", frameWidth = 32, frames = 4 * 5, rows = WOUND_ROWS)
+        assertNoBlankFrames("lagoonBoss.png", frameWidth = 64, frames = 11, rowHeight = 64)
+        assertNoBlankFrames("lagoonBoss.png", frameWidth = 64, frames = 7, rows = WOUND_ROWS)
+    }
+
+    /**
      * A wound has to show. Every frame of every wounded row is checked against the same frame a row
      * up - the healthier picture - because a row that came out the same as it would be a mark the
      * player crosses without anything happening on screen.
@@ -125,6 +136,8 @@ class SpriteSheetTest {
             Triple("desertEnemies.png", 32, 4 * 5),
             Triple("jungleBoss.png", 96, 4),
             Triple("desertBoss.png", 48, 6),
+            Triple("lagoonEnemies.png", 32, 4 * 5),
+            Triple("lagoonBoss.png", 64, 7),
         )) {
             val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
             val rowHeight = image.height / WOUND_ROWS
@@ -168,13 +181,13 @@ class SpriteSheetTest {
     }
 
     /**
-     * Thirteen colorways of one 24x12 bolt: the player's, one per cave enemy type, then the jungle's
-     * spitter, wisp and Moth Queen, the Sand Wyrm's, and one per elite palette; see
-     * `EnemySpecies.shotVariant`, `SAND_WYRM_SHOT_VARIANT` and `ElitePalette`.
+     * Fourteen colorways of one 24x12 bolt: the player's, one per cave enemy type, then the jungle's
+     * spitter, wisp and Moth Queen, the Sand Wyrm's, one per elite palette, and the Naga's; see
+     * `EnemySpecies.shotVariant`, `SAND_WYRM_SHOT_VARIANT`, `ElitePalette` and `NAGA_SHOT_VARIANT`.
      */
     @Test
     fun `the shot sheet holds a colorway per shooter`() {
-        assertEquals(24 * 13 to 12, sizeOf("shot.png"))
+        assertEquals(24 * 14 to 12, sizeOf("shot.png"))
     }
 
     /**
@@ -279,6 +292,97 @@ class SpriteSheetTest {
                 }
                 assertTrue(opaque > 0, "keyframe $row of $name is blank")
             }
+        }
+    }
+
+    /**
+     * The lagoon's bands, each four keyframes of one strip stacked from night to noon, and the temple
+     * strips that take over three of them; see `Daybreak.KEYFRAMES` and `GameAssets`, which places
+     * them. A band and the strip that takes it over are the same size, as `SkySystem` requires.
+     */
+    @Test
+    fun `the lagoon's bands hold four keyframes of their strips`() {
+        assertEquals(1280 to 120 * KEYFRAMES, sizeOf("lagoonClouds.png"))
+        assertEquals(960 to 128 * KEYFRAMES, sizeOf("lagoonSea.png"))
+        assertEquals(960 to 72 * KEYFRAMES, sizeOf("lagoonFar.png"))
+        assertEquals(960 to 72 * KEYFRAMES, sizeOf("lagoonFarTemple.png"))
+        assertEquals(960 to 120 * KEYFRAMES, sizeOf("lagoonMid.png"))
+        assertEquals(960 to 120 * KEYFRAMES, sizeOf("lagoonMidTemple.png"))
+        assertEquals(1440 to 58 * KEYFRAMES, sizeOf("lagoonNear.png"))
+        assertEquals(1440 to 58 * KEYFRAMES, sizeOf("lagoonNearTemple.png"))
+        assertEquals(32 to 32, sizeOf("lagoonMoon.png"))
+    }
+
+    /** Every band tiles in every light: the islands, the ruins and the boats wrap round too. */
+    @Test
+    fun `the lagoon's bands meet themselves`() {
+        for (name in LAGOON_BANDS) assertTiles(name)
+    }
+
+    /**
+     * The game switches a band to the temple's strip a stretch at a time as it comes into view, so
+     * the end of either has to follow on into the start of the other: both strips of a pair share
+     * their first and their last columns, in every light.
+     */
+    @Test
+    fun `the lagoon's bands meet the temple's strips that take them over`() {
+        for ((band, ahead) in listOf(
+            "lagoonFar.png" to "lagoonFarTemple.png",
+            "lagoonMid.png" to "lagoonMidTemple.png",
+            "lagoonNear.png" to "lagoonNearTemple.png",
+        )) {
+            val a = javaClass.getResourceAsStream("/$band")!!.use { ImageIO.read(it) }
+            val b = javaClass.getResourceAsStream("/$ahead")!!.use { ImageIO.read(it) }
+            for (x in intArrayOf(0, a.width - 1)) {
+                for (y in 0 until a.height) {
+                    assertEquals(a.getRGB(x, y), b.getRGB(x, y), "$band and $ahead differ at column $x, row $y")
+                }
+            }
+        }
+    }
+
+    /** The lagoon keeps the cave's footprints, standing - the limestone, and the temple's stones after it. */
+    @Test
+    fun `the lagoon's obstacles keep the cave's footprints in every light`() {
+        for (prefix in listOf("lagoonObstacle", "templeObstacle")) {
+            assertEquals(41 to 46 * KEYFRAMES, sizeOf("${prefix}1.png"))
+            assertEquals(38 to 57 * KEYFRAMES, sizeOf("${prefix}2.png"))
+            assertEquals(76 to 50 * KEYFRAMES, sizeOf("${prefix}3.png"))
+            assertEquals(96 to 54 * KEYFRAMES, sizeOf("${prefix}4.png"))
+        }
+    }
+
+    /** Five types of four 32x29 frames, like every stage's; see `EnemySpecies.strip`. */
+    @Test
+    fun `the lagoon's enemy sheet holds five strips of four frames`() {
+        assertEquals(32 * 4 * 5 to 29 * WOUND_ROWS, sizeOf("lagoonEnemies.png"))
+    }
+
+    /** The head twice, four sizes of body, the tail and four frames of water; see `NAGA_FRAME`. */
+    @Test
+    fun `the Naga's sheet holds its parts and its water`() {
+        assertEquals(64 * 11 to 64 * WOUND_ROWS, sizeOf("lagoonBoss.png"))
+    }
+
+    @Test
+    fun `no keyframe of the lagoon's scenery is empty`() {
+        for (name in LAGOON_KEYFRAMED) {
+            val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
+            val rowHeight = image.height / KEYFRAMES
+            for (row in 0 until KEYFRAMES) {
+                val opaque = (row * rowHeight until (row + 1) * rowHeight).sumOf { y ->
+                    (0 until image.width).count { x -> (image.getRGB(x, y) ushr 24) != 0 }
+                }
+                assertTrue(opaque > 0, "keyframe $row of $name is blank")
+            }
+        }
+    }
+
+    @Test
+    fun `the lagoon's scenery is flat in every light`() {
+        for (name in LAGOON_KEYFRAMED) {
+            val rowHeight = sizeOf(name).second / KEYFRAMES
+            for (row in 0 until KEYFRAMES) assertFlat(name, row * rowHeight until (row + 1) * rowHeight)
         }
     }
 
@@ -402,6 +506,9 @@ class SpriteSheetTest {
             "desertEnemies.png",
             "desertBoss.png",
             "desertMoon.png",
+            "lagoonEnemies.png",
+            "lagoonBoss.png",
+            "lagoonMoon.png",
         )) {
             assertFlat(name, 0 until sizeOf(name).second)
         }
@@ -444,6 +551,15 @@ class SpriteSheetTest {
 
         /** Unhurt, wounded and battered, top to bottom; see `WOUND_ROWS` and `WoundComponent`. */
         const val WOUND_ROWS = 3
+
+        /** The lagoon's bands, which tile end to end. */
+        val LAGOON_BANDS = listOf(
+            "lagoonClouds.png", "lagoonSea.png", "lagoonFar.png", "lagoonFarTemple.png",
+            "lagoonMid.png", "lagoonMidTemple.png", "lagoonNear.png", "lagoonNearTemple.png",
+        )
+
+        /** The lagoon's scenery, drawn once in each of the [KEYFRAMES] - night to noon - and stacked. */
+        val LAGOON_KEYFRAMED = LAGOON_BANDS + (1..4).flatMap { listOf("lagoonObstacle$it.png", "templeObstacle$it.png") }
 
         /** The desert's scenery, drawn once in each of the [KEYFRAMES] and stacked. */
         val DESERT_KEYFRAMED = listOf(

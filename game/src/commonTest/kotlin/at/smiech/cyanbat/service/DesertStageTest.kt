@@ -30,10 +30,10 @@ class DesertStageTest {
         assertEquals(BossKind.SAND_WYRM, desert.design.boss)
     }
 
-    /** Past the last stage its design repeats, harder, rather than falling back to an earlier one. */
+    /** The desert is no longer the last stage: the lagoon follows it. */
     @Test
-    fun `a stage past the desert is the desert again`() {
-        assertEquals(StageDesign.DESERT, StageDesign.forStage(4))
+    fun `the stage after the desert is the lagoon`() {
+        assertEquals(StageDesign.LAGOON, StageDesign.forStage(4))
     }
 
     @Test
@@ -84,13 +84,17 @@ class DesertStageTest {
         assertTrue(DESERT_SPECIES.any { it.innateShield > 0f && it.shieldRegrowth > 0f }, "no shell grows back")
     }
 
-    /** A sprite that flies an arc has to turn to follow it, or it flies the arc sideways. */
+    /**
+     * A sprite that flies an arc has to turn to follow it, or it flies the arc sideways - a loop, a
+     * leap, or the lagoon's krait's weave, which a snake held level would slide through.
+     */
     @Test
     fun `the ones that fly arcs turn to face along them`() {
         assertTrue(EnemySpecies.HAWK.facesHeading)
         assertTrue(EnemySpecies.WYRMLING.facesHeading)
         assertTrue(EnemySpecies.entries.filter { it.facesHeading }.all {
-            it.movement == EnemyMovementType.LOOP || it.movement == EnemyMovementType.LEAP
+            it.movement == EnemyMovementType.LOOP || it.movement == EnemyMovementType.LEAP ||
+                it.movement == EnemyMovementType.SINE
         })
     }
 }

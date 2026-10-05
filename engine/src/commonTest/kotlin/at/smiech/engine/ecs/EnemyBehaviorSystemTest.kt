@@ -271,6 +271,25 @@ class EnemyBehaviorSystemTest {
         assertTrue(highest >= 40f, "it cleared the top of the frame: $highest")
     }
 
+    /**
+     * One coming in from behind cruises right along the sand - past its station would be leaping
+     * before it got there - and leaps once it has come as far right as its station, forward.
+     */
+    @Test
+    fun `a leaper from behind cruises right to its station and leaps forward from it`() {
+        player(x = 260f, y = 130f)
+        val leaper = enemy(EnemyMovementType.LEAP, x = -30f, y = 310f, holdX = 120f, baseSpeedX = 1.6f)
+
+        run(1.5f)
+        assertEquals(310f, rectOf(leaper).top, 0.5f, "it left the sand before its station")
+        assertTrue(rectOf(leaper).left > -30f, "it never came in")
+        assertEquals(0, behaviorOf(leaper).state)
+
+        run(3f)
+        assertTrue(behaviorOf(leaper).state != 0, "it never leapt")
+        assertTrue(velocityOf(leaper).x > 0f, "it leapt backwards")
+    }
+
     // endregion
 
     // region loop

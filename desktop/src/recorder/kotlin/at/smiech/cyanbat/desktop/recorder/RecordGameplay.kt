@@ -8,7 +8,6 @@ import at.smiech.cyanbat.desktop.DesktopGame
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.GameAssets
-import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.service.StageDesign
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
@@ -53,7 +52,7 @@ import kotlin.system.exitProcess
  * Runs are not repeatable, since the game rolls its spawns on an unseeded Random, so each recording
  * is a different flight; and the autopilot can lose, in which case the stage is simply flown again.
  *
- * Options: `--out=FILE` (default docs/gameplay.gif), `--stages=1,2,3`, `--attempts=N`,
+ * Options: `--out=FILE` (default docs/gameplay.gif), `--stages=1,2,3,4`, `--attempts=N`,
  * `--ticks-per-frame=N` for the GIF's frame rate, `--frames=DIR` to also write every frame of the
  * reel as a PNG for a look, and `--dry-run` to fly and report without recording.
  */
@@ -96,6 +95,12 @@ private const val OFFER_READ_SECONDS = 1.3f
  */
 private const val OUTRO_SECONDS = STAGE_COMPLETE_DELAY_SECONDS + 2.6f
 
+/**
+ * How far past the last hour a footage of hours alone needs that the flight goes on, on the stage
+ * clock: a frame or two for the clip's end to land on.
+ */
+private const val SCENERY_TAIL_SECONDS = 0.5f
+
 /** A stage still running this long is not going to be won; its boss arrives at five minutes. */
 private const val GIVE_UP_SECONDS = 540f
 
@@ -108,12 +113,14 @@ private const val CLEAN_HITS = 2
  * whole, from its title to the Moth Queen going down. The cave gets three glimpses: its title, its
  * busiest stretch and the Caco Imp arriving - lit, so what it does with its light is left to find.
  * The desert gets two, its title at noon and the sun going down, and its boss is never shown: the
- * Sand Wyrm is left for the player to find.
+ * Sand Wyrm is left for the player to find. The lagoon gets its title at night and a shorter look at
+ * the sun coming up out of the sea, and nothing of its temple or its Naga.
  */
 private val STAGE_COVERAGE = mapOf(
     1 to Coverage.WHOLE,
     2 to Coverage(actionSeconds = 2.4f, arrivalSeconds = 1.6f),
     3 to Coverage(scenerySeconds = 2.0f),
+    4 to Coverage(scenerySeconds = 1.6f),
 )
 
 private class Options(
@@ -299,12 +306,12 @@ private class Flight(
 
     /**
      * Seconds of the stage clock worth a clip for how the stage looks then: for a stage whose sky
-     * goes from noon to night, the sun going down behind the dunes, the hour between the opening and
-     * the boss that the footage would otherwise skip. Nothing for a stage that looks the same
-     * throughout.
+     * changes with the time of day, its showcase hour - the desert's sun going down behind the dunes,
+     * the lagoon's coming up out of the sea - which the footage would otherwise skip. Nothing for a
+     * stage that looks the same throughout.
      */
-    val scenery: List<Float> = when (assets.stage(stageId).backdrop) {
-        is Backdrop.Nightfall -> listOf(StageProgression.forStage(stageId).bossTimeSeconds * Daylight.SUNDOWN)
+    val scenery: List<Float> = when (val backdrop = assets.stage(stageId).backdrop) {
+        is Backdrop.Sky -> listOf(StageProgression.forStage(stageId).bossTimeSeconds * backdrop.day.showcase)
         is Backdrop.Strip -> emptyList()
     }
     private val autopilot = Autopilot(controls, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
@@ -364,6 +371,11 @@ private class Flight(
 
                 when {
                     game.currentScreen !== screen || now <= 0f -> return result(false, hits, "shot down")
+                    // Footage that is only the stage's hours needs flying no further than the last of
+                    // them: the lagoon's sunrise is two minutes in, and its Naga three minutes further.
+                    coverage.onlyScenery && scenery.isNotEmpty() &&
+                        enmGen.elapsedSeconds > scenery.max() + coverage.scenerySeconds + SCENERY_TAIL_SECONDS ->
+                        return result(true, hits, "flown through its hours")
                     probe.stageComplete && ++completeFrames >= outroFrames -> return result(true, hits, "won")
                     // A frame past the arrival clip, on the stage clock, which stops for dialogs just
                     // as the clip's own count of frames skips them.

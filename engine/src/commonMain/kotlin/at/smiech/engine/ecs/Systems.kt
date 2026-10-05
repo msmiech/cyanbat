@@ -274,6 +274,10 @@ class EnemyBehaviorSystem : GameSystem() {
     /**
      * A slowed leaper is thrown as hard as ever and falls on its own time, which is what keeps a
      * slowed leap the same height: it is only the climb and the fall that take longer.
+     *
+     * Most leapers come in from the right, the way everything hostile does, and leap once they are
+     * as far left as their station. One cruising right - in from behind the bat - leaps once it is
+     * as far right as its station instead.
      */
     private fun leap(
         transform: TransformComponent,
@@ -284,7 +288,8 @@ class EnemyBehaviorSystem : GameSystem() {
     ) {
         val rect = transform.rect
         if (behavior.state == STAGE_APPROACH) {
-            if (rect.left > behavior.holdX) {
+            val short = if (behavior.baseSpeedX > 0f) rect.left < behavior.holdX else rect.left > behavior.holdX
+            if (short) {
                 // Held to its lane rather than left to drift, so the back showing above the sand
                 // stays the same height all the way in: that sliver is the whole of the warning.
                 velocity.velocity = Vector2(behavior.baseSpeedX, (behavior.initialY - rect.top) * 0.2f)

@@ -118,7 +118,7 @@ class EliteGeneratorTest {
     /** The opening minute is for learning a stage's own enemies; the rest of it sends elites. */
     @Test
     fun `every stage sends elites from its second minute and not before`() {
-        for (stage in 1..3) {
+        for (stage in 1..4) {
             val waves = StageDesign.forStage(stage).waves
             assertEquals(0f, waves.first().eliteChance, "stage $stage's opening minute")
             for ((index, wave) in waves.withIndex().drop(1)) {

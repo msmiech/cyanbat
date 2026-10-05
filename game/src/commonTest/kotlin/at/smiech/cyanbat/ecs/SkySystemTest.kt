@@ -2,6 +2,7 @@ package at.smiech.cyanbat.ecs
 
 import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.ParallaxLayer
+import at.smiech.cyanbat.scenery.Daybreak
 import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
@@ -64,18 +65,20 @@ private class CallRecordingGraphics : Graphics {
 private const val TICK = 0.019f
 
 /** The desert's sky: drawn at the back, in the light of the stage clock, over ground at three depths. */
-class NightfallSystemTest {
+class SkySystemTest {
 
     private var day = 0f
     private val keyframes = Daylight.KEYFRAMES.size
     private val far = NamedSheet("far", 960, 116 * keyframes)
     private val near = NamedSheet("near", 1440, 57 * keyframes)
-    private val backdrop = Backdrop.Nightfall(
+    private val backdrop = Backdrop.Sky(
+        day = Daylight,
         layers = listOf(ParallaxLayer(far, top = 192, speed = 0.2f), ParallaxLayer(near, top = 304, speed = 1f)),
         moon = NamedSheet("moon", 24, 24),
+        horizonY = 276,
     )
     private val world = World().apply {
-        addSystem(NightfallSystem(backdrop, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, dayPosition = { day }))
+        addSystem(SkySystem(backdrop, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, dayPosition = { day }))
         addSystem(RenderSystem())
     }
 
@@ -161,6 +164,85 @@ class NightfallSystemTest {
         // Each span paints a column short, so together they have to ask for one more than the frame.
         assertTrue(nearSpans.sumOf { it.w - 1 } >= FRAME_BUFFER_WIDTH, "the near band does not reach across the frame")
     }
+
+    // region the lagoon
+
+    private fun lagoon(): Pair<World, Backdrop.Sky> {
+        val backdrop = Backdrop.Sky(
+            day = Daybreak,
+            layers = listOf(
+                ParallaxLayer(far, top = 164, speed = 0.2f, water = 235..302),
+                ParallaxLayer(near, top = 302, speed = 1f, ahead = NamedSheet("ahead", 1440, 57 * keyframes), aheadFrom = 0.8f),
+            ),
+            moon = NamedSheet("moon", 32, 32),
+            horizonY = 232,
+        )
+        val lagoon = World().apply {
+            addSystem(SkySystem(backdrop, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, dayPosition = { day }))
+        }
+        return lagoon to backdrop
+    }
+
+    /** New scenery scrolls in from the right as if flown toward; nothing already in sight changes. */
+    @Test
+    fun `a band turns to the scenery ahead only where it has not yet come into view`() {
+        val (lagoon, _) = lagoon()
+        fun spans() = CallRecordingGraphics().also { lagoon.draw(it) }.calls.filter { it.kind == "pixmap" && it.y == 302 }
+
+        repeat(100) { lagoon.update(TICK, null) }
+        day = 0.9f
+        lagoon.update(TICK, null)
+        assertTrue(spans().all { it.name == "near" }, "the water in sight turned into the moat")
+
+        // The strip is 1440 wide: 800 ticks in, its next stretch starts coming in at the right edge.
+        repeat(760) { lagoon.update(TICK, null) }
+        val coming = spans()
+        assertEquals("near", coming.first().name)
+        assertEquals("ahead", coming.last().name, "the stretch coming into view is not the moat")
+    }
+
+    /** Through the haze over the sea, the sun is drawn a row at a time, with rows left out for its bands. */
+    @Test
+    fun `the rising sun is banded and the noon sun is a plain disc`() {
+        val (lagoon, _) = lagoon()
+
+        day = Daybreak.SUNUP
+        lagoon.update(TICK, null)
+        val rising = CallRecordingGraphics().also { lagoon.draw(it) }.calls
+        val radius = Daybreak.sunRadius(Daybreak.SUNUP)
+        val sunX = Daybreak.sunX(Daybreak.SUNUP).toInt()
+        val sunY = Daybreak.sunY(Daybreak.SUNUP)
+        val rows = rising.filter {
+            it.kind == "rect" && it.h == 1 && it.w > 2 && it.x <= sunX && it.x + it.w >= sunX &&
+                it.y >= sunY - radius - 1 && it.y <= sunY + radius && it.y < 232
+        }.map { it.y }.toSet()
+        assertEquals(3, rising.count { it.kind == "oval" }, "only its halo should be ovals")
+        assertTrue(rows.size < (2 * radius).toInt(), "no bands were left out of it: ${rows.size} rows")
+
+        day = 1f
+        lagoon.update(TICK, null)
+        val noon = CallRecordingGraphics().also { lagoon.draw(it) }.calls
+        assertEquals(5, noon.count { it.kind == "oval" }, "the noon sun is not a disc and a core in its halo")
+    }
+
+    @Test
+    fun `the low sun lays a path of glints on the water and the high sun none`() {
+        val (lagoon, _) = lagoon()
+        fun glints() = CallRecordingGraphics().also { lagoon.draw(it) }.calls
+            .dropWhile { !(it.kind == "pixmap" && it.name == "far") }
+            .takeWhile { !(it.kind == "pixmap" && it.name == "near") }
+            .count { it.kind == "rect" && it.h == 1 && it.y in 235..302 }
+
+        day = Daybreak.SUNUP
+        lagoon.update(TICK, null)
+        assertTrue(glints() > 10, "no path under the rising sun")
+
+        day = 1f
+        lagoon.update(TICK, null)
+        assertEquals(0, glints(), "a path under the noon sun")
+    }
+
+    // endregion
 
     @Test
     fun `a band wraps round to its own start as it crosses the frame`() {
