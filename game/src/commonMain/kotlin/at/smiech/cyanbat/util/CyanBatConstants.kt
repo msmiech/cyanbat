@@ -504,6 +504,11 @@ const val FROST_THAW_SECONDS = 0.5f
 const val FROST_DRIFT = BURST_DRIFT
 const val FROST_LIGHT_COLOR = 0xFFB4E6FF.toInt()
 
+// In the dark, the flash of cold light the beam leaves on each thing it froze: small and brief, a
+// glint of it on what it caught rather than a light thrown across the cave.
+const val FROST_FLASH_RADIUS = 40
+const val FROST_FLASH_SECONDS = 0.2f
+
 
 // --- The aura ----------------------------------------------------------------------------------
 //
@@ -578,16 +583,34 @@ const val MAX_CRITICAL_CHANCE = 0.5f
 
 // --- Shot colorways ----------------------------------------------------------------------------
 //
-// `shot.png` is one bolt drawn fourteen times over: the player's cyan, then the cave's three enemy
-// palettes in the order the enemy sheet lays them out, then the jungle's shooters, the Sand Wyrm's,
-// one per ElitePalette, and the Naga's. Which colorway a species fires is on EnemySpecies, and an elite fires
-// its palette's instead. A shot is the color of whatever fired it, so a screen
-// holding the bat's fire and the boss's at the same time says which is which by color rather than
-// by which way a bolt happens to be travelling.
+// `shot.png` is one bolt, four frames of it, drawn fourteen times over: the player's cyan, then the
+// cave's three enemy palettes in the order the enemy sheet lays them out, then the jungle's shooters,
+// the Sand Wyrm's, one per ElitePalette, and the Naga's. Which colorway a species fires is on
+// EnemySpecies, and an elite fires its palette's instead. A shot is the color of whatever fired it, so
+// a screen holding the bat's fire and the boss's at the same time says which is which by color rather
+// than by which way a bolt happens to be travelling. `impact.png`, the hit a shot leaves where it is
+// spent, comes in the same colorways in the same order.
 
 // Width of one bolt in the sheet. The sprite is addressed by frame like the enemy sheet, so this
 // is what positions a shot rather than the pixmap's own width - which is now the whole strip.
 const val SHOT_FRAME_WIDTH = 24
+
+// The bolt's frames, laid side by side within its colorway: its core throbs and sends a ripple back
+// down its body, once every SHOT_FRAME_COUNT * SHOT_FRAME_SECONDS. Quick, since the bolt is energy
+// and a slower throb reads as a light blinking on something solid.
+const val SHOT_FRAME_COUNT = 4
+const val SHOT_FRAME_SECONDS = 0.05f
+
+// A hit: a star of light opening into a ring and a spray of sparks, played once. Square, and smaller
+// than a death's blast, since a tough enemy takes a stream of hits and must still be seen under them.
+// A quarter of a second in all - an instant, but one the eye catches.
+const val IMPACT_FRAME = 21
+const val IMPACT_FRAME_COUNT = 6
+const val IMPACT_FRAME_SECONDS = 0.04f
+
+// How far ahead of a shot's middle its hit goes off, along the way it was going: about where its nose
+// is, which is where it struck, on the edge of what it struck.
+const val IMPACT_LEAD = 9f
 
 // The player's colorway, and the offset from an enemy's type to its own. The enemy strips are
 // indexed 0..2 and sit behind the player's, so a type-2 boss fires the fourth bolt.
@@ -646,10 +669,14 @@ const val ENEMY_SHOT_LIGHT_RADIUS = 44
 const val SHOT_LIGHT_INTENSITY = 0.85f
 const val SHOT_LIGHT_PALENESS = 0.3f
 
-// Where a shot is spent, a flash of its light: it lights up what was hit at the moment it is hit, the
-// one moment a creature in the dark most needs to be seen.
-const val IMPACT_LIGHT_RADIUS = 40
-const val IMPACT_LIGHT_SECONDS = 0.2f
+// Where a shot is spent, its hit flares up: it lights up what was hit at the moment it is hit, the one
+// moment a creature in the dark most needs to be seen. Wider than the shot's own light, so a hit lights
+// the rock and the creatures around what it struck as well, and paler, as a flash is hotter than the
+// bolt that made it. The bat's reach further, as its shots' do. It dies away with the spark.
+const val PLAYER_IMPACT_LIGHT_RADIUS = 80
+const val ENEMY_IMPACT_LIGHT_RADIUS = 70
+const val IMPACT_LIGHT_PALENESS = 0.5f
+const val IMPACT_LIGHT_SECONDS = IMPACT_FRAME_COUNT * IMPACT_FRAME_SECONDS
 
 // A blast's light: fire-colored, as wide as BLAST_LIGHT_RADIUS for a blast drawn at its own size and
 // in step with bigger ones, and dying with the fireball. Its radius is rounded to BLAST_LIGHT_STEP,

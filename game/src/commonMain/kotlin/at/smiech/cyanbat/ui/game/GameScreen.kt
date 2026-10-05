@@ -4,6 +4,7 @@ import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.ScoreTracker
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.ecs.BossPartComponent
+import at.smiech.cyanbat.ecs.ColorwayComponent
 import at.smiech.cyanbat.ecs.ContactCooldownComponent
 import at.smiech.cyanbat.ecs.ContactWeapon
 import at.smiech.cyanbat.ecs.ContactWeaponComponent
@@ -45,10 +46,13 @@ import at.smiech.cyanbat.util.DEATH_PUFF_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.DEATH_PUFF_SCALE
 import at.smiech.cyanbat.util.DEATH_SPIN_DEGREES_PER_SECOND
 import at.smiech.cyanbat.util.DEATH_TERMINAL_VELOCITY
+import at.smiech.cyanbat.util.FROST_FLASH_RADIUS
+import at.smiech.cyanbat.util.FROST_FLASH_SECONDS
 import at.smiech.cyanbat.util.FROST_LIGHT_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
+import at.smiech.cyanbat.util.IMPACT_LEAD
 import at.smiech.cyanbat.util.ORB_REHIT_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
@@ -116,18 +120,21 @@ import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TrailComponent
 import at.smiech.engine.ecs.TrailSystem
 import at.smiech.engine.ecs.TransformComponent
+import at.smiech.engine.ecs.VelocityComponent
 import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.ecs.WeaponSystem
 import at.smiech.engine.ecs.World
 import at.smiech.engine.ecs.WoundComponent
 import at.smiech.engine.ecs.WoundSystem
 import at.smiech.engine.math.Rect
+import at.smiech.engine.math.Vector2
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlin.math.atan2
+import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.random.Random
@@ -791,9 +798,11 @@ class GameScreen(
      */
     private fun damage(id: EntityId, amount: Int, dealtBy: EntityId): Boolean {
         // A shot with pierce left goes through rather than being stopped. Only enemies count:
-        // scenery is what a shot is stopped by however sharp it has been made.
+        // scenery is what a shot is stopped by however sharp it has been made. It struck all the same,
+        // and leaves its hit where it went in.
         val pierce = world.getComponent(id, PierceComponent::class)
         if (pierce != null && collisionGroupOf(dealtBy) == CollisionGroup.ENEMY && pierce.spend()) {
+            leaveHit(id)
             return false
         }
 
@@ -865,8 +874,8 @@ class GameScreen(
         // obstacle had been detonated, in a cave where nothing is flammable.
         //
         // Nothing else leaves a blast. A blast on every shot that lands would bury a tough enemy
-        // behind its own hit effects, and the bat's death has an animation of its own. A shot that
-        // gives off light leaves a flash of it where it was spent, though: in the dark that is the
+        // behind its own hit effects, and the bat's death has an animation of its own. A spent shot
+        // leaves its hit, a spark much smaller than a blast - and in the dark a flare of light, the
         // moment the player sees what it struck.
         val (pixmap, spawn, sound) = when (collisionGroupOf(id)) {
             CollisionGroup.ENEMY ->
@@ -874,8 +883,7 @@ class GameScreen(
             CollisionGroup.OBSTACLE ->
                 Triple(graphics.shatter, factory::createShatter, SoundEffect.OBSTACLE_SHATTER)
             CollisionGroup.PLAYER_PROJECTILE, CollisionGroup.ENEMY_PROJECTILE -> {
-                world.getComponent(id, LightComponent::class)
-                    ?.let { factory.createFlash(rect.centerX, rect.centerY, it.color) }
+                leaveHit(id)
                 return
             }
             else -> return
@@ -888,6 +896,28 @@ class GameScreen(
         // Not once the stage is won. The boss's own blast was played as it went down, and it is
         // the sound of the boss and of everything that goes up with it; see [completeStage].
         if (!stageComplete) sounds.play(sound)
+    }
+
+    /**
+     * The hit [shotId] leaves where it struck, in its own colorway; see [EntityFactory.createImpact].
+     *
+     * At its nose rather than its middle: half a bolt back from where it struck, the spark went off
+     * inside the shot, short of what it hit. The nose is found along the way the shot was going, since
+     * a shot flies at every angle and a bounced one comes back the way it went.
+     */
+    private fun leaveHit(shotId: EntityId) {
+        val rect = world.getComponent(shotId, TransformComponent::class)?.rect ?: return
+        val variant = world.getComponent(shotId, ColorwayComponent::class)?.variant ?: return
+        val velocity = world.getComponent(shotId, VelocityComponent::class)?.velocity ?: Vector2.Zero
+        val speed = hypot(velocity.x, velocity.y)
+        val lead = if (speed > 0f) IMPACT_LEAD / speed else 0f
+        factory.createImpact(
+            centerX = rect.centerX + velocity.x * lead,
+            centerY = rect.centerY + velocity.y * lead,
+            pixmap = env.assets.graphics.impact,
+            variant = variant,
+            isPlayer = collisionGroupOf(shotId) == CollisionGroup.PLAYER_PROJECTILE,
+        )
     }
 
     /**
@@ -1452,7 +1482,7 @@ class GameScreen(
         if (!lit) return
         for (id in frozen) {
             val rect = world.getComponent(id, TransformComponent::class)?.rect ?: continue
-            factory.createFlash(rect.centerX, rect.centerY, FROST_LIGHT_COLOR)
+            factory.createFlash(rect.centerX, rect.centerY, FROST_LIGHT_COLOR, FROST_FLASH_RADIUS, FROST_FLASH_SECONDS)
         }
     }
 

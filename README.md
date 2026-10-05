@@ -22,11 +22,11 @@ and Linux) from a single shared codebase.
   desktop — as pixel art on a 640x360 grid at any screen size, with the HUD's text smooth over it.
 - **Entity Component System**: `:engine`'s ECS decouples game logic from data, so behavior is
   composed from components rather than an inheritance hierarchy.
-- **2D lighting**: the cave is lit by point lights - the bat, its shots, the blasts - with hard
-  shadows cast from each sprite's own outline, and a glint of each light along the edge of whatever
-  it falls on. The light is worked out on the CPU at half the frame's resolution, a few native
-  blits a light, and laid over the frame in one GPU draw, so it stays on the pixel grid and cheap on
-  old phones.
+- **2D lighting**: the cave is lit by point lights - the bat, its shots and the flare of every hit,
+  the blasts - with hard shadows cast from each sprite's own outline, and a glint of each light
+  along the edge of whatever it falls on. The light is worked out on the CPU at half the frame's
+  resolution, a few native blits a light, and laid over the frame in one GPU draw, so it stays on
+  the pixel grid and cheap on old phones.
 - **Value class optimization**: `Vector2` is a bit-packed value class, so movement math
   allocates nothing in the game loop.
 - **Sub-pixel precision**: geometry is float-based, and the frame loop clamps its delta so a
@@ -75,7 +75,7 @@ build, install, launch, screenshot, and check persistence. See
 | Stage | What it throws at you |
 |---|---|
 | 1. The Jungle | A sunlit rainforest grown over pale ancient ruins - stepped terraces, trapezoidal doorways, towers and broken bridges in the haze. Wasp swarms, wisp formations, diving owls, hovering spitters that aim at you, and beetles behind shield bubbles, each met on its own before they come together, ending in the three-phase Moth Queen. |
-| 2. The Cave | Flown in the dark, by the bat's own light: every shot lights its way, every blast lights up the rock, and whatever stands in the light throws a shadow. Five one-minute waves of imps, tougher and faster than the jungle's, then the Caco Imp, alight in the dark - until it puts its light out to prowl the cave unseen, flaring up only to ambush, and ends ablaze, calling in its kind. |
+| 2. The Cave | Flown in the dark, by the bat's own light: every shot lights its way and flares up where it hits, every blast lights up the rock, and whatever stands in the light throws a shadow. Five one-minute waves of imps, tougher and faster than the jungle's, then the Caco Imp, alight in the dark - until it puts its light out to prowl the cave unseen, flaring up only to ambush, and ends ablaze, calling in its kind. |
 | 3. The Desert | Flown from noon into nightfall: the sun sets as the waves go by and the stars come out for the boss. Locust clouds, looping hawks, djinn throwing fans of fire, scarabs whose shells grow back, and wyrmlings that cruise in under the sand and leap at you - ending in the Sand Wyrm, which breaches out of the dunes in arcs and can be hit anywhere along its body. |
 | 4. The Lagoon | The hardest stage, flown from night into noon across a bay of limestone islands: the moon goes down behind you, the dawn comes up pink and violet, and the sun rises out of the sea ahead, banded by the haze, until the sky is cyan. Piranha schools, crabs whose shells grow back, puffers that throw rings of spines, and sharks that come from behind, fins cutting the water, and leap forward at you. A temple comes into sight as the boss nears, its towers on the horizon and its stones in the water - ending in the Naga, a hooded serpent that rears up out of the moat to sway, spit and strike at you, and dives to come up somewhere else, over five phases and twice the health of any boss before it. |
 

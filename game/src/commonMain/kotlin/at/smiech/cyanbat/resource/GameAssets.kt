@@ -32,6 +32,8 @@ data class GameAssets(
         /** Rock coming apart, for an obstacle; the explosion is for things that burn. */
         var shatter: Pixmap,
         var shot: Pixmap,
+        /** A shot's hit, played where it strikes: in the colorways of [shot], in the same order. */
+        var impact: Pixmap,
         /** The orb Guardian Orb sends round the bat: six frames of a glint going round it. */
         var orb: Pixmap,
     )
@@ -71,6 +73,7 @@ data class GameAssets(
                     explosion = pixmap("explosion.png"),
                     shatter = pixmap("shatter.png"),
                     shot = pixmap("shot.png"),
+                    impact = pixmap("impact.png"),
                     orb = pixmap("orb.png"),
                 ),
                 audio = Audio(

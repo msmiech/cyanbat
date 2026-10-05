@@ -28,6 +28,10 @@ ENEMY_W = 32
 ENEMY_FRAMES = 4
 BAT_W = 45
 
+# The shot sheet holds each colorway's bolt in four frames side by side; the previews show the first.
+SHOT_W = 24
+SHOT_FRAMES = 4
+
 # The bat's and the hostiles' sheets stack every frame unhurt, wounded and battered; the previews
 # show them unhurt, from the top row.
 WOUND_ROWS = 3
@@ -55,8 +59,12 @@ def stage(background_name, background_x, top, bottom):
     return scene
 
 
+def bolt(variant):
+    return frame(load("shot.png"), SHOT_W, variant * SHOT_FRAMES)
+
+
 def shot(scene, variant, x, y):
-    scene.alpha_composite(frame(load("shot.png"), 24, variant), (x, y))
+    scene.alpha_composite(bolt(variant), (x, y))
 
 
 def bubble(scene, cx, cy, radius):
@@ -173,9 +181,9 @@ def desert():
         scene.alpha_composite(enemy(sheet, 0, i % 4), (x, y))
     scene.alpha_composite(enemy(sheet, 3, 0), (381, 120))
     # Its fan, flying left and spreading, as the game turns enemy fire to face where it goes.
-    bolt = frame(load("shot.png"), 24, 4).transpose(Image.FLIP_LEFT_RIGHT)
+    fire = bolt(4).transpose(Image.FLIP_LEFT_RIGHT)
     for x, y, tilt in ((339, 114, 14), (333, 130, 0), (339, 146, -14)):
-        scene.alpha_composite(turned(bolt, tilt), (x, y))
+        scene.alpha_composite(turned(fire, tilt), (x, y))
     scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1, WOUND_ROWS), (128, 160))
     shot(scene, 0, 182, 174)
     shot(scene, 0, 237, 174)
@@ -256,7 +264,7 @@ def lagoon():
     scene.alpha_composite(enemy(sheet, 1, 2), (431, 196))
     bubble(scene, 447, 210, 22)
     scene.alpha_composite(enemy(sheet, 3, 2), (352, 112))
-    spine = frame(load("shot.png"), 24, 2)
+    spine = bolt(2)
     for k in range(8):
         angle = k * 45 + 22
         r = 30

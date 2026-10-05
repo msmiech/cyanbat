@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.ecs.BossPartComponent
+import at.smiech.cyanbat.ecs.ColorwayComponent
 import at.smiech.cyanbat.ecs.ContactWeapon
 import at.smiech.cyanbat.ecs.ContactWeaponComponent
 import at.smiech.cyanbat.ecs.EliteComponent
@@ -30,11 +31,15 @@ import at.smiech.cyanbat.util.DESTRUCTIBLE_HIT_POINTS
 import at.smiech.cyanbat.util.ELITE_AURA_INTENSITY
 import at.smiech.cyanbat.util.ELITE_AURA_TIER
 import at.smiech.cyanbat.util.ELITE_LIGHT_RADIUS
+import at.smiech.cyanbat.util.ENEMY_IMPACT_LIGHT_RADIUS
 import at.smiech.cyanbat.util.ENEMY_SHOT_LIGHT_RADIUS
 import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.HEALTH_BAR_HEIGHT
 import at.smiech.cyanbat.util.HEALTH_BAR_OFFSET_Y
-import at.smiech.cyanbat.util.IMPACT_LIGHT_RADIUS
+import at.smiech.cyanbat.util.IMPACT_FRAME
+import at.smiech.cyanbat.util.IMPACT_FRAME_COUNT
+import at.smiech.cyanbat.util.IMPACT_FRAME_SECONDS
+import at.smiech.cyanbat.util.IMPACT_LIGHT_PALENESS
 import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
 import at.smiech.cyanbat.util.MOTH_QUEEN_COLLISION_TOLERANCE
 import at.smiech.cyanbat.util.MOTH_QUEEN_FRAME_COUNT
@@ -53,6 +58,7 @@ import at.smiech.cyanbat.util.ORB_COLLISION_TOLERANCE
 import at.smiech.cyanbat.util.ORB_FRAME
 import at.smiech.cyanbat.util.ORB_FRAME_COUNT
 import at.smiech.cyanbat.util.ORB_FRAME_SECONDS
+import at.smiech.cyanbat.util.PLAYER_IMPACT_LIGHT_RADIUS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.PLAYER_SHOT_LIGHT_RADIUS
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
@@ -67,6 +73,8 @@ import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAME_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHIELD_REGROWTH_DELAY_SECONDS
 import at.smiech.cyanbat.util.SHOT_BODY_COLORS
+import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
+import at.smiech.cyanbat.util.SHOT_FRAME_SECONDS
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.SHOT_HIT_POINTS
 import at.smiech.cyanbat.util.SHOT_LIGHT_INTENSITY
@@ -757,10 +765,17 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             id,
             SpriteComponent(
                 pixmap,
-                baseSrcX = variant * SHOT_FRAME_WIDTH,
+                baseSrcX = variant * SHOT_FRAME_WIDTH * SHOT_FRAME_COUNT,
                 srcWidth = SHOT_FRAME_WIDTH,
             )
         )
+        // The bolt burns as it flies. Every shot of a volley starts on the same frame, so a spread
+        // or a ring throbs as one volley rather than as a scatter of separate lights.
+        world.addComponent(
+            id,
+            AnimationComponent(SHOT_FRAME_WIDTH, pixmap.height, SHOT_FRAME_COUNT, SHOT_FRAME_SECONDS),
+        )
+        world.addComponent(id, ColorwayComponent(variant))
         world.addComponent(
             id,
             CollisionComponent(
@@ -783,19 +798,40 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * A flash of light where a shot was spent, in the shot's own [color]: it lights up whatever was
-     * struck at the moment it is struck. Nothing but the light, which fades in
-     * [IMPACT_LIGHT_SECONDS] and takes the entity with it. It drifts with the scenery, so it stays
-     * where the blow landed.
+     * The hit a shot leaves where it struck, centered on ([centerX], [centerY]): a spark in the shot's
+     * own colorway, played once. Like a blast it drifts with the scenery, so it stays where the blow
+     * landed, and goes when it has played.
+     *
+     * In the dark it is a light as well, flaring up and dying away with the spark over
+     * [IMPACT_LIGHT_SECONDS]: wider than the shot's own light and paler, so what was struck is lit at
+     * the moment it is struck, and so is what is around it.
+     *
+     * @param variant the shot's colorway; see [ColorwayComponent].
+     * @param isPlayer whether it was one of the bat's shots, whose hits light further.
      */
-    fun createFlash(centerX: Float, centerY: Float, color: Int): EntityId {
+    fun createImpact(centerX: Float, centerY: Float, pixmap: Pixmap, variant: Int, isPlayer: Boolean): EntityId =
+        createBurst(
+            centerX, centerY, pixmap, IMPACT_FRAME, IMPACT_FRAME_COUNT, IMPACT_FRAME_SECONDS, scale = 1f,
+            baseSrcX = variant * IMPACT_FRAME * IMPACT_FRAME_COUNT,
+        ).also { id ->
+            if (lit) {
+                val color = EngineColors.lerp(SHOT_BODY_COLORS[variant], EngineColors.WHITE, IMPACT_LIGHT_PALENESS)
+                val radius = if (isPlayer) PLAYER_IMPACT_LIGHT_RADIUS else ENEMY_IMPACT_LIGHT_RADIUS
+                world.addComponent(id, LightComponent(color, radius, fadeSeconds = IMPACT_LIGHT_SECONDS))
+            }
+        }
+
+    /**
+     * A flash of light and nothing else, centered on ([centerX], [centerY]) in [color], reaching
+     * [radius]: it lights up what is there at that moment, fades over [seconds] and takes the entity
+     * with it. It drifts with the scenery, so it stays where it went off. The frost beam leaves one on
+     * everything it freezes.
+     */
+    fun createFlash(centerX: Float, centerY: Float, color: Int, radius: Int, seconds: Float): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX, centerY, 0f, 0f)))
         world.addComponent(id, VelocityComponent(Vector2(BURST_DRIFT, 0f)))
-        world.addComponent(
-            id,
-            LightComponent(color, IMPACT_LIGHT_RADIUS, fadeSeconds = IMPACT_LIGHT_SECONDS, removeWhenFaded = true),
-        )
+        world.addComponent(id, LightComponent(color, radius, fadeSeconds = seconds, removeWhenFaded = true))
         return id
     }
 
@@ -940,12 +976,15 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     )
 
     /**
-     * The shared shape of a one-shot effect left where something died.
+     * The shared shape of a one-shot effect left where something died, or where a shot struck.
      *
      * Centered rather than placed by its corner, because the caller knows what died and not how
      * big a frame of the effect happens to be. It drifts with the scenery so it stays where the
      * thing was in the world rather than on the screen, and it is reaped by [LifetimeComponent]
      * and the animation cull once it has played.
+     *
+     * @param baseSrcX where its frames start on [pixmap], for a sheet that holds it in several
+     *   colorways.
      */
     private fun createBurst(
         centerX: Float,
@@ -955,6 +994,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         frameCount: Int,
         frameSeconds: Float,
         scale: Float,
+        baseSrcX: Int = 0,
     ): EntityId {
         val width = frameWidth * scale
         val height = pixmap.height * scale
@@ -972,7 +1012,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             )
         )
         world.addComponent(id, VelocityComponent(Vector2(BURST_DRIFT, 0f)))
-        world.addComponent(id, SpriteComponent(pixmap, srcWidth = frameWidth, scale = scale))
+        world.addComponent(id, SpriteComponent(pixmap, baseSrcX = baseSrcX, srcWidth = frameWidth, scale = scale))
         world.addComponent(
             id,
             AnimationComponent(
