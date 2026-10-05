@@ -15,6 +15,7 @@ import org.junit.rules.TemporaryFolder
 import java.io.File
 import kotlin.test.AfterTest
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
@@ -55,5 +56,22 @@ class DataStoreSettingsRepositoryTest {
 
         assertFalse(settings.isVibrationEnabled.first())
         assertTrue(settings.isSoundEnabled.first())
+    }
+
+    /** Before the setting existed the menu was always light; now it follows the system until chosen. */
+    @Test
+    fun `the theme follows the system for settings saved before it existed`() = runBlocking {
+        dataStore.edit { it[PREFS_KEY_MUSIC] = false }
+
+        assertEquals(ThemeMode.SYSTEM, DataStoreSettingsRepository(dataStore).themeMode.first())
+    }
+
+    @Test
+    fun `a chosen theme is kept`() = runBlocking {
+        val settings = DataStoreSettingsRepository(dataStore)
+
+        settings.setThemeMode(ThemeMode.DARK)
+
+        assertEquals(ThemeMode.DARK, settings.themeMode.first())
     }
 }

@@ -19,8 +19,12 @@ interface SettingsRepository {
     /** How the game is fitted to a screen that is not its shape; [DisplayMode.DEFAULT] until set. */
     val displayMode: Flow<DisplayMode>
 
+    /** Whether the menu is drawn light or dark; [ThemeMode.DEFAULT], following the system, until set. */
+    val themeMode: Flow<ThemeMode>
+
     suspend fun setMusicEnabled(enabled: Boolean)
     suspend fun setSoundEnabled(enabled: Boolean)
     suspend fun setVibrationEnabled(enabled: Boolean)
     suspend fun setDisplayMode(mode: DisplayMode)
+    suspend fun setThemeMode(mode: ThemeMode)
 }

@@ -29,6 +29,7 @@ The game keeps only the following, and only on your own device:
 | Sound effects on/off        | Remembers whether you turned the sound effects off.                                              |
 | Vibration on/off            | Remembers whether you turned vibration off.                                                      |
 | Display mode                | Remembers whether the game is stretched to fill your screen or shown with black or ambient bars. |
+| Menu theme                  | Remembers whether the menu follows your system's theme or is always dark or always light.        |
 
 Where it is kept, and how to erase it:
 

@@ -15,6 +15,9 @@ import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
@@ -25,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.settings
 import at.smiech.cyanbat.resources.settings_display_ambient
@@ -36,6 +40,10 @@ import at.smiech.cyanbat.resources.settings_display_stretch_hint
 import at.smiech.cyanbat.resources.settings_display_title
 import at.smiech.cyanbat.resources.settings_music_title
 import at.smiech.cyanbat.resources.settings_sound_title
+import at.smiech.cyanbat.resources.settings_theme_dark
+import at.smiech.cyanbat.resources.settings_theme_light
+import at.smiech.cyanbat.resources.settings_theme_system
+import at.smiech.cyanbat.resources.settings_theme_title
 import at.smiech.cyanbat.resources.settings_vibration_title
 import at.smiech.engine.DisplayMode
 import org.jetbrains.compose.resources.StringResource
@@ -47,15 +55,18 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val soundEnabled by viewModel.isSoundEnabled.collectAsState()
     val vibrationEnabled by viewModel.isVibrationEnabled.collectAsState()
     val displayMode by viewModel.displayMode.collectAsState()
+    val themeMode by viewModel.themeMode.collectAsState()
     SettingsContent(
         musicEnabled = musicEnabled,
         soundEnabled = soundEnabled,
         // Null hides the switch, on a platform with nothing to vibrate.
         vibrationEnabled = vibrationEnabled.takeIf { canVibrate },
+        themeMode = themeMode,
         displayMode = displayMode,
         onMusicEnabledChanged = viewModel::setMusicEnabled,
         onSoundEnabledChanged = viewModel::setSoundEnabled,
         onVibrationEnabledChanged = viewModel::setVibrationEnabled,
+        onThemeModeChanged = viewModel::setThemeMode,
         onDisplayModeChanged = viewModel::setDisplayMode,
     )
 }
@@ -65,10 +76,12 @@ private fun SettingsContent(
     musicEnabled: Boolean,
     soundEnabled: Boolean,
     vibrationEnabled: Boolean?,
+    themeMode: ThemeMode,
     displayMode: DisplayMode,
     onMusicEnabledChanged: (Boolean) -> Unit,
     onSoundEnabledChanged: (Boolean) -> Unit,
     onVibrationEnabledChanged: (Boolean) -> Unit,
+    onThemeModeChanged: (ThemeMode) -> Unit,
     onDisplayModeChanged: (DisplayMode) -> Unit,
 ) {
     Surface {
@@ -99,6 +112,8 @@ private fun SettingsContent(
                     onVibrationEnabledChanged
                 )
             }
+            Spacer(modifier = Modifier.height(16.dp))
+            ThemeRow(themeMode, onThemeModeChanged)
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = stringResource(Res.string.settings_display_title),
@@ -123,6 +138,33 @@ private fun SettingRow(label: String, checked: Boolean, onCheckedChange: (Boolea
     ) {
         Text(text = label)
         Switch(checked = checked, onCheckedChange = onCheckedChange)
+    }
+}
+
+/**
+ * The menu's theme, as one row of three segments beside its label, in line with the switches: three
+ * short words need no hints, and radio rows like the display's would push those below the fold on a
+ * landscape phone.
+ */
+@Composable
+private fun ThemeRow(themeMode: ThemeMode, onThemeModeChanged: (ThemeMode) -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Text(text = stringResource(Res.string.settings_theme_title))
+        SingleChoiceSegmentedButtonRow {
+            ThemeMode.entries.forEachIndexed { index, mode ->
+                SegmentedButton(
+                    selected = mode == themeMode,
+                    onClick = { onThemeModeChanged(mode) },
+                    shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
+                ) {
+                    Text(stringResource(mode.label))
+                }
+            }
+        }
     }
 }
 
@@ -154,6 +196,13 @@ private val DisplayMode.label: StringResource
         DisplayMode.STRETCH -> Res.string.settings_display_stretch
         DisplayMode.BLACK_BARS -> Res.string.settings_display_black_bars
         DisplayMode.AMBIENT -> Res.string.settings_display_ambient
+    }
+
+private val ThemeMode.label: StringResource
+    get() = when (this) {
+        ThemeMode.SYSTEM -> Res.string.settings_theme_system
+        ThemeMode.DARK -> Res.string.settings_theme_dark
+        ThemeMode.LIGHT -> Res.string.settings_theme_light
     }
 
 private val DisplayMode.hint: StringResource
