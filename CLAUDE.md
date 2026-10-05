@@ -318,6 +318,19 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   pads) feed it.
 - Android's Back arrives as `GameButton.BACK` from the back-pressed dispatcher, because gesture
   navigation raises no key event.
+- The back *gesture* starts as a touch on the game, which the system cancels once it claims the
+  swipe. The cancel reaches the game as a `TOUCH_UP` marked `canceled` (Compose's made-up release,
+  already consumed; see `ComposePointerAdapter`), and `TapDetector` never counts one as a tap: read
+  as a tap, it resumed the pause screen just before the Back meant to quit it.
+- The menu is worked by keys too, the same on both platforms (`MenuKeys`), because Compose moves
+  focus with the arrows only on Android. Focus is the cursor: the arrows and WASD move it, Enter,
+  Space or a pad's A take what it is on, Escape, Backspace or B go back. Each screen names its first
+  choice with `HomeCursor`, and each control draws the cursor with a `CursorMark`, read off its
+  focus. When no control has focus - touch mode, or the focused one went away - the menu's root
+  holds it, so the next key still arrives and brings the cursor back; while a control has it, the
+  root cannot take focus, or Android's Back would move focus to it instead of going back.
+- On the desktop the window's key handler feeds `ControlHandler` only while a run is up; in the
+  menu it swallowed the arrows and Enter the menu is worked with.
 - Vibration goes to whatever the player is holding, and only to that. `AndroidGameActivity`
   remembers the device of the last key, or stick past its dead zone, that the game took, and a
   touch hands it back to the phone; `AndroidHaptics` rumbles that device's motors if it has any,

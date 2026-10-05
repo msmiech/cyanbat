@@ -20,9 +20,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
@@ -97,6 +100,11 @@ private fun StageSelectContent(
     highscores: Map<Int, Int>,
     onStartStage: (Int) -> Unit,
 ) {
+    val cursor = remember { STAGES.associate { it.id to FocusRequester() } }
+    // On the furthest stage open: the one the player has just won their way into, and the one they
+    // are most likely here for.
+    HomeCursor(cursor.getValue(highestUnlocked.coerceIn(1, STAGES.size)))
+
     Surface {
         Column(
             modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
@@ -119,7 +127,7 @@ private fun StageSelectContent(
                         unlocked = stage.id <= highestUnlocked,
                         highscore = highscores[stage.id] ?: 0,
                         onClick = { onStartStage(stage.id) },
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).focusRequester(cursor.getValue(stage.id)),
                     )
                 }
             }
@@ -140,7 +148,13 @@ private fun StageCard(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Card(onClick = onClick, enabled = unlocked, modifier = modifier) {
+    val cursor = rememberCursorMark()
+    Card(
+        onClick = onClick,
+        enabled = unlocked,
+        modifier = modifier.then(cursor.modifier),
+        border = cursor.border(),
+    ) {
         Box {
             Image(
                 bitmap = imageResource(stage.preview),

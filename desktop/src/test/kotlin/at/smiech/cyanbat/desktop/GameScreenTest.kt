@@ -37,6 +37,7 @@ import at.smiech.cyanbat.util.IMPACT_FRAME
 import at.smiech.cyanbat.util.IMPACT_FRAME_COUNT
 import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
 import at.smiech.cyanbat.util.ORB_RADIUS
+import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
@@ -375,6 +376,46 @@ class GameScreenTest {
     /** Steps the run on through [seconds] of frames, as the game loop would. */
     private fun Flight.fly(seconds: Float) {
         repeat((seconds / FRAME_SECONDS).roundToInt()) { screen.update(FRAME_SECONDS) }
+    }
+
+    /**
+     * Android's back gesture, the second time, on the pause screen: a touch at the edge of the
+     * screen that the system cancels as it takes the swipe over, and then Back. The cancel read as a
+     * tap and resumed the run, the Back paused it again, and a player on gesture navigation could
+     * swipe for as long as they liked without getting out.
+     */
+    @Test
+    fun `a back swipe on the pause screen quits the run rather than resuming it`() {
+        var exits = 0
+        flight(CAVE, onExit = { exits++ }) {
+            game.controlHandler.onButtonPress(GameButton.BACK)
+            fly(RESUME_ARMING_SECONDS + 0.1f)
+            val clock = screen.enmGen.elapsedSeconds
+
+            game.touchHandler.onPointer(1, 0, 180, pressed = true, previouslyPressed = false)
+            screen.update(FRAME_SECONDS)
+            game.touchHandler.onPointer(1, 0, 180, pressed = false, previouslyPressed = true, canceled = true)
+            fly(0.2f)
+            assertEquals(clock, screen.enmGen.elapsedSeconds, "the swipe resumed the run")
+
+            game.controlHandler.onButtonPress(GameButton.BACK)
+            screen.update(FRAME_SECONDS)
+            assertEquals(1, exits, "Back on the pause screen did not quit")
+        }
+    }
+
+    /** What the cancel must not stop: a tap of the player's own still resumes the run. */
+    @Test
+    fun `a tap on the pause screen resumes the run`() = flight(CAVE) {
+        game.controlHandler.onButtonPress(GameButton.BACK)
+        fly(RESUME_ARMING_SECONDS + 0.1f)
+        val clock = screen.enmGen.elapsedSeconds
+
+        game.touchHandler.onPointer(1, 320, 180, pressed = true, previouslyPressed = false)
+        screen.update(FRAME_SECONDS)
+        game.touchHandler.onPointer(1, 320, 180, pressed = false, previouslyPressed = true)
+        fly(0.2f)
+        assertTrue(screen.enmGen.elapsedSeconds > clock, "the tap did not resume the run")
     }
 
     private fun Flight.hostiles(): List<EntityId> = probe.world.query(CollisionComponent::class).filter {
@@ -1069,9 +1110,15 @@ class GameScreenTest {
 
     /**
      * A run of [stage] on the desktop's own host, disposed of when [test] is done with it: silent, or
-     * with its effects played through [sounds] for a test that listens to it.
+     * with its effects played through [sounds] for a test that listens to it. [onExit] is the way
+     * back to the menu.
      */
-    private fun flight(stage: Int, sounds: Map<SoundEffect, Sound>? = null, test: Flight.() -> Unit) {
+    private fun flight(
+        stage: Int,
+        sounds: Map<SoundEffect, Sound>? = null,
+        onExit: () -> Unit = {},
+        test: Flight.() -> Unit,
+    ) {
         val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
         val assets = GameAssets.load(game.graphics, game.audio)
         if (sounds != null) assets.audio.effects = sounds
@@ -1082,7 +1129,7 @@ class GameScreenTest {
                 haptics = Haptics.None,
                 highscores = RecordingHighscores(),
                 stageUnlocks = StageUnlockStore.InMemory(),
-                onExitToMenu = {},
+                onExitToMenu = onExit,
                 audioSettings = if (sounds != null) SoundsOnly else Silent,
             ),
             stage,

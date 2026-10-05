@@ -30,19 +30,23 @@ fun main() = application {
     // The handler is hoisted above the window because keys are delivered to the window, not to
     // whatever the game happens to be showing - and because it has to outlive a single run.
     val controls = remember { ControlHandler() }
+    // The stage being played, or null while the menu is up. Out here, because the window's keys
+    // below go one way or the other by it.
+    var playingStage by remember { mutableStateOf<Int?>(null) }
     Window(
         onCloseRequest = ::exitApplication,
         title = "CyanBat",
-        // A backstop. The game surface claims focus and handles these itself; this catches the
-        // window-level case where focus sits somewhere that does not - the menu, or the moment
-        // between the surface appearing and its focus request landing.
-        onKeyEvent = controls::onComposeKeyEvent,
+        // A backstop for the game. The game surface claims focus and handles these itself; this
+        // catches the moment between the surface appearing and its focus request landing. Not for
+        // the menu, which reads its own keys, and to which the game's handler would only have
+        // swallowed the arrows and Enter it is worked with.
+        onKeyEvent = { playingStage != null && controls.onComposeKeyEvent(it) },
     ) {
         // Every size at once, rather than through Window's icon parameter; see WindowIcon. Set from
         // inside the content, which only composes once the window has applied that parameter -
         // null here, which empties the list - so nothing clears the icons after this.
         LaunchedEffect(window) { window.setIconImages(WindowIcon.images) }
-        CyanBatApp(controls)
+        CyanBatApp(controls, playingStage) { playingStage = it }
     }
 }
 
@@ -51,11 +55,11 @@ fun main() = application {
  *
  * Android splits these across two Activities; on desktop one window swaps its content, which is
  * why "back to menu" here is a state change rather than an Intent.
+ *
+ * @param playingStage the stage being played, or null while the menu is up; [play] changes it.
  */
 @Composable
-private fun CyanBatApp(controls: ControlHandler) {
-    // The stage being played, or null while the menu is up.
-    var playingStage by remember { mutableStateOf<Int?>(null) }
+private fun CyanBatApp(controls: ControlHandler, playingStage: Int?, play: (stage: Int?) -> Unit) {
     val settings = remember { PreferencesSettingsRepository() }
     val displayMode by settings.displayMode.collectAsState(DisplayMode.DEFAULT)
     // One instance for the menu and every run, so the menu sees a stage unlock the moment the run
@@ -86,7 +90,7 @@ private fun CyanBatApp(controls: ControlHandler) {
                     stageUnlocks = stageUnlocks,
                     onExitToMenu = {
                         controls.releaseAll()
-                        playingStage = null
+                        play(null)
                     },
                     audioSettings = audioSettings,
                 )
@@ -112,11 +116,11 @@ private fun CyanBatApp(controls: ControlHandler) {
                 menuMusic = menuMusic,
                 stageUnlocks = stageUnlocks,
                 highscores = highscores,
-                // The handler spans the menu too, so an Escape pressed here would otherwise be
-                // waiting to pause the run the moment it starts.
+                // Cleared on the way in as well as on the way out, so that nothing pressed before
+                // the run is waiting to act the moment it starts.
                 onStartGame = { id ->
                     controls.releaseAll()
-                    playingStage = id
+                    play(id)
                 },
                 onExit = { exitProcess(0) },
             )

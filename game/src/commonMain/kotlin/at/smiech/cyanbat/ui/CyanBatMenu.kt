@@ -13,7 +13,11 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.viewmodel.compose.viewModel
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
@@ -50,7 +54,8 @@ private val DarkColors = darkColorScheme()
  * The whole menu: main screen, stage select, settings and credits, with a back stack.
  *
  * Shared by both platforms - this is the entry point Android's MainActivity and the desktop
- * window each render. It is drawn light or dark by the player's [ThemeMode].
+ * window each render. It is drawn light or dark by the player's [ThemeMode], and worked by touch,
+ * by mouse, or by a keyboard or a game pad alone; see [MenuKeys].
  */
 @Composable
 fun CyanBatMenu(
@@ -71,30 +76,43 @@ fun CyanBatMenu(
         val menuViewModel = viewModel {
             MainMenuViewModel(host.settings, host.menuMusic, host.stageUnlocks, host.highscores)
         }
-        when (backStack.current) {
-            MenuDestination.Main -> {
-                MainMenuScreen(
-                    viewModel = menuViewModel,
-                    onNavigateToSettings = { backStack.navigateTo(MenuDestination.Settings) },
-                    onNavigateToCredits = { backStack.navigateTo(MenuDestination.Credits) },
-                    onNavigateToStageSelect = { backStack.navigateTo(MenuDestination.StageSelect) },
-                    onStartGame = host.onStartGame,
-                    onExit = host.onExit,
-                )
+        // Keeps what a screen remembers while the player is in another one, so the main screen's
+        // cursor is still on Settings when they come back out of it.
+        val screens = rememberSaveableStateHolder()
+        MenuKeys(onBack = backStack::back) {
+            screens.SaveableStateProvider(backStack.current.name) {
+                Destination(backStack, host, menuViewModel)
             }
+        }
+    }
+}
 
-            MenuDestination.StageSelect -> SubScreen(onBack = { backStack.back() }) {
-                StageSelectScreen(menuViewModel, onStartStage = host.onStartGame)
-            }
+@Composable
+private fun Destination(backStack: MenuBackStack, host: MenuHost, menuViewModel: MainMenuViewModel) {
+    when (backStack.current) {
+        MenuDestination.Main -> {
+            MainMenuScreen(
+                viewModel = menuViewModel,
+                onNavigateToSettings = { backStack.navigateTo(MenuDestination.Settings) },
+                onNavigateToCredits = { backStack.navigateTo(MenuDestination.Credits) },
+                onNavigateToStageSelect = { backStack.navigateTo(MenuDestination.StageSelect) },
+                onStartGame = host.onStartGame,
+                onExit = host.onExit,
+            )
+        }
 
-            MenuDestination.Settings -> SubScreen(onBack = { backStack.back() }) {
-                val viewModel = viewModel { SettingsViewModel(host.settings) }
-                SettingsScreen(viewModel)
-            }
+        MenuDestination.StageSelect -> SubScreen(onBack = { backStack.back() }) {
+            StageSelectScreen(menuViewModel, onStartStage = host.onStartGame)
+        }
 
-            MenuDestination.Credits -> SubScreen(onBack = { backStack.back() }) {
-                CreditsScreen()
-            }
+        MenuDestination.Settings -> SubScreen(onBack = { backStack.back() }) {
+            val viewModel = viewModel { SettingsViewModel(host.settings) }
+            SettingsScreen(viewModel)
+        }
+
+        // Nothing on it to choose, so the cursor starts on the way back out, where there is one.
+        MenuDestination.Credits -> SubScreen(onBack = { backStack.back() }, backIsHome = true) {
+            CreditsScreen()
         }
     }
 }
@@ -102,16 +120,26 @@ fun CyanBatMenu(
 /**
  * A screen reached from the main menu, with a way back to it where the platform has none of its
  * own. On Android the system back already does this and a second control would only crowd it.
+ *
+ * @param backIsHome whether the cursor starts on the back button, for a screen with nothing else
+ *   on it to choose; see [HomeCursor].
  */
 @Composable
-private fun SubScreen(onBack: () -> Unit, content: @Composable () -> Unit) {
+private fun SubScreen(onBack: () -> Unit, backIsHome: Boolean = false, content: @Composable () -> Unit) {
     if (hasSystemBack) {
         content()
         return
     }
+    val back = remember { FocusRequester() }
+    if (backIsHome) HomeCursor(back)
+    val cursor = rememberCursorMark()
     Surface {
         Column(Modifier.fillMaxSize()) {
-            TextButton(onClick = onBack) {
+            TextButton(
+                onClick = onBack,
+                modifier = Modifier.focusRequester(back).then(cursor.modifier),
+                border = cursor.border(),
+            ) {
                 Text("← " + stringResource(Res.string.button_back))
             }
             Box(Modifier.weight(1f)) { content() }

@@ -44,6 +44,8 @@ class PointerTouchHandler(
      * @param rawId host pointer id; folded into a bounded slot, so ids need not be small.
      * @param x/y the pointer in framebuffer pixels, already mapped from the host's view - see
      *   [FrameFit]. Outside the framebuffer is allowed, over a bar beside it, and passed on as is.
+     * @param canceled the system took the pointer away rather than the finger lifting; see
+     *   [Input.TouchEvent.canceled].
      */
     fun onPointer(
         rawId: Long,
@@ -51,6 +53,7 @@ class PointerTouchHandler(
         y: Int,
         pressed: Boolean,
         previouslyPressed: Boolean,
+        canceled: Boolean = false,
     ) {
         val pointer = (abs(rawId) % MAX_POINTERS).toInt()
 
@@ -76,6 +79,8 @@ class PointerTouchHandler(
                 this.pointer = pointer
                 this.x = x
                 this.y = y
+                // Set on every event, pooled ones included, so a recycled cancel does not live on.
+                this.canceled = canceled && type == Input.TouchEvent.TOUCH_UP
             }
         )
     }
