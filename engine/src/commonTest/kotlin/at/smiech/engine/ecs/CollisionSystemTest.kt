@@ -9,9 +9,8 @@ class CollisionSystemTest {
 
     private class Harness {
         val hits = mutableListOf<Pair<EntityId, EntityId>>()
-        val world = World().apply {
-            addSystem(CollisionSystem { a, b -> hits += a to b })
-        }
+        val system = CollisionSystem { a, b -> hits += a to b }
+        val world = World().apply { addSystem(system) }
 
         fun spawn(group: CollisionGroup, x: Float, tolerance: Float = 0f): EntityId {
             val id = world.createEntity()
@@ -108,6 +107,27 @@ class CollisionSystemTest {
         forgiving.spawn(CollisionGroup.ENEMY, 19f, tolerance = 5f)
         forgiving.step()
         assertTrue(forgiving.hits.isEmpty(), "the same overlap should be forgiven with tolerance")
+    }
+
+    /**
+     * A handler asks partway through a pass whether the pass meets a pair it has not handed over yet,
+     * so the answer has to be the pass's own: at edges that only touch, and with each box shrunk by a
+     * tolerance of its own.
+     */
+    @Test
+    fun `overlaps answers as the pass does`() {
+        for (x in listOf(0f, 9f, 9.5f, 10f, 12.5f, 15f, 19f, 20f, 21f)) {
+            for ((toleranceA, toleranceB) in listOf(0f to 0f, 5f to 5f, 2f to 7.5f)) {
+                val h = Harness()
+                val a = h.spawn(CollisionGroup.PLAYER, 0f, toleranceA)
+                val b = h.spawn(CollisionGroup.ENEMY, x, toleranceB)
+                h.step()
+                val met = h.hits.isNotEmpty()
+                val case = "at $x, tolerances $toleranceA and $toleranceB"
+                assertEquals(met, h.system.overlaps(a, b), case)
+                assertEquals(met, h.system.overlaps(b, a), "$case, asked the other way round")
+            }
+        }
     }
 
     @Test

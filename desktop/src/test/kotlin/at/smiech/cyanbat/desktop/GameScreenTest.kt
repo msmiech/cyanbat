@@ -36,6 +36,7 @@ import at.smiech.cyanbat.util.FROST_SECONDS
 import at.smiech.cyanbat.util.IMPACT_FRAME
 import at.smiech.cyanbat.util.IMPACT_FRAME_COUNT
 import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
+import at.smiech.cyanbat.util.NAGA_PLATE_SHARE
 import at.smiech.cyanbat.util.ORB_RADIUS
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
@@ -57,11 +58,14 @@ import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LightComponent
 import at.smiech.engine.ecs.OccluderComponent
 import at.smiech.engine.ecs.PaceComponent
+import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TintComponent
 import at.smiech.engine.ecs.TransformComponent
+import at.smiech.engine.ecs.VelocityComponent
 import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.math.Rect
+import at.smiech.engine.math.Vector2
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -169,7 +173,7 @@ class GameScreenTest {
     }
 
     /** One of the bat's shots, just short of [at]'s middle at the height [y], and a tick to land. */
-    private fun WyrmFight.shootInto(y: Float, at: EntityId? = null) {
+    private fun BodyFight.shootInto(y: Float, at: EntityId? = null) {
         val world = probe.world
         val target = at ?: world.query(BossPartComponent::class).first { it != head }
         val rect = world.getComponent(target, TransformComponent::class)!!.rect
@@ -204,6 +208,148 @@ class GameScreenTest {
 
         assertTrue(bat.hitPoints < batBefore, "the wyrm flew through the bat without hurting it")
         assertEquals(wyrmBefore, wyrm.hitPoints, "the wyrm was hurt by landing a blow")
+    }
+
+    /**
+     * The Moth Queen and the Caco Imp are under the Sand Wyrm's rule: flying into one is the boss's
+     * blow on the bat, and lands nothing on the boss. The bat's own contact damage used to land on it
+     * every tick of the overlap, where the bat took a hit once a mercy window - nearly two thousand off
+     * the boss's bar in a second.
+     */
+    @Test
+    fun `the bat flying into the Moth Queen hurts the bat and not the queen`() = flight(JUNGLE) {
+        ramTheBoss(JUNGLE)
+    }
+
+    @Test
+    fun `the bat flying into the Caco Imp hurts the bat and not the imp`() = flight(CAVE) {
+        ramTheBoss(CAVE)
+    }
+
+    /** Holds [stage]'s boss on the bat for a second, and checks which of the two that hurt. */
+    private fun Flight.ramTheBoss(stage: Int) {
+        holdFire()
+        sturdyBat()
+        screen.enmGen.update(StageProgression.forStage(stage).bossTimeSeconds)
+        val boss = assertNotNull(screen.enmGen.bossId, "the boss should have arrived")
+        val bossHealth = probe.world.getComponent(boss, HealthComponent::class)!!
+        val batHealth = probe.world.getComponent(probe.batId, HealthComponent::class)!!
+        val bossBefore = bossHealth.hitPoints
+        val batBefore = batHealth.hitPoints
+
+        repeat((1f / TICK_INITIAL).roundToInt()) {
+            clearStrays(keep = setOf(boss))
+            pinOn(boss, batRect())
+            screen.update(TICK_INITIAL)
+        }
+
+        assertTrue(batHealth.hitPoints < batBefore, "the boss flew through the bat without hurting it")
+        assertEquals(bossBefore, bossHealth.hitPoints, "the bat wore the boss down by flying into it")
+    }
+
+    /**
+     * The body bunches up as it breaches, and one shot can meet several of its plates in a tick. They
+     * are all the wyrm, so the shot lands on it once. Landing once a plate, a fan of shots into the
+     * bunched body took 900 off its bar in a single tick.
+     */
+    @Test
+    fun `a shot lands on the Sand Wyrm once, however many plates it meets`() = wyrmFight {
+        assertEquals((DAMAGE_PER_HIT * SAND_WYRM_PLATE_SHARE).roundToInt(), shotIntoBunchedBody())
+    }
+
+    /** The Naga's body is built the way the wyrm's is, and bunches up the same way as it rears. */
+    @Test
+    fun `a shot lands on the Naga once, however many parts it meets`() = nagaFight {
+        assertEquals((DAMAGE_PER_HIT * NAGA_PLATE_SHARE).roundToInt(), shotIntoBunchedBody())
+    }
+
+    /** What one shot into four plates bunched up on one spot, clear of the head, takes off the boss. */
+    private fun BodyFight.shotIntoBunchedBody(): Int {
+        holdFire()
+        val health = probe.world.getComponent(head, HealthComponent::class)!!
+        val before = health.hitPoints
+        for (plate in plates().take(4)) pin(plate, on = BUNCH)
+        shotAt(left = BUNCH.centerX - SHOT_FRAME_WIDTH, y = BUNCH.centerY)
+
+        screen.update(TICK_INITIAL * 1.5f)
+
+        return before - health.hitPoints
+    }
+
+    /**
+     * Where plates lie over the head, a shot that meets the head and them lands on the head, whole:
+     * the head is drawn over the body, and is the place to aim. The collision pass hands a shot the
+     * parts it meets in the order they were made, which is the body first, so landing through the
+     * first part met would have landed it as a plate every time.
+     */
+    @Test
+    fun `a shot that meets the wyrm's head and its plates at once lands on the head, whole`() = wyrmFight {
+        holdFire()
+        val world = probe.world
+        val health = world.getComponent(head, HealthComponent::class)!!
+        val before = health.hitPoints
+        val rect = world.getComponent(head, TransformComponent::class)!!.rect
+        for (plate in plates().take(3)) pin(plate, on = rect)
+        shotAt(left = rect.centerX - SHOT_FRAME_WIDTH, y = rect.centerY)
+
+        screen.update(TICK_INITIAL * 1.5f)
+
+        assertEquals(DAMAGE_PER_HIT, before - health.hitPoints)
+    }
+
+    /**
+     * A piercing shot goes through a boss's body as through any one enemy: it lands on it once and
+     * spends one pierce on it, however many plates it passes through. Spending one a plate, a shot that
+     * could pierce two stopped in the third plate it met, having landed on the wyrm three times.
+     */
+    @Test
+    fun `a piercing shot goes through the Sand Wyrm's body for one pierce`() = wyrmFight {
+        holdFire()
+        val world = probe.world
+        val health = world.getComponent(head, HealthComponent::class)!!
+        val before = health.hitPoints
+        // Strung out along the shot's way, each plate half over the one before, as the body lies in
+        // flight.
+        val row = plates().take(5).mapIndexed { i, plate ->
+            plate to Rect.fromLTWH(BUNCH.left - 100f + i * 24f, BUNCH.top, BUNCH.width, BUNCH.height)
+        }
+        val shot = shotAt(left = row.first().second.left - SHOT_FRAME_WIDTH, y = BUNCH.centerY, pierce = 2)
+        fun pierce() = assertNotNull(world.getComponent(shot, PierceComponent::class), "the shot stopped in the body")
+
+        // Half a tick in, so that each frame after it is one tick: the wyrm's brain lays its body out
+        // again after every tick, and the row is pinned back in place before each.
+        screen.update(TICK_INITIAL / 2f)
+        var ticks = 0
+        while (world.getComponent(shot, TransformComponent::class)!!.rect.left < row.last().second.right) {
+            assertTrue(ticks++ < 100, "the shot never got through")
+            clearStrays(keep = emptySet())
+            for ((plate, at) in row) pin(plate, on = at)
+            screen.update(TICK_INITIAL)
+            pierce()
+        }
+
+        assertEquals((DAMAGE_PER_HIT * SAND_WYRM_PLATE_SHARE).roundToInt(), before - health.hitPoints, "landed more than once")
+        assertEquals(1, pierce().remaining, "pierces left")
+    }
+
+    /** Puts [id] centered on [on] and holds it still, so that it is there for the next tick's collisions. */
+    private fun Flight.pin(id: EntityId, on: Rect) {
+        pinOn(id, on)
+        probe.world.getComponent(id, VelocityComponent::class)?.velocity = Vector2.Zero
+    }
+
+    /** One of the bat's shots, its tail at [left] and its middle at the height [y], able to [pierce]. */
+    private fun Flight.shotAt(left: Float, y: Float, pierce: Int = 0): EntityId {
+        val shot = assets.graphics.shot
+        return EntityFactory(probe.world).createShot(
+            x = left,
+            y = y - shot.height / 2f,
+            width = SHOT_FRAME_WIDTH.toFloat(),
+            height = shot.height.toFloat(),
+            pixmap = shot,
+            isPlayer = true,
+            pierce = pierce,
+        )
     }
 
     /**
@@ -1170,26 +1316,41 @@ class GameScreenTest {
         ImpFight(this, boss, screen.enmGen.bossBrain as CacoImpBrain).test()
     }
 
-    /** A desert run at its boss: a [Flight], and the wyrm's head. */
-    private class WyrmFight(flight: Flight, val head: EntityId) :
-        Flight(flight.screen, flight.probe, flight.assets, flight.game)
+    /** A run at a boss with a body - the Sand Wyrm, the Naga: a [Flight], and the boss's head. */
+    private class BodyFight(flight: Flight, val head: EntityId) :
+        Flight(flight.screen, flight.probe, flight.assets, flight.game) {
+        /** Every part of the body but the head. */
+        fun plates(): List<EntityId> = probe.world.query(BossPartComponent::class).filter { it != head }
+    }
 
     /** A desert run straight at its boss, with the escort cleared away. */
-    private fun wyrmFight(test: WyrmFight.() -> Unit) = flight(DESERT) {
-        screen.enmGen.update(StageProgression.forStage(DESERT).bossTimeSeconds)
-        val head = assertNotNull(screen.enmGen.bossId, "the wyrm should have arrived")
+    private fun wyrmFight(test: BodyFight.() -> Unit) = bodyFight(DESERT, test)
+
+    /** A lagoon run straight at its boss, with the escort cleared away. */
+    private fun nagaFight(test: BodyFight.() -> Unit) = bodyFight(LAGOON, test)
+
+    private fun bodyFight(stage: Int, test: BodyFight.() -> Unit) = flight(stage) {
+        screen.enmGen.update(StageProgression.forStage(stage).bossTimeSeconds)
+        val head = assertNotNull(screen.enmGen.bossId, "the boss should have arrived")
         val world = probe.world
         for (id in world.query(CollisionComponent::class)) {
             val group = world.getComponent(id, CollisionComponent::class)?.group
             if (group == CollisionGroup.ENEMY && !world.hasComponent(id, BossPartComponent::class)) world.removeEntity(id)
         }
-        WyrmFight(this, head).test()
+        BodyFight(this, head).test()
     }
 
     private companion object {
         const val JUNGLE = 1
         const val CAVE = 2
         const val DESERT = 3
+        const val LAGOON = 4
+
+        /**
+         * Where a test bunches a boss's body up, as it bunches as it breaches or rears: high in the
+         * frame and right of its middle, clear of the bat and of the head under the sand or the water.
+         */
+        val BUNCH = Rect.fromLTWH(400f, 40f, 48f, 48f)
 
         /** Where the Caco Imp holds station: at 62% of the frame across, centered up and down. */
         val STATION = Rect.fromLTWH(396.8f, 136.5f, 96f, 87f)

@@ -312,6 +312,9 @@ class GameScreen(
     /** The orbs' ring, kept to place new orbs at once; see [syncOrbs]. */
     private val orbit = OrbitSystem { batRect() }
 
+    /** The collision pass, kept to ask partway through it what else it meets; see [hasAlreadyStruck]. */
+    private val collisions = CollisionSystem { id1, id2 -> handleCollision(id1, id2) }
+
     /** The frost beam, armed by the loadout; see [applyLoadout]. */
     private val frostBeam = FrostBeamSystem(
         game.frameBufferWidth,
@@ -374,7 +377,7 @@ class GameScreen(
         // Before the collisions that arm a flash, so a hit landing this tick gets a full frame lit
         // rather than being aged down on the very tick it happened.
         world.addSystem(HitFlashSystem())
-        world.addSystem(CollisionSystem { id1, id2 -> handleCollision(id1, id2) })
+        world.addSystem(collisions)
         // After the collisions that land the hits, so the blow that takes something past a mark
         // shows on the frame it lands - and slows it from the next. The Sand Wyrm's brain reads the
         // head's row off it later in the same tick, to draw the body from.
@@ -627,11 +630,11 @@ class GameScreen(
         // know which of the two it was looking at.
         val bossId = enmGen.bossId
 
-        // Resolved before anything is hurt: a piercing shot that has already gone through this
-        // enemy is not colliding with it any more, however many frames the two spend overlapping.
-        // Without this the pair would re-hit every frame, spending the pierce and killing the
-        // enemy several times over.
-        if (hasAlreadyPierced(id1, id2) || hasAlreadyPierced(id2, id1)) return
+        // Resolved before anything is hurt: a shot that has already struck this enemy is not
+        // colliding with it any more, however many frames the two spend overlapping - or, for a
+        // boss's body, however many of its parts the shot is touching. Without this the pair would
+        // re-hit every frame, spending the pierce and killing the enemy several times over.
+        if (hasAlreadyStruck(id1, id2) || hasAlreadyStruck(id2, id1)) return
 
         // Both read before either side takes its hit: an entity that dies here still lands the
         // blow it arrived with, and reading afterwards would give the survivor a free pass.
@@ -776,13 +779,30 @@ class GameScreen(
         world.getComponent(id, DamageComponent::class)?.isCritical == true
 
     /**
-     * True when [shotId] is a piercing shot that has already passed through [targetId], and false
-     * for everything else - including the first frame of a pierce, which it records on the way.
+     * True when [shotId] has already struck [targetId] and has nothing more to land on it, and false
+     * for everything else - including the first meeting, which it records on the way.
+     *
+     * A piercing shot strikes an enemy once and goes on through it, for however many frames the two
+     * overlap. A boss's body is one enemy in many parts, and any of the bat's shots strikes it once,
+     * for one pierce, however many of its parts it touches and for however many ticks. The body
+     * bunched up as it breaches or rears puts several parts under one shot, and a shot spent on the
+     * first of them is still in the collision pass until the tick's removals are finalized: landing
+     * once a part, one fan of shots took 900 off the Sand Wyrm's bar in a single tick.
      */
-    private fun hasAlreadyPierced(shotId: EntityId, targetId: EntityId): Boolean {
-        val pierce = world.getComponent(shotId, PierceComponent::class) ?: return false
+    private fun hasAlreadyStruck(shotId: EntityId, targetId: EntityId): Boolean {
         if (collisionGroupOf(targetId) != CollisionGroup.ENEMY) return false
-        return pierce.meet(targetId)
+        val pierce = world.getComponent(shotId, PierceComponent::class)
+        if (!isBossPart(targetId)) return pierce?.meet(targetId) == true
+
+        if (collisionGroupOf(shotId) != CollisionGroup.PLAYER_PROJECTILE) return false
+        val bossId = enmGen.bossId ?: return false
+        // Where it touches the head as well, it is left for the head to take, whole, whether the pass
+        // has come to the head yet or not: the head is drawn over the body and is the place to aim,
+        // and the pass hands over the body first, since it was made first.
+        if (targetId != bossId && collisions.overlaps(shotId, bossId)) return true
+        // Spent on another part earlier in this pass, and still in it.
+        if (world.getComponent(shotId, HealthComponent::class)?.alive == false) return true
+        return pierce?.meet(bossId) == true
     }
 
     /**
@@ -806,13 +826,15 @@ class GameScreen(
             return false
         }
 
+        // Only the bat's weapons wear a boss down; the bat flying into one lands nothing. Its body
+        // meeting the bat is the boss's attack, and the bat takes a hit from it once a mercy window,
+        // where every tick of the overlap - part by part, for a boss with a body - would otherwise
+        // hand the boss one: a bat held on the Caco Imp took some 1,800 off its bar a second.
+        val part = world.getComponent(id, BossPartComponent::class)
+        if ((part != null || id == enmGen.bossId) && !isBatsWeapon(dealtBy)) return false
         // A shot that hits a part of a boss's body lands on the boss, and is shown - number and
         // flash - on the part it hit, which is where the player was aiming; so does an orb or the
-        // wake. The bat flying into it lands nothing. The body sweeping over the bat is the boss's
-        // attack, and every tick of the overlap, part by part, would otherwise hand the boss a hit:
-        // one pass through the bat would cost it a third of its health. See [BossPartComponent].
-        val part = world.getComponent(id, BossPartComponent::class)
-        if (part != null && !isBatsWeapon(dealtBy)) return false
+        // wake. See [BossPartComponent].
         val target = if (part != null) enmGen.bossId ?: return false else id
         // A plate is armor and passes on only its share; see [BossPartComponent.share].
         val landing =

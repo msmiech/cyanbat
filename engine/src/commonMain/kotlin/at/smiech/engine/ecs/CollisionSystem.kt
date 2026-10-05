@@ -51,6 +51,23 @@ class CollisionSystem(
         }
     }
 
+    /**
+     * Whether [a] and [b] overlap as a pass tests them: each box shrunk by its own tolerance, with the
+     * same arithmetic [update] does, so the answer is the pass's to the last bit. For a handler that
+     * has to know, partway through a pass, whether the pass meets a pair it has not handed over yet,
+     * or has already. Groups are not looked at: whether the two collide at all is the caller's to know.
+     */
+    fun overlaps(a: EntityId, b: EntityId): Boolean {
+        val rectA = transforms[a]?.rect ?: return false
+        val rectB = transforms[b]?.rect ?: return false
+        val toleranceA = collisions[a]?.tolerance ?: return false
+        val toleranceB = collisions[b]?.tolerance ?: return false
+        return rectA.left + toleranceA < rectB.right - toleranceB &&
+            rectA.right - toleranceA > rectB.left + toleranceB &&
+            rectA.top + toleranceA < rectB.bottom - toleranceB &&
+            rectA.bottom - toleranceA > rectB.top + toleranceB
+    }
+
     /** Snapshots the collidables into the parallel arrays, returning how many there are. */
     private fun gather(world: World): Int {
         var count = 0
