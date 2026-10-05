@@ -108,9 +108,37 @@ enum class PowerUp(val title: String, val description: String) {
     RICOCHET("Ricochet", "Shots bounce off one more edge") {
         override fun applyTo(loadout: PlayerLoadout) = loadout.addBounce()
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canAddBounce
+    },
+
+    GUARDIAN_ORB("Guardian Orb", "An orb circles you, striking enemies") {
+        override fun applyTo(loadout: PlayerLoadout) = loadout.addOrb()
+        override fun isAvailable(loadout: PlayerLoadout) = loadout.canAddOrb
+        override fun describe(loadout: PlayerLoadout) =
+            if (loadout.orbs > 0) "One more orb joins the circle" else description
+    },
+
+    CHARGED_TRAIL("Charged Trail", "A longer trail that shocks enemies") {
+        override fun applyTo(loadout: PlayerLoadout) = loadout.chargeWake()
+        override fun isAvailable(loadout: PlayerLoadout) = loadout.canChargeWake
+        override fun describe(loadout: PlayerLoadout) =
+            if (loadout.wakeLevel > 0) "Longer trail, stronger shocks" else description
+    },
+
+    FROST_BEAM("Frost Beam", "A beam freezes a line of enemies") {
+        override fun applyTo(loadout: PlayerLoadout) = loadout.buildFrostBeam()
+        override fun isAvailable(loadout: PlayerLoadout) = loadout.canBuildFrostBeam
+        override fun describe(loadout: PlayerLoadout) =
+            if (loadout.frostLevel > 0) "Fires more often, freezes for longer" else description
     };
 
     abstract fun applyTo(loadout: PlayerLoadout)
+
+    /**
+     * What the card says to a run with [loadout]: its [description], unless picking it again does
+     * something the first pick did not. The weapons of their own say so - a second orb is not the
+     * same news as the first.
+     */
+    open fun describe(loadout: PlayerLoadout): String = description
 
     /**
      * Whether this is still worth offering.

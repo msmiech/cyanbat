@@ -456,6 +456,11 @@ class Autopilot(
             // Shots that bounce back off the far edge fill the frame with the bat's own fire.
             PowerUp.RICOCHET,
             PowerUp.HEAVY_ROUNDS,
+            // Last, the bat's weapons of its own. The reel is about the stages, and a ring of orbs, a
+            // wake that cuts or a swarm frozen in its tracks would be what it showed instead.
+            PowerUp.GUARDIAN_ORB,
+            PowerUp.CHARGED_TRAIL,
+            PowerUp.FROST_BEAM,
         )
     }
 }

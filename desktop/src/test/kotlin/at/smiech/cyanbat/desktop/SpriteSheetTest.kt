@@ -46,6 +46,13 @@ class SpriteSheetTest {
         assertEquals(45 * 6 to 40 * WOUND_ROWS, sizeOf("cyanBat.png"))
     }
 
+    /** Six 14x14 frames of an orb, its glint going round it; see `ORB_FRAME` and `ORB_FRAME_COUNT`. */
+    @Test
+    fun `the orb sheet holds six frames`() {
+        assertEquals(14 * 6 to 14, sizeOf("orb.png"))
+        assertNoBlankFrames("orb.png", frameWidth = 14, frames = 6)
+    }
+
     /** Seven 40x40 frames of rock breaking; see `EntityFactory.SHATTER_FRAME_*`. */
     @Test
     fun `the shatter sheet holds seven frames`() {
@@ -481,6 +488,7 @@ class SpriteSheetTest {
             "cyanBatDeath.png",
             "enemies.png",
             "shot.png",
+            "orb.png",
             "background.png",
             "explosion.png",
             "shatter.png",

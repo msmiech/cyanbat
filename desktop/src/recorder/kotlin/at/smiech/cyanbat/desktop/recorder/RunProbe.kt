@@ -28,9 +28,14 @@ class RunProbe(private val screen: GameScreen) {
     val world: World get() = worldField.get(screen) as World
     val batId: EntityId get() = batIdField.getInt(screen)
 
-    /** The power-ups on offer, or empty when no level up dialog is up. */
+    /**
+     * The power-ups on offer, or empty when no level up dialog is up. Set, it puts a dialog up with
+     * those cards on it, armed, for a test to take one off the way a player does.
+     */
     @Suppress("UNCHECKED_CAST")
-    val offer: List<PowerUp> get() = offerField.get(screen) as List<PowerUp>
+    var offer: List<PowerUp>
+        get() = offerField.get(screen) as List<PowerUp>
+        set(cards) = offerField.set(screen, cards)
 
     val stageComplete: Boolean get() = stageCompleteField.getBoolean(screen)
     val level: Int get() = (progressField.get(screen) as PlayerProgress).level

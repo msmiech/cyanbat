@@ -7,6 +7,12 @@ import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.desktop.recorder.RunProbe
 import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.ElitePalette
+import at.smiech.cyanbat.ecs.FrostComponent
+import at.smiech.cyanbat.ecs.FrostSystem
+import at.smiech.cyanbat.ecs.OrbComponent
+import at.smiech.cyanbat.progress.PlayerLoadout
+import at.smiech.cyanbat.progress.PlayerProgress
+import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.SoundEffect
 import at.smiech.cyanbat.service.CacoImpBrain
@@ -25,7 +31,10 @@ import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
 import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
+import at.smiech.cyanbat.util.FROST_BEAM_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.FROST_SECONDS
 import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
+import at.smiech.cyanbat.util.ORB_RADIUS
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
@@ -45,12 +54,15 @@ import at.smiech.engine.ecs.LightComponent
 import at.smiech.engine.ecs.OccluderComponent
 import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.SpriteComponent
+import at.smiech.engine.ecs.TintComponent
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.WeaponComponent
 import at.smiech.engine.math.Rect
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.roundToInt
 import kotlin.test.Test
@@ -710,6 +722,266 @@ class GameScreenTest {
         val bat = probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect
         assertTrue(hypot(now.centerX - bat.centerX, now.centerY - bat.centerY) >= CACO_IMP_PROWL_BAT_CLEARANCE)
     }
+
+    // region the bat's weapons of its own
+
+    /**
+     * An orb goes round the bat and hurts what it meets - once as it sweeps through, not on every
+     * tick the two overlap - and comes round to hurt it again.
+     */
+    @Test
+    fun `a guardian orb circles the bat and strikes what it meets, once a pass`() = flight(CAVE) {
+        pick(PowerUp.GUARDIAN_ORB)
+        holdFire()
+        val world = probe.world
+        val orb = world.query(OrbComponent::class).single()
+        assertEquals(ORB_RADIUS, distanceFromBat(orb), 0.5f, "the orb did not go straight out onto its ring")
+
+        val imp = imp(x = 0f, y = 0f, elite = null, hitPoints = 500)
+        val health = world.getComponent(imp, HealthComponent::class)!!
+        val onTheOrb = { pinOn(imp, world.getComponent(orb, TransformComponent::class)!!.rect) }
+
+        repeat(10) { onTheOrb(); screen.update(TICK_INITIAL) }
+        val oneHit = 500 - health.hitPoints
+        assertTrue(oneHit > 0, "the orb went through the imp without hurting it")
+
+        repeat(18) { onTheOrb(); screen.update(TICK_INITIAL) }
+        assertEquals(2 * oneHit, 500 - health.hitPoints, "an orb held on an imp should land once a rehit, no more")
+    }
+
+    /**
+     * Read off the run's experience, which only a kill pays: the imp's own id is handed on once it has
+     * gone, and the next thing to arrive can come in under it.
+     */
+    @Test
+    fun `a kill an orb makes counts like any other`() = flight(CAVE) {
+        pick(PowerUp.GUARDIAN_ORB)
+        holdFire()
+        val orb = probe.world.query(OrbComponent::class).single()
+        val imp = imp(x = 0f, y = 0f, elite = null, hitPoints = 1)
+        pinOn(imp, probe.world.getComponent(orb, TransformComponent::class)!!.rect)
+        val experience = probe.experience
+
+        screen.update(TICK_INITIAL * 1.5f)
+
+        assertEquals(PlayerProgress.experienceForKill(waveIndex = 0), probe.experience - experience, "the kill paid nothing")
+    }
+
+    /** Every pick adds an orb, and the ring spreads out to give each an even share of it. */
+    @Test
+    fun `orbs share the ring evenly`() = flight(CAVE) {
+        repeat(3) { pick(PowerUp.GUARDIAN_ORB) }
+        holdFire()
+        sturdyBat()
+
+        fly(1.5f)
+
+        val orbs = probe.world.query(OrbComponent::class)
+        assertEquals(3, orbs.size)
+        val bat = batRect()
+        val angles = orbs.map { orb ->
+            assertEquals(ORB_RADIUS, distanceFromBat(orb), 0.5f)
+            val rect = probe.world.getComponent(orb, TransformComponent::class)!!.rect
+            atan2(rect.centerY - bat.centerY, rect.centerX - bat.centerX).let { if (it < 0f) it + 2 * PI.toFloat() else it }
+        }.sorted()
+        val gaps = angles.zipWithNext { a, b -> b - a } + (angles.first() + 2 * PI.toFloat() - angles.last())
+        for (gap in gaps) assertEquals((2 * PI / 3).toFloat(), gap, 0.05f, "the orbs are not evenly spaced: $angles")
+    }
+
+    @Test
+    fun `the orbs go out with the bat`() = flight(CAVE) {
+        repeat(2) { pick(PowerUp.GUARDIAN_ORB) }
+        holdFire()
+        probe.world.getComponent(probe.batId, HealthComponent::class)!!.hitPoints = 1
+        val bat = batRect()
+        imp(x = bat.left, y = bat.top, elite = null)
+
+        screen.update(TICK_INITIAL * 1.5f)
+
+        assertFalse(probe.world.getComponent(probe.batId, HealthComponent::class)!!.alive, "the bat should be down")
+        assertTrue(probe.world.query(OrbComponent::class).isEmpty(), "an orb went on circling a dead bat")
+    }
+
+    /** The wake every run starts with is only a wake; charged, it shocks what lingers in it. */
+    @Test
+    fun `a charged trail shocks what flies into it, and the plain one does not`() {
+        assertEquals(0, flightBehindTheBat(charged = false), "the plain wake hurt an imp")
+
+        val hurt = flightBehindTheBat(charged = true)
+        assertTrue(hurt > 0, "the charged wake did not hurt an imp in it")
+    }
+
+    /**
+     * A second's worth of an imp held in the bat's wake, just behind it, and what that cost the imp.
+     * Held there because an imp flies about as fast as the wake drifts, and lingers in it the same way.
+     */
+    private fun flightBehindTheBat(charged: Boolean): Int {
+        var lost = 0
+        flight(CAVE) {
+            if (charged) pick(PowerUp.CHARGED_TRAIL)
+            holdFire()
+            val bat = batRect()
+            val imp = imp(x = 0f, y = 0f, elite = null, hitPoints = 1000)
+            val behind = Rect.fromLTWH(bat.left - 44f, bat.centerY - 2f, 32f, IMP_ROW.toFloat())
+            repeat(52) { pinOn(imp, behind); screen.update(TICK_INITIAL) }
+            lost = 1000 - probe.world.getComponent(imp, HealthComponent::class)!!.hitPoints
+        }
+        return lost
+    }
+
+    /**
+     * A shock that reaches the Sand Wyrm through every plate the wake touches lands on it once, not
+     * once a plate: its body is one target, and a wake it pours through would otherwise cost it a hit
+     * for every plate in it.
+     */
+    @Test
+    fun `the charged trail lands on the Sand Wyrm once, not once a plate`() = wyrmFight {
+        pick(PowerUp.CHARGED_TRAIL)
+        val world = probe.world
+        val health = world.getComponent(head, HealthComponent::class)!!
+        val before = health.hitPoints
+        val factory = EntityFactory(world)
+        // Clear of the head's own box: the plates from the third back.
+        val plates = world.query(BossPartComponent::class).filter { it != head }.drop(2)
+        for (plate in plates) {
+            val rect = world.getComponent(plate, TransformComponent::class)!!.rect
+            factory.createTrail(rect.centerX - 4f, rect.centerY - 4f, 8f, 8f, seconds = 1f, charged = true)
+        }
+
+        screen.update(TICK_INITIAL * 1.5f)
+
+        val oneShock = before - health.hitPoints
+        assertTrue(oneShock > 0, "the wake did not reach the wyrm")
+        val charged = PlayerLoadout().apply { chargeWake() }
+        assertEquals((charged.wakeDamage * SAND_WYRM_PLATE_SHARE).roundToInt(), oneShock, "more than one plate's worth landed")
+    }
+
+    /**
+     * The beam freezes the ordinary enemy it is aimed at and goes through an elite and the boss on the
+     * same line without touching them. Frozen, the imp holds still but for the drift of the scenery,
+     * keeps the pace of the frost through a wound that would have slowed it, and thaws to that wound's
+     * pace when its time is up.
+     */
+    @Test
+    fun `a frost beam freezes ordinary enemies, and never an elite or the boss`() = flight(CAVE) {
+        pick(PowerUp.FROST_BEAM)
+        holdFire()
+        sturdyBat()
+        placeBat()
+        val world = probe.world
+        screen.enmGen.update(StageProgression.forStage(CAVE).bossTimeSeconds)
+        val boss = assertNotNull(screen.enmGen.bossId, "the boss should have arrived")
+        val line = batRect().centerY
+        val imp = imp(x = 420f, y = line - IMP_ROW / 2f, elite = null, hitPoints = 500)
+        val elite = imp(x = 320f, y = line - IMP_ROW / 2f, elite = ElitePalette.SCARLET, hitPoints = 500)
+        val bossOnTheLine = Rect.fromLTWH(480f, line - STATION.height / 2f, STATION.width, STATION.height)
+        val impOnTheLine = world.getComponent(imp, TransformComponent::class)!!.rect
+        val eliteOnTheLine = world.getComponent(elite, TransformComponent::class)!!.rect
+
+        var ticks = ((FROST_BEAM_INTERVAL_SECONDS + 0.5f) / TICK_INITIAL).toInt()
+        while (!FrostSystem.isFrozen(world, imp)) {
+            assertTrue(ticks-- > 0, "the beam never went off")
+            clearStrays(keep = setOf(imp, elite, boss))
+            pinOn(imp, impOnTheLine)
+            pinOn(elite, eliteOnTheLine)
+            pinOn(boss, bossOnTheLine)
+            screen.update(TICK_INITIAL)
+        }
+
+        assertFalse(FrostSystem.isFrozen(world, elite), "the beam froze an elite")
+        assertFalse(FrostSystem.isFrozen(world, boss), "the beam froze the boss")
+        assertEquals(0, (world.getComponent(elite, TintComponent::class)?.color ?: 0) ushr 24, "the elite turned blue")
+        assertEquals(PaceComponent(0f, 0f), world.getComponent(imp, PaceComponent::class), "the frozen imp kept moving")
+        assertTrue((world.getComponent(imp, TintComponent::class)!!.color ushr 24) > 0, "the frozen imp is not blue")
+
+        val frozenAt = world.getComponent(imp, TransformComponent::class)!!.rect
+        world.getComponent(imp, HealthComponent::class)!!.hitPoints = 250
+        screen.update(TICK_INITIAL)
+        assertEquals(PaceComponent(0f, 0f), world.getComponent(imp, PaceComponent::class), "a wound thawed it")
+        assertTrue(world.getComponent(imp, TransformComponent::class)!!.rect.left < frozenAt.left, "it hung on the screen")
+        assertEquals(frozenAt.top, world.getComponent(imp, TransformComponent::class)!!.rect.top, "it flew on frozen")
+
+        var thawing = (FROST_SECONDS / TICK_INITIAL).toInt() + 5
+        while (FrostSystem.isFrozen(world, imp)) {
+            assertTrue(thawing-- > 0, "the imp never thawed")
+            clearStrays(keep = setOf(imp, elite, boss))
+            screen.update(TICK_INITIAL)
+        }
+        assertEquals(PaceComponent(motion = 0.8f, fire = 0.75f), world.getComponent(imp, PaceComponent::class), "it thawed to the wrong pace")
+    }
+
+    /**
+     * Frozen, an enemy is harmless: the bat flies through it with nothing landing either way. Thawed,
+     * the same enemy in the same place hurts the bat as it always did.
+     */
+    @Test
+    fun `a frozen enemy is harmless until it thaws`() = flight(CAVE) {
+        holdFire()
+        val world = probe.world
+        val bat = world.getComponent(probe.batId, HealthComponent::class)!!
+        val imp = imp(x = 0f, y = 0f, elite = null, hitPoints = 500)
+        val impHealth = world.getComponent(imp, HealthComponent::class)!!
+        FrostSystem.freeze(world, imp, 1f)
+
+        repeat(20) { pinOn(imp, batRect()); screen.update(TICK_INITIAL) }
+
+        assertEquals(bat.maxHitPoints, bat.hitPoints, "a frozen imp hurt the bat")
+        assertEquals(500, impHealth.hitPoints, "the bat wore down a frozen imp by flying into it")
+
+        world.getComponent(imp, FrostComponent::class)!!.seconds = TICK_INITIAL / 2f
+        repeat(3) { pinOn(imp, batRect()); screen.update(TICK_INITIAL) }
+
+        assertFalse(FrostSystem.isFrozen(world, imp), "the imp should have thawed")
+        assertTrue(bat.hitPoints < bat.maxHitPoints, "a thawed imp did not hurt the bat")
+    }
+
+    /** Takes [powerUp] the way a player does: off a level up dialog, with Confirm. */
+    private fun Flight.pick(powerUp: PowerUp) {
+        probe.offer = listOf(powerUp)
+        game.controlHandler.onButtonPress(GameButton.CONFIRM)
+        screen.update(0f)
+        assertTrue(probe.offer.isEmpty(), "the pick did not land")
+    }
+
+    /** Holds the bat's gun, which a pick rearms, so nothing but the weapon under test lands. */
+    private fun Flight.holdFire() {
+        probe.world.getComponent(probe.batId, WeaponComponent::class)!!.interval = Float.MAX_VALUE
+    }
+
+    /** A bat that can take whatever a test's few seconds throw at it. */
+    private fun Flight.sturdyBat() {
+        val health = probe.world.getComponent(probe.batId, HealthComponent::class)!!
+        health.maxHitPoints = 100_000
+        health.hitPoints = 100_000
+    }
+
+    private fun Flight.batRect(): Rect = probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect
+
+    private fun Flight.distanceFromBat(id: EntityId): Float {
+        val rect = probe.world.getComponent(id, TransformComponent::class)!!.rect
+        val bat = batRect()
+        return hypot(rect.centerX - bat.centerX, rect.centerY - bat.centerY)
+    }
+
+    /** Puts [id]'s box, at its own size, centered on [on]. */
+    private fun Flight.pinOn(id: EntityId, on: Rect) {
+        val transform = probe.world.getComponent(id, TransformComponent::class)!!
+        val rect = transform.rect
+        transform.rect = Rect.fromLTWH(on.centerX - rect.width / 2f, on.centerY - rect.height / 2f, rect.width, rect.height)
+    }
+
+    /** Takes away every enemy the stage has sent but [keep], before it can come into the frame. */
+    private fun Flight.clearStrays(keep: Set<EntityId>) {
+        val world = probe.world
+        for (id in world.query(CollisionComponent::class)) {
+            val group = world.getComponent(id, CollisionComponent::class)?.group
+            if (group == CollisionGroup.ENEMY && id !in keep && !world.hasComponent(id, BossPartComponent::class)) {
+                world.removeEntity(id)
+            }
+        }
+    }
+
+    // endregion
 
     /** Puts the bat at the same place every time, its middle on [BAT_MIDDLE_X] and [ROCK_ROW]. */
     private fun Flight.placeBat() {

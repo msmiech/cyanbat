@@ -426,6 +426,84 @@ const val MAX_FLAT_DAMAGE_REDUCTION = 20
 const val MAX_SHOT_PIERCE = 4
 const val MAX_SHOT_BOUNCE = 3
 
+// The third batch: weapons besides the gun. Each works on its own - an orb circling the bat, the wake
+// it leaves, a beam on a clock - so it keeps fighting while the player is busy dodging. What they
+// deal is a share of the shot's damage, rounded up, so Heavy Rounds and Counterweight keep paying
+// into them rather than leaving them behind as a run's damage climbs.
+
+// Guardian Orb. Each pick adds an orb, and the orbs share the circle evenly. They go round clockwise,
+// as the frame is drawn, far enough out to clear the bat's wings with a little room, and once round
+// in ORB_SECONDS_PER_TURN: quick enough to sweep the space around the bat, slow enough to follow.
+// Capped where the ring is nearly closed. A new orb spreads the ring out round it over about
+// ORB_SETTLE_SECONDS, rather than every orb jumping to its new place on the same frame.
+const val MAX_ORBS = 5
+const val ORB_RADIUS = 44f
+const val ORB_SECONDS_PER_TURN = 1.6f
+const val ORB_SETTLE_SECONDS = 0.35f
+const val ORB_DAMAGE_FRACTION = 0.6f
+
+// Its sheet: six 14x14 frames of a glint going round it, from tools/generate_orb_sprite.py. It hits
+// with the sphere and not the outline round it. It gives off no light in the dark: it never leaves
+// the bat's own, and a light apiece would cost an old phone frame time for nothing to see.
+const val ORB_FRAME = 14
+const val ORB_FRAME_COUNT = 6
+const val ORB_FRAME_SECONDS = 0.08f
+const val ORB_COLLISION_TOLERANCE = 2f
+
+// How soon one orb may hit the same thing again, in seconds. Longer than an orb takes to sweep
+// through an enemy, so one pass lands once; shorter than the gap between two orbs of a full ring,
+// so each of them lands as it comes round.
+const val ORB_REHIT_SECONDS = 0.3f
+
+// Charged Trail. Each pick draws the wake out longer and makes its shock hit harder, by its level:
+// level 0 is the plain wake every run starts with, which hurts nothing. Capped below the two seconds
+// the wake once had, which read as a smear.
+const val MAX_WAKE_LEVEL = 3
+val WAKE_SECONDS = floatArrayOf(TRAIL_DURATION_SECONDS, 1.0f, 1.3f, 1.6f)
+val WAKE_DAMAGE_FRACTION = floatArrayOf(0f, 0.3f, 0.45f, 0.6f)
+
+// How soon the wake may shock the same thing again. An enemy flies about as fast as the wake drifts,
+// so one that touches it can stay in it for the rest of its life; this, not the touch, is what sets
+// how hard it is hurt there.
+const val WAKE_REHIT_SECONDS = 0.4f
+
+// A charged segment keeps more of its size as it dies, and stops shocking once it has faded past
+// WAKE_HARMLESS_FROM of its life, so what hurts is always something the player can see.
+const val WAKE_MIN_SCALE = 0.45f
+const val WAKE_HARMLESS_FROM = 0.8f
+const val WAKE_COLOR = 0xFF00E5FF.toInt()
+const val WAKE_CORE_COLOR = 0xFFE6FFFF.toInt()
+
+// Frost Beam. A beam from the bat at an ordinary enemy on screen, picked at random, on across the
+// frame; it freezes every ordinary enemy along it. Bosses and elites are never frozen - a boss's fight
+// would stop dead, and an elite is a prize to chase - and the beam goes through them. Each pick fires
+// it more often and freezes for longer, to a cap. It never hurts anything itself.
+const val MAX_FROST_LEVEL = 4
+const val FROST_BEAM_INTERVAL_SECONDS = 3.5f
+const val FROST_BEAM_INTERVAL_FACTOR = 0.8f
+const val FROST_SECONDS = 1.8f
+const val FROST_SECONDS_PER_LEVEL = 0.5f
+
+// How far either side of its line the beam freezes, and how long it shows: a flash, not a fixture. A
+// white core in a pale glow, edged in a deep blue, as every sprite is edged in a dark outline: without
+// it the beam all but vanished into the desert's noon sky.
+const val FROST_BEAM_HALF_WIDTH = 4f
+const val FROST_BEAM_SHOW_SECONDS = 0.3f
+const val FROST_BEAM_CORE_COLOR = 0xFFF0FCFF.toInt()
+const val FROST_BEAM_GLOW_COLOR = 0xFF8ED8FF.toInt()
+const val FROST_BEAM_EDGE_COLOR = 0xFF2C6CC0.toInt()
+
+// Something frozen is washed in ice blue, its shape and a ghost of its markings showing through, and
+// the wash thins out over the last FROST_THAW_SECONDS of the freeze, so the player sees it is about to
+// come free. A deep, strong blue, because a pale one over the warm hostiles came out grey: the desert's
+// locusts went the color of the sand. It drifts with the scenery meanwhile, as a block of ice would: it
+// has stopped, not been pinned to the screen. And it is harmless while it lasts: the bat flies through
+// it, though the bat's weapons still hurt it.
+const val FROST_TINT = 0xB8489CF0.toInt()
+const val FROST_THAW_SECONDS = 0.5f
+const val FROST_DRIFT = BURST_DRIFT
+const val FROST_LIGHT_COLOR = 0xFFB4E6FF.toInt()
+
 
 // --- The aura ----------------------------------------------------------------------------------
 //

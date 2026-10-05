@@ -4,19 +4,30 @@ import at.smiech.cyanbat.util.ARMOR_FLOOR
 import at.smiech.cyanbat.util.CRITICAL_CHANCE
 import at.smiech.cyanbat.util.CRITICAL_DAMAGE_MULTIPLIER
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
+import at.smiech.cyanbat.util.FROST_BEAM_INTERVAL_FACTOR
+import at.smiech.cyanbat.util.FROST_BEAM_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.FROST_SECONDS
+import at.smiech.cyanbat.util.FROST_SECONDS_PER_LEVEL
 import at.smiech.cyanbat.util.MAX_CRITICAL_CHANCE
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
 import at.smiech.cyanbat.util.MAX_FLAT_DAMAGE_REDUCTION
+import at.smiech.cyanbat.util.MAX_FROST_LEVEL
 import at.smiech.cyanbat.util.MAX_HEALTH_REGEN_PER_SECOND
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
+import at.smiech.cyanbat.util.MAX_ORBS
 import at.smiech.cyanbat.util.MAX_REVIVES
 import at.smiech.cyanbat.util.MAX_SHOT_BOUNCE
 import at.smiech.cyanbat.util.MAX_SHOT_PIERCE
+import at.smiech.cyanbat.util.MAX_WAKE_LEVEL
 import at.smiech.cyanbat.util.MIN_SHOT_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.ORB_DAMAGE_FRACTION
 import at.smiech.cyanbat.util.PLAYER_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.WAKE_DAMAGE_FRACTION
+import at.smiech.cyanbat.util.WAKE_SECONDS
 import kotlin.math.ceil
+import kotlin.math.pow
 import kotlin.math.roundToInt
 
 /**
@@ -107,6 +118,48 @@ class PlayerLoadout {
     var shotBounce: Int = 0
         private set
 
+    /** How many orbs circle the bat; see [at.smiech.cyanbat.ecs.OrbitSystem]. */
+    var orbs: Int = 0
+        private set
+
+    /** How charged the bat's wake is: zero for the plain wake that hurts nothing. */
+    var wakeLevel: Int = 0
+        private set
+
+    /** How far the frost beam has been built up: zero for no beam. */
+    var frostLevel: Int = 0
+        private set
+
+    /**
+     * What an orb takes off whatever it hits: a share of [shotDamage], derived rather than stored
+     * for the reason [criticalDamage] is, and rounded up so it is never nothing.
+     */
+    val orbDamage: Int
+        get() = ceil(shotDamage * ORB_DAMAGE_FRACTION).toInt()
+
+    /** What the wake's shock takes off whatever it touches, a share of [shotDamage]; zero uncharged. */
+    val wakeDamage: Int
+        get() = ceil(shotDamage * WAKE_DAMAGE_FRACTION[wakeLevel]).toInt()
+
+    /** How long a segment of the wake lasts, and so how far behind the bat it reaches. */
+    val wakeSeconds: Float
+        get() = WAKE_SECONDS[wakeLevel]
+
+    /**
+     * Seconds between two frost beams, each pick after the first a [FROST_BEAM_INTERVAL_FACTOR] of
+     * the last. What the first pick fires at until it has been made, which is all it means then.
+     */
+    val frostIntervalSeconds: Float
+        get() = FROST_BEAM_INTERVAL_SECONDS * FROST_BEAM_INTERVAL_FACTOR.pow(frostPicksPast)
+
+    /** How long the frost beam keeps what it catches frozen; as [frostIntervalSeconds], before then. */
+    val frostSeconds: Float
+        get() = FROST_SECONDS + frostPicksPast * FROST_SECONDS_PER_LEVEL
+
+    /** Frost Beam picks after the one that made the beam. */
+    private val frostPicksPast: Int
+        get() = (frostLevel - 1).coerceAtLeast(0)
+
     fun quickenShots(factor: Float) {
         shotIntervalSeconds =
             (shotIntervalSeconds * factor).coerceAtLeast(MIN_SHOT_INTERVAL_SECONDS)
@@ -182,6 +235,18 @@ class PlayerLoadout {
         shotBounce = (shotBounce + 1).coerceAtMost(MAX_SHOT_BOUNCE)
     }
 
+    fun addOrb() {
+        orbs = (orbs + 1).coerceAtMost(MAX_ORBS)
+    }
+
+    fun chargeWake() {
+        wakeLevel = (wakeLevel + 1).coerceAtMost(MAX_WAKE_LEVEL)
+    }
+
+    fun buildFrostBeam() {
+        frostLevel = (frostLevel + 1).coerceAtMost(MAX_FROST_LEVEL)
+    }
+
     /** Spends one revive, if there is one to spend. */
     fun useRevive(): Boolean {
         if (revives <= 0) return false
@@ -204,4 +269,7 @@ class PlayerLoadout {
     val canCounterweight: Boolean get() = flatDamageReduction < MAX_FLAT_DAMAGE_REDUCTION
     val canAddPierce: Boolean get() = shotPierce < MAX_SHOT_PIERCE
     val canAddBounce: Boolean get() = shotBounce < MAX_SHOT_BOUNCE
+    val canAddOrb: Boolean get() = orbs < MAX_ORBS
+    val canChargeWake: Boolean get() = wakeLevel < MAX_WAKE_LEVEL
+    val canBuildFrostBeam: Boolean get() = frostLevel < MAX_FROST_LEVEL
 }

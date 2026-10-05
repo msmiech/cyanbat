@@ -2,21 +2,27 @@ package at.smiech.cyanbat.progress
 
 import at.smiech.cyanbat.util.ARMOR_FLOOR
 import at.smiech.cyanbat.util.COUNTERWEIGHT_REDUCTION
+import at.smiech.cyanbat.util.FROST_BEAM_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.FROST_SECONDS
 import at.smiech.cyanbat.util.CRITICAL_CHANCE
 import at.smiech.cyanbat.util.CRITICAL_CHANCE_BONUS
 import at.smiech.cyanbat.util.HEAVY_ROUNDS_DAMAGE
 import at.smiech.cyanbat.util.MAX_CRITICAL_CHANCE
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
 import at.smiech.cyanbat.util.MAX_FLAT_DAMAGE_REDUCTION
+import at.smiech.cyanbat.util.MAX_FROST_LEVEL
 import at.smiech.cyanbat.util.MAX_HEALTH_REGEN_PER_SECOND
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
+import at.smiech.cyanbat.util.MAX_ORBS
 import at.smiech.cyanbat.util.MAX_REVIVES
 import at.smiech.cyanbat.util.MAX_SHOT_BOUNCE
 import at.smiech.cyanbat.util.MAX_SHOT_PIERCE
+import at.smiech.cyanbat.util.MAX_WAKE_LEVEL
 import at.smiech.cyanbat.util.MIN_SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.POWER_UP_CHOICES
 import at.smiech.cyanbat.util.REGEN_PER_SECOND
 import at.smiech.cyanbat.util.SCORE_BONUS
+import at.smiech.cyanbat.util.TRAIL_DURATION_SECONDS
 import at.smiech.cyanbat.util.VITALITY_HIT_POINTS
 import at.smiech.cyanbat.util.XP_BONUS
 import kotlin.math.roundToInt
@@ -214,6 +220,75 @@ class PowerUpTest {
         assertEquals(2, loadout.shotBounce)
     }
 
+    @Test
+    fun `guardian orb sends one more orb round at a time`() {
+        assertEquals(0, loadout.orbs)
+
+        take(PowerUp.GUARDIAN_ORB)
+        assertEquals(1, loadout.orbs)
+
+        take(PowerUp.GUARDIAN_ORB)
+        assertEquals(2, loadout.orbs)
+    }
+
+    /**
+     * A share of the shot, so what raises the gun raises the orbs with it, and rounded up so the
+     * share is never nothing.
+     */
+    @Test
+    fun `an orb hits for a share of the shot and goes up with it`() {
+        val before = loadout.orbDamage
+        assertTrue(before in 1 until loadout.shotDamage, "an orb deals $before against a shot's ${loadout.shotDamage}")
+
+        take(PowerUp.HEAVY_ROUNDS)
+
+        assertTrue(loadout.orbDamage > before, "Heavy Rounds left the orbs behind")
+    }
+
+    /** The wake every run starts with is only a wake: short, and hurting nothing. */
+    @Test
+    fun `the plain wake hurts nothing`() {
+        assertEquals(0, loadout.wakeLevel)
+        assertEquals(0, loadout.wakeDamage)
+        assertEquals(TRAIL_DURATION_SECONDS, loadout.wakeSeconds)
+    }
+
+    @Test
+    fun `charged trail lengthens the wake and makes it shock harder each time`() {
+        var seconds = loadout.wakeSeconds
+        var damage = loadout.wakeDamage
+        repeat(MAX_WAKE_LEVEL) {
+            take(PowerUp.CHARGED_TRAIL)
+            assertTrue(loadout.wakeSeconds > seconds, "pick ${it + 1} did not lengthen the wake")
+            assertTrue(loadout.wakeDamage > damage, "pick ${it + 1} did not sharpen the shock")
+            seconds = loadout.wakeSeconds
+            damage = loadout.wakeDamage
+        }
+    }
+
+    @Test
+    fun `frost beam fires more often and freezes longer each time`() {
+        take(PowerUp.FROST_BEAM)
+        assertEquals(1, loadout.frostLevel)
+        assertEquals(FROST_BEAM_INTERVAL_SECONDS, loadout.frostIntervalSeconds)
+        assertEquals(FROST_SECONDS, loadout.frostSeconds)
+
+        take(PowerUp.FROST_BEAM)
+        assertTrue(loadout.frostIntervalSeconds < FROST_BEAM_INTERVAL_SECONDS, "the beam did not come round sooner")
+        assertTrue(loadout.frostSeconds > FROST_SECONDS, "the freeze did not last longer")
+    }
+
+    /** A second orb is not the same news as the first, and the card says so once there is one. */
+    @Test
+    fun `the weapons of their own say what another pick adds`() {
+        for (powerUp in listOf(PowerUp.GUARDIAN_ORB, PowerUp.CHARGED_TRAIL, PowerUp.FROST_BEAM)) {
+            assertEquals(powerUp.description, powerUp.describe(loadout), "${powerUp.name} before it is held")
+            val first = powerUp.describe(loadout)
+            take(powerUp)
+            assertTrue(powerUp.describe(loadout) != first, "${powerUp.name} reads the same once held")
+        }
+    }
+
     // endregion
 
     // region clamps
@@ -235,6 +310,9 @@ class PowerUpTest {
         assertEquals(MAX_FLAT_DAMAGE_REDUCTION, loadout.flatDamageReduction)
         assertEquals(MAX_SHOT_PIERCE, loadout.shotPierce)
         assertEquals(MAX_SHOT_BOUNCE, loadout.shotBounce)
+        assertEquals(MAX_ORBS, loadout.orbs)
+        assertEquals(MAX_WAKE_LEVEL, loadout.wakeLevel)
+        assertEquals(MAX_FROST_LEVEL, loadout.frostLevel)
     }
 
     private fun maxOutEveryCappedPowerUp() =
@@ -316,6 +394,12 @@ class PowerUpTest {
                 it.description.length <= 44,
                 "${it.name} has a description too long: ${it.description}"
             )
+        }
+        // And what each says once it is held, for the cards that say something else by then.
+        maxOutEveryCappedPowerUp()
+        PowerUp.entries.forEach {
+            val later = it.describe(loadout)
+            assertTrue(later.length <= 44, "${it.name} has a description too long once held: $later")
         }
     }
 

@@ -66,6 +66,25 @@ class CollisionSystemTest {
         }
     }
 
+    /**
+     * What the player hurts by touch - an orb, a charged wake - meets enemies and is told about
+     * nothing else: not its own side, not the scenery, and not enemy fire, which it is not spent by.
+     */
+    @Test
+    fun `a contact weapon meets enemies and nothing else`() {
+        for (other in CollisionGroup.entries) {
+            for (contactFirst in listOf(true, false)) {
+                val h = Harness()
+                if (contactFirst) h.spawn(CollisionGroup.PLAYER_CONTACT, 0f)
+                h.spawn(other, 5f)
+                if (!contactFirst) h.spawn(CollisionGroup.PLAYER_CONTACT, 0f)
+                h.step()
+                val expected = if (other == CollisionGroup.ENEMY) 1 else 0
+                assertEquals(expected, h.hits.size, "a contact weapon against $other")
+            }
+        }
+    }
+
     @Test
     fun `a projectile still hits the opposing side`() {
         val h = Harness()
