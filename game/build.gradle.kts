@@ -40,6 +40,12 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.test)
             }
         }
+        androidMain {
+            dependencies {
+                // WindowCompat, for the menu's status and navigation bar icons.
+                implementation(libs.androidx.core.ktx)
+            }
+        }
     }
 }
 
