@@ -68,7 +68,11 @@ class RunProbeTest {
             // Only kills score, each a whole number of POINTS_PER_HIT: a point a tick for surviving,
             // as there used to be, would leave some over. Not zero outright, because an early imp
             // can be shot down inside the few seconds flown here.
-            assertEquals(0, probe.score % POINTS_PER_HIT, "a score of ${probe.score} is not a whole number of kills")
+            assertEquals(
+                0,
+                probe.score % POINTS_PER_HIT,
+                "a score of ${probe.score} is not a whole number of kills"
+            )
             assertEquals(1, probe.level)
             assertTrue(probe.offer.isEmpty())
             assertFalse(probe.stageComplete)

@@ -81,7 +81,11 @@ class FrostSystemTest {
         assertEquals(before.offset(FROST_DRIFT, 0f), rectOf(enemy))
         step(0.8f)
         assertTrue(fired.isEmpty(), "it fired while frozen")
-        assertEquals(frame, world.getComponent(enemy, AnimationComponent::class)!!.currentFrame, "its wings beat")
+        assertEquals(
+            frame,
+            world.getComponent(enemy, AnimationComponent::class)!!.currentFrame,
+            "its wings beat"
+        )
         assertEquals(before.top, rectOf(enemy).top, "it went on flying up and down")
     }
 
@@ -97,7 +101,11 @@ class FrostSystemTest {
         step(0.1f)
         assertEquals(listOf(enemy), thawed)
         assertFalse(FrostSystem.isFrozen(world, enemy))
-        assertEquals(0, world.getComponent(enemy, TintComponent::class)!!.color ushr 24, "still blue")
+        assertEquals(
+            0,
+            world.getComponent(enemy, TintComponent::class)!!.color ushr 24,
+            "still blue"
+        )
     }
 
     @Test
@@ -122,7 +130,10 @@ class FrostSystemTest {
         step(1f - FROST_THAW_SECONDS / 2f)
 
         val alpha = tint.color ushr 24
-        assertTrue(alpha in 1 until (FROST_TINT ushr 24), "halfway through the thaw the wash is at $alpha")
+        assertTrue(
+            alpha in 1 until (FROST_TINT ushr 24),
+            "halfway through the thaw the wash is at $alpha"
+        )
         assertEquals(FROST_TINT and 0xFFFFFF, tint.color and 0xFFFFFF, "the blue changed hue")
     }
 
@@ -134,7 +145,10 @@ class FrostSystemTest {
 
         step(0.1f)
 
-        assertTrue(world.query(FrostComponent::class).isEmpty(), "a frozen enemy hung on past the left edge")
+        assertTrue(
+            world.query(FrostComponent::class).isEmpty(),
+            "a frozen enemy hung on past the left edge"
+        )
     }
 
     private companion object {

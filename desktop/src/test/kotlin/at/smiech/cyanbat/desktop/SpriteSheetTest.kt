@@ -146,10 +146,16 @@ class SpriteSheetTest {
                 for (frame in 0 until frames) {
                     val changed = (0 until rowHeight).sumOf { y ->
                         (frame * frameWidth until (frame + 1) * frameWidth).count { x ->
-                            image.getRGB(x, row * rowHeight + y) != image.getRGB(x, (row - 1) * rowHeight + y)
+                            image.getRGB(x, row * rowHeight + y) != image.getRGB(
+                                x,
+                                (row - 1) * rowHeight + y
+                            )
                         }
                     }
-                    assertTrue(changed > 0, "frame $frame of $name looks the same in row $row as in the row above")
+                    assertTrue(
+                        changed > 0,
+                        "frame $frame of $name looks the same in row $row as in the row above"
+                    )
                 }
             }
         }
@@ -204,16 +210,27 @@ class SpriteSheetTest {
      */
     @Test
     fun `every frame of a shot and of its hit moves on from the one before`() {
-        for ((name, frameWidth, frames) in listOf(Triple("shot.png", 24, 4), Triple("impact.png", 21, 6))) {
+        for ((name, frameWidth, frames) in listOf(
+            Triple("shot.png", 24, 4),
+            Triple("impact.png", 21, 6)
+        )) {
             assertNoBlankFrames(name, frameWidth = frameWidth, frames = frames * 14)
             val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
             for (variant in 0 until 14) {
                 for (frame in 1 until frames) {
                     val left = (variant * frames + frame) * frameWidth
                     val changed = (0 until image.height).sumOf { y ->
-                        (0 until frameWidth).count { x -> image.getRGB(left + x, y) != image.getRGB(left - frameWidth + x, y) }
+                        (0 until frameWidth).count { x ->
+                            image.getRGB(left + x, y) != image.getRGB(
+                                left - frameWidth + x,
+                                y
+                            )
+                        }
                     }
-                    assertTrue(changed > 0, "frame $frame of colorway $variant of $name is the frame before it again")
+                    assertTrue(
+                        changed > 0,
+                        "frame $frame of colorway $variant of $name is the frame before it again"
+                    )
                 }
             }
         }
@@ -232,7 +249,10 @@ class SpriteSheetTest {
             val ramp = opaqueColors(shots, variant * 24 * 4, 24 * 4)
             assertTrue(ramp.size <= 5, "colorway $variant's bolt carries ${ramp.size} colors")
             val hit = opaqueColors(hits, variant * 21 * 6, 21 * 6)
-            assertTrue(ramp.containsAll(hit), "colorway $variant's hit strays out of its bolt's colors")
+            assertTrue(
+                ramp.containsAll(hit),
+                "colorway $variant's hit strays out of its bolt's colors"
+            )
         }
     }
 
@@ -244,7 +264,11 @@ class SpriteSheetTest {
     @Test
     fun `every shot gives off the color of its bolt`() {
         val image = javaClass.getResourceAsStream("/shot.png").use { ImageIO.read(it) }
-        assertEquals(image.width / (24 * 4), SHOT_BODY_COLORS.size, "a light color for every colorway")
+        assertEquals(
+            image.width / (24 * 4),
+            SHOT_BODY_COLORS.size,
+            "a light color for every colorway"
+        )
         for (variant in SHOT_BODY_COLORS.indices) {
             for (frame in 0 until 4) {
                 val body = bodyOfBolt(image, variant, frame)
@@ -406,7 +430,11 @@ class SpriteSheetTest {
             val b = javaClass.getResourceAsStream("/$ahead")!!.use { ImageIO.read(it) }
             for (x in intArrayOf(0, a.width - 1)) {
                 for (y in 0 until a.height) {
-                    assertEquals(a.getRGB(x, y), b.getRGB(x, y), "$band and $ahead differ at column $x, row $y")
+                    assertEquals(
+                        a.getRGB(x, y),
+                        b.getRGB(x, y),
+                        "$band and $ahead differ at column $x, row $y"
+                    )
                 }
             }
         }
@@ -453,7 +481,10 @@ class SpriteSheetTest {
     fun `the lagoon's scenery is flat in every light`() {
         for (name in LAGOON_KEYFRAMED) {
             val rowHeight = sizeOf(name).second / KEYFRAMES
-            for (row in 0 until KEYFRAMES) assertFlat(name, row * rowHeight until (row + 1) * rowHeight)
+            for (row in 0 until KEYFRAMES) assertFlat(
+                name,
+                row * rowHeight until (row + 1) * rowHeight
+            )
         }
     }
 
@@ -592,7 +623,10 @@ class SpriteSheetTest {
     fun `the desert's scenery is flat in every light`() {
         for (name in DESERT_KEYFRAMED) {
             val rowHeight = sizeOf(name).second / KEYFRAMES
-            for (row in 0 until KEYFRAMES) assertFlat(name, row * rowHeight until (row + 1) * rowHeight)
+            for (row in 0 until KEYFRAMES) assertFlat(
+                name,
+                row * rowHeight until (row + 1) * rowHeight
+            )
         }
     }
 
@@ -629,12 +663,22 @@ class SpriteSheetTest {
         )
 
         /** The lagoon's scenery, drawn once in each of the [KEYFRAMES] - night to noon - and stacked. */
-        val LAGOON_KEYFRAMED = LAGOON_BANDS + (1..4).flatMap { listOf("lagoonObstacle$it.png", "templeObstacle$it.png") }
+        val LAGOON_KEYFRAMED = LAGOON_BANDS + (1..4).flatMap {
+            listOf(
+                "lagoonObstacle$it.png",
+                "templeObstacle$it.png"
+            )
+        }
 
         /** The desert's scenery, drawn once in each of the [KEYFRAMES] and stacked. */
         val DESERT_KEYFRAMED = listOf(
-            "desertFar.png", "desertMid.png", "desertNear.png",
-            "desertObstacle1.png", "desertObstacle2.png", "desertObstacle3.png", "desertObstacle4.png",
+            "desertFar.png",
+            "desertMid.png",
+            "desertNear.png",
+            "desertObstacle1.png",
+            "desertObstacle2.png",
+            "desertObstacle3.png",
+            "desertObstacle4.png",
         )
     }
 }

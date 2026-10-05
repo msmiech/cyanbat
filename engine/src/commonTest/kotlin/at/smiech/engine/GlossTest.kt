@@ -29,7 +29,8 @@ class GlossTest {
     private fun glinting(surface: Gloss.Surface, direction: Int): List<Pair<Int, Int>> {
         val levels = surface.glints(direction)
         val middle = surface.width / 2
-        return levels.indices.filter { levels[it] > 0 }.map { it % surface.width - middle to it / surface.width - middle }
+        return levels.indices.filter { levels[it] > 0 }
+            .map { it % surface.width - middle to it / surface.width - middle }
     }
 
     @Test
@@ -40,7 +41,10 @@ class GlossTest {
             val glints = glinting(surface, direction)
             assertTrue(glints.isNotEmpty(), "nothing glints in a light from direction $direction")
             for ((x, y) in glints) {
-                assertTrue(x * cos(angle) + y * sin(angle) > 0, "($x, $y) glints in a light from direction $direction")
+                assertTrue(
+                    x * cos(angle) + y * sin(angle) > 0,
+                    "($x, $y) glints in a light from direction $direction"
+                )
             }
         }
     }
@@ -51,7 +55,10 @@ class GlossTest {
         val radius = 9
         for (direction in 0 until Gloss.DIRECTIONS) {
             for ((x, y) in glinting(disc(radius), direction)) {
-                assertTrue(x * x + y * y >= (radius - 4) * (radius - 4), "($x, $y) glints in the middle")
+                assertTrue(
+                    x * x + y * y >= (radius - 4) * (radius - 4),
+                    "($x, $y) glints in the middle"
+                )
             }
         }
     }
@@ -63,7 +70,10 @@ class GlossTest {
         for (direction in 0 until Gloss.DIRECTIONS) {
             val levels = surface.glints(direction)
             assertTrue(levels.all { it in 0..Gloss.LEVELS })
-            assertTrue(levels.any { it.toInt() == Gloss.LEVELS }, "nothing glints fully in a light from $direction")
+            assertTrue(
+                levels.any { it.toInt() == Gloss.LEVELS },
+                "nothing glints fully in a light from $direction"
+            )
         }
         val corner = 0
         assertEquals(0, surface.glints(10)[corner].toInt())

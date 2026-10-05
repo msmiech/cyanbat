@@ -31,7 +31,8 @@ class GifEncoderTest {
 
     /** [frame]'s index at ([x], [y]) moved on by one, so it is certain to have changed. */
     private fun bump(frame: ByteArray, x: Int, y: Int) {
-        frame[y * width + x] = (((frame[y * width + x].toInt() and 0xFF) + 1) % palette.size).toByte()
+        frame[y * width + x] =
+            (((frame[y * width + x].toInt() and 0xFF) + 1) % palette.size).toByte()
     }
 
     @Test
@@ -154,7 +155,8 @@ class GifEncoderTest {
             for (y in 0 until image.height) {
                 for (x in 0 until image.width) {
                     val index = image.raster.getSample(x, y, 0)
-                    if (index != transparent) canvas[(top + y) * width + left + x] = colors.getRGB(index) and 0xFFFFFF
+                    if (index != transparent) canvas[(top + y) * width + left + x] =
+                        colors.getRGB(index) and 0xFFFFFF
                 }
             }
             canvas.copyOf()

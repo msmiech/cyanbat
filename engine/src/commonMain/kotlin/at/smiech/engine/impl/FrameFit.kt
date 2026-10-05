@@ -50,7 +50,8 @@ data class FrameFit(
     fun toFrameBufferX(viewX: Float): Int = floor((viewX - left) * frameBufferWidth / width).toInt()
 
     /** A vertical view position, in framebuffer pixels. See [toFrameBufferX]. */
-    fun toFrameBufferY(viewY: Float): Int = floor((viewY - top) * frameBufferHeight / height).toInt()
+    fun toFrameBufferY(viewY: Float): Int =
+        floor((viewY - top) * frameBufferHeight / height).toInt()
 
     companion object {
         /** Where [mode] draws the framebuffer in a view of [viewWidth] by [viewHeight] pixels. */
@@ -61,13 +62,24 @@ data class FrameFit(
             viewWidth: Int,
             viewHeight: Int,
         ): FrameFit = when (mode) {
-            DisplayMode.STRETCH -> stretched(frameBufferWidth, frameBufferHeight, viewWidth, viewHeight)
+            DisplayMode.STRETCH -> stretched(
+                frameBufferWidth,
+                frameBufferHeight,
+                viewWidth,
+                viewHeight
+            )
+
             DisplayMode.BLACK_BARS, DisplayMode.AMBIENT ->
                 fitted(frameBufferWidth, frameBufferHeight, viewWidth, viewHeight)
         }
 
         /** The largest fit of the framebuffer into the view that keeps its shape, centered. */
-        fun fitted(frameBufferWidth: Int, frameBufferHeight: Int, viewWidth: Int, viewHeight: Int): FrameFit {
+        fun fitted(
+            frameBufferWidth: Int,
+            frameBufferHeight: Int,
+            viewWidth: Int,
+            viewHeight: Int
+        ): FrameFit {
             val scale = min(
                 viewWidth.toFloat() / frameBufferWidth,
                 viewHeight.toFloat() / frameBufferHeight,
@@ -87,7 +99,12 @@ data class FrameFit(
         }
 
         /** The whole view, whatever its shape. */
-        fun stretched(frameBufferWidth: Int, frameBufferHeight: Int, viewWidth: Int, viewHeight: Int): FrameFit =
+        fun stretched(
+            frameBufferWidth: Int,
+            frameBufferHeight: Int,
+            viewWidth: Int,
+            viewHeight: Int
+        ): FrameFit =
             FrameFit(
                 frameBufferWidth,
                 frameBufferHeight,
@@ -111,7 +128,11 @@ private val BAR_COLOR = Color.Black
  * the playfield stops at its edge, as it did when the frame was a bitmap, rather than spilling onto
  * a bar.
  */
-fun DrawScope.drawGameFrame(graphics: ComposeGraphics, fit: FrameFit, ambient: AmbientBars? = null) {
+fun DrawScope.drawGameFrame(
+    graphics: ComposeGraphics,
+    fit: FrameFit,
+    ambient: AmbientBars? = null
+) {
     drawRect(BAR_COLOR)
     ambient?.draw(this, graphics, fit)
     val left = fit.left.toFloat()

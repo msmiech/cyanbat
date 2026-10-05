@@ -129,7 +129,8 @@ class BurstTest {
 
     @Test
     fun `a hit is centered where the shot struck`() {
-        val rect = rectOf(factory.createImpact(200f, 150f, sparks, PLAYER_SHOT_VARIANT, isPlayer = true))
+        val rect =
+            rectOf(factory.createImpact(200f, 150f, sparks, PLAYER_SHOT_VARIANT, isPlayer = true))
 
         assertEquals(200f, rect.centerX, 0.01f)
         assertEquals(150f, rect.centerY, 0.01f)
@@ -146,7 +147,12 @@ class BurstTest {
 
     @Test
     fun `a hit in daylight gives off no light`() {
-        assertNull(world.getComponent(factory.createImpact(0f, 0f, sparks, 0, isPlayer = true), LightComponent::class))
+        assertNull(
+            world.getComponent(
+                factory.createImpact(0f, 0f, sparks, 0, isPlayer = true),
+                LightComponent::class
+            )
+        )
     }
 
     /**
@@ -157,14 +163,32 @@ class BurstTest {
     fun `a hit in the dark lights more than its shot did`() {
         val dark = EntityFactory(world, lit = true)
         for (isPlayer in listOf(true, false)) {
-            val shot = dark.createShot(0f, 0f, SHOT_FRAME_WIDTH.toFloat(), 12f, bolts, isPlayer = isPlayer, variant = 3)
+            val shot = dark.createShot(
+                0f,
+                0f,
+                SHOT_FRAME_WIDTH.toFloat(),
+                12f,
+                bolts,
+                isPlayer = isPlayer,
+                variant = 3
+            )
             val hit = dark.createImpact(0f, 0f, sparks, 3, isPlayer = isPlayer)
             val shotLight = assertNotNull(world.getComponent(shot, LightComponent::class))
-            val hitLight = assertNotNull(world.getComponent(hit, LightComponent::class), "a hit in the dark is a light")
+            val hitLight = assertNotNull(
+                world.getComponent(hit, LightComponent::class),
+                "a hit in the dark is a light"
+            )
 
-            assertTrue(hitLight.radius > shotLight.radius, "${hitLight.radius} against the shot's ${shotLight.radius}")
+            assertTrue(
+                hitLight.radius > shotLight.radius,
+                "${hitLight.radius} against the shot's ${shotLight.radius}"
+            )
             assertEquals(IMPACT_LIGHT_SECONDS, hitLight.fadeSeconds)
-            assertEquals(IMPACT_FRAME_COUNT * animationOf(hit).interval, hitLight.fadeSeconds, 0.001f)
+            assertEquals(
+                IMPACT_FRAME_COUNT * animationOf(hit).interval,
+                hitLight.fadeSeconds,
+                0.001f
+            )
         }
     }
 

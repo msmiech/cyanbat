@@ -1,6 +1,7 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this
+repository.
 
 CyanBat is a side-scrolling shooter that runs on Android and on the desktop from one Kotlin
 Multiplatform codebase. The README covers features, controls and the release secrets; this file
@@ -29,21 +30,21 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
   in `gradle.properties`), so it needs no Kotlin/Native toolchain. It still compiles `commonMain`
   as common code, so a JVM-only API there fails the build anywhere. What only Kotlin/Native
   catches - a comma in a backticked test name, for one, which it rejects - fails in CI's `ios`
-  job, or locally with `-Pkotlin.native.enableKlibsCrossCompilation=true`, at the cost of a
-  one-time download of about 800 MB. An IDE sync downloads that toolchain regardless.
+  job, or locally with `-Pkotlin.native.enableKlibsCrossCompilation=true`, at the cost of a one-time
+  download of about 800 MB. An IDE sync downloads that toolchain regardless.
 - To run, drive and screenshot the app on an emulator, use the `run-cyanbat` skill
-  (`.claude/skills/run-cyanbat/`). Its gotchas cover what trips up device testing: the game
-  activity is not exported, `monkey` destroys it, and binary output needs `adb exec-out`.
-- **In a git worktree** (such as `.claude/worktrees/*`) there is no `local.properties`, since it
-  is gitignored, so Android tasks fail with "SDK location not found". Run them with
+  (`.claude/skills/run-cyanbat/`). Its gotchas cover what trips up device testing: the game activity
+  is not exported, `monkey` destroys it, and binary output needs `adb exec-out`.
+- **In a git worktree** (such as `.claude/worktrees/*`) there is no `local.properties`, since it is
+  gitignored, so Android tasks fail with "SDK location not found". Run them with
   `ANDROID_HOME` set to the SDK. JVM-only tasks - the tests, `:desktop:*` - do not need it.
 - JDK 21 comes from the Gradle toolchain; nothing to install.
 
 ## Architecture
 
 `:engine` <- `:game` <- `:app` (Android) and `:desktop` (Compose Desktop). The engine and the whole
-game, menu UI included, are common code; the two platform modules only supply platform pieces.
-The few platform differences inside `:game` are `expect`/`actual` (`ui/Platform.kt`).
+game, menu UI included, are common code; the two platform modules only supply platform pieces. The
+few platform differences inside `:game` are `expect`/`actual` (`ui/Platform.kt`).
 `:engine` and `:game` also have iOS targets (`iosArm64`, `iosSimulatorArm64`), but there is no iOS
 app yet: the targets are there so that the shared code stays portable to one.
 
@@ -51,21 +52,22 @@ app yet: the targets are there so that the shared code stays portable to one.
 `CyanBatMenu`, fed by a `MenuHost`, navigated by a hand-rolled `MenuBackStack`. The game itself is
 not laid out by Compose, but it is drawn through it: screens draw a fixed **640x360 frame**
 through the engine's `Graphics`, and the host draws that into a Compose `Canvas` - see Rendering.
+
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
 - Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`.
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.
-- Each host builds a `CyanBatEnvironment` (assets, haptics, highscore and stage unlock stores,
-  audio settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in `:game`,
-  backed by DataStore in `:app` and `java.util.prefs` in `:desktop`.
+- Each host builds a `CyanBatEnvironment` (assets, haptics, highscore and stage unlock stores, audio
+  settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in `:game`, backed
+  by DataStore in `:app` and `java.util.prefs` in `:desktop`.
 
 **Timing.** The shared `GameLoop` clamps a frame's delta to 50 ms, so a resume cannot fast-forward
 the run. `GameScreen` steps `world.update` in fixed 19 ms ticks (`TICK_INITIAL`), and everything
 that paces gameplay - `EnemyGenerator`, `ObstacleGenerator`, the stage clock - is fed that tick.
-Never pace gameplay with the wall clock or a coroutine: a paused game has to be a paused stage.
-On Android the loop marks each frame's `Screen.update` and `Screen.present` in the system trace
+Never pace gameplay with the wall clock or a coroutine: a paused game has to be a paused stage. On
+Android the loop marks each frame's `Screen.update` and `Screen.present` in the system trace
 (`FrameTrace`), and the activity marks the frame's drawing (`Frame.draw`), so a Perfetto or Android
 Studio trace shows what a slow frame spent its time on.
 
@@ -79,11 +81,12 @@ the default ambient bars) and maps touches back through the same rectangle. Do n
 playfield for wide screens; it would change difficulty by device.
 
 **ECS** (`at.smiech.engine.ecs`):
-- `World` stores components struct-of-arrays with a 64-bit signature per entity, so there can be
-  at most 64 component types.
-- Entity ids are recycled when removals are finalized at the end of `World.update`. Never keep an
-  id across frames to look something up later. Copy what you need at spawn instead: a shot's color
-  is read off its shooter when the shot is created, and the shot carries it on (`ColorwayComponent`)
+
+- `World` stores components struct-of-arrays with a 64-bit signature per entity, so there can be at
+  most 64 component types.
+- Entity ids are recycled when removals are finalized at the end of `World.update`. Never keep an id
+  across frames to look something up later. Copy what you need at spawn instead: a shot's color is
+  read off its shooter when the shot is created, and the shot carries it on (`ColorwayComponent`)
   to the hit it leaves where it is spent.
 - There is no `removeComponent`. Clamp or disarm a component rather than taking it off.
 - Systems resolve `ComponentMapper`s in `onAttach` and iterate with the allocation-free `forEach`.
@@ -91,23 +94,24 @@ playfield for wide screens; it would change difficulty by device.
   (`WeaponSystem`, `TrailSystem`, `DeathSystem`, `CollisionSystem`).
 - **System order is load-bearing.** It is set, with a comment per placement, in `GameScreen`'s
   `init`; read it before adding a system.
-- Sprite rotation is cosmetic. Collision boxes always stay axis-aligned. Hostile art faces left,
-  so something that turns to face its heading carries `FacesVelocityComponent(180f)` - all but the
+- Sprite rotation is cosmetic. Collision boxes always stay axis-aligned. Hostile art faces left, so
+  something that turns to face its heading carries `FacesVelocityComponent(180f)` - all but the
   lagoon's shark, which comes from behind and so is drawn facing right (`drawnFacingRight`).
 
 **A run.** `GameScreen` is one run of one stage.
+
 - Pause, the level-up offer and "stage complete" are state inside it rather than separate
   `Screen`s, because swapping screens disposes the run. `GameOverScreen` is its own screen.
 - Moving to the next stage builds a fresh `GameScreen`. That is what resets score, experience and
   power-ups.
 - On Android the run lives only in `CyanBatGameActivity`, and recreating it starts the run over. So
   it takes every configuration change a run can meet in place - dark mode coming on, a fold or a
-  resize, another display's density, a pad dropping out - through its `configChanges`, each with
-  its reason in the manifest. Anything it comes to read from its configuration, a theme or a
-  resource, has to follow a change in `onConfigurationChanged` rather than wait for a recreation.
-- The boss going down does not put "stage complete" up at once. Everything hostile goes with it,
-  and the run plays on for `STAGE_COMPLETE_DELAY_SECONDS` (`playOutVictory`) under a banner that
-  the boss has fallen: the bat flies on, unarmed and untouchable, the wreck bursts again at
+  resize, another display's density, a pad dropping out - through its `configChanges`, each with its
+  reason in the manifest. Anything it comes to read from its configuration, a theme or a resource,
+  has to follow a change in `onConfigurationChanged` rather than wait for a recreation.
+- The boss going down does not put "stage complete" up at once. Everything hostile goes with it, and
+  the run plays on for `STAGE_COMPLETE_DELAY_SECONDS` (`playOutVictory`) under a banner that the
+  boss has fallen: the bat flies on, unarmed and untouchable, the wreck bursts again at
   `BOSS_AFTERSHOCK_SECONDS`, the stage's music stops dead for the boss's blast, and a fanfare comes
   in. The overlay lands on the fanfare's drop. The aftershocks are timed to the blasts in
   `bossDeath.wav` and the delay to the fanfare's `LANDING_BEAT`; change each with its script.
@@ -119,6 +123,7 @@ playfield for wide screens; it would change difficulty by device.
   `composeResources/values/strings.xml`.
 
 **Stage content is split four ways.**
+
 - `Stage` (registered in `GameAssets.load`) is how a stage looks and sounds. Its `Backdrop` is
   either a `Strip` (the jungle, the cave: one tiled image) or a `Sky` (the desert and the lagoon: a
   sky the game draws, changing with the time of day on the stage clock, over parallax bands of
@@ -135,8 +140,9 @@ Adding a stage touches all four, plus new generators in `tools/` (its music amon
 `StageMusic` in `GameAssets`), a preview card, the stage select's strings, and the recorder's
 `STAGE_COVERAGE`, which says how much of the stage the README's reel shows.
 
-**The lagoon** (stage 4) is the hardest stage: its waves are the desert's design pushed further, with
-sharks that come in from behind along the waterline (`Squad.FROM_BEHIND`, a `LEAP` cruising right)
+**The lagoon** (stage 4) is the hardest stage: its waves are the desert's design pushed further,
+with sharks that come in from behind along the waterline (`Squad.FROM_BEHIND`, a `LEAP` cruising
+right)
 and puffers that throw rings. A temple comes into sight on the way to the Naga: three of its bands
 switch to temple strips, and its obstacles to temple stones.
 
@@ -145,6 +151,7 @@ switch to temple strips, and its obstacles to temple stones.
 look like then: `Daylight` is the desert's, from noon into night, and `Daybreak` the lagoon's, from
 night into noon. `SkySystem` draws a `Backdrop.Sky` by its day, first in the system order, and puts
 every entity carrying a `CrossfadeComponent` (the obstacles) in the same light.
+
 - Scenery lit by the day is drawn once per entry of its day's `keyframes` (the desert's noon, golden
   hour, sunset and night; the lagoon's night, dawn, sunrise and noon), stacked top to bottom on its
   sheet, and crossfaded between neighbors with `drawPixmapFaded`. A generator writes the shapes once
@@ -161,39 +168,40 @@ every entity carrying a `CrossfadeComponent` (the obstacles) in the same light.
 
 **The cave's dark.** The cave is flown in the dark (`Stage.lighting`, a `StageLighting`); the jungle
 and the desert are flown in daylight, and none of this runs there.
-- `LightingSystem` sits between two `RenderSystem` passes split at `LIGHTS_FROM` (z 15). Under it are
-  the scenery, the halos, the obstacles and everything hostile, as lit as whatever reaches them; over
-  it the shots, the bat and the blasts, which are lights and are drawn as bright as they are. In
-  daylight the two passes draw what one did.
-- What gives off light (`LightComponent`: the bat, each shot in its bolt's color - `SHOT_BODY_COLORS`,
-  which `SpriteSheetTest` holds to the sheet - blasts, a shot's hit, which flares wider than the shot's
-  own light, elites, the cave's boss) and what throws shadows (`OccluderComponent`: obstacles and
-  creatures) is set in `EntityFactory`, and only when its `lit` is set. The numbers are under "The
-  dark" in `CyanBatConstants`.
+
+- `LightingSystem` sits between two `RenderSystem` passes split at `LIGHTS_FROM` (z 15). Under it
+  are the scenery, the halos, the obstacles and everything hostile, as lit as whatever reaches them;
+  over it the shots, the bat and the blasts, which are lights and are drawn as bright as they are.
+  In daylight the two passes draw what one did.
+- What gives off light (`LightComponent`: the bat, each shot in its bolt's color -
+  `SHOT_BODY_COLORS`, which `SpriteSheetTest` holds to the sheet - blasts, a shot's hit, which
+  flares wider than the shot's own light, elites, the cave's boss) and what throws shadows
+  (`OccluderComponent`: obstacles and creatures) is set in `EntityFactory`, and only when its `lit`
+  is set. The numbers are under "The dark" in `CyanBatConstants`.
 - The light is worked out on the tick into a `Lighting` and drawn on the frame by
   `Graphics.drawLighting`. `ComposeGraphics` turns it into a picture on the CPU, a pixel of it to
-  each 2x2 cell of frame pixels (`LIGHT_CELL`): each light a cached sprite of banded rings in its color
-  (`Lighting.rings`, laid down with `Raster.oval`), laid over the dark with its shadows erased from a
-  scratch copy first. The frame takes that picture in one GPU draw, multiplied (`Modulate`), with a
-  little of it added back as `glow`. A light no tick has changed (`Lighting.version`) is not drawn
-  again.
+  each 2x2 cell of frame pixels (`LIGHT_CELL`): each light a cached sprite of banded rings in its
+  color (`Lighting.rings`, laid down with `Raster.oval`), laid over the dark with its shadows erased
+  from a scratch copy first. The frame takes that picture in one GPU draw, multiplied (`Modulate`),
+  with a little of it added back as `glow`. A light no tick has changed (`Lighting.version`) is not
+  drawn again.
 - It is built for old phones, and measured on the emulator before and after: the light costs the UI
   thread about 0.2 ms a frame. Keep it that way. On the CPU only plain copies (`Src`) and `SrcOver`
-  are fast in Skia - adding light (`Plus`) or tinting it as it is drawn costs several times as much a
-  pixel - which is why lights are laid over rather than added, and why each color of light is its own
-  cached sprite. The first light, the bat's, lands on nothing but the dark, so it is copied down whole
-  with the dark already in it and its shadows painted on in the dark's color (`layFirst`), which comes
-  out the same pixel for pixel. Half the frame's resolution is a quarter of the pixels to fill, light
-  and upload every tick; the cost is a shadow's edge stepping two pixels at a time.
+  are fast in Skia - adding light (`Plus`) or tinting it as it is drawn costs several times as much
+  a pixel - which is why lights are laid over rather than added, and why each color of light is its
+  own cached sprite. The first light, the bat's, lands on nothing but the dark, so it is copied down
+  whole with the dark already in it and its shadows painted on in the dark's color (`layFirst`),
+  which comes out the same pixel for pixel. Half the frame's resolution is a quarter of the pixels
+  to fill, light and upload every tick; the cost is a shadow's edge stepping two pixels at a time.
 - A shadow is cast from the convex hull of the sprite's current frame (`Silhouettes`), out from its
   far side, so whatever throws one stays lit, and a creature's shadow beats its wings. Every light
   throws them, the shots' included; a light inside an outline (an elite's glow) throws none from it.
 - Glints (`Gloss`): each frame's outline is taken as a rounded bevel, and every light reaching
-  something with a `shine` adds a thin rim on the side it comes from, in its color - unless that thing
-  stands in another's shadow. Sixteen directions, three steps, masks cached per frame and direction
-  (`FrameCache`) and added after the light. They are meant to stay subtle and to help the player read
-  which way the light falls and where things are; past the frame's edge the art counts as carrying on,
-  so a rock's cut base never glints.
+  something with a `shine` adds a thin rim on the side it comes from, in its color - unless that
+  thing stands in another's shadow. Sixteen directions, three steps, masks cached per frame and
+  direction (`FrameCache`) and added after the light. They are meant to stay subtle and to help the
+  player read which way the light falls and where things are; past the frame's edge the art counts
+  as carrying on, so a rock's cut base never glints.
 - Silhouettes and glints read the art through `Pixmap.readPixels`. A test double reads nothing and
   counts as its whole frame.
 
@@ -203,9 +211,9 @@ wound it puts its light out and goes round a prowl (`CacoImpBrain.Prowl`) - dous
 station of its choosing (`EnemyMovementType.GLIDE`), lurk, flare up, fire, burn - and at its second
 it blazes for good and calls in strikers. It never fires in the dark, since its bolts are lights.
 What finds it there is light: the bat's, its shots', the flash of a hit. Its health bar is pinned
-under the timer (`BOSS_BAR_*`, shared with the Sand Wyrm), because one hung under it would show where
-it had got to. Its light is the factory's `LightComponent`, changed in place, and only its intensity
-moves tick to tick: a light's sprite is cached by radius and color, never by strength.
+under the timer (`BOSS_BAR_*`, shared with the Sand Wyrm), because one hung under it would show
+where it had got to. Its light is the factory's `LightComponent`, changed in place, and only its
+intensity moves tick to tick: a light's sprite is cached by radius and color, never by strength.
 
 **Bosses with a body.** The Sand Wyrm is a head plus nine plates, each an entity, laid by
 `SandWyrmBrain` along the path the head has flown. The Naga is a hooded head plus twelve parts, laid
@@ -215,16 +223,17 @@ Every part carries a `BossPartComponent`: a shot that hits a part lands on the h
 the health (a plate passes on only its `share` of it). A shot lands on the boss once and spends one
 pierce on it, however many parts it meets (`GameScreen.hasAlreadyStruck`); one that meets the head
 lands there, whole. Nothing but the bat's weapons wears down any boss, these or the others: the bat
-flying into one lands nothing. The brain holds the plates' ids for the whole fight, which is safe only because nothing else moves,
-culls or kills them; `GameScreen` removes them when the boss dies. Its health bar is pinned to the
-screen (`HealthBarComponent.pinnedTo`), because the head spends half the fight under the sand. The
-Naga's is pinned for the same reason, and its fight is five phases, at fifths of its health
-(`NAGA_PHASE_*_AT`), where every other boss changes phase at its wounds' marks.
+flying into one lands nothing. The brain holds the plates' ids for the whole fight, which is safe
+only because nothing else moves, culls or kills them; `GameScreen` removes them when the boss dies.
+Its health bar is pinned to the screen (`HealthBarComponent.pinnedTo`), because the head spends half
+the fight under the sand. The Naga's is pinned for the same reason, and its fight is five phases, at
+fifths of its health (`NAGA_PHASE_*_AT`), where every other boss changes phase at its wounds' marks.
 
-**Wounds.** Every creature's sheet - the bat's, the enemy sheets, the boss sheets - stacks
-each frame three times, top to bottom: unhurt, wounded, battered (`WOUND_ROWS`). `WoundSystem`
-moves a sprite down a row as its health falls past `WOUND_MARKS`, read off the health every tick,
-so healing undoes it. The bosses change phase at the same marks.
+**Wounds.** Every creature's sheet - the bat's, the enemy sheets, the boss sheets - stacks each
+frame three times, top to bottom: unhurt, wounded, battered (`WOUND_ROWS`). `WoundSystem`
+moves a sprite down a row as its health falls past `WOUND_MARKS`, read off the health every tick, so
+healing undoes it. The bosses change phase at the same marks.
+
 - A creature's pixmap is three pictures tall. Its sprite must set `srcHeight` to one row - the
   default is the whole pixmap - and anything sized off the sheet divides by `WOUND_ROWS`.
 - The Sand Wyrm's plates and the Naga's parts have no health; their brains draw them from the head's
@@ -241,6 +250,7 @@ so healing undoes it. The bosses change phase at the same marks.
 
 **Elites.** From a stage's second minute, a group can arrive with an elite in it: a loner, one of a
 swarm, or a formation's leader.
+
 - `WaveDesign.eliteChance` is rolled once per group in `EnemyGenerator.spawnGroup`. Boss summons
   skip that roll, so a boss never calls up an elite.
 - An elite has `ELITE_HIT_POINT_FACTOR` its kind's health (not its shield), and fires its kind's
@@ -254,66 +264,70 @@ swarm, or a formation's leader.
   every other sprite. In one pass the strip covered every halo in the jungle and the cave.
 
 **Player progression** is per run and never persisted:
+
 - `PlayerProgress` tracks experience and the bat's level.
-- `PowerUp` builds the three-card offer. Maxed cards drop out of it, and the uncapped ones
-  guarantee it can always be filled.
+- `PowerUp` builds the three-card offer. Maxed cards drop out of it, and the uncapped ones guarantee
+  it can always be filled.
 - `PlayerLoadout` holds the stats the picks derive.
 - `ScoreTracker` carries fractional points between awards.
 - Three picks are weapons of their own, each on its own clock: Guardian Orb, Charged Trail and Frost
-  Beam. What the first two deal is a share of `shotDamage`, so the gun's upgrades pay into them, and a
-  card can say something else once held (`PowerUp.describe`).
-  - Orbs and charged wake segments collide as `CollisionGroup.PLAYER_CONTACT`, which meets enemies and
-    nothing else, and land through `GameScreen.strike`. They are never spent: a target takes each
-    `ContactWeapon` at most once a rehit time, kept on the target (`ContactCooldownComponent`) so it
-    goes with it. A boss part's is its boss's, or a wake the Sand Wyrm pours through would land once a
-    plate.
-  - `OrbitSystem` carries the orbs round the bat clockwise, evenly spaced in creation order.
-  - `FrostBeamSystem` freezes ordinary enemies only - never a boss, a part of one or an elite
-    (`GameScreen.canFreeze`). A freeze is `FrostSystem` holding the enemy's `PaceComponent` at zero,
-    drifting it with the scenery and washing it blue (`TintComponent`, which `RenderSystem` draws like
-    a flash). `slowWounded` leaves a frozen enemy's pace alone; the thaw hands back its wound's pace.
-    Frozen, it is harmless: `handleCollision` lets the bat through it with no hit either way, while
-    the bat's weapons still land.
+  Beam. What the first two deal is a share of `shotDamage`, so the gun's upgrades pay into them, and
+  a card can say something else once held (`PowerUp.describe`).
+    - Orbs and charged wake segments collide as `CollisionGroup.PLAYER_CONTACT`, which meets enemies
+      and nothing else, and land through `GameScreen.strike`. They are never spent: a target takes
+      each
+      `ContactWeapon` at most once a rehit time, kept on the target (`ContactCooldownComponent`) so
+      it goes with it. A boss part's is its boss's, or a wake the Sand Wyrm pours through would land
+      once a plate.
+    - `OrbitSystem` carries the orbs round the bat clockwise, evenly spaced in creation order.
+    - `FrostBeamSystem` freezes ordinary enemies only - never a boss, a part of one or an elite
+      (`GameScreen.canFreeze`). A freeze is `FrostSystem` holding the enemy's `PaceComponent` at
+      zero, drifting it with the scenery and washing it blue (`TintComponent`, which `RenderSystem`
+      draws like a flash). `slowWounded` leaves a frozen enemy's pace alone; the thaw hands back its
+      wound's pace. Frozen, it is harmless: `handleCollision` lets the bat through it with no hit
+      either way, while the bat's weapons still land.
 
 **Layered music.** A stage's music is one piece cut into eight stems, one per `MusicLayer` (bed,
 pulse, drive, lead, boom, roll, chop, fury), mixed live the way Doom 2016 and SSX 3 score their
 action. Past the tune the layers are a trap beat growing under the stage's own instruments: 808s
 (boom), rolling hi-hats (roll) and chopped voices (chop).
-- `MusicDirector` (`:game`) decides what plays. The wave raises a floor and the combo builds on
-  it, compared against each layer's threshold. The combo counts in rungs of the HUD's heat ladder
-  (`ComboHeat.rung`), not steps of the multiplier, every rung up to SUPERNOVA, so a new title on
-  the readout and a new layer land together. Under the tune the thresholds are two rungs apart,
-  over it one; fury is the boss's, or a SUPERNOVA streak's. A hit is a thud (a
-  muffle and a dip), the level-up dialog holds the music under a muffle instead of pausing it, the
-  boss and each boss phase get a one-bar drop and a slam on the downbeat. `GameScreen` feeds it at
-  the very top of `update`, ahead of every early return, because the music carries on under the
-  level-up dialog. Pause pauses it; the boss's death stops it dead and hands over to the victory's
-  fanfare, and the bat's death to the game over's track.
+
+- `MusicDirector` (`:game`) decides what plays. The wave raises a floor and the combo builds on it,
+  compared against each layer's threshold. The combo counts in rungs of the HUD's heat ladder
+  (`ComboHeat.rung`), not steps of the multiplier, every rung up to SUPERNOVA, so a new title on the
+  readout and a new layer land together. Under the tune the thresholds are two rungs apart, over it
+  one; fury is the boss's, or a SUPERNOVA streak's. A hit is a thud (a muffle and a dip), the
+  level-up dialog holds the music under a muffle instead of pausing it, the boss and each boss phase
+  get a one-bar drop and a slam on the downbeat. `GameScreen` feeds it at the very top of `update`,
+  ahead of every early return, because the music carries on under the level-up dialog. Pause pauses
+  it; the boss's death stops it dead and hands over to the victory's fanfare, and the bat's death to
+  the game over's track.
 - `StemMixer` (`:engine`, common) decodes the stems as it mixes and lands every change on the
-  music's grid (`MusicGrid`, `Quantum`): a layer coming in is all the way up on the beat, one
-  going out plays out its beat first. It also runs the muffle, a swept low-pass.
+  music's grid (`MusicGrid`, `Quantum`): a layer coming in is all the way up on the beat, one going
+  out plays out its beat first. It also runs the muffle, a swept low-pass.
   `DesktopLayeredMusic` and `AndroidLayeredMusic` are only threads pulling frames from it into a
   `SourceDataLine` or an `AudioTrack`.
 - The menu's, the game over's and the victory's music go through the same mixer: `Audio.newMusic`
-  is one stem at full level (`TrackMusic`), looping or played once. A track that does not loop
-  stops at its end (`StemMixer.isLooping`, `hasEnded`) and starts from the top when played again.
-- Two threads touch the mixer, and there are no locks, which common code could not take anyway.
-  The game thread only calls the setters, which swap in immutable orders; the audio thread owns
-  the rest. Every stem is decoded every chunk, heard or not: a stem's place in the music is how far
-  it has been read.
-- `GameScreen` opens its stage's music the first time it plays it and disposes it with itself, so
-  a run with music off never reads the stems and the next stage's run does not play over this one.
+  is one stem at full level (`TrackMusic`), looping or played once. A track that does not loop stops
+  at its end (`StemMixer.isLooping`, `hasEnded`) and starts from the top when played again.
+- Two threads touch the mixer, and there are no locks, which common code could not take anyway. The
+  game thread only calls the setters, which swap in immutable orders; the audio thread owns the
+  rest. Every stem is decoded every chunk, heard or not: a stem's place in the music is how far it
+  has been read.
+- `GameScreen` opens its stage's music the first time it plays it and disposes it with itself, so a
+  run with music off never reads the stems and the next stage's run does not play over this one.
 - A stage's boss can be fought to a piece of its own (`StageMusic.boss`; the lagoon's Naga): as it
   arrives the stage's music is disposed and the boss's opened, with a director of its own, which
   holds it on its bed for a bar and slams everything in. Every layer is up for the whole fight, so
   its stems are there for the drops at its phases. `MusicStemTest` holds every piece to its grid.
-  The fanfare is the same (`GameAssets.VICTORY_MUSIC`): each won run opens its own, because a
-  track paused partway resumes from there, and a fanfare has to start from the top.
+  The fanfare is the same (`GameAssets.VICTORY_MUSIC`): each won run opens its own, because a track
+  paused partway resumes from there, and a fanfare has to start from the top.
 - The grid is declared twice, in the stage's generator and in its `StageMusic` in `GameAssets`.
-  `MusicStemTest` holds them together: every stem whole bars at the declared tempo, and every
-  stem's length dividing the longest, so the layers stay in step however long the run goes.
+  `MusicStemTest` holds them together: every stem whole bars at the declared tempo, and every stem's
+  length dividing the longest, so the layers stay in step however long the run goes.
 
 **Input.**
+
 - `PointerTouchHandler` handles touch. On desktop, mouse motion counts as a drag.
 - `ControlHandler` turns keyboard and gamepad into the `Controls` intent: two axes plus
   edge-triggered `GameButton`s. `ComposeKeyAdapter` (desktop) and `AndroidKeyAdapter` (keyboard and
@@ -331,20 +345,21 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   focus. When no control has focus - touch mode, or the focused one went away - the menu's root
   holds it, so the next key still arrives and brings the cursor back; while a control has it, the
   root cannot take focus, or Android's Back would move focus to it instead of going back.
-- On the desktop the window's key handler feeds `ControlHandler` only while a run is up; in the
-  menu it swallowed the arrows and Enter the menu is worked with.
+- On the desktop the window's key handler feeds `ControlHandler` only while a run is up; in the menu
+  it swallowed the arrows and Enter the menu is worked with.
 - Vibration goes to whatever the player is holding, and only to that. `AndroidGameActivity`
-  remembers the device of the last key, or stick past its dead zone, that the game took, and a
-  touch hands it back to the phone; `AndroidHaptics` rumbles that device's motors if it has any,
-  and the phone's otherwise. The player's switch is applied by `ObservedHaptics`, which the host
-  wraps round the haptics it hands the game. The desktop reads no pads, so it has nothing to
-  vibrate and its Settings leave the switch out (`canVibrate`).
+  remembers the device of the last key, or stick past its dead zone, that the game took, and a touch
+  hands it back to the phone; `AndroidHaptics` rumbles that device's motors if it has any, and the
+  phone's otherwise. The player's switch is applied by `ObservedHaptics`, which the host wraps round
+  the haptics it hands the game. The desktop reads no pads, so it has nothing to vibrate and its
+  Settings leave the switch out (`canVibrate`).
 
 **Rendering.** One `Graphics` for every platform: `ComposeGraphics`, in the engine's common code,
-drawn through Compose's Canvas - HWUI, and so the GPU, on Android; Skia on the desktop (and on
-iOS, for an app to come). There is no framebuffer bitmap.
-- `present` is recorded, call by call, and the host draws the recording in Compose's draw phase
-  with `drawGameFrame`: scaled from frame pixels to the `FrameFit` rectangle in one transform, and
+drawn through Compose's Canvas - HWUI, and so the GPU, on Android; Skia on the desktop (and on iOS,
+for an app to come). There is no framebuffer bitmap.
+
+- `present` is recorded, call by call, and the host draws the recording in Compose's draw phase with
+  `drawGameFrame`: scaled from frame pixels to the `FrameFit` rectangle in one transform, and
   clipped to it. A frame is drawn more than once: `AmbientBars` draws its edges again into a small
   picture of its own to read them, and `drawInto` draws it at frame size, on the CPU, for the
   recorder and the tests (`DesktopGame.capture`).
@@ -358,12 +373,12 @@ iOS, for an app to come). There is no framebuffer bitmap.
   this to the pixel: at three times the frame's size, every frame pixel is a solid block.
 - The grid is the frame's own pixels by default, and ready to be made finer: `gridScale` on
   `ComposeGraphics` is grid pixels to a frame pixel, taken up at the next frame. On a finer grid,
-  sprites and rectangles keep their frame pixels, ovals and outlines are worked out on the grid
-  with their weight kept, and turned sprites turn on it. Lines stay on the frame's grid, since
+  sprites and rectangles keep their frame pixels, ovals and outlines are worked out on the grid with
+  their weight kept, and turned sprites turn on it. Lines stay on the frame's grid, since
   `Raster` only draws them one grid pixel wide. A setting for it would be wired up the way the
   `DisplayMode` is, from the host.
-- The deliberate `- 1` in `drawPixmap` paints a column and a row short, and is why background
-  tiles overlap by one column. A "fix" would shift every sprite by a pixel.
+- The deliberate `- 1` in `drawPixmap` paints a column and a row short, and is why background tiles
+  overlap by one column. A "fix" would shift every sprite by a pixel.
 - Text is the exception, by choice: laid out in frame pixels, so the game places it as before, but
   drawn at the screen's resolution and antialiased. An outline is a stroke around the glyphs
   (`drawOutlinedString`), not the string stamped around itself. Each platform draws its own
@@ -379,6 +394,7 @@ iOS, for an app to come). There is no framebuffer bitmap.
   test fakes need updating.
 
 **Assets.**
+
 - `assets/` at the root is packaged as Android assets by `:app` and as classpath resources by
   `:desktop`.
 - Menu strings and drawables are Compose resources in `game/src/commonMain/composeResources`, with
@@ -386,17 +402,17 @@ iOS, for an app to come). There is no framebuffer bitmap.
 - CMP 1.12 does not copy those resources into the APK. The `StageComposeResources` task in
   `app/build.gradle.kts` works around that; without it the app crashes on the first
   `painterResource`.
-- The death sound is MP3, which the desktop decodes through the mp3spi/jlayer service providers.
-  No code references them; `Mp3DecodingTest` guards it.
-- Music is not MP3. The stages' stems and the menu's, game over's and victory's tracks are IMA
-  ADPCM WAVs in `assets/music/`, decoded in common code (`ImaAdpcmClip`), because a platform MP3
-  decoder pads and trims a file's ends its own way: stems a few milliseconds apart flam on every
-  drum hit, and a loop gets a gap. They are 22.05 kHz stereo, a quarter of their PCM size.
+- The death sound is MP3, which the desktop decodes through the mp3spi/jlayer service providers. No
+  code references them; `Mp3DecodingTest` guards it.
+- Music is not MP3. The stages' stems and the menu's, game over's and victory's tracks are IMA ADPCM
+  WAVs in `assets/music/`, decoded in common code (`ImaAdpcmClip`), because a platform MP3 decoder
+  pads and trims a file's ends its own way: stems a few milliseconds apart flam on every drum hit,
+  and a loop gets a gap. They are 22.05 kHz stereo, a quarter of their PCM size.
 - Generated sound effects are WAV: `javax.sound.sampled` reads PCM natively, and SoundPool can
   `openFd` them uncompressed from the APK.
 - Every effect is a `SoundEffect` - its file, its volume, and the least gap between two plays of
-  it - and a run plays them through its `SoundBoard`. The gap is what keeps a fan of hits landing
-  on one tick from playing five times over: SoundPool would stack the copies, where a desktop
+  it - and a run plays them through its `SoundBoard`. The gap is what keeps a fan of hits landing on
+  one tick from playing five times over: SoundPool would stack the copies, where a desktop
   `Clip` starts over. The files are written near full scale, so the volumes are the whole balance,
   between the effects and against the music; they were set by measuring each against a stage's
   middle layers, on a full-range speaker and through a phone's.
@@ -407,49 +423,50 @@ iOS, for an app to come). There is no framebuffer bitmap.
   because Compose's `icon` parameter renders one image and Windows shrinks it into noise.
   `AppIconTest` checks both sets, since nothing else reads the installers' before a release.
 
-**The art is generated.** `tools/generate_*.py`, built on `tools/pixelart.py`, produce every
-sprite sheet, background, obstacle, stage preview, the framed title, the app icons and the WAV
-effects; `tools/generate_*_music.py`, built on `tools/musicsynth.py`, produce all of the music.
-The death sound's MP3, `gameover.png` and `tools/title_lettering.png` are the exceptions.
+**The art is generated.** `tools/generate_*.py`, built on `tools/pixelart.py`, produce every sprite
+sheet, background, obstacle, stage preview, the framed title, the app icons and the WAV effects;
+`tools/generate_*_music.py`, built on `tools/musicsynth.py`, produce all of the music. The death
+sound's MP3, `gameover.png` and `tools/title_lettering.png` are the exceptions.
+
 - To change art, change the script and re-run it; never edit its output, the icons' vector XML
   included.
-- The scripts are deterministic: re-running an unchanged one must reproduce the committed file
-  byte for byte.
+- The scripts are deterministic: re-running an unchanged one must reproduce the committed file byte
+  for byte.
 - `SpriteSheetTest` pins each sheet's dimensions and color ceiling.
-- Re-run `generate_stage_previews.py` and `generate_icons.py` after changing any sheet they
-  compose.
+- Re-run `generate_stage_previews.py` and `generate_icons.py` after changing any sheet they compose.
 - Palette rule: the player is cool, everything hostile is warm.
-- The music scripts are scores - which notes, on which instrument, when - and `musicsynth.py` is
-  the band. Everything in it is circular: a note, a reverb tail or an echo that runs past the end
-  of a loop carries on at its start, so a stem has no seam. They pin numpy and scipy, because
-  floating-point results are only byte for byte on the same versions. A stage's stems are leveled
-  as a set, so the balance between the layers is the score's; change a part's level in its script.
-  The menu's and game over's tracks are leveled to a loudness (`write_track`), set against the
-  stages' mixes.
+- The music scripts are scores - which notes, on which instrument, when - and `musicsynth.py` is the
+  band. Everything in it is circular: a note, a reverb tail or an echo that runs past the end of a
+  loop carries on at its start, so a stem has no seam. They pin numpy and scipy, because
+  floating-point results are only byte for byte on the same versions. A stage's stems are leveled as
+  a set, so the balance between the layers is the score's; change a part's level in its script. The
+  menu's and game over's tracks are leveled to a loudness (`write_track`), set against the stages'
+  mixes.
 - The game over's track plays once, so its script renders it with room past its end and cuts it
   there; the circular tools would otherwise wrap its last gong round onto its first beat.
 - Nobody can hear a stem from its numbers. After changing a score, listen to it: the stems are
   ordinary WAVs, and a run in the game is the real test.
 
-**The README's GIF is recorded, not generated.** `recordGameplay` runs the `recorder` source
-set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
+**The README's GIF is recorded, not generated.** `recordGameplay` runs the `recorder` source set in
+`:desktop` (`desktop/src/recorder`), which never ships in the app.
+
 - It flies each stage in a real `DesktopGame`, headless, stepping the shared `GameLoop` on a fake
   clock. An `Autopilot` steers through `ControlHandler.onAxis`, as a game pad would, and forecasts
   enemies by running copies of them through the engine's own movement systems. `Montage` then cuts
   each run to a few short clips, and `GifEncoder` writes the stages as one reel, each stage on a
   palette of its own.
 - The reel shows less of each stage than of the one before (`STAGE_COVERAGE`), to leave the later
-  stages to discover: the jungle whole, a few glimpses of the cave, fewer of the desert, and only the
-  lagoon's sunrise. Neither the desert's boss nor the lagoon's is ever shown: a stage whose footage
-  is only its hours (`Coverage.onlyScenery`) is flown no further than the last of them, so no frame
-  of either boss is taped - and the autopilot need not survive the lagoon to its Naga.
+  stages to discover: the jungle whole, a few glimpses of the cave, fewer of the desert, and only
+  the lagoon's sunrise. Neither the desert's boss nor the lagoon's is ever shown: a stage whose
+  footage is only its hours (`Coverage.onlyScenery`) is flown no further than the last of them, so
+  no frame of either boss is taped - and the autopilot need not survive the lagoon to its Naga.
 - Runs are random, so unlike the art a re-recording is never byte for byte the same. Re-record after
   a visible change.
 - `RunProbe` reads a handful of `GameScreen`'s private fields by reflection (`world`, `batId`,
   `offer`, `stageComplete`, `progress`, `scoring`, `bannerText`, `bannerTime`). Renaming one still
   compiles; `RunProbeTest`, which flies a few seconds of the cave, is what fails.
-- The same hosting tests `GameScreen` itself: `GameScreenTest` builds a run on a `DesktopGame`,
-  sets up a moment through `RunProbe` and the public `enmGen`, and steps it with `update`.
+- The same hosting tests `GameScreen` itself: `GameScreenTest` builds a run on a `DesktopGame`, sets
+  up a moment through `RunProbe` and the public `enmGen`, and steps it with `update`.
 
 ## Conventions
 
@@ -459,26 +476,26 @@ set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
   highscores were moved with it (`StageOrderMigration`, and its desktop twin).
 - **American English** everywhere, identifiers and player-facing text included: color, center,
   behavior, armor.
-- **Comments explain why, in plain sentences.** Types get KDoc saying what they are for.
-  Non-obvious choices - system order, clamps, arming delays - carry their reasoning inline. Match
-  the surrounding density.
-- **Look at the result.** Unit tests cover game logic, not what reaches the screen, device input
-  or the activity lifecycle, and draw-call assertions happily pass on output that looks wrong.
-  Check visual changes by drawing a frame through `drawGameFrame` into an `ImageBitmap` the size of
-  a screen, as `ComposeGraphicsTest` does, or by running the game (`:desktop:run`, `run-cyanbat`)
+- **Comments explain why, in plain sentences.** Types get KDoc saying what they are for. Non-obvious
+  choices - system order, clamps, arming delays - carry their reasoning inline. Match the
+  surrounding density.
+- **Look at the result.** Unit tests cover game logic, not what reaches the screen, device input or
+  the activity lifecycle, and draw-call assertions happily pass on output that looks wrong. Check
+  visual changes by drawing a frame through `drawGameFrame` into an `ImageBitmap` the size of a
+  screen, as `ComposeGraphicsTest` does, or by running the game (`:desktop:run`, `run-cyanbat`)
   and looking at the screenshots.
 - **Branches and PRs.**
-  - Branch as `feat/`, `fix/`, `chore/`, `ci/`, `perf/` or `refactor/` and open a PR against
-    `main`. The owner merges on GitHub.
-  - Commit messages and PR titles are plain sentences about the change ("Give the bat a death
-    animation"), with no conventional-commit prefixes.
-  - PR bodies cover what changed, why, notes for review, and testing with concrete evidence: the
-    commands run, test counts, what the emulator showed.
+    - Branch as `feat/`, `fix/`, `chore/`, `ci/`, `perf/` or `refactor/` and open a PR against
+      `main`. The owner merges on GitHub.
+    - Commit messages and PR titles are plain sentences about the change ("Give the bat a death
+      animation"), with no conventional-commit prefixes.
+    - PR bodies cover what changed, why, notes for review, and testing with concrete evidence: the
+      commands run, test counts, what the emulator showed.
 - **Versions and releases.**
-  - Every artifact's version comes from `cyanbat.version` in `gradle.properties`. The root build
-    derives `versionCode` as `major * 10000 + minor * 100 + patch`.
-  - Pushing a bare tag (`git tag 2.4 && git push origin 2.4`) makes the Release workflow build and
-    publish the APK and the desktop installers. A `-rcN` suffix publishes a pre-release. Running
-    the workflow by hand is a rehearsal that publishes nothing.
-  - Keep `cyanbat.version` in step with the newest tag, through a `chore/bump-version-X.Y` PR
-    titled "Stamp untagged builds X.Y".
+    - Every artifact's version comes from `cyanbat.version` in `gradle.properties`. The root build
+      derives `versionCode` as `major * 10000 + minor * 100 + patch`.
+    - Pushing a bare tag (`git tag 2.4 && git push origin 2.4`) makes the Release workflow build and
+      publish the APK and the desktop installers. A `-rcN` suffix publishes a pre-release. Running
+      the workflow by hand is a rehearsal that publishes nothing.
+    - Keep `cyanbat.version` in step with the newest tag, through a `chore/bump-version-X.Y` PR
+      titled "Stamp untagged builds X.Y".

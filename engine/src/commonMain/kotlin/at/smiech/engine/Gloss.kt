@@ -50,10 +50,12 @@ object Gloss {
      */
     fun surface(pixels: IntArray, width: Int, height: Int): Surface {
         val opaque = BooleanArray(width * height) { pixels[it] ushr 24 >= OPAQUE_ALPHA }
+
         // Past the frame's edge the art is taken to carry on as it is at the edge. A creature's frame has
         // air all round it anyway; a rock's is cut off where it meets the floor or hangs from the roof,
         // and that cut is not an edge of the rock to glint off.
-        fun solid(x: Int, y: Int) = opaque[y.coerceIn(0, height - 1) * width + x.coerceIn(0, width - 1)]
+        fun solid(x: Int, y: Int) =
+            opaque[y.coerceIn(0, height - 1) * width + x.coerceIn(0, width - 1)]
 
         // How far each opaque pixel is from the air, center to center, out to a little past the bevel.
         val reach = BEVEL.toInt() + 1
@@ -72,7 +74,10 @@ object Gloss {
         }
 
         fun riseAt(x: Int, y: Int) =
-            if (solid(x, y)) rise[y.coerceIn(0, height - 1) * width + x.coerceIn(0, width - 1)] else 0f
+            if (solid(x, y)) rise[y.coerceIn(0, height - 1) * width + x.coerceIn(
+                0,
+                width - 1
+            )] else 0f
 
         // Softened over its neighbors, so the stairs of a pixel outline do not each turn a different way.
         val softened = FloatArray(width * height)
@@ -83,7 +88,10 @@ object Gloss {
             softened[y * width + x] = sum / 9f
         }
         fun heightAt(x: Int, y: Int) =
-            if (solid(x, y)) softened[y.coerceIn(0, height - 1) * width + x.coerceIn(0, width - 1)] else 0f
+            if (solid(x, y)) softened[y.coerceIn(0, height - 1) * width + x.coerceIn(
+                0,
+                width - 1
+            )] else 0f
 
         val nx = FloatArray(width * height)
         val ny = FloatArray(width * height)

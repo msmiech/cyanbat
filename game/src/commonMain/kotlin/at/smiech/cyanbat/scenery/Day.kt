@@ -39,7 +39,8 @@ interface Day {
     }
 
     /** The keyframe after [keyframeBelow], which is the one fading in over it; the last is its own. */
-    fun keyframeAbove(position: Float): Int = (keyframeBelow(position) + 1).coerceAtMost(keyframes.lastIndex)
+    fun keyframeAbove(position: Float): Int =
+        (keyframeBelow(position) + 1).coerceAtMost(keyframes.lastIndex)
 
     /** How far the ground has faded from [keyframeBelow] toward [keyframeAbove], as 0..1. */
     fun keyframeBlend(position: Float): Float {
@@ -141,7 +142,11 @@ internal fun ramp(positions: FloatArray, colors: IntArray, position: Float): Int
     if (position <= positions.first()) return colors.first()
     for (i in 0 until positions.lastIndex) {
         if (position < positions[i + 1]) {
-            return EngineColors.lerp(colors[i], colors[i + 1], fraction(position, positions[i], positions[i + 1]))
+            return EngineColors.lerp(
+                colors[i],
+                colors[i + 1],
+                fraction(position, positions[i], positions[i + 1])
+            )
         }
     }
     return colors.last()

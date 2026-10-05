@@ -41,7 +41,11 @@ class EliteGeneratorTest {
     private val bossPhases = mutableListOf<Int>()
 
     /** A stage that sends nothing but [species], every group of it with an elite in it. */
-    private fun only(species: EnemySpecies, eliteChance: Float = 1f, boss: BossKind = BossKind.CACO_IMP) =
+    private fun only(
+        species: EnemySpecies,
+        eliteChance: Float = 1f,
+        boss: BossKind = BossKind.CACO_IMP
+    ) =
         StageProgression(
             design = StageDesign(
                 waves = listOf(WaveDesign(listOf(species), eliteChance = eliteChance)),
@@ -70,7 +74,9 @@ class EliteGeneratorTest {
     }
 
     private fun enemies(): List<EntityId> = world.query(EnemyBehaviorComponent::class)
-    private fun elites(): List<EntityId> = enemies().filter { world.hasComponent(it, EliteComponent::class) }
+    private fun elites(): List<EntityId> =
+        enemies().filter { world.hasComponent(it, EliteComponent::class) }
+
     private fun paletteOf(id: EntityId) = world.getComponent(id, EliteComponent::class)!!.palette
 
     // region who is one
@@ -104,7 +110,8 @@ class EliteGeneratorTest {
     fun `a formation's elite is its leader`() {
         generator(only(EnemySpecies.WISP)).firstArrival()
 
-        val leader = enemies().minBy { world.getComponent(it, TransformComponent::class)!!.rect.left }
+        val leader =
+            enemies().minBy { world.getComponent(it, TransformComponent::class)!!.rect.left }
         assertEquals(listOf(leader), elites())
     }
 
@@ -122,7 +129,10 @@ class EliteGeneratorTest {
             val waves = StageDesign.forStage(stage).waves
             assertEquals(0f, waves.first().eliteChance, "stage $stage's opening minute")
             for ((index, wave) in waves.withIndex().drop(1)) {
-                assertTrue(wave.eliteChance > 0f, "stage $stage's wave ${index + 1} sends no elites")
+                assertTrue(
+                    wave.eliteChance > 0f,
+                    "stage $stage's wave ${index + 1} sends no elites"
+                )
             }
         }
     }
@@ -138,7 +148,10 @@ class EliteGeneratorTest {
 
         val ordinary = progression.waveAt(0f).hitPoints * EnemySpecies.SCOUT.hitPointFactor
         val health = world.getComponent(elites().single(), HealthComponent::class)!!
-        assertEquals((ordinary.roundToInt() * ELITE_HIT_POINT_FACTOR).roundToInt(), health.hitPoints)
+        assertEquals(
+            (ordinary.roundToInt() * ELITE_HIT_POINT_FACTOR).roundToInt(),
+            health.hitPoints
+        )
         assertEquals(health.hitPoints, health.maxHitPoints)
     }
 
@@ -148,7 +161,8 @@ class EliteGeneratorTest {
         val progression = only(EnemySpecies.BEETLE)
         generator(progression).firstArrival()
 
-        val ordinary = (progression.waveAt(0f).hitPoints * EnemySpecies.BEETLE.hitPointFactor).roundToInt()
+        val ordinary =
+            (progression.waveAt(0f).hitPoints * EnemySpecies.BEETLE.hitPointFactor).roundToInt()
         val shield = assertNotNull(world.getComponent(elites().single(), ShieldComponent::class))
         assertEquals((ordinary * EnemySpecies.BEETLE.innateShield).roundToInt(), shield.maxPoints)
     }
@@ -160,8 +174,15 @@ class EliteGeneratorTest {
 
         val elite = elites().single()
         val weapon = assertNotNull(world.getComponent(elite, WeaponComponent::class))
-        assertEquals(EnemySpecies.ISSUED_GUN.interval * ELITE_FIRE_INTERVAL_FACTOR, weapon.interval, 1e-5f)
-        assertEquals(EnemySpecies.ISSUED_GUN.volleys, world.getComponent(elite, GunComponent::class)?.volleys)
+        assertEquals(
+            EnemySpecies.ISSUED_GUN.interval * ELITE_FIRE_INTERVAL_FACTOR,
+            weapon.interval,
+            1e-5f
+        )
+        assertEquals(
+            EnemySpecies.ISSUED_GUN.volleys,
+            world.getComponent(elite, GunComponent::class)?.volleys
+        )
     }
 
     @Test
@@ -170,7 +191,11 @@ class EliteGeneratorTest {
 
         val elite = elites().single()
         val gun = EnemySpecies.SPITTER.gun!!
-        assertEquals(gun.interval * ELITE_FIRE_INTERVAL_FACTOR, world.getComponent(elite, WeaponComponent::class)!!.interval, 1e-5f)
+        assertEquals(
+            gun.interval * ELITE_FIRE_INTERVAL_FACTOR,
+            world.getComponent(elite, WeaponComponent::class)!!.interval,
+            1e-5f
+        )
         assertEquals(gun.volleys, world.getComponent(elite, GunComponent::class)?.volleys)
     }
 
@@ -180,10 +205,16 @@ class EliteGeneratorTest {
 
         for (elite in elites()) {
             val palette = paletteOf(elite)
-            val aura = assertNotNull(world.getComponent(elite, AuraComponent::class), "$palette has no glow")
+            val aura = assertNotNull(
+                world.getComponent(elite, AuraComponent::class),
+                "$palette has no glow"
+            )
             assertEquals(palette.aura, aura.colors)
             assertTrue(aura.intensity > 0f && aura.tier > 0, "$palette's glow is out")
-            assertEquals(palette.shotVariant, world.getComponent(elite, ProjectileStyleComponent::class)?.variant)
+            assertEquals(
+                palette.shotVariant,
+                world.getComponent(elite, ProjectileStyleComponent::class)?.variant
+            )
         }
     }
 

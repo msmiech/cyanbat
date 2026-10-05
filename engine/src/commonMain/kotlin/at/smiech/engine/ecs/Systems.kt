@@ -288,19 +288,23 @@ class EnemyBehaviorSystem : GameSystem() {
     ) {
         val rect = transform.rect
         if (behavior.state == STAGE_APPROACH) {
-            val short = if (behavior.baseSpeedX > 0f) rect.left < behavior.holdX else rect.left > behavior.holdX
+            val short =
+                if (behavior.baseSpeedX > 0f) rect.left < behavior.holdX else rect.left > behavior.holdX
             if (short) {
                 // Held to its lane rather than left to drift, so the back showing above the sand
                 // stays the same height all the way in: that sliver is the whole of the warning.
-                velocity.velocity = Vector2(behavior.baseSpeedX, (behavior.initialY - rect.top) * 0.2f)
+                velocity.velocity =
+                    Vector2(behavior.baseSpeedX, (behavior.initialY - rect.top) * 0.2f)
                 return
             }
             enter(behavior, STAGE_COMMITTED)
-            velocity.velocity = Vector2(behavior.baseSpeedX * LEAP_FORWARD_FACTOR, launchSpeed(rect, deltaTime))
+            velocity.velocity =
+                Vector2(behavior.baseSpeedX * LEAP_FORWARD_FACTOR, launchSpeed(rect, deltaTime))
             return
         }
         // Committed, and gravity's from here: nothing about the arc is steered.
-        velocity.velocity = velocity.velocity.copy(y = velocity.velocity.y + LEAP_GRAVITY * deltaTime * pace)
+        velocity.velocity =
+            velocity.velocity.copy(y = velocity.velocity.y + LEAP_GRAVITY * deltaTime * pace)
     }
 
     /**
@@ -311,10 +315,14 @@ class EnemyBehaviorSystem : GameSystem() {
     private fun launchSpeed(rect: Rect, deltaTime: Float): Float {
         val gravityPerTick = LEAP_GRAVITY * deltaTime
         val wanted = if (targetY.isNaN()) LEAP_BLIND_RISE else rect.centerY - targetY
-        val rise = wanted.coerceIn(LEAP_LEAST_RISE, (rect.top - LEAP_HIGHEST_TOP).coerceAtLeast(LEAP_LEAST_RISE))
+        val rise = wanted.coerceIn(
+            LEAP_LEAST_RISE,
+            (rect.top - LEAP_HIGHEST_TOP).coerceAtLeast(LEAP_LEAST_RISE)
+        )
         // A throw of v a tick, slowing by g a tick, climbs v + (v - g) + ... which comes to
         // v²/2g + v/2. Solved for v.
-        val speed = -gravityPerTick / 2f + sqrt(gravityPerTick * gravityPerTick / 4f + 2f * gravityPerTick * rise)
+        val speed =
+            -gravityPerTick / 2f + sqrt(gravityPerTick * gravityPerTick / 4f + 2f * gravityPerTick * rise)
         return -speed
     }
 
@@ -330,7 +338,11 @@ class EnemyBehaviorSystem : GameSystem() {
         }
 
         velocity.velocity = when (behavior.state) {
-            STAGE_APPROACH -> Vector2(behavior.baseSpeedX, sin(behavior.elapsedTime * 2.5f + behavior.phase) * 0.3f)
+            STAGE_APPROACH -> Vector2(
+                behavior.baseSpeedX,
+                sin(behavior.elapsedTime * 2.5f + behavior.phase) * 0.3f
+            )
+
             STAGE_HOLD -> {
                 // Heading round from due left, climbing first: left, up, right along the top, down,
                 // and left again, so it comes out of the loop on the line it went in on.
@@ -338,6 +350,7 @@ class EnemyBehaviorSystem : GameSystem() {
                 val speed = -behavior.baseSpeedX * LOOP_SPEED_FACTOR
                 Vector2(speed * cos(heading), speed * sin(heading))
             }
+
             else -> Vector2(behavior.baseSpeedX * LOOP_LEAVE_FACTOR, 0f)
         }
     }
@@ -406,7 +419,10 @@ class EnemyBehaviorSystem : GameSystem() {
     ) {
         val rect = transform.rect
         // Checked first, so the tell starts on the very tick it reaches its station.
-        if (behavior.state == STAGE_APPROACH && rect.left <= behavior.holdX) enter(behavior, STAGE_HOLD)
+        if (behavior.state == STAGE_APPROACH && rect.left <= behavior.holdX) enter(
+            behavior,
+            STAGE_HOLD
+        )
 
         when (behavior.state) {
             STAGE_APPROACH -> velocity.velocity = Vector2(
@@ -465,8 +481,10 @@ class EnemyBehaviorSystem : GameSystem() {
                 enter(behavior, STAGE_HOLD)
             } else {
                 // Enters the way the cave's boss does, weaving as it closes.
-                val weaveY = behavior.initialY + sin(behavior.elapsedTime * BOSS_WEAVE_FREQUENCY) * BOSS_WEAVE_AMPLITUDE
-                velocity.velocity = Vector2(BOSS_APPROACH_SPEED, (weaveY - rect.top) * BOSS_WEAVE_TRACKING)
+                val weaveY =
+                    behavior.initialY + sin(behavior.elapsedTime * BOSS_WEAVE_FREQUENCY) * BOSS_WEAVE_AMPLITUDE
+                velocity.velocity =
+                    Vector2(BOSS_APPROACH_SPEED, (weaveY - rect.top) * BOSS_WEAVE_TRACKING)
                 return
             }
         }
@@ -541,13 +559,18 @@ class ShieldSystem : GameSystem() {
                 // strength, fading as the bubble wears down; and a hit flares both.
                 graphics.drawOval(
                     left, top, size, size,
-                    EngineColors.withAlpha(shield.color, FILL_ALPHA + FLASH_FILL_ALPHA * shield.flash),
+                    EngineColors.withAlpha(
+                        shield.color,
+                        FILL_ALPHA + FLASH_FILL_ALPHA * shield.flash
+                    ),
                 )
                 graphics.drawOvalOutline(
                     left, top, size, size,
                     EngineColors.withAlpha(
                         shield.color,
-                        (RIM_MIN_ALPHA + RIM_RANGE_ALPHA * shield.fraction + shield.flash).coerceAtMost(1f),
+                        (RIM_MIN_ALPHA + RIM_RANGE_ALPHA * shield.fraction + shield.flash).coerceAtMost(
+                            1f
+                        ),
                     ),
                 )
                 // A glint on the upper left, the side the game's light comes from.
@@ -614,7 +637,8 @@ class FacingSystem : GameSystem() {
             if (velocity.x == 0f && velocity.y == 0f) return@forEach
 
             val heading = atan2(velocity.y, velocity.x) * DEGREES_PER_RADIAN
-            sprites.require(id).rotationDegrees = normalized(heading - facings.require(id).artworkDegrees)
+            sprites.require(id).rotationDegrees =
+                normalized(heading - facings.require(id).artworkDegrees)
         }
     }
 
@@ -779,7 +803,15 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
             // in a system of their own - see HitFlashSystem. The flash goes over the tint, so a hit
             // on something tinted still lands as a hit.
             val tint = tints[id]?.color ?: 0
-            if (tint ushr 24 != 0) drawSilhouette(graphics, sprite, left, top, dstWidth, dstHeight, tint)
+            if (tint ushr 24 != 0) drawSilhouette(
+                graphics,
+                sprite,
+                left,
+                top,
+                dstWidth,
+                dstHeight,
+                tint
+            )
 
             val flash = flashes[id] ?: continue
             val strength = flash.strength

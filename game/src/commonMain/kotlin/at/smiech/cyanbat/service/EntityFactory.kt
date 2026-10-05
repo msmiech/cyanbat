@@ -150,7 +150,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height.toFloat())))
         world.addComponent(id, VelocityComponent(Vector2.Zero))
-        world.addComponent(id, SpriteComponent(pixmap, srcWidth = BAT_FRAME_WIDTH, srcHeight = height))
+        world.addComponent(
+            id,
+            SpriteComponent(pixmap, srcWidth = BAT_FRAME_WIDTH, srcHeight = height)
+        )
         world.addComponent(
             id,
             AnimationComponent(BAT_FRAME_WIDTH, height, BAT_FRAME_COUNT, BAT_FRAME_SECONDS)
@@ -267,14 +270,21 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             // A fixed glow rather than one that grows: an elite arrives as what it is.
             world.addComponent(
                 id,
-                AuraComponent(intensity = ELITE_AURA_INTENSITY, tier = ELITE_AURA_TIER, colors = elite.aura),
+                AuraComponent(
+                    intensity = ELITE_AURA_INTENSITY,
+                    tier = ELITE_AURA_TIER,
+                    colors = elite.aura
+                ),
             )
             // And in the dark the glow is a light, so it is seen coming from across the cave.
             if (lit) world.addComponent(id, LightComponent(elite.aura.rim, ELITE_LIGHT_RADIUS))
         }
         if (lit) world.addComponent(id, OccluderComponent(CREATURE_SHINE))
         if (gun != null) {
-            world.addComponent(id, WeaponComponent(gun.interval, timeSinceLastShot = -firstShotDelay))
+            world.addComponent(
+                id,
+                WeaponComponent(gun.interval, timeSinceLastShot = -firstShotDelay)
+            )
             world.addComponent(id, GunComponent(gun.volleys))
         }
         if (shieldPoints > 0) {
@@ -290,7 +300,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         // Drawn facing left, as every hostile is - but for the one that comes from behind - and turned
         // from there to point along its arc.
         if (species.facesHeading) {
-            val artwork = if (species.drawnFacingRight) RIGHT_FACING_ARTWORK_DEGREES else HOSTILE_ARTWORK_DEGREES
+            val artwork =
+                if (species.drawnFacingRight) RIGHT_FACING_ARTWORK_DEGREES else HOSTILE_ARTWORK_DEGREES
             world.addComponent(id, FacesVelocityComponent(artwork))
         }
 
@@ -349,7 +360,11 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         if (lit) {
             world.addComponent(
                 id,
-                LightComponent(CACO_IMP_LIGHT_COLOR, CACO_IMP_LIGHT_RADIUS, CACO_IMP_SMOULDER_INTENSITY),
+                LightComponent(
+                    CACO_IMP_LIGHT_COLOR,
+                    CACO_IMP_LIGHT_RADIUS,
+                    CACO_IMP_SMOULDER_INTENSITY
+                ),
             )
         }
     }
@@ -454,12 +469,20 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         )
         world.addComponent(
             head,
-            AnimationComponent(SAND_WYRM_FRAME, SAND_WYRM_FRAME, SAND_WYRM_HEAD_FRAMES, SAND_WYRM_HEAD_FRAME_SECONDS),
+            AnimationComponent(
+                SAND_WYRM_FRAME,
+                SAND_WYRM_FRAME,
+                SAND_WYRM_HEAD_FRAMES,
+                SAND_WYRM_HEAD_FRAME_SECONDS
+            ),
         )
         world.addComponent(head, WoundComponent(SAND_WYRM_FRAME, WOUND_MARKS))
         world.addComponent(head, FacesVelocityComponent(HOSTILE_ARTWORK_DEGREES))
         // At rest until the brain throws it: a leap whose station can never be reached.
-        world.addComponent(head, EnemyBehaviorComponent(EnemyMovementType.LEAP, y, holdX = -Float.MAX_VALUE))
+        world.addComponent(
+            head,
+            EnemyBehaviorComponent(EnemyMovementType.LEAP, y, holdX = -Float.MAX_VALUE)
+        )
         world.addComponent(head, ProjectileStyleComponent(SAND_WYRM_SHOT_VARIANT))
         world.addComponent(head, CollisionComponent(SAND_WYRM_HEAD_TOLERANCE, CollisionGroup.ENEMY))
         world.addComponent(head, HealthComponent(hitPoints))
@@ -481,10 +504,18 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * A one-shot effect like a blast, but it stays where it was thrown up rather than drifting with
      * the scenery: the wyrm comes up where the sand boiled, and the two have to line up.
      */
-    fun createSandPlume(centerX: Float, bottom: Float, pixmap: Pixmap, scale: Float = 1f): EntityId {
+    fun createSandPlume(
+        centerX: Float,
+        bottom: Float,
+        pixmap: Pixmap,
+        scale: Float = 1f
+    ): EntityId {
         val size = SAND_WYRM_FRAME * scale
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX - size / 2f, bottom - size, size, size)))
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(centerX - size / 2f, bottom - size, size, size))
+        )
         world.addComponent(id, VelocityComponent(Vector2.Zero))
         world.addComponent(
             id,
@@ -499,7 +530,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         world.addComponent(
             id,
             AnimationComponent(
-                SAND_WYRM_FRAME, SAND_WYRM_FRAME, SAND_WYRM_PLUME_FRAMES, SAND_WYRM_PLUME_FRAME_SECONDS,
+                SAND_WYRM_FRAME,
+                SAND_WYRM_FRAME,
+                SAND_WYRM_PLUME_FRAMES,
+                SAND_WYRM_PLUME_FRAME_SECONDS,
                 isLooping = false,
             ),
         )
@@ -546,7 +580,12 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             world.addComponent(id, VelocityComponent(Vector2.Zero))
             world.addComponent(
                 id,
-                SpriteComponent(pixmap, baseSrcX = sheetFrame * NAGA_FRAME, srcWidth = NAGA_FRAME, srcHeight = NAGA_FRAME),
+                SpriteComponent(
+                    pixmap,
+                    baseSrcX = sheetFrame * NAGA_FRAME,
+                    srcWidth = NAGA_FRAME,
+                    srcHeight = NAGA_FRAME
+                ),
             )
             world.addComponent(id, CollisionComponent(tolerance, CollisionGroup.ENEMY))
             world.addComponent(id, DamageComponent(bodyDamage))
@@ -560,7 +599,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         val head = world.createEntity()
         world.addComponent(head, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
         world.addComponent(head, VelocityComponent(Vector2.Zero))
-        world.addComponent(head, SpriteComponent(pixmap, srcWidth = NAGA_FRAME, srcHeight = NAGA_FRAME))
+        world.addComponent(
+            head,
+            SpriteComponent(pixmap, srcWidth = NAGA_FRAME, srcHeight = NAGA_FRAME)
+        )
         world.addComponent(
             head,
             AnimationComponent(NAGA_FRAME, NAGA_FRAME, NAGA_HEAD_FRAMES, NAGA_HEAD_FRAME_SECONDS),
@@ -590,7 +632,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     fun createSplash(centerX: Float, bottom: Float, pixmap: Pixmap, scale: Float = 1f): EntityId {
         val size = NAGA_FRAME * scale
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX - size / 2f, bottom - size, size, size)))
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(centerX - size / 2f, bottom - size, size, size))
+        )
         world.addComponent(id, VelocityComponent(Vector2.Zero))
         world.addComponent(
             id,
@@ -604,7 +649,13 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         )
         world.addComponent(
             id,
-            AnimationComponent(NAGA_FRAME, NAGA_FRAME, NAGA_SPLASH_FRAMES, NAGA_SPLASH_FRAME_SECONDS, isLooping = false),
+            AnimationComponent(
+                NAGA_FRAME,
+                NAGA_FRAME,
+                NAGA_SPLASH_FRAMES,
+                NAGA_SPLASH_FRAME_SECONDS,
+                isLooping = false
+            ),
         )
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(50))
@@ -773,7 +824,12 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         // or a ring throbs as one volley rather than as a scatter of separate lights.
         world.addComponent(
             id,
-            AnimationComponent(SHOT_FRAME_WIDTH, pixmap.height, SHOT_FRAME_COUNT, SHOT_FRAME_SECONDS),
+            AnimationComponent(
+                SHOT_FRAME_WIDTH,
+                pixmap.height,
+                SHOT_FRAME_COUNT,
+                SHOT_FRAME_SECONDS
+            ),
         )
         world.addComponent(id, ColorwayComponent(variant))
         world.addComponent(
@@ -788,7 +844,11 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         if (lit) {
             // A bolt glows the color of its body, so a shot lights its way across the dark and the
             // player sees whose it is by the light it throws as well as by the bolt.
-            val color = EngineColors.lerp(SHOT_BODY_COLORS[variant], EngineColors.WHITE, SHOT_LIGHT_PALENESS)
+            val color = EngineColors.lerp(
+                SHOT_BODY_COLORS[variant],
+                EngineColors.WHITE,
+                SHOT_LIGHT_PALENESS
+            )
             val radius = if (isPlayer) PLAYER_SHOT_LIGHT_RADIUS else ENEMY_SHOT_LIGHT_RADIUS
             world.addComponent(id, LightComponent(color, radius, SHOT_LIGHT_INTENSITY))
         }
@@ -809,15 +869,34 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * @param variant the shot's colorway; see [ColorwayComponent].
      * @param isPlayer whether it was one of the bat's shots, whose hits light further.
      */
-    fun createImpact(centerX: Float, centerY: Float, pixmap: Pixmap, variant: Int, isPlayer: Boolean): EntityId =
+    fun createImpact(
+        centerX: Float,
+        centerY: Float,
+        pixmap: Pixmap,
+        variant: Int,
+        isPlayer: Boolean
+    ): EntityId =
         createBurst(
-            centerX, centerY, pixmap, IMPACT_FRAME, IMPACT_FRAME_COUNT, IMPACT_FRAME_SECONDS, scale = 1f,
+            centerX,
+            centerY,
+            pixmap,
+            IMPACT_FRAME,
+            IMPACT_FRAME_COUNT,
+            IMPACT_FRAME_SECONDS,
+            scale = 1f,
             baseSrcX = variant * IMPACT_FRAME * IMPACT_FRAME_COUNT,
         ).also { id ->
             if (lit) {
-                val color = EngineColors.lerp(SHOT_BODY_COLORS[variant], EngineColors.WHITE, IMPACT_LIGHT_PALENESS)
+                val color = EngineColors.lerp(
+                    SHOT_BODY_COLORS[variant],
+                    EngineColors.WHITE,
+                    IMPACT_LIGHT_PALENESS
+                )
                 val radius = if (isPlayer) PLAYER_IMPACT_LIGHT_RADIUS else ENEMY_IMPACT_LIGHT_RADIUS
-                world.addComponent(id, LightComponent(color, radius, fadeSeconds = IMPACT_LIGHT_SECONDS))
+                world.addComponent(
+                    id,
+                    LightComponent(color, radius, fadeSeconds = IMPACT_LIGHT_SECONDS)
+                )
             }
         }
 
@@ -827,11 +906,20 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * with it. It drifts with the scenery, so it stays where it went off. The frost beam leaves one on
      * everything it freezes.
      */
-    fun createFlash(centerX: Float, centerY: Float, color: Int, radius: Int, seconds: Float): EntityId {
+    fun createFlash(
+        centerX: Float,
+        centerY: Float,
+        color: Int,
+        radius: Int,
+        seconds: Float
+    ): EntityId {
         val id = world.createEntity()
         world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX, centerY, 0f, 0f)))
         world.addComponent(id, VelocityComponent(Vector2(BURST_DRIFT, 0f)))
-        world.addComponent(id, LightComponent(color, radius, fadeSeconds = seconds, removeWhenFaded = true))
+        world.addComponent(
+            id,
+            LightComponent(color, radius, fadeSeconds = seconds, removeWhenFaded = true)
+        )
         return id
     }
 
@@ -859,7 +947,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, width, height)))
         world.addComponent(id, VelocityComponent(Vector2(TRAIL_DRIFT_PER_TICK, 0f)))
         if (charged) {
-            world.addComponent(id, TrailComponent(WAKE_COLOR, seconds, WAKE_MIN_SCALE, coreColor = WAKE_CORE_COLOR))
+            world.addComponent(
+                id,
+                TrailComponent(WAKE_COLOR, seconds, WAKE_MIN_SCALE, coreColor = WAKE_CORE_COLOR)
+            )
             world.addComponent(id, CollisionComponent(0f, CollisionGroup.PLAYER_CONTACT))
             world.addComponent(id, ContactWeaponComponent(ContactWeapon.WAKE))
         } else {
@@ -883,12 +974,21 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     fun createOrb(centerX: Float, centerY: Float, pixmap: Pixmap, offset: Float): EntityId {
         val size = ORB_FRAME.toFloat()
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX - size / 2f, centerY - size / 2f, size, size)))
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(centerX - size / 2f, centerY - size / 2f, size, size))
+        )
         world.addComponent(id, SpriteComponent(pixmap, srcWidth = ORB_FRAME, srcHeight = ORB_FRAME))
-        world.addComponent(id, AnimationComponent(ORB_FRAME, ORB_FRAME, ORB_FRAME_COUNT, ORB_FRAME_SECONDS))
+        world.addComponent(
+            id,
+            AnimationComponent(ORB_FRAME, ORB_FRAME, ORB_FRAME_COUNT, ORB_FRAME_SECONDS)
+        )
         world.addComponent(id, OrbComponent(offset))
         world.addComponent(id, ContactWeaponComponent(ContactWeapon.ORB))
-        world.addComponent(id, CollisionComponent(ORB_COLLISION_TOLERANCE, CollisionGroup.PLAYER_CONTACT))
+        world.addComponent(
+            id,
+            CollisionComponent(ORB_COLLISION_TOLERANCE, CollisionGroup.PLAYER_CONTACT)
+        )
         world.addComponent(id, ZIndexComponent(19))
         return id
     }
@@ -1012,7 +1112,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             )
         )
         world.addComponent(id, VelocityComponent(Vector2(BURST_DRIFT, 0f)))
-        world.addComponent(id, SpriteComponent(pixmap, baseSrcX = baseSrcX, srcWidth = frameWidth, scale = scale))
+        world.addComponent(
+            id,
+            SpriteComponent(pixmap, baseSrcX = baseSrcX, srcWidth = frameWidth, scale = scale)
+        )
         world.addComponent(
             id,
             AnimationComponent(

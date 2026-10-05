@@ -1,11 +1,11 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.ecs.ElitePalette
+import at.smiech.cyanbat.util.BEHIND_HOLD_X_MAX_FRACTION
+import at.smiech.cyanbat.util.BEHIND_HOLD_X_MIN_FRACTION
 import at.smiech.cyanbat.util.BOSS_BAR_HEIGHT
 import at.smiech.cyanbat.util.BOSS_BAR_TOP
 import at.smiech.cyanbat.util.BOSS_BAR_WIDTH
-import at.smiech.cyanbat.util.BEHIND_HOLD_X_MAX_FRACTION
-import at.smiech.cyanbat.util.BEHIND_HOLD_X_MIN_FRACTION
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.BURROW_SHOWING
 import at.smiech.cyanbat.util.ELITE_FIRE_INTERVAL_FACTOR
@@ -183,8 +183,14 @@ class EnemyGenerator(
      *
      * @param elite whether one of them is an elite.
      */
-    private fun spawnSwarm(species: EnemySpecies, wave: EnemyWave, centerY: Float? = null, elite: Boolean = false) {
-        val size = (SWARM_SIZE + wave.index / 2 * SWARM_SIZE_PER_TWO_WAVES).coerceAtMost(SWARM_SIZE_MAX)
+    private fun spawnSwarm(
+        species: EnemySpecies,
+        wave: EnemyWave,
+        centerY: Float? = null,
+        elite: Boolean = false
+    ) {
+        val size =
+            (SWARM_SIZE + wave.index / 2 * SWARM_SIZE_PER_TWO_WAVES).coerceAtMost(SWARM_SIZE_MAX)
         val laneY = (centerY ?: groupLane()) - realEnemyHeight / 2f
         repeat(size) { member ->
             spawn(
@@ -236,7 +242,13 @@ class EnemyGenerator(
      * leap forward from its station; see [EnemySpecies.SHARK].
      */
     private fun spawnBehind(species: EnemySpecies, wave: EnemyWave, elite: Boolean) {
-        spawn(species, wave, x = -ENEMY_COLLISION_WIDTH, laneY = worldHeight - BURROW_SHOWING, elite = elite)
+        spawn(
+            species,
+            wave,
+            x = -ENEMY_COLLISION_WIDTH,
+            laneY = worldHeight - BURROW_SHOWING,
+            elite = elite
+        )
     }
 
     /** A center for a group's path, far enough from the edges that its sway stays on screen. */
@@ -262,7 +274,8 @@ class EnemyGenerator(
         phase: Float = 0f,
         elite: Boolean = false,
     ) {
-        val ordinaryHitPoints = (wave.hitPoints * species.hitPointFactor).roundToInt().coerceAtLeast(1)
+        val ordinaryHitPoints =
+            (wave.hitPoints * species.hitPointFactor).roundToInt().coerceAtLeast(1)
         val hitPoints =
             if (elite) (ordinaryHitPoints * ELITE_HIT_POINT_FACTOR).roundToInt() else ordinaryHitPoints
         val damage = (wave.damage * species.damageFactor).roundToInt().coerceAtLeast(1)
@@ -273,19 +286,23 @@ class EnemyGenerator(
             species.innateShield > 0f -> (ordinaryHitPoints * species.innateShield).roundToInt()
             species.canBeShielded && wave.shieldChance > 0f && random.nextFloat() < wave.shieldChance ->
                 (ordinaryHitPoints * WAVE_SHIELD_FRACTION).roundToInt()
+
             else -> 0
         }
         val issued = species.gun ?: EnemySpecies.ISSUED_GUN.takeIf {
             species.armable && wave.gunChance > 0f && random.nextFloat() < wave.gunChance
         }
         val gun = if (elite) eliteGun(issued, species) else issued
-        val palette = if (elite) ElitePalette.entries[random.nextInt(ElitePalette.entries.size)] else null
+        val palette =
+            if (elite) ElitePalette.entries[random.nextInt(ElitePalette.entries.size)] else null
         val holdX = when {
             // Behind the bat, for something coming from behind, so its leap tops out about where the bat is.
             species.squad == Squad.FROM_BEHIND ->
                 xSpawnPosition * (BEHIND_HOLD_X_MIN_FRACTION + random.nextFloat() * (BEHIND_HOLD_X_MAX_FRACTION - BEHIND_HOLD_X_MIN_FRACTION))
+
             species.movement in HOLDING ->
                 xSpawnPosition * (HOLD_X_MIN_FRACTION + random.nextFloat() * (HOLD_X_MAX_FRACTION - HOLD_X_MIN_FRACTION))
+
             else -> 0f
         }
 
@@ -307,7 +324,8 @@ class EnemyGenerator(
             // Only a shell of its own grows back. One a wave handed out is spent once it is spent.
             shieldRegrowth = if (species.innateShield > 0f) species.shieldRegrowth else 0f,
             gun = gun,
-            firstShotDelay = gun?.let { it.interval * FIRST_SHOT_JITTER * random.nextFloat() } ?: 0f,
+            firstShotDelay = gun?.let { it.interval * FIRST_SHOT_JITTER * random.nextFloat() }
+                ?: 0f,
             elite = palette,
         )
     }
@@ -318,7 +336,8 @@ class EnemyGenerator(
      * [ELITE_FIRE_INTERVAL_FACTOR].
      */
     private fun eliteGun(gun: EnemyGun?, species: EnemySpecies): EnemyGun {
-        val base = gun ?: if (species.drawnFacingRight) EnemySpecies.ISSUED_AIMED_GUN else EnemySpecies.ISSUED_GUN
+        val base = gun
+            ?: if (species.drawnFacingRight) EnemySpecies.ISSUED_AIMED_GUN else EnemySpecies.ISSUED_GUN
         return base.copy(interval = base.interval * ELITE_FIRE_INTERVAL_FACTOR)
     }
 
@@ -382,7 +401,8 @@ class EnemyGenerator(
                     pixmap = sheet,
                     hitPoints = wave.hitPoints,
                     damage = (wave.damage * SAND_WYRM_HEAD_DAMAGE).roundToInt().coerceAtLeast(1),
-                    bodyDamage = (wave.damage * SAND_WYRM_BODY_DAMAGE).roundToInt().coerceAtLeast(1),
+                    bodyDamage = (wave.damage * SAND_WYRM_BODY_DAMAGE).roundToInt()
+                        .coerceAtLeast(1),
                     gun = SandWyrmBrain.HUNTING_GUN,
                     bar = pinnedBar(),
                 )
@@ -465,7 +485,12 @@ class EnemyGenerator(
     private fun summonImps() {
         val escort = progression.escortWave()
         for (laneY in floatArrayOf(GROUP_EDGE_MARGIN, worldHeight - GROUP_EDGE_MARGIN)) {
-            spawn(EnemySpecies.STRIKER, escort, x = xSpawnPosition.toFloat(), laneY = laneY - realEnemyHeight / 2f)
+            spawn(
+                EnemySpecies.STRIKER,
+                escort,
+                x = xSpawnPosition.toFloat(),
+                laneY = laneY - realEnemyHeight / 2f
+            )
         }
     }
 
@@ -476,7 +501,13 @@ class EnemyGenerator(
      */
     private fun summonWyrmlings(count: Int) {
         val escort = progression.escortWave()
-        repeat(count) { spawnBurrowed(EnemySpecies.WYRMLING, escort, x = xSpawnPosition + it * SUMMON_SPACING) }
+        repeat(count) {
+            spawnBurrowed(
+                EnemySpecies.WYRMLING,
+                escort,
+                x = xSpawnPosition + it * SUMMON_SPACING
+            )
+        }
     }
 
     /**
@@ -501,7 +532,10 @@ class EnemyGenerator(
     private companion object {
         /** The movements that stop somewhere on screen, and so pick where. */
         val HOLDING = setOf(
-            EnemyMovementType.HOVER, EnemyMovementType.DIVE, EnemyMovementType.LEAP, EnemyMovementType.LOOP,
+            EnemyMovementType.HOVER,
+            EnemyMovementType.DIVE,
+            EnemyMovementType.LEAP,
+            EnemyMovementType.LOOP,
         )
 
         /** How far apart, along the sand, wyrmlings called up together start out. */

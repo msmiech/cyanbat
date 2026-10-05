@@ -78,7 +78,10 @@ class OrbitSystemTest {
         step(ORB_SECONDS_PER_TURN)
 
         val drift = abs(angleOf(orb) - start)
-        assertTrue(drift < 0.1f || drift > 2 * PI - 0.1f, "a turn later it is ${drift} radians from where it was")
+        assertTrue(
+            drift < 0.1f || drift > 2 * PI - 0.1f,
+            "a turn later it is ${drift} radians from where it was"
+        )
     }
 
     @Test
@@ -100,7 +103,8 @@ class OrbitSystemTest {
         step(1f)
 
         val angles = orbs.map(::angleOf).sorted()
-        val gaps = angles.zipWithNext { a, b -> b - a } + (angles.first() + 2 * PI.toFloat() - angles.last())
+        val gaps =
+            angles.zipWithNext { a, b -> b - a } + (angles.first() + 2 * PI.toFloat() - angles.last())
         for (gap in gaps) assertEquals((2 * PI / 3).toFloat(), gap, 0.01f)
     }
 

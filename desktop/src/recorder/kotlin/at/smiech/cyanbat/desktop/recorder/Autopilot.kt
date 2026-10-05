@@ -104,7 +104,9 @@ class Autopilot(
      * last, because a bat that has stacked it takes a boss apart before its fight gets going.
      */
     fun choose(offer: List<PowerUp>): Int =
-        offer.indices.minBy { PICK_ORDER.indexOf(offer[it]).let { rank -> if (rank < 0) PICK_ORDER.size else rank } }
+        offer.indices.minBy {
+            PICK_ORDER.indexOf(offer[it]).let { rank -> if (rank < 0) PICK_ORDER.size else rank }
+        }
 
     /** Places the bat's center could head for: a coarse grid over the left of the frame, and the ground close by. */
     private inline fun forEachCandidate(bat: Rect, action: (Float, Float) -> Unit) {
@@ -201,19 +203,27 @@ class Autopilot(
                     if (world.getComponent(id, HealthComponent::class)?.alive == false) continue
                     val enemy = collision.group == CollisionGroup.ENEMY
                     val copy = scratch.createEntity()
-                    scratch.addComponent(copy, TransformComponent(world.getComponent(id, TransformComponent::class)!!.rect))
+                    scratch.addComponent(
+                        copy,
+                        TransformComponent(world.getComponent(id, TransformComponent::class)!!.rect)
+                    )
                     world.getComponent(id, VelocityComponent::class)?.let {
                         scratch.addComponent(copy, VelocityComponent(it.velocity))
                     }
-                    world.getComponent(id, EnemyBehaviorComponent::class)?.let { scratch.addComponent(copy, it.copy()) }
+                    world.getComponent(id, EnemyBehaviorComponent::class)
+                        ?.let { scratch.addComponent(copy, it.copy()) }
                     // A wounded enemy flies slower, and a forecast at full pace would dodge where
                     // it is not going to be.
-                    world.getComponent(id, PaceComponent::class)?.let { scratch.addComponent(copy, it.copy()) }
+                    world.getComponent(id, PaceComponent::class)
+                        ?.let { scratch.addComponent(copy, it.copy()) }
                     copies += copy
                     enemies += enemy
                     tolerances += collision.tolerance
                     // Only a boss is never culled for leaving the frame.
-                    bosses += enemy && world.getComponent(id, LifetimeComponent::class)?.removeIfOutOfBounds == false
+                    bosses += enemy && world.getComponent(
+                        id,
+                        LifetimeComponent::class
+                    )?.removeIfOutOfBounds == false
                 }
 
                 val count = copies.size
@@ -241,7 +251,13 @@ class Autopilot(
                         sweep[k * 4 + 3] = maxOf(sweep[k * 4 + 3], boxes[base + 3])
                     }
                 }
-                return Forecast(count, enemies.toBooleanArray(), bosses.toBooleanArray(), boxes, sweep)
+                return Forecast(
+                    count,
+                    enemies.toBooleanArray(),
+                    bosses.toBooleanArray(),
+                    boxes,
+                    sweep
+                )
             }
         }
     }
@@ -265,19 +281,29 @@ class Autopilot(
             val arrival = ceil(distance / SPEED_PER_TICK).toInt()
 
             val hardHit = firstHit(x, y, distance, arrival, HARD_MARGIN, ignoreProtected = true)
-            val softHit = if (hardHit > HORIZON) firstHit(x, y, distance, arrival, SOFT_MARGIN, ignoreProtected = false) else hardHit
+            val softHit = if (hardHit > HORIZON) firstHit(
+                x,
+                y,
+                distance,
+                arrival,
+                SOFT_MARGIN,
+                ignoreProtected = false
+            ) else hardHit
 
             var score = W_HARD * hardHit / (HORIZON + 1f) + W_SOFT * softHit / (HORIZON + 1f)
             score += W_AIM * aim(x, y, arrival)
             score -= W_X * square((x - PREFERRED_X) / PREFERRED_X_SPREAD)
             score -= W_EDGE * (square(((EDGE_BAND - y) / EDGE_BAND).coerceAtLeast(0f)) +
-                square(((y - (frameHeight - EDGE_BAND)) / EDGE_BAND).coerceAtLeast(0f)))
+                    square(((y - (frameHeight - EDGE_BAND)) / EDGE_BAND).coerceAtLeast(0f)))
             score -= W_CENTER * square((y - frameHeight / 2f) / (frameHeight / 2f))
             // Behind the score column the bat is hard to see, and so is the score.
             score -= W_HUD * hudCover(x, y)
             score -= W_MOVE * distance / 100f
             if (!previousX.isNaN()) {
-                score += W_KEEP * (1f - hypot(x - previousX, y - previousY) / KEEP_RADIUS).coerceAtLeast(0f)
+                score += W_KEEP * (1f - hypot(
+                    x - previousX,
+                    y - previousY
+                ) / KEEP_RADIUS).coerceAtLeast(0f)
             }
             return score
         }
@@ -348,8 +374,13 @@ class Autopilot(
                     val shotLeft = muzzle + SHOT_SPEED * (tick - start)
                     if (shotLeft + SHOT_LENGTH < forecast.left(tick, k)) continue
                     if (shotLeft > forecast.right(tick, k)) break
-                    if (y + SHOT_HALF_HEIGHT > forecast.top(tick, k) && y - SHOT_HALF_HEIGHT < forecast.bottom(tick, k)) {
-                        val nearness = 1f - ((forecast.left(start, k) - muzzle) / FAR_AWAY).coerceIn(0f, 1f)
+                    if (y + SHOT_HALF_HEIGHT > forecast.top(
+                            tick,
+                            k
+                        ) && y - SHOT_HALF_HEIGHT < forecast.bottom(tick, k)
+                    ) {
+                        val nearness =
+                            1f - ((forecast.left(start, k) - muzzle) / FAR_AWAY).coerceIn(0f, 1f)
                         total += (if (forecast.isBoss[k]) BOSS_WEIGHT else 1f) * (0.5f + nearness)
                         break
                     }
@@ -360,8 +391,12 @@ class Autopilot(
 
         /** How much of the HUD's left column a bat centered on ([x], [y]) would cover, as 0..1 of its own box. */
         private fun hudCover(x: Float, y: Float): Float {
-            val overlapX = (min(x + batHalfWidth, HUD_RIGHT) - maxOf(x - batHalfWidth, 0f)).coerceAtLeast(0f)
-            val overlapY = (min(y + batHalfHeight, HUD_BOTTOM) - maxOf(y - batHalfHeight, 0f)).coerceAtLeast(0f)
+            val overlapX =
+                (min(x + batHalfWidth, HUD_RIGHT) - maxOf(x - batHalfWidth, 0f)).coerceAtLeast(0f)
+            val overlapY = (min(y + batHalfHeight, HUD_BOTTOM) - maxOf(
+                y - batHalfHeight,
+                0f
+            )).coerceAtLeast(0f)
             return overlapX * overlapY / (4f * batHalfWidth * batHalfHeight)
         }
 
@@ -382,7 +417,8 @@ class Autopilot(
         const val HORIZON = 48
 
         /** What the bat must not touch. */
-        val HOSTILE = setOf(CollisionGroup.ENEMY, CollisionGroup.ENEMY_PROJECTILE, CollisionGroup.OBSTACLE)
+        val HOSTILE =
+            setOf(CollisionGroup.ENEMY, CollisionGroup.ENEMY_PROJECTILE, CollisionGroup.OBSTACLE)
 
         const val GRID_STEP_X = 20f
         const val GRID_STEP_Y = 12f

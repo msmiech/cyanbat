@@ -38,7 +38,13 @@ internal object ComboHeat {
      * for the heart they rise out of, which on the warm rungs is yellower than plain white, the way
      * a real fire's is.
      */
-    private class Rung(val from: Int, val title: String, val color: Int, val ember: Int, val core: Int) {
+    private class Rung(
+        val from: Int,
+        val title: String,
+        val color: Int,
+        val ember: Int,
+        val core: Int
+    ) {
         fun of(part: Part): Int = when (part) {
             Part.COLOR -> color
             Part.EMBER -> ember
@@ -144,7 +150,8 @@ internal object ComboHeat {
      * and a green fire reads as poison rather than as heat.
      */
     private fun supernova(multiplier: Int, seconds: Float, part: Part): Int {
-        val speed = COMBO_SUPERNOVA_CYCLES_PER_SECOND * (1f + log2(multiplier.toFloat() / SUPERNOVA))
+        val speed =
+            COMBO_SUPERNOVA_CYCLES_PER_SECOND * (1f + log2(multiplier.toFloat() / SUPERNOVA))
         val cycle = seconds * speed
         val phase = cycle - floor(cycle)
         val segments = RUNGS.size - 2

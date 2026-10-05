@@ -82,7 +82,14 @@ internal object Shadow {
      * area has its inside on the positive side of each edge, so a light on the negative side is
      * outside it, facing that edge.
      */
-    private fun facesLight(points: FloatArray, from: Int, corners: Int, edge: Int, lightX: Float, lightY: Float): Boolean {
+    private fun facesLight(
+        points: FloatArray,
+        from: Int,
+        corners: Int,
+        edge: Int,
+        lightX: Float,
+        lightY: Float
+    ): Boolean {
         val next = (edge + 1) % corners
         val ax = points[from + 2 * edge]
         val ay = points[from + 2 * edge + 1]
@@ -91,7 +98,13 @@ internal object Shadow {
         return (bx - ax) * (lightY - ay) - (by - ay) * (lightX - ax) < 0f
     }
 
-    private fun angle(points: FloatArray, from: Int, corner: Int, lightX: Float, lightY: Float): Float =
+    private fun angle(
+        points: FloatArray,
+        from: Int,
+        corner: Int,
+        lightX: Float,
+        lightY: Float
+    ): Float =
         atan2(points[from + 2 * corner + 1] - lightY, points[from + 2 * corner] - lightX)
 
     private const val PI_F = PI.toFloat()

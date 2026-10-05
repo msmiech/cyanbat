@@ -11,7 +11,11 @@ import kotlin.test.assertTrue
 private const val MINUTE = WAVE_DURATION_SECONDS
 
 private val JUNGLE_SPECIES = setOf(
-    EnemySpecies.WASP, EnemySpecies.BEETLE, EnemySpecies.SPITTER, EnemySpecies.OWL, EnemySpecies.WISP,
+    EnemySpecies.WASP,
+    EnemySpecies.BEETLE,
+    EnemySpecies.SPITTER,
+    EnemySpecies.OWL,
+    EnemySpecies.WISP,
 )
 
 /** Stage 1 as designed, and the cave after it: what each sends, how hard, and in what order. */
@@ -20,7 +24,8 @@ class JungleStageTest {
     private val jungle = StageProgression.forStage(1)
     private val cave = StageProgression.forStage(2)
 
-    private fun waves(stage: StageProgression) = (0 until BOSS_WAVE).map { stage.waveAt(it * MINUTE) }
+    private fun waves(stage: StageProgression) =
+        (0 until BOSS_WAVE).map { stage.waveAt(it * MINUTE) }
 
     @Test
     fun `stage 1 is the jungle with five waves and the Moth Queen`() {
@@ -57,14 +62,18 @@ class JungleStageTest {
         waves(jungle).zip(waves(cave)).forEach { (jungle, cave) ->
             assertTrue(cave.hitPoints > jungle.hitPoints, "wave ${cave.index}: health")
             assertTrue(cave.damage > jungle.damage, "wave ${cave.index}: damage")
-            assertTrue(cave.spawnIntervalSeconds < jungle.spawnIntervalSeconds, "wave ${cave.index}: pace")
+            assertTrue(
+                cave.spawnIntervalSeconds < jungle.spawnIntervalSeconds,
+                "wave ${cave.index}: pace"
+            )
         }
     }
 
     /** The jungle's waves are eased for an opening stage; the Moth Queen is not. */
     @Test
     fun `the Moth Queen is as hard as she was as the second stage's boss`() {
-        val asSecond = StageProgression(design = StageDesign.JUNGLE, difficulty = 1f + STAGE_DIFFICULTY_STEP)
+        val asSecond =
+            StageProgression(design = StageDesign.JUNGLE, difficulty = 1f + STAGE_DIFFICULTY_STEP)
 
         assertEquals(1f, jungle.difficulty)
         assertEquals(asSecond.bossWave().hitPoints, jungle.bossWave().hitPoints)
@@ -74,7 +83,8 @@ class JungleStageTest {
 
     @Test
     fun `her swarms come at her strength rather than the stage's`() {
-        val asSecond = StageProgression(design = StageDesign.JUNGLE, difficulty = 1f + STAGE_DIFFICULTY_STEP)
+        val asSecond =
+            StageProgression(design = StageDesign.JUNGLE, difficulty = 1f + STAGE_DIFFICULTY_STEP)
         val lastWave = jungle.waveAt(jungle.bossTimeSeconds - 1f)
 
         assertEquals(asSecond.waveAt(asSecond.bossTimeSeconds - 1f), jungle.escortWave())
@@ -92,8 +102,14 @@ class JungleStageTest {
         val jungleWaves = waves(jungle)
 
         jungleWaves.zipWithNext { earlier, later ->
-            assertTrue(later.shieldChance >= earlier.shieldChance, "shields backed off into wave ${later.index}")
-            assertTrue(later.gunChance >= earlier.gunChance, "guns backed off into wave ${later.index}")
+            assertTrue(
+                later.shieldChance >= earlier.shieldChance,
+                "shields backed off into wave ${later.index}"
+            )
+            assertTrue(
+                later.gunChance >= earlier.gunChance,
+                "guns backed off into wave ${later.index}"
+            )
         }
         assertTrue(jungleWaves.last().shieldChance > 0f)
         assertTrue(jungleWaves.last().gunChance > 0f)
@@ -124,6 +140,9 @@ class JungleStageTest {
         assertTrue(JUNGLE_SPECIES.any { it.gun != null }, "nothing shoots")
         assertTrue(JUNGLE_SPECIES.any { it.innateShield > 0f }, "nothing is shielded")
         assertTrue(JUNGLE_SPECIES.any { it.squad == Squad.SWARM }, "nothing swarms")
-        assertTrue(JUNGLE_SPECIES.any { it.squad == Squad.V_FORMATION }, "nothing flies in formation")
+        assertTrue(
+            JUNGLE_SPECIES.any { it.squad == Squad.V_FORMATION },
+            "nothing flies in formation"
+        )
     }
 }

@@ -174,7 +174,15 @@ enum class EnemySpecies(
         hitPointFactor = 1.1f, damageFactor = 0.9f,
         gun = EnemyGun(
             3.4f,
-            listOf(Volley(ShotPattern.AIMED_FAN, count = 3, spreadDegrees = 14f, speed = 2.3f, damageFactor = 0.6f)),
+            listOf(
+                Volley(
+                    ShotPattern.AIMED_FAN,
+                    count = 3,
+                    spreadDegrees = 14f,
+                    speed = 2.3f,
+                    damageFactor = 0.6f
+                )
+            ),
         ),
         canBeShielded = true,
     ),
@@ -219,9 +227,16 @@ enum class EnemySpecies(
      * drawn facing right.
      */
     SHARK(
-        strip = 2, speedX = 1.5f, movement = EnemyMovementType.LEAP, shotVariant = 3,
-        squad = Squad.FROM_BEHIND, hitPointFactor = 1.4f, damageFactor = 1.4f, collisionTolerance = 6f,
-        facesHeading = true, drawnFacingRight = true,
+        strip = 2,
+        speedX = 1.5f,
+        movement = EnemyMovementType.LEAP,
+        shotVariant = 3,
+        squad = Squad.FROM_BEHIND,
+        hitPointFactor = 1.4f,
+        damageFactor = 1.4f,
+        collisionTolerance = 6f,
+        facesHeading = true,
+        drawnFacingRight = true,
     ),
 
     /**
@@ -233,7 +248,10 @@ enum class EnemySpecies(
     PUFFER(
         strip = 3, speedX = -1.5f, movement = EnemyMovementType.HOVER, shotVariant = 2,
         hitPointFactor = 1.1f, damageFactor = 0.9f,
-        gun = EnemyGun(4.4f, listOf(Volley(ShotPattern.RADIAL, count = 8, speed = 1.9f, damageFactor = 0.5f))),
+        gun = EnemyGun(
+            4.4f,
+            listOf(Volley(ShotPattern.RADIAL, count = 8, speed = 1.9f, damageFactor = 0.5f))
+        ),
         canBeShielded = true,
     ),
 

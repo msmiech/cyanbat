@@ -85,7 +85,8 @@ class LagoonGeneratorTest {
         update(TICK_INITIAL)
     }
 
-    private fun EnemyGenerator.run(seconds: Float) = repeat((seconds / TICK_INITIAL).toInt()) { tick() }
+    private fun EnemyGenerator.run(seconds: Float) =
+        repeat((seconds / TICK_INITIAL).toInt()) { tick() }
 
     private fun EnemyGenerator.firstArrival() {
         while (enemies().isEmpty()) tick()
@@ -112,7 +113,10 @@ class LagoonGeneratorTest {
 
         assertEquals(HEIGHT - BURROW_SHOWING, rectOf(shark).top, 0.5f)
         assertTrue(rectOf(shark).right <= 0f, "it arrived in sight, at ${rectOf(shark).left}")
-        assertTrue(world.getComponent(shark, VelocityComponent::class)!!.velocity.x > 0f, "it is not coming from behind")
+        assertTrue(
+            world.getComponent(shark, VelocityComponent::class)!!.velocity.x > 0f,
+            "it is not coming from behind"
+        )
 
         // Still cruising half a second later, at the same height and further in: the fin is the warning.
         val left = rectOf(shark).left
@@ -146,11 +150,18 @@ class LagoonGeneratorTest {
     /** Turned to point along its arc from art that faces the way it flies; the rest face left, the bat's way. */
     @Test
     fun `the shark turns from art facing right and the krait from art facing left`() {
-        for ((species, artwork) in listOf(EnemySpecies.SHARK to 0f, EnemySpecies.KRAIT to 180f, EnemySpecies.PIRANHA to null)) {
+        for ((species, artwork) in listOf(
+            EnemySpecies.SHARK to 0f,
+            EnemySpecies.KRAIT to 180f,
+            EnemySpecies.PIRANHA to null
+        )) {
             val generator = generator(only(species))
             generator.firstArrival()
             val facing = world.getComponent(enemies().last(), FacesVelocityComponent::class)
-            if (artwork == null) assertNull(facing, "$species turns") else assertEquals(artwork, assertNotNull(facing).artworkDegrees)
+            if (artwork == null) assertNull(facing, "$species turns") else assertEquals(
+                artwork,
+                assertNotNull(facing).artworkDegrees
+            )
             enemies().forEach { world.removeEntity(it) }
             world.update(TICK_INITIAL, null)
         }
@@ -160,8 +171,14 @@ class LagoonGeneratorTest {
     fun `a puffer throws its spines in a ring`() {
         val generator = generator(only(EnemySpecies.PUFFER))
         generator.firstArrival()
-        val gun = assertNotNull(world.getComponent(enemies().single(), GunComponent::class), "it is unarmed")
-        assertTrue(gun.volleys.any { it.pattern == ShotPattern.RADIAL && it.count >= 8 }, "it throws no ring")
+        val gun = assertNotNull(
+            world.getComponent(enemies().single(), GunComponent::class),
+            "it is unarmed"
+        )
+        assertTrue(
+            gun.volleys.any { it.pattern == ShotPattern.RADIAL && it.count >= 8 },
+            "it throws no ring"
+        )
     }
 
     @Test
@@ -186,7 +203,8 @@ class LagoonGeneratorTest {
     }
 
     private fun parts(): List<EntityId> =
-        world.query(BossPartComponent::class).filter { !world.hasComponent(it, HealthComponent::class) }
+        world.query(BossPartComponent::class)
+            .filter { !world.hasComponent(it, HealthComponent::class) }
 
     private fun EnemyGenerator.brain() = bossBrain as NagaBrain
 
@@ -207,10 +225,24 @@ class LagoonGeneratorTest {
         val (_, head) = nagaFight()
 
         assertEquals(12, parts().size)
-        assertTrue(world.hasComponent(head, BossPartComponent::class), "the head is not armored against ramming")
-        assertNotNull(world.getComponent(head, HealthBarComponent::class)?.pinnedTo, "its bar goes where it goes")
-        assertNotNull(world.getComponent(head, ShieldComponent::class), "its hood has no shield to raise")
-        (parts() + head).forEach { assertTrue(rectOf(it).top > HEIGHT, "a part of it showed before it rose") }
+        assertTrue(
+            world.hasComponent(head, BossPartComponent::class),
+            "the head is not armored against ramming"
+        )
+        assertNotNull(
+            world.getComponent(head, HealthBarComponent::class)?.pinnedTo,
+            "its bar goes where it goes"
+        )
+        assertNotNull(
+            world.getComponent(head, ShieldComponent::class),
+            "its hood has no shield to raise"
+        )
+        (parts() + head).forEach {
+            assertTrue(
+                rectOf(it).top > HEIGHT,
+                "a part of it showed before it rose"
+            )
+        }
     }
 
     /** It shows itself whole before anything is aimed at the bat: its first rise is at the far right. */
@@ -228,7 +260,10 @@ class LagoonGeneratorTest {
         assertTrue(riseX > WIDTH * 0.8f, "its first rise was at $riseX, not well away at the right")
 
         generator.until(NagaBrain.Act.REARED)
-        assertTrue(rectOf(head).bottom < HEIGHT * 0.75f, "it never reared up: its head is at ${rectOf(head).top}")
+        assertTrue(
+            rectOf(head).bottom < HEIGHT * 0.75f,
+            "it never reared up: its head is at ${rectOf(head).top}"
+        )
     }
 
     /** Reared, its body runs unbroken from the water to its head, however its head sways. */
@@ -243,18 +278,35 @@ class LagoonGeneratorTest {
         val left = parts().toMutableList()
         while (left.isNotEmpty()) {
             val last = rectOf(chain.last())
-            val next = left.minBy { hypot(rectOf(it).centerX - last.centerX, rectOf(it).centerY - last.centerY) }
+            val next = left.minBy {
+                hypot(
+                    rectOf(it).centerX - last.centerX,
+                    rectOf(it).centerY - last.centerY
+                )
+            }
             chain += next
             left -= next
         }
         fun gap(front: EntityId, back: EntityId) =
-            hypot(rectOf(front).centerX - rectOf(back).centerX, rectOf(front).centerY - rectOf(back).centerY)
+            hypot(
+                rectOf(front).centerX - rectOf(back).centerX,
+                rectOf(front).centerY - rectOf(back).centerY
+            )
         // The neck leaves the hood well below the head's middle, and the head covers the space between.
-        assertTrue(gap(chain[0], chain[1]) <= NAGA_FRAME / 2f, "its neck came away from its head: ${gap(chain[0], chain[1])}")
+        assertTrue(
+            gap(chain[0], chain[1]) <= NAGA_FRAME / 2f,
+            "its neck came away from its head: ${gap(chain[0], chain[1])}"
+        )
         chain.drop(1).zipWithNext { front, back ->
-            assertTrue(gap(front, back) <= NAGA_SPACING_MOST + 1f, "two parts came apart: ${gap(front, back)}")
+            assertTrue(
+                gap(front, back) <= NAGA_SPACING_MOST + 1f,
+                "two parts came apart: ${gap(front, back)}"
+            )
         }
-        assertTrue(rectOf(chain.last()).top > HEIGHT - NAGA_FRAME / 2f, "its tail is out of the water")
+        assertTrue(
+            rectOf(chain.last()).top > HEIGHT - NAGA_FRAME / 2f,
+            "its tail is out of the water"
+        )
     }
 
     @Test
@@ -272,7 +324,10 @@ class LagoonGeneratorTest {
         fired.clear()
         generator.until(NagaBrain.Act.RECOIL, seconds = 2f)
         val to = rectOf(head)
-        assertTrue(to.centerX < from.centerX - 40f, "it did not lunge at the bat: ${from.centerX} to ${to.centerX}")
+        assertTrue(
+            to.centerX < from.centerX - 40f,
+            "it did not lunge at the bat: ${from.centerX} to ${to.centerX}"
+        )
         generator.run(0.3f)
         assertTrue(head in fired, "it threw nothing from its strike")
     }
@@ -287,7 +342,12 @@ class LagoonGeneratorTest {
 
         generator.until(NagaBrain.Act.SUBMERGED)
         generator.until(NagaBrain.Act.RISING)
-        val kraits = enemies().filter { world.getComponent(it, EnemyBehaviorComponent::class)?.type == at.smiech.engine.ecs.EnemyMovementType.SINE }
+        val kraits = enemies().filter {
+            world.getComponent(
+                it,
+                EnemyBehaviorComponent::class
+            )?.type == at.smiech.engine.ecs.EnemyMovementType.SINE
+        }
         assertEquals(2, kraits.size, "a rise in phase three called up ${kraits.size} kraits")
     }
 
@@ -300,7 +360,10 @@ class LagoonGeneratorTest {
         generator.tick()
 
         assertEquals(listOf(2, 3, 4), bossPhases)
-        assertTrue(world.getComponent(head, ShieldComponent::class)!!.isUp, "its hood raised no shield")
+        assertTrue(
+            world.getComponent(head, ShieldComponent::class)!!.isUp,
+            "its hood raised no shield"
+        )
         generator.until(NagaBrain.Act.SWIM, seconds = 40f)
         assertTrue(generator.brain().swimming)
         // In from the right, low over the water.

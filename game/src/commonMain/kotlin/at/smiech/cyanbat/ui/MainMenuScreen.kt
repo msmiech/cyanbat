@@ -159,7 +159,8 @@ private fun HelpDialog(dismiss: () -> Unit) {
                     Spacer(Modifier.height(12.dp))
                     TextButton(
                         onClick = dismiss,
-                        modifier = Modifier.align(Alignment.End).focusRequester(ok).then(okCursor.modifier),
+                        modifier = Modifier.align(Alignment.End).focusRequester(ok)
+                            .then(okCursor.modifier),
                         border = okCursor.border(),
                     ) {
                         Text("OK")
@@ -189,8 +190,18 @@ private fun MainMenuContent(home: MainChoice, onChoose: (MainChoice) -> Unit) {
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Column(Modifier.width(IntrinsicSize.Max)) {
-                    for (choice in listOf(MainChoice.START, MainChoice.SETTINGS, MainChoice.HELP, MainChoice.CREDITS)) {
-                        MenuButton(choice, cursor.getValue(choice), onChoose, Modifier.fillMaxWidth())
+                    for (choice in listOf(
+                        MainChoice.START,
+                        MainChoice.SETTINGS,
+                        MainChoice.HELP,
+                        MainChoice.CREDITS
+                    )) {
+                        MenuButton(
+                            choice,
+                            cursor.getValue(choice),
+                            onChoose,
+                            Modifier.fillMaxWidth()
+                        )
                     }
                 }
                 Column(

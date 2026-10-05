@@ -83,8 +83,15 @@ class JungleGeneratorTest {
         val swarm = enemies()
         assertTrue(swarm.size >= SWARM_SIZE, "a swarm of ${swarm.size}")
         assertTrue(swarm.all { behaviorOf(it).type == EnemyMovementType.SWARM })
-        assertEquals(1, swarm.map { behaviorOf(it).initialY }.toSet().size, "the swarm has more than one path")
-        assertTrue(swarm.map { behaviorOf(it).phase }.toSet().size > 1, "the swarm buzzes in unison")
+        assertEquals(
+            1,
+            swarm.map { behaviorOf(it).initialY }.toSet().size,
+            "the swarm has more than one path"
+        )
+        assertTrue(
+            swarm.map { behaviorOf(it).phase }.toSet().size > 1,
+            "the swarm buzzes in unison"
+        )
     }
 
     @Test
@@ -149,10 +156,16 @@ class JungleGeneratorTest {
 
         assertTrue(enemies().isNotEmpty())
         enemies().forEach { id ->
-            val shield = assertNotNull(world.getComponent(id, ShieldComponent::class), "an unshielded beetle")
+            val shield = assertNotNull(
+                world.getComponent(id, ShieldComponent::class),
+                "an unshielded beetle"
+            )
             val health = world.getComponent(id, HealthComponent::class)!!
             assertTrue(shield.isUp)
-            assertTrue(shield.points < health.hitPoints, "a shield tougher than the beetle inside it")
+            assertTrue(
+                shield.points < health.hitPoints,
+                "a shield tougher than the beetle inside it"
+            )
         }
     }
 
@@ -203,7 +216,10 @@ class JungleGeneratorTest {
 
         enemies().forEach { id ->
             val holdX = behaviorOf(id).holdX
-            assertTrue(holdX in FRAME_BUFFER_WIDTH * 0.4f..FRAME_BUFFER_WIDTH * 0.9f, "a station at $holdX")
+            assertTrue(
+                holdX in FRAME_BUFFER_WIDTH * 0.4f..FRAME_BUFFER_WIDTH * 0.9f,
+                "a station at $holdX"
+            )
         }
     }
 
@@ -246,7 +262,12 @@ class JungleGeneratorTest {
         // At her strength, which the jungle's own waves are eased below.
         val escort = StageProgression.forStage(1).escortWave()
         val expected = (escort.hitPoints * EnemySpecies.WASP.hitPointFactor).roundToInt()
-        assertTrue(wasps.all { world.getComponent(it, HealthComponent::class)!!.maxHitPoints == expected })
+        assertTrue(wasps.all {
+            world.getComponent(
+                it,
+                HealthComponent::class
+            )!!.maxHitPoints == expected
+        })
     }
 
     @Test

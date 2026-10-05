@@ -29,7 +29,11 @@ class DaylightTest {
     fun `the ground is in each keyframe's own palette exactly at that keyframe`() {
         Daylight.KEYFRAMES.forEachIndexed { index, at ->
             assertEquals(index, Daylight.keyframeBelow(at))
-            assertEquals(0f, Daylight.keyframeBlend(at), "keyframe $index was blended at its own hour")
+            assertEquals(
+                0f,
+                Daylight.keyframeBlend(at),
+                "keyframe $index was blended at its own hour"
+            )
         }
     }
 
@@ -61,7 +65,10 @@ class DaylightTest {
         for (height in floatArrayOf(0f, 0.5f, 1f)) {
             val sky = Daylight.skyColor(0f, height)
             assertTrue(brightness(sky) > 600, "noon at $height is not bright: ${sky.toString(16)}")
-            assertTrue(red(sky) > blue(sky) + 30 && green(sky) > blue(sky) + 20, "noon at $height is not yellow")
+            assertTrue(
+                red(sky) > blue(sky) + 30 && green(sky) > blue(sky) + 20,
+                "noon at $height is not yellow"
+            )
         }
     }
 
@@ -70,8 +77,14 @@ class DaylightTest {
         val overhead = Daylight.skyColor(1f, 0f)
         val horizon = Daylight.skyColor(1f, 1f)
 
-        assertTrue(brightness(overhead) < 50, "the night sky overhead is not black: ${overhead.toString(16)}")
-        assertTrue(blue(horizon) > green(horizon) && red(horizon) > green(horizon), "the horizon at night is not purple")
+        assertTrue(
+            brightness(overhead) < 50,
+            "the night sky overhead is not black: ${overhead.toString(16)}"
+        )
+        assertTrue(
+            blue(horizon) > green(horizon) && red(horizon) > green(horizon),
+            "the horizon at night is not purple"
+        )
     }
 
     @Test
@@ -97,7 +110,10 @@ class DaylightTest {
             previous = y
         }
         assertTrue(Daylight.SUNSET < 0.8f, "the sun is still up for the last wave")
-        assertTrue(Daylight.sunY(Daylight.SUNSET) - Daylight.sunRadius(Daylight.SUNSET) > 244f, "the sun is not below the dunes when it stops being drawn")
+        assertTrue(
+            Daylight.sunY(Daylight.SUNSET) - Daylight.sunRadius(Daylight.SUNSET) > 244f,
+            "the sun is not below the dunes when it stops being drawn"
+        )
     }
 
     /** The far dunes' crests run along 270 to 284 of the frame. */
@@ -106,7 +122,10 @@ class DaylightTest {
         val center = Daylight.sunY(Daylight.SUNDOWN)
         val radius = Daylight.sunRadius(Daylight.SUNDOWN)
 
-        assertTrue(center in 258f..276f, "the sun is not on the horizon at sundown: its center is at $center")
+        assertTrue(
+            center in 258f..276f,
+            "the sun is not on the horizon at sundown: its center is at $center"
+        )
         assertTrue(center - radius < 254f, "none of the sun shows above the dunes at sundown")
     }
 
@@ -115,7 +134,10 @@ class DaylightTest {
         val noon = Daylight.sunColor(0f)
         val setting = Daylight.sunColor(0.72f)
 
-        assertTrue(blue(setting) < blue(noon) - 100, "the setting sun is not warmer than the noon one")
+        assertTrue(
+            blue(setting) < blue(noon) - 100,
+            "the setting sun is not warmer than the noon one"
+        )
     }
 
     @Test

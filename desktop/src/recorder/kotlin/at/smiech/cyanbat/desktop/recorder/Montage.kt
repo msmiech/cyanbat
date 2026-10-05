@@ -104,12 +104,18 @@ object Montage {
         require(!coverage.finale || completeAt > bossAt) { "Only a run that beat its boss can show it going down" }
 
         val arrival = if (coverage.arrivalSeconds > 0f) {
-            earlier(moments, bossAt, frames(ARRIVAL_LEAD_SECONDS))..later(moments, bossAt, frames(coverage.arrivalSeconds))
+            earlier(moments, bossAt, frames(ARRIVAL_LEAD_SECONDS))..later(
+                moments,
+                bossAt,
+                frames(coverage.arrivalSeconds)
+            )
         } else {
             null
         }
         val finale = if (coverage.finale) {
-            earlier(moments, completeAt, frames(FINALE_LEAD_SECONDS)).coerceAtLeast(arrival?.first ?: bossAt)..last
+            earlier(moments, completeAt, frames(FINALE_LEAD_SECONDS)).coerceAtLeast(
+                arrival?.first ?: bossAt
+            )..last
         } else {
             null
         }
@@ -127,22 +133,39 @@ object Montage {
         val action = if (coverage.actionSeconds > 0f) {
             val wanted = waves.filter { moments[it].wave >= actionWave }
             listOfNotNull(wanted.firstOrNull()?.let { it..wanted.last() }, waves)
-                .firstNotNullOfOrNull { busiest(moments, outside(it, levelUp), frames(coverage.actionSeconds)) }
+                .firstNotNullOfOrNull {
+                    busiest(
+                        moments,
+                        outside(it, levelUp),
+                        frames(coverage.actionSeconds)
+                    )
+                }
         } else {
             null
         }
 
         val views = if (coverage.scenerySeconds > 0f) {
             scenery.mapNotNull { seconds ->
-                val start = waves.firstOrNull { moments[it].seconds >= seconds && !moments[it].offer }
-                start?.let { it..later(moments, it, frames(coverage.scenerySeconds)).coerceAtMost(waves.last) }
+                val start =
+                    waves.firstOrNull { moments[it].seconds >= seconds && !moments[it].offer }
+                start?.let {
+                    it..later(moments, it, frames(coverage.scenerySeconds)).coerceAtMost(
+                        waves.last
+                    )
+                }
             }
         } else {
             emptyList()
         }
 
         val clips = merge(
-            (listOfNotNull(opening, levelUp, action, arrival, finale) + views).sortedBy { it.first },
+            (listOfNotNull(
+                opening,
+                levelUp,
+                action,
+                arrival,
+                finale
+            ) + views).sortedBy { it.first },
             frames(MERGE_GAP_SECONDS),
         )
         return clips.map { clip -> clip.filter { !moments[it].offer || (levelUp != null && it in levelUp) } }
@@ -208,7 +231,7 @@ object Montage {
         fun weight(m: Moment): Float =
             if (m.offer) Float.NEGATIVE_INFINITY
             else m.enemies + BLAST_WEIGHT * m.blasts - (if (m.hit) HIT_WEIGHT else 0f) +
-                (if (m.banner?.startsWith("WAVE") == true) BANNER_WEIGHT else 0f)
+                    (if (m.banner?.startsWith("WAVE") == true) BANNER_WEIGHT else 0f)
 
         var bestStart = -1
         var bestScore = Float.NEGATIVE_INFINITY

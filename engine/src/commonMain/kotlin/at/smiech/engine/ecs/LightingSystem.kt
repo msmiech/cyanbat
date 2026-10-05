@@ -113,10 +113,17 @@ class LightingSystem(
         var used = 0
         world.forEach(transforms, sprites, occluders) { id ->
             val sprite = sprites.require(id)
-            val hull = silhouettes.of(sprite.pixmap, sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight)
+            val hull = silhouettes.of(
+                sprite.pixmap,
+                sprite.srcX,
+                sprite.srcY,
+                sprite.srcWidth,
+                sprite.srcHeight
+            )
                 ?: return@forEach
             val rect = transforms.require(id).rect
-            val occluder = if (occluderCount < standing.size) standing[occluderCount] else Occluder().also { standing += it }
+            val occluder =
+                if (occluderCount < standing.size) standing[occluderCount] else Occluder().also { standing += it }
             occluderCount++
             occluder.pixmap = sprite.pixmap
             occluder.srcX = sprite.srcX
@@ -132,15 +139,18 @@ class LightingSystem(
 
             // A blit paints a column and a row short of its box and stretches its picture over what is
             // left, so a magnified sprite's pixels stand that much further apart.
-            val scaleX = if (sprite.srcWidth > 1) (occluder.dstWidth - 1f) / (sprite.srcWidth - 1) else sprite.scale
-            val scaleY = if (sprite.srcHeight > 1) (occluder.dstHeight - 1f) / (sprite.srcHeight - 1) else sprite.scale
+            val scaleX =
+                if (sprite.srcWidth > 1) (occluder.dstWidth - 1f) / (sprite.srcWidth - 1) else sprite.scale
+            val scaleY =
+                if (sprite.srcHeight > 1) (occluder.dstHeight - 1f) / (sprite.srcHeight - 1) else sprite.scale
             val radians = sprite.rotationDegrees * RADIANS_PER_DEGREE
             val cos = cos(radians)
             val sin = sin(radians)
             val pivotX = occluder.left + occluder.dstWidth / 2f
             val pivotY = occluder.top + occluder.dstHeight / 2f
 
-            if (used + hull.size > outlines.size) outlines = outlines.copyOf(maxOf(outlines.size * 2, used + hull.size))
+            if (used + hull.size > outlines.size) outlines =
+                outlines.copyOf(maxOf(outlines.size * 2, used + hull.size))
             occluder.from = used
             var minX = Float.MAX_VALUE
             var minY = Float.MAX_VALUE
@@ -184,7 +194,8 @@ class LightingSystem(
             occluder.shadow = OUT_OF_REACH
             if (occluder.distanceTo(centerX, centerY) > reach) continue
             val before = light.shadowCount
-            val thrown = Shadow.cast(outlines, occluder.from, occluder.until, centerX, centerY, reach, light)
+            val thrown =
+                Shadow.cast(outlines, occluder.from, occluder.until, centerX, centerY, reach, light)
             occluder.shadow = when {
                 !thrown -> LIGHT_INSIDE
                 light.shadowCount > before -> light.shadowCount - 1
@@ -211,15 +222,26 @@ class LightingSystem(
             val middleX = occluder.left + occluder.dstWidth / 2f
             val middleY = occluder.top + occluder.dstHeight / 2f
             if (light.inShadow(middleX, middleY, except = occluder.shadow)) continue
-            val reached = sqrt(Lighting.falloff(occluder.distanceTo(centerX, centerY) / light.radius))
+            val reached =
+                sqrt(Lighting.falloff(occluder.distanceTo(centerX, centerY) / light.radius))
             val strength = light.intensity * reached * occluder.shine
             if (strength < FAINTEST_GLINT) continue
             val angle = atan2(centerY - middleY, centerX - middleX)
-            val direction = ((angle / DIRECTION_STEP).roundToInt() % Gloss.DIRECTIONS + Gloss.DIRECTIONS) % Gloss.DIRECTIONS
+            val direction =
+                ((angle / DIRECTION_STEP).roundToInt() % Gloss.DIRECTIONS + Gloss.DIRECTIONS) % Gloss.DIRECTIONS
             lighting.addGlint(
-                occluder.pixmap!!, occluder.srcX, occluder.srcY, occluder.srcWidth, occluder.srcHeight,
-                occluder.left, occluder.top, occluder.dstWidth, occluder.dstHeight,
-                direction, light.color, strength,
+                occluder.pixmap!!,
+                occluder.srcX,
+                occluder.srcY,
+                occluder.srcWidth,
+                occluder.srcHeight,
+                occluder.left,
+                occluder.top,
+                occluder.dstWidth,
+                occluder.dstHeight,
+                direction,
+                light.color,
+                strength,
             )
         }
     }

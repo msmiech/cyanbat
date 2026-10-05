@@ -50,7 +50,10 @@ data class Stage(
 class Approach(val from: Float, val until: Float, val bottomObstacles: Array<Pixmap?>) {
     /** How much of the ground has turned by [position], as 0..1. */
     fun share(position: Float): Float =
-        if (until <= from) (if (position >= from) 1f else 0f) else ((position - from) / (until - from)).coerceIn(0f, 1f)
+        if (until <= from) (if (position >= from) 1f else 0f) else ((position - from) / (until - from)).coerceIn(
+            0f,
+            1f
+        )
 }
 
 /**

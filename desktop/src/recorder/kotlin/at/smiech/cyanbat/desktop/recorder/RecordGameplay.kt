@@ -66,6 +66,7 @@ fun main(args: Array<String>) {
         // A reel missing a stage would quietly replace a whole one, so there is none.
         failed.isNotEmpty() ->
             System.err.println("No reel written: the autopilot never got through stage(s) ${failed.joinToString()}")
+
         !options.dryRun -> write(reel, options)
     }
     // The run's coroutines and the Swing event thread would otherwise keep the JVM up.
@@ -139,7 +140,8 @@ private class Options(
                 require(arg.startsWith("--")) { "Unknown argument $arg" }
                 arg.removePrefix("--").substringBefore('=') to arg.substringAfter('=', "")
             }
-            val stages = values["stages"]?.split(',')?.map { it.trim().toInt() } ?: STAGE_COVERAGE.keys.toList()
+            val stages = values["stages"]?.split(',')?.map { it.trim().toInt() }
+                ?: STAGE_COVERAGE.keys.toList()
             require(stages.all { it in STAGE_COVERAGE }) {
                 "The reel has no place for stage(s) ${(stages - STAGE_COVERAGE.keys).joinToString()}"
             }
@@ -203,9 +205,16 @@ private suspend fun film(stageId: Int, options: Options, reel: MutableList<Foota
     return true
 }
 
-private fun cut(stageId: Int, coverage: Coverage, tape: Tape, options: Options, scenery: List<Float>): Footage {
+private fun cut(
+    stageId: Int,
+    coverage: Coverage,
+    tape: Tape,
+    options: Options,
+    scenery: List<Float>
+): Footage {
     // The wave with the widest mix of enemies, where the stage shows the most of itself at once.
-    val actionWave = StageDesign.forStage(stageId).waves.withIndex().maxBy { it.value.species.size }.index
+    val actionWave =
+        StageDesign.forStage(stageId).waves.withIndex().maxBy { it.value.species.size }.index
     val clips = Montage.cut(tape.moments, options.frameSeconds, actionWave, scenery, coverage)
     val frames = clips.flatten()
 
@@ -213,8 +222,13 @@ private fun cut(stageId: Int, coverage: Coverage, tape: Tape, options: Options, 
     for (i in frames) builder.add(tape.pixels(i))
     val palette = builder.build()
     println(
-        "  clips " + clips.joinToString { "%.1f-%.1fs".format(tape.moments[it.first()].seconds, tape.moments[it.last()].seconds) } +
-            " of the stage clock, ${frames.size} frames, ${palette.colors.size} colors"
+        "  clips " + clips.joinToString {
+            "%.1f-%.1fs".format(
+                tape.moments[it.first()].seconds,
+                tape.moments[it.last()].seconds
+            )
+        } +
+                " of the stage clock, ${frames.size} frames, ${palette.colors.size} colors"
     )
     return Footage(palette, frames.map { palette.indicesOf(tape.pixels(it)) })
 }
@@ -227,10 +241,12 @@ private fun write(reel: List<Footage>, options: Options) {
     val frameCentiseconds = options.frameSeconds * 100f
     var n = 0
     file.outputStream().buffered().use { out ->
-        val gif = GifEncoder(out, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, reel.first().palette.colors)
+        val gif =
+            GifEncoder(out, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, reel.first().palette.colors)
         for (footage in reel) {
             for (frame in footage.frames) {
-                val delay = ((n + 1) * frameCentiseconds).roundToInt() - (n * frameCentiseconds).roundToInt()
+                val delay =
+                    ((n + 1) * frameCentiseconds).roundToInt() - (n * frameCentiseconds).roundToInt()
                 gif.addFrame(frame, delay, footage.palette.colors)
                 n++
             }
@@ -241,14 +257,23 @@ private fun write(reel: List<Footage>, options: Options) {
 
     options.frames?.let { dir ->
         dir.mkdirs()
-        val image = BufferedImage(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, BufferedImage.TYPE_INT_RGB)
+        val image =
+            BufferedImage(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, BufferedImage.TYPE_INT_RGB)
         var written = 0
         for (footage in reel) {
             val colors = footage.palette.colors
             for (frame in footage.frames) {
                 // In the colors the GIF shows, which are the frame's own unless its palette overflowed.
                 val pixels = IntArray(frame.size) { colors[frame[it].toInt() and 0xFF] }
-                image.setRGB(0, 0, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, pixels, 0, FRAME_BUFFER_WIDTH)
+                image.setRGB(
+                    0,
+                    0,
+                    FRAME_BUFFER_WIDTH,
+                    FRAME_BUFFER_HEIGHT,
+                    pixels,
+                    0,
+                    FRAME_BUFFER_WIDTH
+                )
                 ImageIO.write(image, "png", File(dir, "%04d.png".format(written++)))
             }
         }
@@ -267,7 +292,8 @@ private class Result(
     val hits: Int,
     val outcome: String,
 ) {
-    override fun toString() = "$outcome at %.1fs, level $level, score $score, $hits hits taken".format(seconds)
+    override fun toString() =
+        "$outcome at %.1fs, level $level, score $score, $hits hits taken".format(seconds)
 }
 
 /**
@@ -359,7 +385,11 @@ private class Flight(
                 }
 
                 // A boss the footage keeps hidden is never taped, not even the frame it arrives on.
-                if (enmGen.bossSpawned && !coverage.showsBoss) return result(true, hits, "flown to the boss")
+                if (enmGen.bossSpawned && !coverage.showsBoss) return result(
+                    true,
+                    hits,
+                    "flown to the boss"
+                )
 
                 val now = batHealth()
                 val hit = now < health
@@ -370,19 +400,33 @@ private class Flight(
                 if (enmGen.bossSpawned && bossArrivedAt < 0f) bossArrivedAt = enmGen.elapsedSeconds
 
                 when {
-                    game.currentScreen !== screen || now <= 0f -> return result(false, hits, "shot down")
+                    game.currentScreen !== screen || now <= 0f -> return result(
+                        false,
+                        hits,
+                        "shot down"
+                    )
                     // Footage that is only the stage's hours needs flying no further than the last of
                     // them: the lagoon's sunrise is two minutes in, and its Naga three minutes further.
                     coverage.onlyScenery && scenery.isNotEmpty() &&
-                        enmGen.elapsedSeconds > scenery.max() + coverage.scenerySeconds + SCENERY_TAIL_SECONDS ->
+                            enmGen.elapsedSeconds > scenery.max() + coverage.scenerySeconds + SCENERY_TAIL_SECONDS ->
                         return result(true, hits, "flown through its hours")
-                    probe.stageComplete && ++completeFrames >= outroFrames -> return result(true, hits, "won")
+
+                    probe.stageComplete && ++completeFrames >= outroFrames -> return result(
+                        true,
+                        hits,
+                        "won"
+                    )
                     // A frame past the arrival clip, on the stage clock, which stops for dialogs just
                     // as the clip's own count of frames skips them.
                     !coverage.finale && bossArrivedAt >= 0f &&
-                        enmGen.elapsedSeconds - bossArrivedAt > coverage.arrivalSeconds + frameSeconds ->
+                            enmGen.elapsedSeconds - bossArrivedAt > coverage.arrivalSeconds + frameSeconds ->
                         return result(true, hits, "flown through the boss's arrival")
-                    enmGen.elapsedSeconds > GIVE_UP_SECONDS -> return result(false, hits, "out of time")
+
+                    enmGen.elapsedSeconds > GIVE_UP_SECONDS -> return result(
+                        false,
+                        hits,
+                        "out of time"
+                    )
                 }
             }
         } finally {
@@ -425,7 +469,11 @@ private class Flight(
         val world = probe.world
         var enemies = 0
         for (id in world.query(CollisionComponent::class, TransformComponent::class)) {
-            if (world.getComponent(id, CollisionComponent::class)?.group != CollisionGroup.ENEMY) continue
+            if (world.getComponent(
+                    id,
+                    CollisionComponent::class
+                )?.group != CollisionGroup.ENEMY
+            ) continue
             val rect = world.getComponent(id, TransformComponent::class)!!.rect
             if (rect.right > 0f && rect.left < FRAME_BUFFER_WIDTH) enemies++
         }

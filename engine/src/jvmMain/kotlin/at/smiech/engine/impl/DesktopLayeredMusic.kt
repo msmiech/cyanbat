@@ -77,7 +77,8 @@ class DesktopLayeredMusic(
     private fun pump() {
         val format = AudioFormat(mixer.sampleRate.toFloat(), 16, 2, true, false)
         val line = try {
-            AudioSystem.getSourceDataLine(format).apply { open(format, BUFFER_FRAMES * BYTES_PER_FRAME) }
+            AudioSystem.getSourceDataLine(format)
+                .apply { open(format, BUFFER_FRAMES * BYTES_PER_FRAME) }
         } catch (exc: Exception) {
             // No device, or none that takes this format: the game plays on in silence.
             System.err.println("CyanBat: layered music unavailable - $exc")
@@ -109,7 +110,10 @@ class DesktopLayeredMusic(
                     }
 
                     else -> lock.withLock {
-                        if (!wantPlaying && !disposed) wake.await(IDLE_WAIT_MILLIS, TimeUnit.MILLISECONDS)
+                        if (!wantPlaying && !disposed) wake.await(
+                            IDLE_WAIT_MILLIS,
+                            TimeUnit.MILLISECONDS
+                        )
                     }
                 }
             }

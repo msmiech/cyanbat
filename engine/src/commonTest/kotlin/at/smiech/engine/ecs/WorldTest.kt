@@ -162,6 +162,7 @@ class WorldTest {
             world.addComponent(it, TransformComponent(Rect.fromLTWH(100f, y, 10f, 10f)))
             world.addComponent(it, LifetimeComponent(removeIfOutOfBounds = true))
         }
+
         val farAbove = at(-100f)
         val farBelow = at(420f)
         val justAbove = at(-30f)
@@ -171,8 +172,14 @@ class WorldTest {
 
         assertFalse(world.hasComponent(farAbove, TransformComponent::class))
         assertFalse(world.hasComponent(farBelow, TransformComponent::class))
-        assertTrue(world.hasComponent(justAbove, TransformComponent::class), "a dip past the edge is not an exit")
-        assertTrue(world.hasComponent(justBelow, TransformComponent::class), "a dip past the edge is not an exit")
+        assertTrue(
+            world.hasComponent(justAbove, TransformComponent::class),
+            "a dip past the edge is not an exit"
+        )
+        assertTrue(
+            world.hasComponent(justBelow, TransformComponent::class),
+            "a dip past the edge is not an exit"
+        )
     }
 
     /**
@@ -189,6 +196,7 @@ class WorldTest {
             world.addComponent(it, VelocityComponent(velocity))
             world.addComponent(it, LifetimeComponent(removeIfOutOfBounds = true))
         }
+
         val fromRight = entering(520f, 100f, Vector2(-2f, 0f))
         val fromAbove = entering(100f, -120f, Vector2(0f, 2f))
         val leavingRight = entering(520f, 100f, Vector2(4f, 0f))

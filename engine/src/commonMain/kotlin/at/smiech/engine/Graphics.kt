@@ -46,7 +46,15 @@ interface Graphics {
      * which pixels, and it is laid down like the fill.
      */
     fun drawOvalOutline(x: Int, y: Int, width: Int, height: Int, color: Int) =
-        Raster.ovalOutline(x, y, width, height) { left, top, w, h -> drawRect(left, top, w, h, color) }
+        Raster.ovalOutline(x, y, width, height) { left, top, w, h ->
+            drawRect(
+                left,
+                top,
+                w,
+                h,
+                color
+            )
+        }
 
     fun drawPixmap(
         pixmap: Pixmap,
@@ -171,7 +179,18 @@ interface Graphics {
         dstHeight: Int,
         color: Int,
         rotationDegrees: Float,
-    ) = drawPixmapSilhouette(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight, color)
+    ) = drawPixmapSilhouette(
+        pixmap,
+        x,
+        y,
+        srcX,
+        srcY,
+        srcWidth,
+        srcHeight,
+        dstWidth,
+        dstHeight,
+        color
+    )
 
     /**
      * Lights everything drawn so far with [lighting]: each pixel of the frame multiplied by the light
@@ -210,7 +229,13 @@ interface Graphics {
     ) {
         var i = 0
         while (i < OUTLINE_OFFSETS.size) {
-            drawString(s, x + OUTLINE_OFFSETS[i], y + OUTLINE_OFFSETS[i + 1], fontSize, outlineColor)
+            drawString(
+                s,
+                x + OUTLINE_OFFSETS[i],
+                y + OUTLINE_OFFSETS[i + 1],
+                fontSize,
+                outlineColor
+            )
             i += 2
         }
         drawString(s, x, y, fontSize, color)

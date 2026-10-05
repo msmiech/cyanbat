@@ -191,7 +191,10 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                     // work shows up on the RenderThread.
                     AndroidFrameTrace.begin(ComposeGraphics.DRAW_SECTION)
                     try {
-                        drawGameFrame(frame, fit, ambientBars.takeIf { displayMode == DisplayMode.AMBIENT })
+                        drawGameFrame(
+                            frame,
+                            fit,
+                            ambientBars.takeIf { displayMode == DisplayMode.AMBIENT })
                     } finally {
                         AndroidFrameTrace.end()
                     }
@@ -265,7 +268,8 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
         if (!controlHandler.onAndroidMotionEvent(event)) return super.onGenericMotionEvent(event)
         // Only a stick pushed past its dead zone. A pad left on the table reports a drifting stick
         // too, and that is not the player picking it up.
-        if (controlHandler.moveX != 0f || controlHandler.moveY != 0f) controllerInUse = event.deviceId
+        if (controlHandler.moveX != 0f || controlHandler.moveY != 0f) controllerInUse =
+            event.deviceId
         return true
     }
 

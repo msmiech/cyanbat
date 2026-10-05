@@ -112,8 +112,15 @@ class RasterTest {
         for (width in 1..30) for (height in 1..30) {
             val oval = oval(0, 0, width, height)
             val interior = interior(0, 0, width, height)
-            assertTrue(oval.containsAll(interior), "the $width by $height oval's inside spills out of it")
-            assertEquals(oval - interior, outline(0, 0, width, height), "the $width by $height outline")
+            assertTrue(
+                oval.containsAll(interior),
+                "the $width by $height oval's inside spills out of it"
+            )
+            assertEquals(
+                oval - interior,
+                outline(0, 0, width, height),
+                "the $width by $height outline"
+            )
         }
     }
 
@@ -124,7 +131,11 @@ class RasterTest {
             val walledIn = oval.filter { (x, y) ->
                 (x - 1 to y) in oval && (x + 1 to y) in oval && (x to y - 1) in oval && (x to y + 1) in oval
             }.toSet()
-            assertEquals(walledIn, interior(0, 0, width, height), "the inside of the $width by $height oval")
+            assertEquals(
+                walledIn,
+                interior(0, 0, width, height),
+                "the inside of the $width by $height oval"
+            )
         }
     }
 
@@ -153,7 +164,10 @@ class RasterTest {
     fun `a line lights both its ends and the same pixels whichever way it is drawn`() {
         for (x0 in -5..5) for (y0 in -5..5) for (x1 in -5..5) for (y1 in -5..5) {
             val there = line(x0, y0, x1, y1)
-            assertTrue((x0 to y0) in there && (x1 to y1) in there, "$x0 $y0 to $x1 $y1 misses an end")
+            assertTrue(
+                (x0 to y0) in there && (x1 to y1) in there,
+                "$x0 $y0 to $x1 $y1 misses an end"
+            )
             assertEquals(there, line(x1, y1, x0, y0), "$x0 $y0 to $x1 $y1 drawn back the other way")
         }
     }

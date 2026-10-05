@@ -37,7 +37,12 @@ class ObstacleGeneratorTest {
     private val openSky = Stage(
         id = 3,
         name = "TEST",
-        backdrop = Backdrop.Sky(Daylight, listOf(ParallaxLayer(Sheet(960, 400), top = 150, speed = 1f)), Sheet(24, 24), horizonY = 276),
+        backdrop = Backdrop.Sky(
+            Daylight,
+            listOf(ParallaxLayer(Sheet(960, 400), top = 150, speed = 1f)),
+            Sheet(24, 24),
+            horizonY = 276
+        ),
         topObstacles = emptyArray(),
         bottomObstacles = arrayOf(Sheet(38, 57 * keyframes), Sheet(96, 54 * keyframes)),
         music = StageMusic("test", MusicGrid(beatsPerMinute = 120.0, beatsPerBar = 4)),
@@ -56,9 +61,11 @@ class ObstacleGeneratorTest {
 
     /** The lagoon's way: its limestone giving way to the temple's stones as the temple comes in sight. */
     private val temple = arrayOf<Pixmap?>(Sheet(41, 46 * keyframes), Sheet(76, 50 * keyframes))
-    private val approaching = openSky.copy(approach = Approach(from = 0.6f, until = 0.9f, bottomObstacles = temple))
+    private val approaching =
+        openSky.copy(approach = Approach(from = 0.6f, until = 0.9f, bottomObstacles = temple))
 
-    private fun drawnFrom(): List<Pixmap> = obstacles().map { world.getComponent(it, SpriteComponent::class)!!.pixmap }
+    private fun drawnFrom(): List<Pixmap> =
+        obstacles().map { world.getComponent(it, SpriteComponent::class)!!.pixmap }
 
     @Test
     fun `under an open sky everything stands on the ground`() {
@@ -66,7 +73,11 @@ class ObstacleGeneratorTest {
 
         assertTrue(obstacles().size >= 5, "only ${obstacles().size} obstacles in thirty seconds")
         obstacles().forEach {
-            assertEquals(FRAME_BUFFER_HEIGHT.toFloat(), world.getComponent(it, TransformComponent::class)!!.rect.bottom, "one of them is not standing on the ground")
+            assertEquals(
+                FRAME_BUFFER_HEIGHT.toFloat(),
+                world.getComponent(it, TransformComponent::class)!!.rect.bottom,
+                "one of them is not standing on the ground"
+            )
         }
     }
 
@@ -81,7 +92,10 @@ class ObstacleGeneratorTest {
 
         placeFor(60f, openSky)
 
-        assertTrue(obstacles().size < ceilingStage * 0.75f, "${obstacles().size} on the ground against $ceilingStage in all")
+        assertTrue(
+            obstacles().size < ceilingStage * 0.75f,
+            "${obstacles().size} on the ground against $ceilingStage in all"
+        )
     }
 
     @Test
@@ -92,13 +106,19 @@ class ObstacleGeneratorTest {
         world.update(TICK_INITIAL, null)
 
         placeFor(30f, approaching, dayPosition = 0.95f)
-        assertTrue(drawnFrom().isNotEmpty() && drawnFrom().all { it in temple }, "the limestone outlasted the approach")
+        assertTrue(
+            drawnFrom().isNotEmpty() && drawnFrom().all { it in temple },
+            "the limestone outlasted the approach"
+        )
         obstacles().forEach { world.removeEntity(it) }
         world.update(TICK_INITIAL, null)
 
         placeFor(60f, approaching, dayPosition = 0.75f)
         val stones = drawnFrom().count { it in temple }
-        assertTrue(stones in 1 until drawnFrom().size, "halfway in, $stones of ${drawnFrom().size} were the temple's")
+        assertTrue(
+            stones in 1 until drawnFrom().size,
+            "halfway in, $stones of ${drawnFrom().size} were the temple's"
+        )
     }
 
     @Test
@@ -108,9 +128,16 @@ class ObstacleGeneratorTest {
         obstacles().forEach {
             val rect = world.getComponent(it, TransformComponent::class)!!.rect
             val sprite = world.getComponent(it, SpriteComponent::class)!!
-            assertEquals(sprite.pixmap.height / keyframes, rect.height.toInt(), "its box is the whole sheet")
+            assertEquals(
+                sprite.pixmap.height / keyframes,
+                rect.height.toInt(),
+                "its box is the whole sheet"
+            )
             assertEquals(rect.height.toInt(), sprite.srcHeight)
-            assertTrue(world.hasComponent(it, CrossfadeComponent::class), "nothing will ever relight it")
+            assertTrue(
+                world.hasComponent(it, CrossfadeComponent::class),
+                "nothing will ever relight it"
+            )
         }
     }
 }

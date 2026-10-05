@@ -349,7 +349,12 @@ class GameScreen(
         val backdrop = currentStage.backdrop
         if (backdrop is Backdrop.Sky) {
             world.addSystem(
-                SkySystem(backdrop, game.frameBufferWidth, game.frameBufferHeight, dayPosition = ::dayPosition)
+                SkySystem(
+                    backdrop,
+                    game.frameBufferWidth,
+                    game.frameBufferHeight,
+                    dayPosition = ::dayPosition
+                )
             )
         }
         world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight))
@@ -400,7 +405,14 @@ class GameScreen(
         // it. In daylight the two passes draw what one would.
         world.addSystem(RenderSystem(layers = SPRITE_LAYERS_FROM until LIGHTS_FROM))
         currentStage.lighting?.let {
-            world.addSystem(LightingSystem(game.frameBufferWidth, game.frameBufferHeight, it.ambient, it.glow))
+            world.addSystem(
+                LightingSystem(
+                    game.frameBufferWidth,
+                    game.frameBufferHeight,
+                    it.ambient,
+                    it.glow
+                )
+            )
         }
         world.addSystem(RenderSystem(layers = LIGHTS_FROM..Int.MAX_VALUE))
         // Straight after the sprites, so a bubble encloses the enemy it protects rather than being
@@ -440,7 +452,8 @@ class GameScreen(
      * How far through its day the stage is, off the stage clock, for a stage whose sky and scenery
      * change on the way to its boss; see [Day.position].
      */
-    private fun dayPosition(): Float = Day.position(enmGen.elapsedSeconds, progression.bossTimeSeconds)
+    private fun dayPosition(): Float =
+        Day.position(enmGen.elapsedSeconds, progression.bossTimeSeconds)
 
     /**
      * Spawns a shot at the shooter's leading edge, centered on it vertically.
@@ -902,12 +915,15 @@ class GameScreen(
         val (pixmap, spawn, sound) = when (collisionGroupOf(id)) {
             CollisionGroup.ENEMY ->
                 Triple(graphics.explosion, factory::createExplosion, SoundEffect.ENEMY_DEATH)
+
             CollisionGroup.OBSTACLE ->
                 Triple(graphics.shatter, factory::createShatter, SoundEffect.OBSTACLE_SHATTER)
+
             CollisionGroup.PLAYER_PROJECTILE, CollisionGroup.ENEMY_PROJECTILE -> {
                 leaveHit(id)
                 return
             }
+
             else -> return
         }
 
@@ -930,7 +946,8 @@ class GameScreen(
     private fun leaveHit(shotId: EntityId) {
         val rect = world.getComponent(shotId, TransformComponent::class)?.rect ?: return
         val variant = world.getComponent(shotId, ColorwayComponent::class)?.variant ?: return
-        val velocity = world.getComponent(shotId, VelocityComponent::class)?.velocity ?: Vector2.Zero
+        val velocity =
+            world.getComponent(shotId, VelocityComponent::class)?.velocity ?: Vector2.Zero
         val speed = hypot(velocity.x, velocity.y)
         val lead = if (speed > 0f) IMPACT_LEAD / speed else 0f
         factory.createImpact(
@@ -1099,7 +1116,11 @@ class GameScreen(
             if (group != CollisionGroup.ENEMY || id == enmGen.bossId || isBossPart(id)) continue
             // Only what is in sight goes up. A blast off the edge would drift into the frame with
             // nothing behind it, and one under the sand would never be seen at all.
-            if (world.getComponent(id, TransformComponent::class)?.rect?.let(::inSight) == true) burst(id)
+            if (world.getComponent(
+                    id,
+                    TransformComponent::class
+                )?.rect?.let(::inSight) == true
+            ) burst(id)
             world.removeEntity(id)
         }
     }
@@ -1181,14 +1202,24 @@ class GameScreen(
         world.getComponent(batId, LightComponent::class)?.let { light ->
             world.addComponent(
                 batId,
-                LightComponent(light.color, light.radius, light.strength, fadeSeconds = BAT_LIGHT_FADE_SECONDS),
+                LightComponent(
+                    light.color,
+                    light.radius,
+                    light.strength,
+                    fadeSeconds = BAT_LIGHT_FADE_SECONDS
+                ),
             )
         }
         // Its orbs go out with it, each in a puff of its own: nothing circles a falling bat, and an
         // orb left hanging where the ring was would go on hurting whatever flew into it.
         for (orb in world.query(OrbComponent::class)) {
             world.getComponent(orb, TransformComponent::class)?.rect?.let { rect ->
-                factory.createExplosion(rect.centerX, rect.centerY, env.assets.graphics.explosion, DEATH_PUFF_SCALE)
+                factory.createExplosion(
+                    rect.centerX,
+                    rect.centerY,
+                    env.assets.graphics.explosion,
+                    DEATH_PUFF_SCALE
+                )
             }
             world.removeEntity(orb)
         }
@@ -1471,7 +1502,12 @@ class GameScreen(
         if (circling >= loadout.orbs) return
         val bat = batRect() ?: return
         for (index in circling until loadout.orbs) {
-            factory.createOrb(bat.centerX, bat.centerY, env.assets.graphics.orb, OrbitSystem.shareOf(index, loadout.orbs))
+            factory.createOrb(
+                bat.centerX,
+                bat.centerY,
+                env.assets.graphics.orb,
+                OrbitSystem.shareOf(index, loadout.orbs)
+            )
         }
         // Out on the ring at once, rather than on the bat until the next tick: the run is drawn under
         // the dialog that bought them, which is still up.
@@ -1504,7 +1540,13 @@ class GameScreen(
         if (!lit) return
         for (id in frozen) {
             val rect = world.getComponent(id, TransformComponent::class)?.rect ?: continue
-            factory.createFlash(rect.centerX, rect.centerY, FROST_LIGHT_COLOR, FROST_FLASH_RADIUS, FROST_FLASH_SECONDS)
+            factory.createFlash(
+                rect.centerX,
+                rect.centerY,
+                FROST_LIGHT_COLOR,
+                FROST_FLASH_RADIUS,
+                FROST_FLASH_SECONDS
+            )
         }
     }
 
@@ -1547,7 +1589,11 @@ class GameScreen(
         victorySeconds += deltaTime
         fun reached(seconds: Float) = before < seconds && victorySeconds >= seconds
 
-        BOSS_AFTERSHOCK_SECONDS.forEachIndexed { index, seconds -> if (reached(seconds)) aftershock(index) }
+        BOSS_AFTERSHOCK_SECONDS.forEachIndexed { index, seconds ->
+            if (reached(seconds)) aftershock(
+                index
+            )
+        }
         if (reached(VICTORY_FANFARE_DELAY_SECONDS)) playFanfare()
         if (bannerTime > 0) bannerTime -= deltaTime
 
@@ -1577,7 +1623,8 @@ class GameScreen(
     private fun aftershock(index: Int) {
         val piece = wreck.randomOrNull(random) ?: return
         val blast = env.assets.graphics.explosion
-        val scale = piece.height / blast.height * BOSS_AFTERSHOCK_SCALE * BOSS_AFTERSHOCK_FALLOFF.pow(index)
+        val scale =
+            piece.height / blast.height * BOSS_AFTERSHOCK_SCALE * BOSS_AFTERSHOCK_FALLOFF.pow(index)
         factory.createExplosion(
             centerX = piece.left + piece.width * (0.2f + 0.6f * random.nextFloat()),
             centerY = piece.top + piece.height * (0.2f + 0.6f * random.nextFloat()),

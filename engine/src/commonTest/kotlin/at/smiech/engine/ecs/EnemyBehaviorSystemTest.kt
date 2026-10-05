@@ -37,7 +37,12 @@ class EnemyBehaviorSystemTest {
         world.addComponent(
             id,
             EnemyBehaviorComponent(
-                type, laneY, holdX = holdX, baseSpeedX = baseSpeedX, offsetY = offsetY, phase = phase,
+                type,
+                laneY,
+                holdX = holdX,
+                baseSpeedX = baseSpeedX,
+                offsetY = offsetY,
+                phase = phase,
             )
         )
         return id
@@ -52,7 +57,9 @@ class EnemyBehaviorSystemTest {
     }
 
     private fun rectOf(id: EntityId) = world.getComponent(id, TransformComponent::class)!!.rect
-    private fun velocityOf(id: EntityId) = world.getComponent(id, VelocityComponent::class)!!.velocity
+    private fun velocityOf(id: EntityId) =
+        world.getComponent(id, VelocityComponent::class)!!.velocity
+
     private fun behaviorOf(id: EntityId) = world.getComponent(id, EnemyBehaviorComponent::class)!!
 
     private fun run(seconds: Float) = repeat((seconds / TICK).toInt()) { world.update(TICK, null) }
@@ -63,12 +70,23 @@ class EnemyBehaviorSystemTest {
     @Test
     fun `a formation keeps its shape while it flies`() {
         val leader = enemy(EnemyMovementType.FORMATION, x = 480f, y = 150f)
-        val wing = enemy(EnemyMovementType.FORMATION, x = 502f, y = 167f, laneY = 150f, offsetY = 17f)
+        val wing =
+            enemy(EnemyMovementType.FORMATION, x = 502f, y = 167f, laneY = 150f, offsetY = 17f)
 
         repeat(6) {
             run(0.5f)
-            assertEquals(22f, rectOf(wing).left - rectOf(leader).left, 0.01f, "the ranks drifted apart")
-            assertEquals(17f, rectOf(wing).top - rectOf(leader).top, 0.5f, "the wing left its place")
+            assertEquals(
+                22f,
+                rectOf(wing).left - rectOf(leader).left,
+                0.01f,
+                "the ranks drifted apart"
+            )
+            assertEquals(
+                17f,
+                rectOf(wing).top - rectOf(leader).top,
+                0.5f,
+                "the wing left its place"
+            )
         }
     }
 
@@ -92,8 +110,22 @@ class EnemyBehaviorSystemTest {
 
     @Test
     fun `swarm members sway together around their shared path`() {
-        val a = enemy(EnemyMovementType.SWARM, x = 480f, y = 140f, laneY = 150f, offsetY = -10f, phase = 0f)
-        val b = enemy(EnemyMovementType.SWARM, x = 490f, y = 170f, laneY = 150f, offsetY = 20f, phase = 2f)
+        val a = enemy(
+            EnemyMovementType.SWARM,
+            x = 480f,
+            y = 140f,
+            laneY = 150f,
+            offsetY = -10f,
+            phase = 0f
+        )
+        val b = enemy(
+            EnemyMovementType.SWARM,
+            x = 490f,
+            y = 170f,
+            laneY = 150f,
+            offsetY = 20f,
+            phase = 2f
+        )
 
         run(3f)
 
@@ -112,7 +144,10 @@ class EnemyBehaviorSystemTest {
 
         run(4f)
         val onStation = rectOf(hoverer).left
-        assertTrue(onStation <= 360f && onStation > 340f, "it did not stop at its station: $onStation")
+        assertTrue(
+            onStation <= 360f && onStation > 340f,
+            "it did not stop at its station: $onStation"
+        )
         run(1f)
         assertEquals(onStation, rectOf(hoverer).left, 0.01f, "it drifted off station")
 
@@ -127,7 +162,10 @@ class EnemyBehaviorSystemTest {
 
         run(4.5f)
 
-        assertTrue(rectOf(hoverer).top < 160f, "it stayed in its own lane at ${rectOf(hoverer).top}")
+        assertTrue(
+            rectOf(hoverer).top < 160f,
+            "it stayed in its own lane at ${rectOf(hoverer).top}"
+        )
     }
 
     // endregion
@@ -193,7 +231,13 @@ class EnemyBehaviorSystemTest {
 
     @Test
     fun `a figure eight boss closes to its station and then circles it`() {
-        val boss = enemy(EnemyMovementType.BOSS_FIGURE_EIGHT, x = 480f, y = 120f, holdX = 300f, baseSpeedX = 0f)
+        val boss = enemy(
+            EnemyMovementType.BOSS_FIGURE_EIGHT,
+            x = 480f,
+            y = 120f,
+            holdX = 300f,
+            baseSpeedX = 0f
+        )
 
         run(8f)
         assertEquals(1, behaviorOf(boss).state)
@@ -203,7 +247,10 @@ class EnemyBehaviorSystemTest {
             run(0.1f)
             lefts += rectOf(boss).left
         }
-        assertTrue(lefts.all { it in 240f..360f }, "it wandered off station: ${lefts.min()}..${lefts.max()}")
+        assertTrue(
+            lefts.all { it in 240f..360f },
+            "it wandered off station: ${lefts.min()}..${lefts.max()}"
+        )
         assertTrue(lefts.max() - lefts.min() > 30f, "it held still instead of circling")
     }
 
@@ -250,7 +297,8 @@ class EnemyBehaviorSystemTest {
         run(0.1f)
         val launched = velocityOf(leaper)
 
-        world.getComponent(player, TransformComponent::class)!!.rect = Rect.fromLTWH(60f, 20f, 45f, 40f)
+        world.getComponent(player, TransformComponent::class)!!.rect =
+            Rect.fromLTWH(60f, 20f, 45f, 40f)
         world.update(TICK, null)
 
         assertEquals(launched.x, velocityOf(leaper).x, "a thrown leap changed course")
@@ -278,7 +326,8 @@ class EnemyBehaviorSystemTest {
     @Test
     fun `a leaper from behind cruises right to its station and leaps forward from it`() {
         player(x = 260f, y = 130f)
-        val leaper = enemy(EnemyMovementType.LEAP, x = -30f, y = 310f, holdX = 120f, baseSpeedX = 1.6f)
+        val leaper =
+            enemy(EnemyMovementType.LEAP, x = -30f, y = 310f, holdX = 120f, baseSpeedX = 1.6f)
 
         run(1.5f)
         assertEquals(310f, rectOf(leaper).top, 0.5f, "it left the sand before its station")
@@ -296,7 +345,8 @@ class EnemyBehaviorSystemTest {
 
     @Test
     fun `a looper comes out of its loop where it went in and flies on`() {
-        val looper = enemy(EnemyMovementType.LOOP, x = 330f, y = 150f, holdX = 320f, baseSpeedX = -1.7f)
+        val looper =
+            enemy(EnemyMovementType.LOOP, x = 330f, y = 150f, holdX = 320f, baseSpeedX = -1.7f)
         run(0.2f)
         assertEquals(1, behaviorOf(looper).state, "it never started its loop")
         val entry = rectOf(looper)
@@ -323,7 +373,14 @@ class EnemyBehaviorSystemTest {
     /** Toward its station in a straight line, whichever way that is - right and up included. */
     @Test
     fun `a glider flies straight to its station and settles there`() {
-        val glider = enemy(EnemyMovementType.GLIDE, x = 300f, y = 200f, laneY = 80f, holdX = 460f, baseSpeedX = 1.7f)
+        val glider = enemy(
+            EnemyMovementType.GLIDE,
+            x = 300f,
+            y = 200f,
+            laneY = 80f,
+            holdX = 460f,
+            baseSpeedX = 1.7f
+        )
         val path = mutableListOf<Rect>()
 
         repeat((6f / TICK).toInt()) {
@@ -341,7 +398,8 @@ class EnemyBehaviorSystemTest {
 
     @Test
     fun `a glider goes no faster than its speed and eases in at the end`() {
-        val glider = enemy(EnemyMovementType.GLIDE, x = 500f, y = 150f, holdX = 200f, baseSpeedX = 1.7f)
+        val glider =
+            enemy(EnemyMovementType.GLIDE, x = 500f, y = 150f, holdX = 200f, baseSpeedX = 1.7f)
         val steps = mutableListOf<Float>()
 
         repeat((5f / TICK).toInt()) {
@@ -353,7 +411,10 @@ class EnemyBehaviorSystemTest {
         assertTrue(steps.all { it <= 1.7f + 1e-4f }, "faster than it was sent")
         assertEquals(1.7f, steps.first(), 1e-4f)
         val arriving = steps.filter { it > 0f }.takeLast(10)
-        assertTrue(arriving.zipWithNext().all { (a, b) -> b <= a + 1e-4f }, "it did not ease in: $arriving")
+        assertTrue(
+            arriving.zipWithNext().all { (a, b) -> b <= a + 1e-4f },
+            "it did not ease in: $arriving"
+        )
         assertTrue(arriving.last() < 1f, "it stopped dead")
     }
 

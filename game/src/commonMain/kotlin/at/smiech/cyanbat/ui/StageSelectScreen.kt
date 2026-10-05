@@ -64,10 +64,30 @@ private data class StageEntry(
 private val PREVIEW_HEIGHT = 130.dp
 
 private val STAGES = listOf(
-    StageEntry(1, Res.string.stage_1_name, Res.string.stage_1_description, Res.drawable.stage1_preview),
-    StageEntry(2, Res.string.stage_2_name, Res.string.stage_2_description, Res.drawable.stage2_preview),
-    StageEntry(3, Res.string.stage_3_name, Res.string.stage_3_description, Res.drawable.stage3_preview),
-    StageEntry(4, Res.string.stage_4_name, Res.string.stage_4_description, Res.drawable.stage4_preview),
+    StageEntry(
+        1,
+        Res.string.stage_1_name,
+        Res.string.stage_1_description,
+        Res.drawable.stage1_preview
+    ),
+    StageEntry(
+        2,
+        Res.string.stage_2_name,
+        Res.string.stage_2_description,
+        Res.drawable.stage2_preview
+    ),
+    StageEntry(
+        3,
+        Res.string.stage_3_name,
+        Res.string.stage_3_description,
+        Res.drawable.stage3_preview
+    ),
+    StageEntry(
+        4,
+        Res.string.stage_4_name,
+        Res.string.stage_4_description,
+        Res.drawable.stage4_preview
+    ),
 )
 
 /**
@@ -165,7 +185,8 @@ private fun StageCard(
                 filterQuality = FilterQuality.None,
                 // A strip rather than the whole 16:9 frame, so the name and description still fit
                 // above the fold on a landscape phone, which is only about 400dp tall.
-                modifier = Modifier.fillMaxWidth().height(PREVIEW_HEIGHT).alpha(if (unlocked) 1f else 0.35f),
+                modifier = Modifier.fillMaxWidth().height(PREVIEW_HEIGHT)
+                    .alpha(if (unlocked) 1f else 0.35f),
             )
             if (!unlocked) {
                 Text(

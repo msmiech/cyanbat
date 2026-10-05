@@ -89,8 +89,8 @@ class Tape(private val width: Int, private val height: Int) {
         inflater.end()
         return IntArray(width * height) { i ->
             ((raw[i * 3].toInt() and 0xFF) shl 16) or
-                ((raw[i * 3 + 1].toInt() and 0xFF) shl 8) or
-                (raw[i * 3 + 2].toInt() and 0xFF)
+                    ((raw[i * 3 + 1].toInt() and 0xFF) shl 8) or
+                    (raw[i * 3 + 2].toInt() and 0xFF)
         }
     }
 

@@ -72,12 +72,36 @@ class AmbientBars {
         val bottom = fit.top + fit.height
         with(scope) {
             if (sides) {
-                bar(LEFT, Offset(0f, 0f), Size(fit.left.toFloat(), size.height), fit, glowTowardsEnd = true)
-                bar(RIGHT, Offset(right.toFloat(), 0f), Size(size.width - right, size.height), fit, glowTowardsEnd = false)
+                bar(
+                    LEFT,
+                    Offset(0f, 0f),
+                    Size(fit.left.toFloat(), size.height),
+                    fit,
+                    glowTowardsEnd = true
+                )
+                bar(
+                    RIGHT,
+                    Offset(right.toFloat(), 0f),
+                    Size(size.width - right, size.height),
+                    fit,
+                    glowTowardsEnd = false
+                )
             }
             if (caps) {
-                bar(TOP, Offset(0f, 0f), Size(size.width, fit.top.toFloat()), fit, glowTowardsEnd = true)
-                bar(BOTTOM, Offset(0f, bottom.toFloat()), Size(size.width, size.height - bottom), fit, glowTowardsEnd = false)
+                bar(
+                    TOP,
+                    Offset(0f, 0f),
+                    Size(size.width, fit.top.toFloat()),
+                    fit,
+                    glowTowardsEnd = true
+                )
+                bar(
+                    BOTTOM,
+                    Offset(0f, bottom.toFloat()),
+                    Size(size.width, size.height - bottom),
+                    fit,
+                    glowTowardsEnd = false
+                )
             }
         }
     }
@@ -141,7 +165,13 @@ class AmbientBars {
      * [glowTowardsEnd] is which way the frame is: toward the bar's far end (the left and top bars,
      * which sit before the frame) or its near end (the right and bottom ones).
      */
-    private fun DrawScope.bar(edge: Int, topLeft: Offset, size: Size, fit: FrameFit, glowTowardsEnd: Boolean) {
+    private fun DrawScope.bar(
+        edge: Int,
+        topLeft: Offset,
+        size: Size,
+        fit: FrameFit,
+        glowTowardsEnd: Boolean
+    ) {
         if (size.width <= 0f || size.height <= 0f) return
         val vertical = edge == LEFT || edge == RIGHT
         val rgb = edges[edge]
@@ -150,9 +180,17 @@ class AmbientBars {
             (i + 0.5f) / BANDS to Color(rgb[i * 3], rgb[i * 3 + 1], rgb[i * 3 + 2])
         }
         val light = if (vertical) {
-            Brush.verticalGradient(*stops, startY = fit.top.toFloat(), endY = (fit.top + fit.height).toFloat())
+            Brush.verticalGradient(
+                *stops,
+                startY = fit.top.toFloat(),
+                endY = (fit.top + fit.height).toFloat()
+            )
         } else {
-            Brush.horizontalGradient(*stops, startX = fit.left.toFloat(), endX = (fit.left + fit.width).toFloat())
+            Brush.horizontalGradient(
+                *stops,
+                startX = fit.left.toFloat(),
+                endX = (fit.left + fit.width).toFloat()
+            )
         }
         drawRect(light, topLeft, size)
 
@@ -160,9 +198,17 @@ class AmbientBars {
         val inner = Color.Black.copy(alpha = INNER_SHADE)
         val (from, to) = if (glowTowardsEnd) outer to inner else inner to outer
         val shade = if (vertical) {
-            Brush.horizontalGradient(listOf(from, to), startX = topLeft.x, endX = topLeft.x + size.width)
+            Brush.horizontalGradient(
+                listOf(from, to),
+                startX = topLeft.x,
+                endX = topLeft.x + size.width
+            )
         } else {
-            Brush.verticalGradient(listOf(from, to), startY = topLeft.y, endY = topLeft.y + size.height)
+            Brush.verticalGradient(
+                listOf(from, to),
+                startY = topLeft.y,
+                endY = topLeft.y + size.height
+            )
         }
         drawRect(shade, topLeft, size)
     }
@@ -201,7 +247,14 @@ class AmbientBars {
  * Averages a [width] x [height] block of ARGB [pixels] into [bands] colors, as RGB triples from 0 to
  * 1 written to [into] - down the block when [alongY], across it otherwise.
  */
-internal fun averageBands(pixels: IntArray, width: Int, height: Int, bands: Int, alongY: Boolean, into: FloatArray) {
+internal fun averageBands(
+    pixels: IntArray,
+    width: Int,
+    height: Int,
+    bands: Int,
+    alongY: Boolean,
+    into: FloatArray
+) {
     val length = if (alongY) height else width
     for (band in 0 until bands) {
         val from = band * length / bands
@@ -212,7 +265,8 @@ internal fun averageBands(pixels: IntArray, width: Int, height: Int, bands: Int,
         var count = 0
         for (along in from until until) {
             for (across in 0 until (if (alongY) width else height)) {
-                val pixel = if (alongY) pixels[along * width + across] else pixels[across * width + along]
+                val pixel =
+                    if (alongY) pixels[along * width + across] else pixels[across * width + along]
                 r += (pixel shr 16) and 0xFF
                 g += (pixel shr 8) and 0xFF
                 b += pixel and 0xFF

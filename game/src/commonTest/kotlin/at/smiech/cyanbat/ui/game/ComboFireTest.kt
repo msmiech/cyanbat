@@ -78,7 +78,10 @@ class ComboFireTest {
         }
         val left = g.rects.filter { it.right <= 20 }.sumOf { it.width }
         val right = g.rects.filter { it.x >= 40 }.sumOf { it.width }
-        assertTrue(left > right * 2, "$left cells burned left of the stoked row and $right right of it")
+        assertTrue(
+            left > right * 2,
+            "$left cells burned left of the stoked row and $right right of it"
+        )
     }
 
     @Test
@@ -144,7 +147,13 @@ class ComboFireTest {
     }
 }
 
-internal data class DrawnRect(val x: Int, val y: Int, val width: Int, val height: Int, val color: Int) {
+internal data class DrawnRect(
+    val x: Int,
+    val y: Int,
+    val width: Int,
+    val height: Int,
+    val color: Int
+) {
     val right: Int get() = x + width
 }
 
@@ -163,16 +172,62 @@ internal class RectRecordingGraphics : Graphics {
 
     override fun measureString(s: String, fontSize: Int) = s.length * 7
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) = throw UnsupportedOperationException()
+    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+        throw UnsupportedOperationException()
+
     override fun clear(color: Int) = Unit
     override fun drawPixel(x: Int, y: Int, color: Int) = Unit
     override fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int) = Unit
     override fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int) = Unit
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int) = Unit
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int
+    ) = Unit
+
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) = Unit
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int) = Unit
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int, rotationDegrees: Float) = Unit
-    override fun drawPixmapSilhouette(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int, color: Int) = Unit
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int
+    ) = Unit
+
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        rotationDegrees: Float
+    ) = Unit
+
+    override fun drawPixmapSilhouette(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        color: Int
+    ) = Unit
+
     override val width = 480
     override val height = 320
 }

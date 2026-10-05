@@ -71,9 +71,11 @@ private fun CyanBatApp(controls: ControlHandler, playingStage: Int?, play: (stag
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
     // The menu outlives any single game instance, so it owns its own Audio.
-    val menuAudio = remember { DesktopAudio { name ->
-        object {}.javaClass.getResourceAsStream("/$name") ?: error("Asset <$name> not found")
-    } }
+    val menuAudio = remember {
+        DesktopAudio { name ->
+            object {}.javaClass.getResourceAsStream("/$name") ?: error("Asset <$name> not found")
+        }
+    }
     // Out here rather than in the menu branch, which leaves composition for every run: a track
     // remembered there was rebuilt on each return, while the menu's ViewModel went on holding the
     // first one.

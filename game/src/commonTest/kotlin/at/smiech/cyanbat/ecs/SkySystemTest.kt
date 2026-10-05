@@ -18,13 +18,22 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
-private class NamedSheet(val name: String, override val width: Int, override val height: Int) : Pixmap {
+private class NamedSheet(val name: String, override val width: Int, override val height: Int) :
+    Pixmap {
     override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 
 /** One call the system made, reduced to what these tests look at. */
-private data class Drawn(val kind: String, val name: String = "", val x: Int = 0, val y: Int = 0, val w: Int = 0, val h: Int = 0, val srcX: Int = 0)
+private data class Drawn(
+    val kind: String,
+    val name: String = "",
+    val x: Int = 0,
+    val y: Int = 0,
+    val w: Int = 0,
+    val h: Int = 0,
+    val srcX: Int = 0
+)
 
 private class CallRecordingGraphics : Graphics {
     val calls = mutableListOf<Drawn>()
@@ -41,20 +50,74 @@ private class CallRecordingGraphics : Graphics {
         calls += Drawn("line", x = xFrom, y = yFrom)
     }
 
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int) {
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int
+    ) {
         calls += Drawn("pixmap", (pixmap as NamedSheet).name, x, y, srcWidth, srcHeight, srcX)
     }
 
-    override fun drawPixmapFaded(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, alpha: Float) {
+    override fun drawPixmapFaded(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        alpha: Float
+    ) {
         calls += Drawn("faded", (pixmap as NamedSheet).name, x, y, srcWidth, srcHeight, srcX)
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) = throw UnsupportedOperationException()
+    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+        throw UnsupportedOperationException()
+
     override fun clear(color: Int) = Unit
     override fun drawPixel(x: Int, y: Int, color: Int) = Unit
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int) = Unit
-    override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int, rotationDegrees: Float) = Unit
-    override fun drawPixmapSilhouette(pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int, dstWidth: Int, dstHeight: Int, color: Int) = Unit
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int
+    ) = Unit
+
+    override fun drawPixmap(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        rotationDegrees: Float
+    ) = Unit
+
+    override fun drawPixmapSilhouette(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        color: Int
+    ) = Unit
+
     override fun drawPixmap(pixmap: Pixmap, x: Int, y: Int) = Unit
     override fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int) = Unit
     override fun measureString(s: String, fontSize: Int) = 0
@@ -73,12 +136,21 @@ class SkySystemTest {
     private val near = NamedSheet("near", 1440, 57 * keyframes)
     private val backdrop = Backdrop.Sky(
         day = Daylight,
-        layers = listOf(ParallaxLayer(far, top = 192, speed = 0.2f), ParallaxLayer(near, top = 304, speed = 1f)),
+        layers = listOf(
+            ParallaxLayer(far, top = 192, speed = 0.2f),
+            ParallaxLayer(near, top = 304, speed = 1f)
+        ),
         moon = NamedSheet("moon", 24, 24),
         horizonY = 276,
     )
     private val world = World().apply {
-        addSystem(SkySystem(backdrop, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, dayPosition = { day }))
+        addSystem(
+            SkySystem(
+                backdrop,
+                FRAME_BUFFER_WIDTH,
+                FRAME_BUFFER_HEIGHT,
+                dayPosition = { day })
+        )
         addSystem(RenderSystem())
     }
 
@@ -87,7 +159,10 @@ class SkySystemTest {
     private fun obstacle(rowHeight: Int = 57): Obstacle {
         val sheet = NamedSheet("rock", 38, rowHeight * keyframes)
         val id = world.createEntity()
-        world.addComponent(id, TransformComponent(Rect.fromLTWH(200f, 303f, 38f, rowHeight.toFloat())))
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(200f, 303f, 38f, rowHeight.toFloat()))
+        )
         val sprite = SpriteComponent(sheet, srcHeight = rowHeight)
         world.addComponent(id, sprite)
         val crossfade = CrossfadeComponent()
@@ -104,8 +179,16 @@ class SkySystemTest {
 
         val calls = draw()
 
-        assertEquals(Drawn("rect", x = 0, y = 0, w = FRAME_BUFFER_WIDTH, h = 3), calls.first(), "the sky did not start the frame")
-        assertEquals("rock", calls.last { it.kind == "pixmap" }.name, "something was drawn over the scenery's sprites")
+        assertEquals(
+            Drawn("rect", x = 0, y = 0, w = FRAME_BUFFER_WIDTH, h = 3),
+            calls.first(),
+            "the sky did not start the frame"
+        )
+        assertEquals(
+            "rock",
+            calls.last { it.kind == "pixmap" }.name,
+            "something was drawn over the scenery's sprites"
+        )
     }
 
     @Test
@@ -124,11 +207,17 @@ class SkySystemTest {
     fun `the ground is crossfaded between keyframes and drawn plain on one`() {
         day = Daylight.KEYFRAMES[1]
         world.update(TICK, null)
-        assertTrue(draw().none { it.kind == "faded" && it.name != "moon" }, "a keyframe's own hour was blended")
+        assertTrue(
+            draw().none { it.kind == "faded" && it.name != "moon" },
+            "a keyframe's own hour was blended"
+        )
 
         day = (Daylight.KEYFRAMES[1] + Daylight.KEYFRAMES[2]) / 2f
         world.update(TICK, null)
-        assertTrue(draw().any { it.kind == "faded" && it.name == "near" }, "the hours between were not blended")
+        assertTrue(
+            draw().any { it.kind == "faded" && it.name == "near" },
+            "the hours between were not blended"
+        )
     }
 
     /** One pixel a star, plus a few crosses: the only 1x1 rectangles the system draws. */
@@ -159,10 +248,15 @@ class SkySystemTest {
         val calls = draw()
         val farSpans = calls.filter { it.kind == "pixmap" && it.name == "far" }
         val nearSpans = calls.filter { it.kind == "pixmap" && it.name == "near" }
-        assertEquals(20, farSpans.first().srcX, "the far band did not move at a fifth of the near one's pace")
+        assertEquals(
+            20,
+            farSpans.first().srcX,
+            "the far band did not move at a fifth of the near one's pace"
+        )
         assertEquals(100, nearSpans.first().srcX)
         // Each span paints a column short, so together they have to ask for one more than the frame.
-        assertTrue(nearSpans.sumOf { it.w - 1 } >= FRAME_BUFFER_WIDTH, "the near band does not reach across the frame")
+        assertTrue(nearSpans.sumOf { it.w - 1 } >= FRAME_BUFFER_WIDTH,
+            "the near band does not reach across the frame")
     }
 
     // region the lagoon
@@ -172,13 +266,25 @@ class SkySystemTest {
             day = Daybreak,
             layers = listOf(
                 ParallaxLayer(far, top = 164, speed = 0.2f, water = 235..302),
-                ParallaxLayer(near, top = 302, speed = 1f, ahead = NamedSheet("ahead", 1440, 57 * keyframes), aheadFrom = 0.8f),
+                ParallaxLayer(
+                    near,
+                    top = 302,
+                    speed = 1f,
+                    ahead = NamedSheet("ahead", 1440, 57 * keyframes),
+                    aheadFrom = 0.8f
+                ),
             ),
             moon = NamedSheet("moon", 32, 32),
             horizonY = 232,
         )
         val lagoon = World().apply {
-            addSystem(SkySystem(backdrop, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, dayPosition = { day }))
+            addSystem(
+                SkySystem(
+                    backdrop,
+                    FRAME_BUFFER_WIDTH,
+                    FRAME_BUFFER_HEIGHT,
+                    dayPosition = { day })
+            )
         }
         return lagoon to backdrop
     }
@@ -187,7 +293,8 @@ class SkySystemTest {
     @Test
     fun `a band turns to the scenery ahead only where it has not yet come into view`() {
         val (lagoon, _) = lagoon()
-        fun spans() = CallRecordingGraphics().also { lagoon.draw(it) }.calls.filter { it.kind == "pixmap" && it.y == 302 }
+        fun spans() =
+            CallRecordingGraphics().also { lagoon.draw(it) }.calls.filter { it.kind == "pixmap" && it.y == 302 }
 
         repeat(100) { lagoon.update(TICK, null) }
         day = 0.9f
@@ -214,15 +321,22 @@ class SkySystemTest {
         val sunY = Daybreak.sunY(Daybreak.SUNUP)
         val rows = rising.filter {
             it.kind == "rect" && it.h == 1 && it.w > 2 && it.x <= sunX && it.x + it.w >= sunX &&
-                it.y >= sunY - radius - 1 && it.y <= sunY + radius && it.y < 232
+                    it.y >= sunY - radius - 1 && it.y <= sunY + radius && it.y < 232
         }.map { it.y }.toSet()
         assertEquals(3, rising.count { it.kind == "oval" }, "only its halo should be ovals")
-        assertTrue(rows.size < (2 * radius).toInt(), "no bands were left out of it: ${rows.size} rows")
+        assertTrue(
+            rows.size < (2 * radius).toInt(),
+            "no bands were left out of it: ${rows.size} rows"
+        )
 
         day = 1f
         lagoon.update(TICK, null)
         val noon = CallRecordingGraphics().also { lagoon.draw(it) }.calls
-        assertEquals(5, noon.count { it.kind == "oval" }, "the noon sun is not a disc and a core in its halo")
+        assertEquals(
+            5,
+            noon.count { it.kind == "oval" },
+            "the noon sun is not a disc and a core in its halo"
+        )
     }
 
     @Test
@@ -246,7 +360,12 @@ class SkySystemTest {
 
     @Test
     fun `a band wraps round to its own start as it crosses the frame`() {
-        repeat(1300) { world.update(TICK, null) } // the near band is 1440 wide: 1300 in, it has to wrap
+        repeat(1300) {
+            world.update(
+                TICK,
+                null
+            )
+        } // the near band is 1440 wide: 1300 in, it has to wrap
 
         val spans = draw().filter { it.kind == "pixmap" && it.name == "near" }
         assertEquals(2, spans.size)

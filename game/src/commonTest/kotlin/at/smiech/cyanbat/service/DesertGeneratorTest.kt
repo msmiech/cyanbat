@@ -86,7 +86,8 @@ class DesertGeneratorTest {
         update(TICK_INITIAL)
     }
 
-    private fun EnemyGenerator.run(seconds: Float) = repeat((seconds / TICK_INITIAL).toInt()) { tick() }
+    private fun EnemyGenerator.run(seconds: Float) =
+        repeat((seconds / TICK_INITIAL).toInt()) { tick() }
 
     private fun EnemyGenerator.firstArrival() {
         while (enemies().isEmpty()) tick()
@@ -112,7 +113,10 @@ class DesertGeneratorTest {
         val wyrmling = enemies().single()
 
         assertEquals(HEIGHT - BURROW_SHOWING, rectOf(wyrmling).top, 0.5f)
-        assertEquals(EnemyMovementType.LEAP, world.getComponent(wyrmling, EnemyBehaviorComponent::class)!!.type)
+        assertEquals(
+            EnemyMovementType.LEAP,
+            world.getComponent(wyrmling, EnemyBehaviorComponent::class)!!.type
+        )
 
         // Still cruising a second later, at the same height: the back in the sand is the warning.
         generator.run(0.5f)
@@ -128,7 +132,8 @@ class DesertGeneratorTest {
         var highest = Float.MAX_VALUE
         repeat((7f / TICK_INITIAL).toInt()) {
             generator.tick()
-            if (world.getComponent(wyrmling, TransformComponent::class) != null) highest = minOf(highest, rectOf(wyrmling).top)
+            if (world.getComponent(wyrmling, TransformComponent::class) != null) highest =
+                minOf(highest, rectOf(wyrmling).top)
         }
 
         assertTrue(highest < 170f, "it never leapt up to the bat: its top got to $highest")
@@ -136,12 +141,19 @@ class DesertGeneratorTest {
 
     @Test
     fun `the ones that fly arcs are turned to face along them and nothing else is`() {
-        for ((species, faces) in listOf(EnemySpecies.HAWK to true, EnemySpecies.WYRMLING to true, EnemySpecies.DJINN to false)) {
+        for ((species, faces) in listOf(
+            EnemySpecies.HAWK to true,
+            EnemySpecies.WYRMLING to true,
+            EnemySpecies.DJINN to false
+        )) {
             val generator = generator(only(species))
             generator.firstArrival()
             val id = enemies().last()
             val facing = world.getComponent(id, FacesVelocityComponent::class)
-            if (faces) assertEquals(180f, assertNotNull(facing, "$species does not turn").artworkDegrees)
+            if (faces) assertEquals(
+                180f,
+                assertNotNull(facing, "$species does not turn").artworkDegrees
+            )
             else assertNull(facing, "$species turns")
             enemies().forEach { world.removeEntity(it) }
             world.update(TICK_INITIAL, null)
@@ -157,7 +169,12 @@ class DesertGeneratorTest {
 
         shield.absorb(shield.maxPoints)
         assertTrue(!shield.isUp)
-        repeat(((SHIELD_REGROWTH_DELAY_SECONDS - 0.5f) / TICK_INITIAL).toInt()) { world.update(TICK_INITIAL, null) }
+        repeat(((SHIELD_REGROWTH_DELAY_SECONDS - 0.5f) / TICK_INITIAL).toInt()) {
+            world.update(
+                TICK_INITIAL,
+                null
+            )
+        }
         assertTrue(!shield.isUp, "it grew back before it was left alone long enough")
 
         repeat((3f / TICK_INITIAL).toInt()) { world.update(TICK_INITIAL, null) }
@@ -177,16 +194,28 @@ class DesertGeneratorTest {
     }
 
     private fun parts(): List<EntityId> =
-        world.query(BossPartComponent::class).filter { !world.hasComponent(it, HealthComponent::class) }
+        world.query(BossPartComponent::class)
+            .filter { !world.hasComponent(it, HealthComponent::class) }
 
     @Test
     fun `the desert ends on the Sand Wyrm with a head and nine plates all under the sand`() {
         val (_, head) = wyrmFight()
 
         assertEquals(9, parts().size)
-        assertTrue(world.hasComponent(head, BossPartComponent::class), "the head is not armored against ramming")
-        assertNotNull(world.getComponent(head, HealthBarComponent::class)?.pinnedTo, "its bar goes where it goes")
-        (parts() + head).forEach { assertTrue(rectOf(it).top > HEIGHT, "a part of it showed before it breached") }
+        assertTrue(
+            world.hasComponent(head, BossPartComponent::class),
+            "the head is not armored against ramming"
+        )
+        assertNotNull(
+            world.getComponent(head, HealthBarComponent::class)?.pinnedTo,
+            "its bar goes where it goes"
+        )
+        (parts() + head).forEach {
+            assertTrue(
+                rectOf(it).top > HEIGHT,
+                "a part of it showed before it breached"
+            )
+        }
     }
 
     @Test
@@ -199,7 +228,10 @@ class DesertGeneratorTest {
         val breachX = brain.breachX
         generator.run(0.5f)
         val plumes = world.query(SpriteComponent::class).filter {
-            world.getComponent(it, SpriteComponent::class)!!.baseSrcX == SAND_WYRM_PLUME_FRAME * SAND_WYRM_FRAME
+            world.getComponent(
+                it,
+                SpriteComponent::class
+            )!!.baseSrcX == SAND_WYRM_PLUME_FRAME * SAND_WYRM_FRAME
         }
         assertTrue(plumes.isNotEmpty(), "no sand was thrown up before the breach")
         plumes.forEach { assertEquals(breachX, rectOf(it).centerX, 1f) }
@@ -226,13 +258,17 @@ class DesertGeneratorTest {
             while (!brain.burrowed) {
                 generator.tick()
                 val rect = rectOf(head)
-                nearest = minOf(nearest, hypot(rect.centerX - bat.centerX, rect.centerY - bat.centerY))
+                nearest =
+                    minOf(nearest, hypot(rect.centerX - bat.centerX, rect.centerY - bat.centerY))
             }
             return nearest
         }
 
         assertTrue(nearestPass() > SAND_WYRM_FRAME + 20f, "the warning came at the bat")
-        assertTrue(nearestPass() < SAND_WYRM_FRAME / 2f, "the hunt went wide of a bat that never moved")
+        assertTrue(
+            nearestPass() < SAND_WYRM_FRAME / 2f,
+            "the hunt went wide of a bat that never moved"
+        )
     }
 
     /** By distance along the path, so the body never bunches or strings out. */
@@ -244,9 +280,17 @@ class DesertGeneratorTest {
         while (brain.burrowed) generator.tick()
         generator.run(1.2f)
 
-        val chain = listOf(head) + parts().sortedBy { hypot(rectOf(it).centerX - rectOf(head).centerX, rectOf(it).centerY - rectOf(head).centerY) }
+        val chain = listOf(head) + parts().sortedBy {
+            hypot(
+                rectOf(it).centerX - rectOf(head).centerX,
+                rectOf(it).centerY - rectOf(head).centerY
+            )
+        }
         chain.zipWithNext { front, back ->
-            val gap = hypot(rectOf(front).centerX - rectOf(back).centerX, rectOf(front).centerY - rectOf(back).centerY)
+            val gap = hypot(
+                rectOf(front).centerX - rectOf(back).centerX,
+                rectOf(front).centerY - rectOf(back).centerY
+            )
             assertTrue(gap <= SAND_WYRM_SPACING + 0.5f, "two parts came apart: $gap")
             assertTrue(gap >= SAND_WYRM_SPACING * 0.5f, "two parts bunched up: $gap")
         }
@@ -262,7 +306,12 @@ class DesertGeneratorTest {
         while (!brain.burrowed) generator.tick()
 
         assertTrue(head in fired, "it never spat")
-        (parts() + head).forEach { assertTrue(rectOf(it).top > HEIGHT, "part of it stayed out of the sand") }
+        (parts() + head).forEach {
+            assertTrue(
+                rectOf(it).top > HEIGHT,
+                "part of it stayed out of the sand"
+            )
+        }
     }
 
     @Test
@@ -274,11 +323,20 @@ class DesertGeneratorTest {
         health.hitPoints = (health.maxHitPoints * 0.6f).toInt()
         generator.tick()
         assertEquals(listOf(2), bossPhases)
-        assertTrue(world.getComponent(head, GunComponent::class)!!.volleys.any { it.pattern == ShotPattern.RADIAL })
+        assertTrue(
+            world.getComponent(
+                head,
+                GunComponent::class
+            )!!.volleys.any { it.pattern == ShotPattern.RADIAL })
 
         val brain = generator.bossBrain as SandWyrmBrain
         while (brain.burrowed) generator.tick()
-        val brood = enemies().filter { world.getComponent(it, EnemyBehaviorComponent::class)?.type == EnemyMovementType.LEAP && it != head }
+        val brood = enemies().filter {
+            world.getComponent(
+                it,
+                EnemyBehaviorComponent::class
+            )?.type == EnemyMovementType.LEAP && it != head
+        }
         assertEquals(1, brood.size, "a breach in phase two called up ${brood.size} wyrmlings")
     }
 

@@ -2,10 +2,10 @@ package at.smiech.cyanbat.progress
 
 import at.smiech.cyanbat.util.ARMOR_FLOOR
 import at.smiech.cyanbat.util.COUNTERWEIGHT_REDUCTION
-import at.smiech.cyanbat.util.FROST_BEAM_INTERVAL_SECONDS
-import at.smiech.cyanbat.util.FROST_SECONDS
 import at.smiech.cyanbat.util.CRITICAL_CHANCE
 import at.smiech.cyanbat.util.CRITICAL_CHANCE_BONUS
+import at.smiech.cyanbat.util.FROST_BEAM_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.FROST_SECONDS
 import at.smiech.cyanbat.util.HEAVY_ROUNDS_DAMAGE
 import at.smiech.cyanbat.util.MAX_CRITICAL_CHANCE
 import at.smiech.cyanbat.util.MAX_EXTRA_SHOTS
@@ -238,7 +238,10 @@ class PowerUpTest {
     @Test
     fun `an orb hits for a share of the shot and goes up with it`() {
         val before = loadout.orbDamage
-        assertTrue(before in 1 until loadout.shotDamage, "an orb deals $before against a shot's ${loadout.shotDamage}")
+        assertTrue(
+            before in 1 until loadout.shotDamage,
+            "an orb deals $before against a shot's ${loadout.shotDamage}"
+        )
 
         take(PowerUp.HEAVY_ROUNDS)
 
@@ -274,7 +277,10 @@ class PowerUpTest {
         assertEquals(FROST_SECONDS, loadout.frostSeconds)
 
         take(PowerUp.FROST_BEAM)
-        assertTrue(loadout.frostIntervalSeconds < FROST_BEAM_INTERVAL_SECONDS, "the beam did not come round sooner")
+        assertTrue(
+            loadout.frostIntervalSeconds < FROST_BEAM_INTERVAL_SECONDS,
+            "the beam did not come round sooner"
+        )
         assertTrue(loadout.frostSeconds > FROST_SECONDS, "the freeze did not last longer")
     }
 
@@ -282,10 +288,17 @@ class PowerUpTest {
     @Test
     fun `the weapons of their own say what another pick adds`() {
         for (powerUp in listOf(PowerUp.GUARDIAN_ORB, PowerUp.CHARGED_TRAIL, PowerUp.FROST_BEAM)) {
-            assertEquals(powerUp.description, powerUp.describe(loadout), "${powerUp.name} before it is held")
+            assertEquals(
+                powerUp.description,
+                powerUp.describe(loadout),
+                "${powerUp.name} before it is held"
+            )
             val first = powerUp.describe(loadout)
             take(powerUp)
-            assertTrue(powerUp.describe(loadout) != first, "${powerUp.name} reads the same once held")
+            assertTrue(
+                powerUp.describe(loadout) != first,
+                "${powerUp.name} reads the same once held"
+            )
         }
     }
 
@@ -399,7 +412,10 @@ class PowerUpTest {
         maxOutEveryCappedPowerUp()
         PowerUp.entries.forEach {
             val later = it.describe(loadout)
-            assertTrue(later.length <= 44, "${it.name} has a description too long once held: $later")
+            assertTrue(
+                later.length <= 44,
+                "${it.name} has a description too long once held: $later"
+            )
         }
     }
 

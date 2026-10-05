@@ -94,14 +94,20 @@ class ShotColorwayTest {
             system.update(world, animation.interval * 1.01f, null)
             seen += spriteOf(id).srcX
         }
-        assertEquals(List(SHOT_FRAME_COUNT) { variant * STRIDE + it * SHOT_FRAME_WIDTH }.toSet(), seen)
+        assertEquals(
+            List(SHOT_FRAME_COUNT) { variant * STRIDE + it * SHOT_FRAME_WIDTH }.toSet(),
+            seen
+        )
     }
 
     /** What a shot leaves where it is spent is drawn in the shot's colors, so it carries them. */
     @Test
     fun `a shot carries its colorway`() {
         for (variant in 0 until COLORWAYS) {
-            assertEquals(variant, world.getComponent(shot(variant), ColorwayComponent::class)?.variant)
+            assertEquals(
+                variant,
+                world.getComponent(shot(variant), ColorwayComponent::class)?.variant
+            )
         }
     }
 
@@ -138,7 +144,10 @@ class ShotColorwayTest {
     @Test
     fun `every colorway an enemy fires is on the sheet`() {
         for (species in EnemySpecies.entries) {
-            assertTrue(species.shotVariant in 0 until COLORWAYS, "$species fires colorway ${species.shotVariant}")
+            assertTrue(
+                species.shotVariant in 0 until COLORWAYS,
+                "$species fires colorway ${species.shotVariant}"
+            )
         }
         assertTrue(MOTH_QUEEN_SHOT_VARIANT in 0 until COLORWAYS)
         assertTrue(NAGA_SHOT_VARIANT in 0 until COLORWAYS)
@@ -148,8 +157,15 @@ class ShotColorwayTest {
     @Test
     fun `the Caco Imp fires in its own crimson`() {
         val id = factory.createBoss(
-            0f, 0f, holdX = 0f, pixmap = enemySheet, scale = BOSS_SPRITE_SCALE,
-            hitPoints = 100, damage = 10, gun = CacoImpBrain.SMOULDERING_GUN, bar = Rect.fromLTWH(0f, 0f, 1f, 1f),
+            0f,
+            0f,
+            holdX = 0f,
+            pixmap = enemySheet,
+            scale = BOSS_SPRITE_SCALE,
+            hitPoints = 100,
+            damage = 10,
+            gun = CacoImpBrain.SMOULDERING_GUN,
+            bar = Rect.fromLTWH(0f, 0f, 1f, 1f),
         )
 
         val style = world.getComponent(id, ProjectileStyleComponent::class)
@@ -178,7 +194,10 @@ class ShotColorwayTest {
     @Test
     fun `every elite's colorway is on the sheet and is its own`() {
         val variants = ElitePalette.entries.map { it.shotVariant }
-        assertTrue(variants.all { it in 0 until COLORWAYS }, "an elite colorway off the sheet: $variants")
+        assertTrue(
+            variants.all { it in 0 until COLORWAYS },
+            "an elite colorway off the sheet: $variants"
+        )
         assertEquals(variants.size, variants.toSet().size, "two elite palettes share a colorway")
     }
 
@@ -189,9 +208,17 @@ class ShotColorwayTest {
     @Test
     fun `no elite fires in a colorway that anything else does`() {
         val everyoneElse = EnemySpecies.entries.map { it.shotVariant }.toSet() +
-            setOf(PLAYER_SHOT_VARIANT, 2 + ENEMY_SHOT_VARIANT_OFFSET, MOTH_QUEEN_SHOT_VARIANT, SAND_WYRM_SHOT_VARIANT)
+                setOf(
+                    PLAYER_SHOT_VARIANT,
+                    2 + ENEMY_SHOT_VARIANT_OFFSET,
+                    MOTH_QUEEN_SHOT_VARIANT,
+                    SAND_WYRM_SHOT_VARIANT
+                )
         for (palette in ElitePalette.entries) {
-            assertTrue(palette.shotVariant !in everyoneElse, "$palette fires colorway ${palette.shotVariant}")
+            assertTrue(
+                palette.shotVariant !in everyoneElse,
+                "$palette fires colorway ${palette.shotVariant}"
+            )
         }
     }
 
@@ -201,7 +228,10 @@ class ShotColorwayTest {
             val id = factory.createEnemy(
                 0f, 0f, 28f, 29f, enemySheet, species = EnemySpecies.SCOUT, elite = palette,
             )
-            assertEquals(palette.shotVariant, world.getComponent(id, ProjectileStyleComponent::class)?.variant)
+            assertEquals(
+                palette.shotVariant,
+                world.getComponent(id, ProjectileStyleComponent::class)?.variant
+            )
         }
     }
 

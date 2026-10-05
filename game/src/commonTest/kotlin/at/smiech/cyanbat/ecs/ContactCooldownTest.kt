@@ -11,7 +11,10 @@ class ContactCooldownTest {
     @Test
     fun `a weapon lands once and then waits out its rehit time`() {
         assertTrue(cooldown.take(ContactWeapon.ORB, now = 1f, seconds = 0.3f))
-        assertFalse(cooldown.take(ContactWeapon.ORB, now = 1.1f, seconds = 0.3f), "landed again inside the wait")
+        assertFalse(
+            cooldown.take(ContactWeapon.ORB, now = 1.1f, seconds = 0.3f),
+            "landed again inside the wait"
+        )
         assertFalse(cooldown.take(ContactWeapon.ORB, now = 1.29f, seconds = 0.3f))
         assertTrue(cooldown.take(ContactWeapon.ORB, now = 1.3f, seconds = 0.3f))
     }
@@ -29,6 +32,9 @@ class ContactCooldownTest {
     fun `each weapon waits on its own`() {
         assertTrue(cooldown.take(ContactWeapon.ORB, now = 0f, seconds = 0.3f))
 
-        assertTrue(cooldown.take(ContactWeapon.WAKE, now = 0.1f, seconds = 0.4f), "the orb held the wake off")
+        assertTrue(
+            cooldown.take(ContactWeapon.WAKE, now = 0.1f, seconds = 0.4f),
+            "the orb held the wake off"
+        )
     }
 }

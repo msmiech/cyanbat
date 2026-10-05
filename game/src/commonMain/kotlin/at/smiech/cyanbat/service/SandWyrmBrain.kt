@@ -181,7 +181,8 @@ class SandWyrmBrain(
 
         if (sawRising && vy > 0f && isUnder(headId) && parts.all { isUnder(it) }) {
             burrowed = true
-            untilBreach = if (phase >= 3) SAND_WYRM_ENRAGED_BURROW_SECONDS else SAND_WYRM_BURROW_SECONDS
+            untilBreach =
+                if (phase >= 3) SAND_WYRM_ENRAGED_BURROW_SECONDS else SAND_WYRM_BURROW_SECONDS
             rectOf(headId)?.let { rest(it.top) }
         }
     }
@@ -192,7 +193,8 @@ class SandWyrmBrain(
      * pulls the trigger, and it does so at the top of each arc.
      */
     private fun pullTrigger() {
-        world.getComponent(headId, WeaponComponent::class)?.let { it.timeSinceLastShot = it.interval }
+        world.getComponent(headId, WeaponComponent::class)
+            ?.let { it.timeSinceLastShot = it.interval }
     }
 
     private fun enter(next: Int) {
@@ -205,7 +207,8 @@ class SandWyrmBrain(
         onPhaseChanged(next)
     }
 
-    private fun breachSpeed(): Float = if (phase >= 3) SAND_WYRM_ENRAGED_BREACH_SPEED else SAND_WYRM_BREACH_SPEED
+    private fun breachSpeed(): Float =
+        if (phase >= 3) SAND_WYRM_ENRAGED_BREACH_SPEED else SAND_WYRM_BREACH_SPEED
 
     /**
      * Where to come up so the top of the arc lands on the bat: ahead of it by as far as the head
@@ -234,7 +237,8 @@ class SandWyrmBrain(
      */
     private fun bury(x: Float) {
         val top = frameHeight + BURIED_DEPTH
-        world.getComponent(headId, TransformComponent::class)?.rect = Rect.fromLTWH(x - HALF, top, FRAME, FRAME)
+        world.getComponent(headId, TransformComponent::class)?.rect =
+            Rect.fromLTWH(x - HALF, top, FRAME, FRAME)
         world.getComponent(headId, VelocityComponent::class)?.velocity = Vector2.Zero
         rest(top)
 
@@ -252,7 +256,11 @@ class SandWyrmBrain(
     private fun rest(top: Float) {
         world.addComponent(
             headId,
-            EnemyBehaviorComponent(EnemyMovementType.LEAP, initialY = top, holdX = -Float.MAX_VALUE),
+            EnemyBehaviorComponent(
+                EnemyMovementType.LEAP,
+                initialY = top,
+                holdX = -Float.MAX_VALUE
+            ),
         )
     }
 
@@ -329,7 +337,8 @@ class SandWyrmBrain(
         // Along the path toward the part in front, less the half turn the artwork already faces.
         if (aheadX != x || aheadY != y) {
             val heading = atan2(aheadY - y, aheadX - x) * DEGREES_PER_RADIAN
-            world.getComponent(id, SpriteComponent::class)?.rotationDegrees = normalized(heading - 180f)
+            world.getComponent(id, SpriteComponent::class)?.rotationDegrees =
+                normalized(heading - 180f)
         }
     }
 
@@ -340,9 +349,11 @@ class SandWyrmBrain(
         return turned
     }
 
-    private fun isUnder(id: EntityId): Boolean = (rectOf(id)?.top ?: Float.MAX_VALUE) > frameHeight + UNDER_MARGIN
+    private fun isUnder(id: EntityId): Boolean =
+        (rectOf(id)?.top ?: Float.MAX_VALUE) > frameHeight + UNDER_MARGIN
 
-    private fun rectOf(id: EntityId): Rect? = world.getComponent(id, TransformComponent::class)?.rect
+    private fun rectOf(id: EntityId): Rect? =
+        world.getComponent(id, TransformComponent::class)?.rect
 
     companion object {
         private const val FRAME = SAND_WYRM_FRAME.toFloat()
@@ -405,7 +416,12 @@ class SandWyrmBrain(
         private val BROOD_GUN = EnemyGun(
             TRIGGERED_INTERVAL,
             listOf(
-                Volley(ShotPattern.RADIAL, count = 10, speed = 2.0f, damageFactor = SAND_WYRM_RING_DAMAGE),
+                Volley(
+                    ShotPattern.RADIAL,
+                    count = 10,
+                    speed = 2.0f,
+                    damageFactor = SAND_WYRM_RING_DAMAGE
+                ),
                 Volley(ShotPattern.AIMED, speed = 2.8f, damageFactor = SAND_WYRM_SPIT_DAMAGE),
             ),
         )
@@ -414,7 +430,12 @@ class SandWyrmBrain(
         private val ENRAGED_GUN = EnemyGun(
             TRIGGERED_INTERVAL,
             listOf(
-                Volley(ShotPattern.RADIAL, count = 14, speed = 2.2f, damageFactor = SAND_WYRM_RING_DAMAGE),
+                Volley(
+                    ShotPattern.RADIAL,
+                    count = 14,
+                    speed = 2.2f,
+                    damageFactor = SAND_WYRM_RING_DAMAGE
+                ),
                 Volley(
                     ShotPattern.AIMED_FAN, count = 5, spreadDegrees = 11f, speed = 2.8f,
                     damageFactor = SAND_WYRM_SPIT_DAMAGE,

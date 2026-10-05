@@ -75,21 +75,29 @@ class DataStoreHighscoreStoreTest {
     }
 
     @Test
-    fun `the cave's and the forest's highscores follow their stages when the two swap places`() = runBlocking {
-        val old = preferencesOf(
-            prefsKeyStageHighScore(1) to 4125,
-            prefsKeyStageHighScore(2) to 900,
-            prefsKeyStageHighScore(3) to 70,
-        )
-        assertTrue(StageOrderMigration.shouldMigrate(old))
+    fun `the cave's and the forest's highscores follow their stages when the two swap places`() =
+        runBlocking {
+            val old = preferencesOf(
+                prefsKeyStageHighScore(1) to 4125,
+                prefsKeyStageHighScore(2) to 900,
+                prefsKeyStageHighScore(3) to 70,
+            )
+            assertTrue(StageOrderMigration.shouldMigrate(old))
 
-        val migrated = StageOrderMigration.migrate(old)
+            val migrated = StageOrderMigration.migrate(old)
 
-        assertEquals(900, migrated[prefsKeyStageHighScore(1)], "the jungle's, which was the forest's")
-        assertEquals(4125, migrated[prefsKeyStageHighScore(2)], "the cave's")
-        assertEquals(70, migrated[prefsKeyStageHighScore(3)], "the desert's")
-        assertFalse(StageOrderMigration.shouldMigrate(migrated), "a second swap would undo the first")
-    }
+            assertEquals(
+                900,
+                migrated[prefsKeyStageHighScore(1)],
+                "the jungle's, which was the forest's"
+            )
+            assertEquals(4125, migrated[prefsKeyStageHighScore(2)], "the cave's")
+            assertEquals(70, migrated[prefsKeyStageHighScore(3)], "the desert's")
+            assertFalse(
+                StageOrderMigration.shouldMigrate(migrated),
+                "a second swap would undo the first"
+            )
+        }
 
     @Test
     fun `a stage with no highscore yet still has none after the swap`() = runBlocking {
@@ -100,12 +108,13 @@ class DataStoreHighscoreStoreTest {
     }
 
     @Test
-    fun `a store with nothing in it is marked swapped, so its scores are never moved`() = runBlocking {
-        val migrated = StageOrderMigration.migrate(preferencesOf())
+    fun `a store with nothing in it is marked swapped, so its scores are never moved`() =
+        runBlocking {
+            val migrated = StageOrderMigration.migrate(preferencesOf())
 
-        assertEquals(StageOrderMigration.JUNGLE_FIRST, migrated[PREFS_KEY_STAGE_ORDER])
-        assertFalse(StageOrderMigration.shouldMigrate(migrated))
-    }
+            assertEquals(StageOrderMigration.JUNGLE_FIRST, migrated[PREFS_KEY_STAGE_ORDER])
+            assertFalse(StageOrderMigration.shouldMigrate(migrated))
+        }
 
     @Test
     fun `the old single highscore ends up on the cave once both moves have run`() = runBlocking {

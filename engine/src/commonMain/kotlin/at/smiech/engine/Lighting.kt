@@ -87,7 +87,8 @@ class Lighting {
         color: Int,
         strength: Float,
     ) {
-        val glint = if (glintCount < glints.size) glints[glintCount] else Glint().also { glints += it }
+        val glint =
+            if (glintCount < glints.size) glints[glintCount] else Glint().also { glints += it }
         glintCount++
         glint.pixmap = pixmap
         glint.srcX = srcX
@@ -185,7 +186,8 @@ class Lighting {
 
         /** Adds a point to the shadow being laid down; [closeShadow] ends it. */
         fun addShadowPoint(x: Float, y: Float) {
-            if (pointCount + 2 > shadowPoints.size) shadowPoints = shadowPoints.copyOf(shadowPoints.size * 2)
+            if (pointCount + 2 > shadowPoints.size) shadowPoints =
+                shadowPoints.copyOf(shadowPoints.size * 2)
             shadowPoints[pointCount++] = x
             shadowPoints[pointCount++] = y
         }
@@ -214,7 +216,8 @@ class Lighting {
                 val ay = shadowPoints[previous + 1]
                 val bx = shadowPoints[point]
                 val by = shadowPoints[point + 1]
-                if ((ay > y) != (by > y) && x < ax + (y - ay) / (by - ay) * (bx - ax)) inside = !inside
+                if ((ay > y) != (by > y) && x < ax + (y - ay) / (by - ay) * (bx - ax)) inside =
+                    !inside
                 previous = point
                 point += 2
             }

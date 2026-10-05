@@ -25,7 +25,11 @@ class Palette private constructor(
             // Runs of one color are most of a pixel-art frame, so the previous answer usually holds.
             if (rgb != lastRgb) {
                 lastRgb = rgb
-                lastIndex = lookup[rgb] ?: error("Color %06x was not in the frames the palette was built from".format(rgb))
+                lastIndex = lookup[rgb] ?: error(
+                    "Color %06x was not in the frames the palette was built from".format(
+                        rgb
+                    )
+                )
             }
             out[i] = lastIndex.toByte()
         }
@@ -58,7 +62,11 @@ class Palette private constructor(
                 // Most used first, so the table reads sensibly in a GIF inspector.
                 distinct.sortedByDescending { counts.getValue(it) }.toIntArray()
             } else {
-                medianCut(distinct, LongArray(distinct.size) { counts.getValue(distinct[it]) }, maxColors)
+                medianCut(
+                    distinct,
+                    LongArray(distinct.size) { counts.getValue(distinct[it]) },
+                    maxColors
+                )
             }
             val lookup = HashMap<Int, Int>(distinct.size * 2)
             for (rgb in distinct) lookup[rgb] = nearest(entries, rgb)
@@ -103,7 +111,12 @@ class Palette private constructor(
                     if (box.size < 2) continue
                     val weight = box.sumOf { counts[it] }.toDouble()
                     for (shift in intArrayOf(16, 8, 0)) {
-                        val range = box.maxOf { channel(colors[it], shift) } - box.minOf { channel(colors[it], shift) }
+                        val range = box.maxOf {
+                            channel(
+                                colors[it],
+                                shift
+                            )
+                        } - box.minOf { channel(colors[it], shift) }
                         val score = range * Math.sqrt(weight)
                         if (score > pickScore) {
                             pickScore = score
@@ -130,8 +143,9 @@ class Palette private constructor(
             return IntArray(boxes.size) { b ->
                 val box = boxes[b]
                 val weight = box.sumOf { counts[it] }.toDouble()
-                fun mean(shift: Int) = (box.sumOf { channel(colors[it], shift) * counts[it].toDouble() } / weight)
-                    .toInt().coerceIn(0, 255)
+                fun mean(shift: Int) =
+                    (box.sumOf { channel(colors[it], shift) * counts[it].toDouble() } / weight)
+                        .toInt().coerceIn(0, 255)
                 (mean(16) shl 16) or (mean(8) shl 8) or mean(0)
             }
         }

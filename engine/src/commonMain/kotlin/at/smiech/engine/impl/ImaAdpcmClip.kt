@@ -106,8 +106,10 @@ class ImaAdpcmClip private constructor(
                         if (nibble and 4 != 0) diff += step
                         if (nibble and 2 != 0) diff += step shr 1
                         if (nibble and 1 != 0) diff += step shr 2
-                        val next = if (nibble and 8 != 0) predictor[ch] - diff else predictor[ch] + diff
-                        predictor[ch] = next.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
+                        val next =
+                            if (nibble and 8 != 0) predictor[ch] - diff else predictor[ch] + diff
+                        predictor[ch] =
+                            next.coerceIn(Short.MIN_VALUE.toInt(), Short.MAX_VALUE.toInt())
                         stepIndex[ch] = (stepIndex[ch] + INDEX_TABLE[nibble and 7])
                             .coerceIn(0, STEP_TABLE.lastIndex)
                         val at = frame + b * 2 + half
@@ -193,7 +195,14 @@ class ImaAdpcmClip private constructor(
                 "$framesPerBlock frames per block does not fit a $blockAlign-byte block"
             }
             return ImaAdpcmClip(
-                sampleRate, channels, frames, blockAlign, framesPerBlock, bytes, dataOffset, dataLength
+                sampleRate,
+                channels,
+                frames,
+                blockAlign,
+                framesPerBlock,
+                bytes,
+                dataOffset,
+                dataLength
             )
         }
 

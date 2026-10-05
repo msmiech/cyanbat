@@ -70,7 +70,9 @@ class MothQueenBrain(
         phase = next
 
         world.getComponent(bossId, ShieldComponent::class)
-            ?.raise((health.maxHitPoints * MOTH_QUEEN_SHIELD_FRACTION).roundToInt().coerceAtLeast(1))
+            ?.raise(
+                (health.maxHitPoints * MOTH_QUEEN_SHIELD_FRACTION).roundToInt().coerceAtLeast(1)
+            )
 
         val gun = gunFor(next)
         world.getComponent(bossId, GunComponent::class)?.apply {
@@ -80,7 +82,8 @@ class MothQueenBrain(
         world.getComponent(bossId, WeaponComponent::class)?.interval = gun.interval
 
         if (next >= 3) {
-            world.getComponent(bossId, EnemyBehaviorComponent::class)?.tempo = MOTH_QUEEN_ENRAGED_TEMPO
+            world.getComponent(bossId, EnemyBehaviorComponent::class)?.tempo =
+                MOTH_QUEEN_ENRAGED_TEMPO
         }
 
         // The first swarm of a phase comes a moment after its shield goes up rather than with it,
@@ -110,7 +113,12 @@ class MothQueenBrain(
         private val SWARM_GUN = EnemyGun(
             1.2f,
             listOf(
-                Volley(ShotPattern.RADIAL, count = 12, speed = 2.0f, damageFactor = MOTH_QUEEN_RING_DAMAGE),
+                Volley(
+                    ShotPattern.RADIAL,
+                    count = 12,
+                    speed = 2.0f,
+                    damageFactor = MOTH_QUEEN_RING_DAMAGE
+                ),
                 Volley(ShotPattern.AIMED, speed = 2.8f, damageFactor = MOTH_QUEEN_FAN_DAMAGE),
             ),
         )
@@ -123,7 +131,12 @@ class MothQueenBrain(
                     ShotPattern.AIMED_FAN, count = 5, spreadDegrees = 13f, speed = 2.9f,
                     damageFactor = MOTH_QUEEN_FAN_DAMAGE,
                 ),
-                Volley(ShotPattern.RADIAL, count = 14, speed = 2.2f, damageFactor = MOTH_QUEEN_RING_DAMAGE),
+                Volley(
+                    ShotPattern.RADIAL,
+                    count = 14,
+                    speed = 2.2f,
+                    damageFactor = MOTH_QUEEN_RING_DAMAGE
+                ),
             ),
         )
 

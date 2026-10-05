@@ -94,7 +94,10 @@ data class GameAssets(
                             pixmap("jungleBottomObstacle1.png"),
                             pixmap("jungleBottomObstacle2.png"),
                         ),
-                        music = StageMusic("jungle", MusicGrid(beatsPerMinute = 98.0, beatsPerBar = 4)),
+                        music = StageMusic(
+                            "jungle",
+                            MusicGrid(beatsPerMinute = 98.0, beatsPerBar = 4)
+                        ),
                         enemySheet = pixmap("jungleEnemies.png"),
                         bossSheet = pixmap("jungleBoss.png"),
                     ),
@@ -102,13 +105,19 @@ data class GameAssets(
                         id = 2,
                         name = "Stage 2: The Cave",
                         backdrop = Backdrop.Strip(pixmap("background.png")),
-                        topObstacles = arrayOf(pixmap("topObstacle1.png"), pixmap("topObstacle2.png")),
+                        topObstacles = arrayOf(
+                            pixmap("topObstacle1.png"),
+                            pixmap("topObstacle2.png")
+                        ),
                         bottomObstacles = arrayOf(
                             pixmap("bottomObstacle1.png"),
                             pixmap("bottomObstacle2.png"),
                         ),
                         // In 12/8: four beats a bar, each a dotted quarter of three rolling eighths.
-                        music = StageMusic("cave", MusicGrid(beatsPerMinute = 63.0, beatsPerBar = 4)),
+                        music = StageMusic(
+                            "cave",
+                            MusicGrid(beatsPerMinute = 63.0, beatsPerBar = 4)
+                        ),
                         enemySheet = pixmap("enemies.png"),
                         // Underground, and so the one stage flown in the dark, by the bat's own light.
                         lighting = StageLighting(ambient = CAVE_AMBIENT, glow = CAVE_GLOW),
@@ -138,7 +147,10 @@ data class GameAssets(
                             pixmap("desertObstacle3.png"),
                             pixmap("desertObstacle4.png"),
                         ),
-                        music = StageMusic("desert", MusicGrid(beatsPerMinute = 105.0, beatsPerBar = 4)),
+                        music = StageMusic(
+                            "desert",
+                            MusicGrid(beatsPerMinute = 105.0, beatsPerBar = 4)
+                        ),
                         enemySheet = pixmap("desertEnemies.png"),
                         bossSheet = pixmap("desertBoss.png"),
                     ),
@@ -198,7 +210,10 @@ data class GameAssets(
                         music = StageMusic(
                             "lagoon",
                             MusicGrid(beatsPerMinute = 135.0, beatsPerBar = 4),
-                            boss = StageMusic("naga", MusicGrid(beatsPerMinute = 150.0, beatsPerBar = 4)),
+                            boss = StageMusic(
+                                "naga",
+                                MusicGrid(beatsPerMinute = 150.0, beatsPerBar = 4)
+                            ),
                         ),
                         enemySheet = pixmap("lagoonEnemies.png"),
                         bossSheet = pixmap("lagoonBoss.png"),

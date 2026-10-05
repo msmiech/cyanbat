@@ -210,7 +210,8 @@ class SkySystem(
             // the same way as it leaves.
             val up = ((night - starThreshold[i]) / STAR_FADE_IN).coerceIn(0f, 1f)
             if (up <= 0f) continue
-            val twinkle = 1f - TWINKLE_DEPTH * (0.5f + 0.5f * sin(clock * starTwinkleRate[i] + starTwinklePhase[i]))
+            val twinkle =
+                1f - TWINKLE_DEPTH * (0.5f + 0.5f * sin(clock * starTwinkleRate[i] + starTwinklePhase[i]))
             val alpha = up * starBrightness[i] * twinkle
             val x = wrap(starX[i] - drift)
             val y = starY[i]
@@ -254,13 +255,25 @@ class SkySystem(
         val glow = day.sunGlow(position)
 
         for (ring in HALO_RINGS.indices) {
-            circle(graphics, x, y, radius * HALO_RINGS[ring], EngineColors.withAlpha(color, HALO_ALPHA[ring] * glow))
+            circle(
+                graphics,
+                x,
+                y,
+                radius * HALO_RINGS[ring],
+                EngineColors.withAlpha(color, HALO_ALPHA[ring] * glow)
+            )
         }
         val low = day.sunLowColor(position)
         val bands = day.sunBands(position)
         if (bands <= 0f && low == color) {
             circle(graphics, x, y, radius, color)
-            circle(graphics, x, y, radius * 0.72f, EngineColors.lerp(color, EngineColors.WHITE, 0.55f))
+            circle(
+                graphics,
+                x,
+                y,
+                radius * 0.72f,
+                EngineColors.lerp(color, EngineColors.WHITE, 0.55f)
+            )
         } else {
             drawBandedSun(graphics, x, y, radius, color, low, bands)
         }
@@ -298,7 +311,13 @@ class SkySystem(
             if (coreHalf >= 0.5f) {
                 color = EngineColors.lerp(color, EngineColors.WHITE, 0.55f)
                 val coreLeft = (x - coreHalf).roundToInt()
-                graphics.drawRect(coreLeft, (y + row).roundToInt(), (x + coreHalf).roundToInt() - coreLeft, 1, color)
+                graphics.drawRect(
+                    coreLeft,
+                    (y + row).roundToInt(),
+                    (x + coreHalf).roundToInt() - coreLeft,
+                    1,
+                    color
+                )
             }
         }
     }
@@ -385,9 +404,26 @@ class SkySystem(
             while (dstX < frameWidth) {
                 val sheet = sheetFor(i, stretchHere)
                 val span = minOf(sheet.width - srcX, frameWidth - dstX + 1)
-                graphics.drawPixmap(sheet, dstX, layer.top, srcX, below * rowHeight, span, rowHeight)
+                graphics.drawPixmap(
+                    sheet,
+                    dstX,
+                    layer.top,
+                    srcX,
+                    below * rowHeight,
+                    span,
+                    rowHeight
+                )
                 if (blend > 0f) {
-                    graphics.drawPixmapFaded(sheet, dstX, layer.top, srcX, above * rowHeight, span, rowHeight, blend)
+                    graphics.drawPixmapFaded(
+                        sheet,
+                        dstX,
+                        layer.top,
+                        srcX,
+                        above * rowHeight,
+                        span,
+                        rowHeight,
+                        blend
+                    )
                 }
                 dstX += span - 1
                 srcX = 0
@@ -417,14 +453,23 @@ class SkySystem(
         var row = water.first
         var index = 0
         while (row <= water.last) {
-            val near = (row - water.first).toFloat() / (water.last - water.first + 1).coerceAtLeast(1)
+            val near =
+                (row - water.first).toFloat() / (water.last - water.first + 1).coerceAtLeast(1)
             val shimmer = 0.5f + 0.5f * sin(clock * GLITTER_RATE + index * GLITTER_STAGGER)
-            val alpha = strength * (GLITTER_FAINTEST + (1f - GLITTER_FAINTEST) * shimmer) * (1f - 0.4f * near)
+            val alpha =
+                strength * (GLITTER_FAINTEST + (1f - GLITTER_FAINTEST) * shimmer) * (1f - 0.4f * near)
             if (alpha > 0.04f) {
                 val reach = GLITTER_REACH * (0.35f + near) * strength
                 val sway = sin(clock * GLITTER_SWAY_RATE + index * 1.7f) * reach * 0.5f
-                val length = (GLITTER_DASH * (0.6f + near) * (0.4f + 0.6f * shimmer)).roundToInt().coerceAtLeast(1)
-                graphics.drawRect((x + sway - length / 2f).roundToInt(), row, length, 1, EngineColors.withAlpha(color, alpha))
+                val length = (GLITTER_DASH * (0.6f + near) * (0.4f + 0.6f * shimmer)).roundToInt()
+                    .coerceAtLeast(1)
+                graphics.drawRect(
+                    (x + sway - length / 2f).roundToInt(),
+                    row,
+                    length,
+                    1,
+                    EngineColors.withAlpha(color, alpha)
+                )
             }
             row += GLITTER_ROW_STEP
             index++

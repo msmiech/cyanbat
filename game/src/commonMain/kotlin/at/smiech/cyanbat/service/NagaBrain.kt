@@ -3,6 +3,13 @@ package at.smiech.cyanbat.service
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.ecs.ShotPattern
 import at.smiech.cyanbat.ecs.Volley
+import at.smiech.cyanbat.service.NagaBrain.Companion.REARED_HEIGHT
+import at.smiech.cyanbat.service.NagaBrain.Companion.RISE_EDGE_MARGIN
+import at.smiech.cyanbat.service.NagaBrain.Companion.RISE_LEAST_LEAD
+import at.smiech.cyanbat.service.NagaBrain.Companion.RISE_LEFTMOST
+import at.smiech.cyanbat.service.NagaBrain.Companion.SWIM_SPIT_SECONDS
+import at.smiech.cyanbat.service.NagaBrain.Companion.SWIM_WAVELENGTH
+import at.smiech.cyanbat.service.NagaBrain.Companion.SWIM_Y
 import at.smiech.cyanbat.util.NAGA_COIL_SECONDS
 import at.smiech.cyanbat.util.NAGA_ENRAGED_COIL_SECONDS
 import at.smiech.cyanbat.util.NAGA_ENRAGED_SPIT_SECONDS
@@ -323,7 +330,12 @@ class NagaBrain(
         swimming = true
         untilSpit = FIRST_SPIT_SECONDS
         step(Act.SWIM)
-        factory.createSplash(frameWidth - SWIM_TELL_INSET, frameHeight.toFloat(), sheet, scale = RISE_SPLASH_SCALE)
+        factory.createSplash(
+            frameWidth - SWIM_TELL_INSET,
+            frameHeight.toFloat(),
+            sheet,
+            scale = RISE_SPLASH_SCALE
+        )
         if (phase >= 5) onSummon(2, false)
     }
 
@@ -361,8 +373,12 @@ class NagaBrain(
         onPhaseChanged(next)
     }
 
-    private fun spitSeconds(): Float = if (phase >= 5) NAGA_ENRAGED_SPIT_SECONDS else NAGA_SPIT_SECONDS
-    private fun coilSeconds(): Float = if (phase >= 5) NAGA_ENRAGED_COIL_SECONDS else NAGA_COIL_SECONDS
+    private fun spitSeconds(): Float =
+        if (phase >= 5) NAGA_ENRAGED_SPIT_SECONDS else NAGA_SPIT_SECONDS
+
+    private fun coilSeconds(): Float =
+        if (phase >= 5) NAGA_ENRAGED_COIL_SECONDS else NAGA_COIL_SECONDS
+
     private fun swimSpeed(): Float = if (phase >= 5) NAGA_ENRAGED_SWIM_SPEED else NAGA_SWIM_SPEED
 
     // --- placing it ----------------------------------------------------------------------------------
@@ -428,7 +444,11 @@ class NagaBrain(
         val length = NAGA_SPACING * (parts.size + 2)
         var along = length
         while (along >= 0f) {
-            if (trailingRight) record(x + along, y, force = true) else record(x, y + along, force = true)
+            if (trailingRight) record(x + along, y, force = true) else record(
+                x,
+                y + along,
+                force = true
+            )
             along -= PATH_STEP
         }
     }
@@ -508,8 +528,10 @@ class NagaBrain(
         for (i in 0..CURVE_SAMPLES) {
             val t = i / CURVE_SAMPLES.toFloat()
             val u = 1f - t
-            val x = u * u * u * neckX + 3f * u * u * t * c1x + 3f * u * t * t * c2x + t * t * t * baseX
-            val y = u * u * u * neckY + 3f * u * u * t * c1y + 3f * u * t * t * c2y + t * t * t * baseY
+            val x =
+                u * u * u * neckX + 3f * u * u * t * c1x + 3f * u * t * t * c2x + t * t * t * baseX
+            val y =
+                u * u * u * neckY + 3f * u * u * t * c1y + 3f * u * t * t * c2y + t * t * t * baseY
             if (i > 0) length += hypot(x - curveX[i - 1], y - curveY[i - 1])
             curveX[i] = x
             curveY[i] = y
@@ -568,7 +590,8 @@ class NagaBrain(
     private fun allUnder(): Boolean = isUnder(headId) && parts.all { isUnder(it) }
 
     private fun isUnder(id: EntityId): Boolean =
-        (world.getComponent(id, TransformComponent::class)?.rect?.top ?: Float.MAX_VALUE) > frameHeight + UNDER_MARGIN
+        (world.getComponent(id, TransformComponent::class)?.rect?.top
+            ?: Float.MAX_VALUE) > frameHeight + UNDER_MARGIN
 
     // --- firing ------------------------------------------------------------------------------------
 
@@ -591,7 +614,8 @@ class NagaBrain(
             volleys = listOf(volley)
             next = 0
         }
-        world.getComponent(headId, WeaponComponent::class)?.let { it.timeSinceLastShot = it.interval }
+        world.getComponent(headId, WeaponComponent::class)
+            ?.let { it.timeSinceLastShot = it.interval }
     }
 
     // --- helpers -----------------------------------------------------------------------------------
@@ -762,15 +786,25 @@ class NagaBrain(
 
         /** What it spits while it rears and swims: fans at the bat, wider once it is enraged. */
         private val FAN = Volley(
-            ShotPattern.AIMED_FAN, count = 3, spreadDegrees = 13f, speed = 2.7f, damageFactor = NAGA_SPIT_DAMAGE,
+            ShotPattern.AIMED_FAN,
+            count = 3,
+            spreadDegrees = 13f,
+            speed = 2.7f,
+            damageFactor = NAGA_SPIT_DAMAGE,
         )
         private val WIDE_FAN = Volley(
-            ShotPattern.AIMED_FAN, count = 5, spreadDegrees = 11f, speed = 2.9f, damageFactor = NAGA_SPIT_DAMAGE,
+            ShotPattern.AIMED_FAN,
+            count = 5,
+            spreadDegrees = 11f,
+            speed = 2.9f,
+            damageFactor = NAGA_SPIT_DAMAGE,
         )
 
         /** What it throws from the end of a strike: a ring to thread, denser as the fight goes on. */
-        private val RING = Volley(ShotPattern.RADIAL, count = 10, speed = 2.0f, damageFactor = NAGA_RING_DAMAGE)
-        private val DENSE_RING = Volley(ShotPattern.RADIAL, count = 14, speed = 2.2f, damageFactor = NAGA_RING_DAMAGE)
+        private val RING =
+            Volley(ShotPattern.RADIAL, count = 10, speed = 2.0f, damageFactor = NAGA_RING_DAMAGE)
+        private val DENSE_RING =
+            Volley(ShotPattern.RADIAL, count = 14, speed = 2.2f, damageFactor = NAGA_RING_DAMAGE)
 
         /** The gun it is built with, which the brain only ever fires one chosen volley at a time from. */
         val GUN = EnemyGun(TRIGGERED_INTERVAL, listOf(FAN))

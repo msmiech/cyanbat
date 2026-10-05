@@ -25,16 +25,31 @@ class MontageTest {
 
         /** A level up dialog for [seconds], which stops the clock, closing on [taken]. */
         fun levelUp(taken: PowerUp, seconds: Float = 1.3f, boss: Boolean = false) {
-            repeat((seconds / frameSeconds).toInt()) { moments += moment(boss = boss, offer = true) }
+            repeat((seconds / frameSeconds).toInt()) {
+                moments += moment(
+                    boss = boss,
+                    offer = true
+                )
+            }
             pick = taken
         }
 
         /** The boss down, and the overlay held over a clock that has stopped. */
         fun complete(seconds: Float = 2.6f) {
-            repeat((seconds / frameSeconds).toInt()) { moments += moment(boss = true, complete = true) }
+            repeat((seconds / frameSeconds).toInt()) {
+                moments += moment(
+                    boss = true,
+                    complete = true
+                )
+            }
         }
 
-        private fun moment(boss: Boolean, enemies: Int = 2, offer: Boolean = false, complete: Boolean = false) =
+        private fun moment(
+            boss: Boolean,
+            enemies: Int = 2,
+            offer: Boolean = false,
+            complete: Boolean = false
+        ) =
             Moment(
                 seconds = clock,
                 wave = (clock / 60f).toInt(),
@@ -78,7 +93,10 @@ class MontageTest {
     @Test
     fun `the level up shown is the one that took Spread Shot`() {
         val shown = frames.filter { run[it].offer }.map { run[it].seconds }.distinct()
-        assertTrue(shown.isNotEmpty() && shown.all { it in 99.9f..100.1f }, "dialogs shown at $shown")
+        assertTrue(
+            shown.isNotEmpty() && shown.all { it in 99.9f..100.1f },
+            "dialogs shown at $shown"
+        )
     }
 
     @Test
@@ -91,11 +109,15 @@ class MontageTest {
     /** An hour like the desert's sunset, which none of the other clips would land on. */
     @Test
     fun `a stage whose look changes is shown at the hours asked for`() {
-        val withScenery = Montage.cut(run, frameSeconds, actionWave = 3, scenery = listOf(250f)).flatten()
+        val withScenery =
+            Montage.cut(run, frameSeconds, actionWave = 3, scenery = listOf(250f)).flatten()
 
         val shown = withScenery.filter { run[it].seconds in 250f..252.4f }
         assertTrue(shown.size >= (2f / frameSeconds).toInt(), "the sunset got ${shown.size} frames")
-        assertTrue(frames.none { run[it].seconds in 250f..252.4f }, "the sunset was shown without being asked for")
+        assertTrue(
+            frames.none { run[it].seconds in 250f..252.4f },
+            "the sunset was shown without being asked for"
+        )
         assertEquals(withScenery.sorted().distinct(), withScenery)
     }
 
@@ -116,17 +138,32 @@ class MontageTest {
         ).flatten()
 
         assertEquals(glimpses.sorted().distinct(), glimpses)
-        assertTrue(glimpses.none { run[it].offer || run[it].complete }, "a dialog or the overlay was shown")
+        assertTrue(
+            glimpses.none { run[it].offer || run[it].complete },
+            "a dialog or the overlay was shown"
+        )
         val boss = glimpses.filter { run[it].bossSpawned }.map { run[it].seconds }
-        assertTrue(boss.isNotEmpty() && boss.all { it <= 301.6f + frameSeconds }, "the boss was shown at $boss")
-        assertTrue(glimpses.size < frames.size / 2, "${glimpses.size} frames of glimpses, ${frames.size} of the whole")
+        assertTrue(
+            boss.isNotEmpty() && boss.all { it <= 301.6f + frameSeconds },
+            "the boss was shown at $boss"
+        )
+        assertTrue(
+            glimpses.size < frames.size / 2,
+            "${glimpses.size} frames of glimpses, ${frames.size} of the whole"
+        )
     }
 
     /** The desert's: its boss stays out of the footage, however far the tape runs. */
     @Test
     fun `a boss kept hidden never appears`() {
         val teaser = Coverage(scenerySeconds = 2f)
-        val fromWhole = Montage.cut(run, frameSeconds, actionWave = 3, scenery = listOf(250f), coverage = teaser)
+        val fromWhole = Montage.cut(
+            run,
+            frameSeconds,
+            actionWave = 3,
+            scenery = listOf(250f),
+            coverage = teaser
+        )
             .flatten()
         // The recorder stops the tape before such a boss arrives, so this is the tape it cuts.
         val fromShort = Montage.cut(
@@ -138,7 +175,11 @@ class MontageTest {
         ).flatten()
 
         assertEquals(fromWhole, fromShort)
-        assertTrue(fromWhole.none { run[it].bossSpawned || run[it].offer }, "the boss or a dialog was shown")
-        assertTrue(fromWhole.count { run[it].seconds in 250f..252f } >= (1.8f / frameSeconds).toInt(), "no sunset")
+        assertTrue(
+            fromWhole.none { run[it].bossSpawned || run[it].offer },
+            "the boss or a dialog was shown"
+        )
+        assertTrue(fromWhole.count { run[it].seconds in 250f..252f } >= (1.8f / frameSeconds).toInt(),
+            "no sunset")
     }
 }

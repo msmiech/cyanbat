@@ -27,7 +27,8 @@ import kotlin.random.Random
  * left the frame. Drawn and reaped by [FrostBeamSystem]. It is light and nothing else - nothing to
  * collide with, and it has done its work by the time it is seen.
  */
-class FrostBeamComponent(val fromX: Float, val fromY: Float, val toX: Float, val toY: Float) : Component {
+class FrostBeamComponent(val fromX: Float, val fromY: Float, val toX: Float, val toY: Float) :
+    Component {
     /** How long it has been showing, advanced by [FrostBeamSystem]. */
     var elapsed = 0f
 }
@@ -129,7 +130,8 @@ class FrostBeamSystem(
             if (collisions.require(id).group != CollisionGroup.ENEMY) return@forEach
             if (healths[id]?.alive == false) return@forEach
             val rect = transforms.require(id).rect
-            val inFrame = rect.right > 0f && rect.left < frameWidth && rect.bottom > 0f && rect.top < frameHeight
+            val inFrame =
+                rect.right > 0f && rect.left < frameWidth && rect.bottom > 0f && rect.top < frameHeight
             if (inFrame && canFreeze(id)) found += id
         }
         return found
@@ -215,7 +217,8 @@ class FrostBeamSystem(
                 dy < 0f -> -fromY / dy
                 else -> Float.POSITIVE_INFINITY
             }
-            val along = minOf(alongX, alongY).let { if (it.isFinite()) it.coerceAtLeast(1f) else 1f }
+            val along =
+                minOf(alongX, alongY).let { if (it.isFinite()) it.coerceAtLeast(1f) else 1f }
             return (fromX + dx * along) to (fromY + dy * along)
         }
 
@@ -224,7 +227,13 @@ class FrostBeamSystem(
          * the segment it goes in and comes out, 0..1 - or null when the segment misses the box.
          * Liang and Barsky's clip, one edge of the box at a time.
          */
-        fun clipSegment(x0: Float, y0: Float, x1: Float, y1: Float, box: Rect): ClosedFloatingPointRange<Float>? {
+        fun clipSegment(
+            x0: Float,
+            y0: Float,
+            x1: Float,
+            y1: Float,
+            box: Rect
+        ): ClosedFloatingPointRange<Float>? {
             val dx = x1 - x0
             val dy = y1 - y0
             var enter = 0f

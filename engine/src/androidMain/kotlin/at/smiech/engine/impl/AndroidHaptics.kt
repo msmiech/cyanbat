@@ -37,7 +37,8 @@ class AndroidHaptics(
     }
 
     override fun vibrate(durationMillis: Long) {
-        val effect = VibrationEffect.createOneShot(durationMillis, VibrationEffect.DEFAULT_AMPLITUDE)
+        val effect =
+            VibrationEffect.createOneShot(durationMillis, VibrationEffect.DEFAULT_AMPLITUDE)
         // Looked up afresh every time, because the controller may have been switched off or
         // unpaired since it was last used; then the id finds nothing and the phone buzzes.
         val controller = controllerInUse()?.let(InputDevice::getDevice)

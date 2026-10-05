@@ -8,23 +8,33 @@ import kotlin.test.assertTrue
 
 class FrameFitTest {
 
-    private fun fitInto(viewWidth: Int, viewHeight: Int) = FrameFit.fitted(480, 320, viewWidth, viewHeight)
+    private fun fitInto(viewWidth: Int, viewHeight: Int) =
+        FrameFit.fitted(480, 320, viewWidth, viewHeight)
 
     /** A 20:9 phone in landscape, which is what the stretch used to squash worst. */
     @Test
     fun `a wide phone gets bars down the sides`() {
-        assertEquals(FrameFit(480, 320, left = 390, top = 0, width = 1620, height = 1080), fitInto(2400, 1080))
+        assertEquals(
+            FrameFit(480, 320, left = 390, top = 0, width = 1620, height = 1080),
+            fitInto(2400, 1080)
+        )
     }
 
     /** The desktop's default window is 4:3, taller than the game. */
     @Test
     fun `a view taller than the game gets bars above and below`() {
-        assertEquals(FrameFit(480, 320, left = 0, top = 50, width = 1200, height = 800), fitInto(1200, 900))
+        assertEquals(
+            FrameFit(480, 320, left = 0, top = 50, width = 1200, height = 800),
+            fitInto(1200, 900)
+        )
     }
 
     @Test
     fun `a view of the framebuffer's own shape is filled with no bars`() {
-        assertEquals(FrameFit(480, 320, left = 0, top = 0, width = 1440, height = 960), fitInto(1440, 960))
+        assertEquals(
+            FrameFit(480, 320, left = 0, top = 0, width = 1440, height = 960),
+            fitInto(1440, 960)
+        )
     }
 
     /**
@@ -33,14 +43,24 @@ class FrameFitTest {
      */
     @Test
     fun `a framebuffer pixel is scaled the same both ways`() {
-        for ((viewWidth, viewHeight) in listOf(2400 to 1080, 2340 to 1080, 1920 to 1200, 1280 to 800, 1000 to 1000, 777 to 333)) {
+        for ((viewWidth, viewHeight) in listOf(
+            2400 to 1080,
+            2340 to 1080,
+            1920 to 1200,
+            1280 to 800,
+            1000 to 1000,
+            777 to 333
+        )) {
             val fit = fitInto(viewWidth, viewHeight)
             val heightAtWidthsScale = fit.width * 320f / 480f
             assertTrue(
                 abs(heightAtWidthsScale - fit.height) <= 1f,
                 "${viewWidth}x$viewHeight drew the framebuffer ${fit.width}x${fit.height}, which is not 3:2",
             )
-            assertTrue(fit.width <= viewWidth && fit.height <= viewHeight, "${viewWidth}x$viewHeight overflowed")
+            assertTrue(
+                fit.width <= viewWidth && fit.height <= viewHeight,
+                "${viewWidth}x$viewHeight overflowed"
+            )
             assertTrue(
                 fit.width == viewWidth || fit.height == viewHeight,
                 "${viewWidth}x$viewHeight left room on every side - the fit should be as large as it can be",
@@ -72,7 +92,11 @@ class FrameFitTest {
 
         assertTrue(fit.toFrameBufferX(0f) < 0, "the left bar")
         assertTrue(fit.toFrameBufferX(2399f) >= 480, "the right bar")
-        assertEquals(-1, fit.toFrameBufferX(389f), "just left of the framebuffer is its column -1, not 0")
+        assertEquals(
+            -1,
+            fit.toFrameBufferX(389f),
+            "just left of the framebuffer is its column -1, not 0"
+        )
     }
 
     @Test

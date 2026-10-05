@@ -16,11 +16,11 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.isFocused
-import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onLast
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performKeyInput
 import androidx.compose.ui.test.performMouseInput
 import androidx.compose.ui.test.pressKey
@@ -72,7 +72,10 @@ class MenuKeysTest {
     private fun menu(highestUnlocked: Int = 1, test: ComposeUiTest.(Menu) -> Unit) {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         try {
-            runDesktopComposeUiTest(width = PHONE_WIDTH * PHONE_DENSITY, height = PHONE_HEIGHT * PHONE_DENSITY) {
+            runDesktopComposeUiTest(
+                width = PHONE_WIDTH * PHONE_DENSITY,
+                height = PHONE_HEIGHT * PHONE_DENSITY
+            ) {
                 // The menu's sky moves for as long as it is up, so the clock never stops by itself.
                 mainClock.autoAdvance = false
                 val menu = Menu(FakeSettingsRepository(), mutableListOf())
@@ -162,11 +165,12 @@ class MenuKeysTest {
     }
 
     @Test
-    fun `Enter opens what the cursor is on, and its screen starts the cursor on its first choice`() = menu {
-        press(Key.DirectionDown)
-        press(Key.Enter)
-        cursorOn("Music")
-    }
+    fun `Enter opens what the cursor is on, and its screen starts the cursor on its first choice`() =
+        menu {
+            press(Key.DirectionDown)
+            press(Key.Enter)
+            cursorOn("Music")
+        }
 
     @Test
     fun `Space and Enter work the setting under the cursor`() = menu { menu ->
@@ -289,7 +293,11 @@ class MenuKeysTest {
 
         press(Key.Spacebar)
         cursorOn("Music")
-        assertEquals(true, menu.settings.music.value, "the key that brought the cursor out also took the setting")
+        assertEquals(
+            true,
+            menu.settings.music.value,
+            "the key that brought the cursor out also took the setting"
+        )
 
         press(Key.DirectionDown)
         cursorOn("Sounds")
@@ -312,7 +320,8 @@ class MenuKeysTest {
         cursorOn("OK")
         // Up and down scroll the text, which is longer than the dialog, rather than move off OK.
         val text = onNodeWithText("Shoot:", substring = true)
-        fun scrolled() = text.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
+        fun scrolled() =
+            text.fetchSemanticsNode().config[SemanticsProperties.VerticalScrollAxisRange].value()
         assertEquals(0f, scrolled())
         press(Key.DirectionDown)
         cursorOn("OK")

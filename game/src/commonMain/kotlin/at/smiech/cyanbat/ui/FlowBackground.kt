@@ -89,9 +89,9 @@ private class Sheet(
     /** The sheet's middle at [u] across the screen (0 to 1), [t] seconds in. */
     fun middle(u: Float, t: Float): Float =
         left + (right - left) * u + swell * (
-            0.65f * sin(TAU * 0.75f * u - speed * t + phase) +
-                0.35f * sin(TAU * 1.6f * u + 0.6f * speed * t + 1.7f * phase)
-            )
+                0.65f * sin(TAU * 0.75f * u - speed * t + phase) +
+                        0.35f * sin(TAU * 1.6f * u + 0.6f * speed * t + 1.7f * phase)
+                )
 
     /** Signed half-breadth: through zero is where the sheet twists over. */
     fun span(u: Float, t: Float): Float =
@@ -103,8 +103,26 @@ private class Sheet(
 }
 
 private val SHEETS = listOf(
-    Sheet(left = 0.50f, right = 0.74f, swell = 0.10f, breadth = 0.11f, strands = 16, speed = 0.22f, phase = 0f, brightness = 0.6f),
-    Sheet(left = 0.60f, right = 0.62f, swell = 0.12f, breadth = 0.08f, strands = 22, speed = 0.30f, phase = 2.4f, brightness = 1f),
+    Sheet(
+        left = 0.50f,
+        right = 0.74f,
+        swell = 0.10f,
+        breadth = 0.11f,
+        strands = 16,
+        speed = 0.22f,
+        phase = 0f,
+        brightness = 0.6f
+    ),
+    Sheet(
+        left = 0.60f,
+        right = 0.62f,
+        swell = 0.12f,
+        breadth = 0.08f,
+        strands = 22,
+        speed = 0.30f,
+        phase = 2.4f,
+        brightness = 1f
+    ),
 )
 
 /** The sheet the sparkles drift along. */
@@ -222,9 +240,19 @@ private fun DrawScope.drawSheet(
         traceStrand(path, sheet, t, f)
         if (edge > 0.5f) {
             drawPath(path, STRAND, alpha = 0.07f * sheet.brightness, style = edgeHalo)
-            drawPath(path, STRAND, alpha = (0.07f + 0.43f * edge) * sheet.brightness, style = edgeLine)
+            drawPath(
+                path,
+                STRAND,
+                alpha = (0.07f + 0.43f * edge) * sheet.brightness,
+                style = edgeLine
+            )
         } else {
-            drawPath(path, STRAND, alpha = (0.07f + 0.43f * edge) * sheet.brightness, style = hairline)
+            drawPath(
+                path,
+                STRAND,
+                alpha = (0.07f + 0.43f * edge) * sheet.brightness,
+                style = hairline
+            )
         }
     }
 }
@@ -251,8 +279,8 @@ private fun DrawScope.drawSparkle(sparkle: Sparkle, t: Float) {
 
     val x = u * size.width
     val y = size.height * (
-        FRONT.middle(u, t) + sparkle.offset + 0.03f * sin(sparkle.bob * t + sparkle.phase)
-        )
+            FRONT.middle(u, t) + sparkle.offset + 0.03f * sin(sparkle.bob * t + sparkle.phase)
+            )
     val radius = sparkle.radius.dp.toPx() * (0.6f + 0.4f * glow)
     // Drawn in units of the sparkle's radius, so the brushes above serve every sparkle unchanged.
     withTransform({
@@ -262,8 +290,20 @@ private fun DrawScope.drawSparkle(sparkle: Sparkle, t: Float) {
         drawCircle(SPARKLE_HALO, radius = HALO, center = Offset.Zero, alpha = alpha)
         if (sparkle.glints) {
             val glint = alpha * glow
-            drawLine(GLINT_ACROSS, Offset(-GLINT, 0f), Offset(GLINT, 0f), strokeWidth = 0.35f, alpha = glint)
-            drawLine(GLINT_DOWN, Offset(0f, -GLINT), Offset(0f, GLINT), strokeWidth = 0.35f, alpha = glint)
+            drawLine(
+                GLINT_ACROSS,
+                Offset(-GLINT, 0f),
+                Offset(GLINT, 0f),
+                strokeWidth = 0.35f,
+                alpha = glint
+            )
+            drawLine(
+                GLINT_DOWN,
+                Offset(0f, -GLINT),
+                Offset(0f, GLINT),
+                strokeWidth = 0.35f,
+                alpha = glint
+            )
         }
     }
 }

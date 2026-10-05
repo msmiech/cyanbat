@@ -113,11 +113,26 @@ data class StageDesign(
                 WaveDesign(listOf(WISP, SPITTER, WASP), eliteChance = 0.04f),
                 // Divers, with the swarms and tanks from the opening minute for cover, and the
                 // first few shields and guns handed out.
-                WaveDesign(listOf(OWL, WASP, BEETLE), shieldChance = 0.1f, gunChance = 0.1f, eliteChance = 0.05f),
+                WaveDesign(
+                    listOf(OWL, WASP, BEETLE),
+                    shieldChance = 0.1f,
+                    gunChance = 0.1f,
+                    eliteChance = 0.05f
+                ),
                 // Everything at once.
-                WaveDesign(listOf(WASP, BEETLE, SPITTER, OWL, WISP), shieldChance = 0.2f, gunChance = 0.15f, eliteChance = 0.06f),
+                WaveDesign(
+                    listOf(WASP, BEETLE, SPITTER, OWL, WISP),
+                    shieldChance = 0.2f,
+                    gunChance = 0.15f,
+                    eliteChance = 0.06f
+                ),
                 // The escort: everything that shoots or dives, and a fair part of it armed or shielded.
-                WaveDesign(listOf(SPITTER, OWL, WISP), shieldChance = 0.25f, gunChance = 0.2f, eliteChance = 0.07f),
+                WaveDesign(
+                    listOf(SPITTER, OWL, WISP),
+                    shieldChance = 0.25f,
+                    gunChance = 0.2f,
+                    eliteChance = 0.07f
+                ),
             ),
             boss = BossKind.MOTH_QUEEN,
             bossName = "THE MOTH QUEEN",
@@ -134,9 +149,18 @@ data class StageDesign(
         val CAVE = StageDesign(
             waves = listOf(
                 WaveDesign(listOf(SCOUT)),                                       // scouts only, straight and readable
-                WaveDesign(listOf(SCOUT, WEAVER), eliteChance = 0.04f),          // weavers join them
-                WaveDesign(listOf(WEAVER, STRIKER), eliteChance = 0.05f),        // the scouts give way to zigzags
-                WaveDesign(listOf(SCOUT, WEAVER, STRIKER), eliteChance = 0.06f), // everything at once
+                WaveDesign(
+                    listOf(SCOUT, WEAVER),
+                    eliteChance = 0.04f
+                ),          // weavers join them
+                WaveDesign(
+                    listOf(WEAVER, STRIKER),
+                    eliteChance = 0.05f
+                ),        // the scouts give way to zigzags
+                WaveDesign(
+                    listOf(SCOUT, WEAVER, STRIKER),
+                    eliteChance = 0.06f
+                ), // everything at once
                 WaveDesign(listOf(WEAVER, STRIKER), eliteChance = 0.07f),        // the boss escort
             ),
             boss = BossKind.CACO_IMP,
@@ -155,13 +179,32 @@ data class StageDesign(
                 // Noon: a cloud of locusts, and a hawk's loop to learn.
                 WaveDesign(listOf(LOCUST, HAWK)),
                 // Something comes up out of the sand, and a scarab whose shell grows back.
-                WaveDesign(listOf(WYRMLING, LOCUST, SCARAB), shieldChance = 0.1f, eliteChance = 0.04f),
+                WaveDesign(
+                    listOf(WYRMLING, LOCUST, SCARAB),
+                    shieldChance = 0.1f,
+                    eliteChance = 0.04f
+                ),
                 // The golden hour: the djinn and its fans, with the hawks and the leapers for cover.
-                WaveDesign(listOf(DJINN, HAWK, WYRMLING), shieldChance = 0.2f, gunChance = 0.15f, eliteChance = 0.05f),
+                WaveDesign(
+                    listOf(DJINN, HAWK, WYRMLING),
+                    shieldChance = 0.2f,
+                    gunChance = 0.15f,
+                    eliteChance = 0.05f
+                ),
                 // Sunset, and everything at once.
-                WaveDesign(listOf(LOCUST, HAWK, WYRMLING, DJINN, SCARAB), shieldChance = 0.3f, gunChance = 0.25f, eliteChance = 0.06f),
+                WaveDesign(
+                    listOf(LOCUST, HAWK, WYRMLING, DJINN, SCARAB),
+                    shieldChance = 0.3f,
+                    gunChance = 0.25f,
+                    eliteChance = 0.06f
+                ),
                 // Dusk, and the escort: everything that leaps, loops or shoots.
-                WaveDesign(listOf(WYRMLING, DJINN, HAWK, SCARAB), shieldChance = 0.4f, gunChance = 0.35f, eliteChance = 0.07f),
+                WaveDesign(
+                    listOf(WYRMLING, DJINN, HAWK, SCARAB),
+                    shieldChance = 0.4f,
+                    gunChance = 0.35f,
+                    eliteChance = 0.07f
+                ),
             ),
             boss = BossKind.SAND_WYRM,
             bossName = "THE SAND WYRM",
@@ -187,11 +230,26 @@ data class StageDesign(
                 // Dawn, and something behind the bat: fins along the waterline.
                 WaveDesign(listOf(SHARK, PIRANHA, CRAB), shieldChance = 0.15f, eliteChance = 0.05f),
                 // Sunrise: the puffers and their rings, with the sharks and the schools for cover.
-                WaveDesign(listOf(PUFFER, SHARK, PIRANHA), shieldChance = 0.25f, gunChance = 0.2f, eliteChance = 0.06f),
+                WaveDesign(
+                    listOf(PUFFER, SHARK, PIRANHA),
+                    shieldChance = 0.25f,
+                    gunChance = 0.2f,
+                    eliteChance = 0.06f
+                ),
                 // Morning, the temple in sight, and everything at once.
-                WaveDesign(listOf(KRAIT, PUFFER, SHARK, CRAB, PIRANHA), shieldChance = 0.35f, gunChance = 0.3f, eliteChance = 0.07f),
+                WaveDesign(
+                    listOf(KRAIT, PUFFER, SHARK, CRAB, PIRANHA),
+                    shieldChance = 0.35f,
+                    gunChance = 0.3f,
+                    eliteChance = 0.07f
+                ),
                 // Noon, and the escort: the Naga's brood with everything that shoots or comes from behind.
-                WaveDesign(listOf(KRAIT, PUFFER, SHARK, CRAB), shieldChance = 0.45f, gunChance = 0.4f, eliteChance = 0.08f),
+                WaveDesign(
+                    listOf(KRAIT, PUFFER, SHARK, CRAB),
+                    shieldChance = 0.45f,
+                    gunChance = 0.4f,
+                    eliteChance = 0.08f
+                ),
             ),
             boss = BossKind.NAGA,
             bossName = "THE NAGA",

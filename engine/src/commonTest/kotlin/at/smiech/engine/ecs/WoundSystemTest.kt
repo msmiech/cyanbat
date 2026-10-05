@@ -121,7 +121,11 @@ class WoundSystemTest {
         val (_, health) = creature()
 
         world.update(0.01f, null)
-        assertEquals(emptyList(), changes.map { it.second }, "an unhurt creature has nothing to report")
+        assertEquals(
+            emptyList(),
+            changes.map { it.second },
+            "an unhurt creature has nothing to report"
+        )
 
         health.hitPoints = 50
         repeat(3) { world.update(0.01f, null) }

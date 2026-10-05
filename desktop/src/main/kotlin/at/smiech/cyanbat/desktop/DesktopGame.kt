@@ -70,7 +70,8 @@ class DesktopGame(
      */
     private fun loadImage(name: String): ImageBitmap {
         val bytes = openAsset(name).use { it.readBytes() }
-        return Image.makeFromEncoded(bytes).toComposeImageBitmap().also { it.asSkiaBitmap().setImmutable() }
+        return Image.makeFromEncoded(bytes).toComposeImageBitmap()
+            .also { it.asSkiaBitmap().setImmutable() }
     }
 
     override fun setScreen(screen: Screen) {

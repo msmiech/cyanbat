@@ -160,7 +160,11 @@ class CacoImpBrain(
         when (prowl) {
             Prowl.DOUSE -> {
                 val left = 1f - prowlTime / CACO_IMP_DOUSE_SECONDS
-                shine(CACO_IMP_LIGHT_COLOR, CACO_IMP_LIGHT_RADIUS, CACO_IMP_SMOULDER_INTENSITY * left.coerceAtLeast(0f))
+                shine(
+                    CACO_IMP_LIGHT_COLOR,
+                    CACO_IMP_LIGHT_RADIUS,
+                    CACO_IMP_SMOULDER_INTENSITY * left.coerceAtLeast(0f)
+                )
                 if (prowlTime >= CACO_IMP_DOUSE_SECONDS) {
                     chooseStation()
                     glideTo(stationX, stationY)
@@ -191,7 +195,8 @@ class CacoImpBrain(
                     val rect = rectOf()
                     if (rect != null) weaveAt(rect.left, rect.top, tempo = 1f)
                     // The ambush: every volley its gun holds, one after another, from the flare.
-                    volleysLeft = world.getComponent(bossId, GunComponent::class)?.volleys?.size ?: 0
+                    volleysLeft =
+                        world.getComponent(bossId, GunComponent::class)?.volleys?.size ?: 0
                     untilVolley = 0f
                     step(Prowl.BURN)
                 }
@@ -200,7 +205,8 @@ class CacoImpBrain(
             Prowl.BURN -> {
                 // Dying back from the flare to its smoulder, and breathing there until it goes out.
                 val t = (prowlTime / CACO_IMP_BURN_SECONDS).coerceAtMost(1f)
-                val intensity = CACO_IMP_FLARE_INTENSITY + (smoulder() - CACO_IMP_FLARE_INTENSITY) * t
+                val intensity =
+                    CACO_IMP_FLARE_INTENSITY + (smoulder() - CACO_IMP_FLARE_INTENSITY) * t
                 shine(CACO_IMP_LIGHT_COLOR, CACO_IMP_LIGHT_RADIUS, intensity)
                 if (prowlTime >= CACO_IMP_BURN_SECONDS) step(Prowl.DOUSE)
             }
@@ -234,8 +240,9 @@ class CacoImpBrain(
             val x = minX + random.nextFloat() * (maxX - minX)
             val y = minY + random.nextFloat() * (maxY - minY)
             val moved = hypot(x - rect.left, y - rect.top)
-            val clearance = bat?.let { (bx, by) -> hypot(x + rect.width / 2f - bx, y + rect.height / 2f - by) }
-                ?: Float.MAX_VALUE
+            val clearance =
+                bat?.let { (bx, by) -> hypot(x + rect.width / 2f - bx, y + rect.height / 2f - by) }
+                    ?: Float.MAX_VALUE
             val clear = clearance >= CACO_IMP_PROWL_BAT_CLEARANCE
             if (clear && moved >= CACO_IMP_PROWL_LEAST_MOVE) {
                 stationX = x
@@ -256,7 +263,12 @@ class CacoImpBrain(
     private fun glideTo(x: Float, y: Float) {
         world.addComponent(
             bossId,
-            EnemyBehaviorComponent(EnemyMovementType.GLIDE, initialY = y, holdX = x, baseSpeedX = CACO_IMP_PROWL_SPEED),
+            EnemyBehaviorComponent(
+                EnemyMovementType.GLIDE,
+                initialY = y,
+                holdX = x,
+                baseSpeedX = CACO_IMP_PROWL_SPEED
+            ),
         )
     }
 
@@ -267,10 +279,16 @@ class CacoImpBrain(
      */
     private fun weaveAt(x: Float, y: Float, tempo: Float) {
         val height = rectOf()?.height ?: 0f
-        val lane = y.coerceIn(WEAVE_ROOM, (frameHeight - height - WEAVE_ROOM).coerceAtLeast(WEAVE_ROOM))
+        val lane =
+            y.coerceIn(WEAVE_ROOM, (frameHeight - height - WEAVE_ROOM).coerceAtLeast(WEAVE_ROOM))
         world.addComponent(
             bossId,
-            EnemyBehaviorComponent(EnemyMovementType.BOSS, initialY = lane, holdX = x, tempo = tempo),
+            EnemyBehaviorComponent(
+                EnemyMovementType.BOSS,
+                initialY = lane,
+                holdX = x,
+                tempo = tempo
+            ),
         )
     }
 
@@ -284,7 +302,8 @@ class CacoImpBrain(
         if (untilVolley > 0f) return
         untilVolley += VOLLEY_GAP_SECONDS
         volleysLeft--
-        world.getComponent(bossId, WeaponComponent::class)?.let { it.timeSinceLastShot = it.interval }
+        world.getComponent(bossId, WeaponComponent::class)
+            ?.let { it.timeSinceLastShot = it.interval }
     }
 
     /** Sets its light, which only the cave gives it. */
@@ -379,7 +398,12 @@ class CacoImpBrain(
         private val AMBUSH_GUN = EnemyGun(
             TRIGGERED_INTERVAL,
             listOf(
-                Volley(ShotPattern.RADIAL, count = 10, speed = 2.0f, damageFactor = CACO_IMP_RING_DAMAGE),
+                Volley(
+                    ShotPattern.RADIAL,
+                    count = 10,
+                    speed = 2.0f,
+                    damageFactor = CACO_IMP_RING_DAMAGE
+                ),
                 Volley(
                     ShotPattern.AIMED_FAN, count = 3, spreadDegrees = 14f, speed = 2.8f,
                     damageFactor = CACO_IMP_BOLT_DAMAGE,
@@ -395,7 +419,12 @@ class CacoImpBrain(
                     ShotPattern.AIMED_FAN, count = 5, spreadDegrees = 13f, speed = 2.9f,
                     damageFactor = CACO_IMP_BOLT_DAMAGE,
                 ),
-                Volley(ShotPattern.RADIAL, count = 12, speed = 2.2f, damageFactor = CACO_IMP_RING_DAMAGE),
+                Volley(
+                    ShotPattern.RADIAL,
+                    count = 12,
+                    speed = 2.2f,
+                    damageFactor = CACO_IMP_RING_DAMAGE
+                ),
             ),
         )
 

@@ -161,7 +161,12 @@ object Raster {
         for (row in 1..height) {
             val next = if (row < height) reachOf(row) else -1
             if (next == current) continue
-            if (current >= 0) fill(x + (width - 1 - current) / 2, y + first, current + 1, row - first)
+            if (current >= 0) fill(
+                x + (width - 1 - current) / 2,
+                y + first,
+                current + 1,
+                row - first
+            )
             first = row
             current = next
         }

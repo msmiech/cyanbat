@@ -61,7 +61,10 @@ class ShadowTest {
         assertNull(ConvexHull.ofOpaque(faint, 4, 4))
 
         val dot = faint.copyOf().also { it[5] = OPAQUE_GRAY }
-        assertEquals(setOf(1f to 1f, 2f to 1f, 2f to 2f, 1f to 2f), corners(ConvexHull.ofOpaque(dot, 4, 4)!!).toSet())
+        assertEquals(
+            setOf(1f to 1f, 2f to 1f, 2f to 2f, 1f to 2f),
+            corners(ConvexHull.ofOpaque(dot, 4, 4)!!).toSet()
+        )
     }
 
     /** Which way a shadow is thrown off an outline depends on which way round the outline winds. */
@@ -101,7 +104,10 @@ class ShadowTest {
     fun `a shadow runs past everything the light reaches`() {
         val light = cast(BLOCK, 0.5f, 15f, reach = 50f)
 
-        for (distance in 21..71) assertTrue(light.inShadow(distance.toFloat(), 15f), "$distance pixels along")
+        for (distance in 21..71) assertTrue(
+            light.inShadow(distance.toFloat(), 15f),
+            "$distance pixels along"
+        )
         assertTrue(light.inShadow(50f, 20f), "at the far edge of the light's square")
     }
 
@@ -119,11 +125,15 @@ class ShadowTest {
      */
     @Test
     fun `every shadow winds the same way round`() {
-        val lights = listOf(0f to 15f, 15f to 0f, 35f to 15f, 15f to 40f, -5f to -5f, 30f to 30f, 21f to 15f)
+        val lights =
+            listOf(0f to 15f, 15f to 0f, 35f to 15f, 15f to 40f, -5f to -5f, 30f to 30f, 21f to 15f)
         for ((x, y) in lights) {
             val light = cast(BLOCK, x, y)
             assertEquals(1, light.shadowCount, "a light at $x, $y")
-            assertTrue(winding(light.shadowPoints, 0, light.shadowEnd(0)) < 0f, "the shadow of a light at $x, $y")
+            assertTrue(
+                winding(light.shadowPoints, 0, light.shadowEnd(0)) < 0f,
+                "the shadow of a light at $x, $y"
+            )
         }
     }
 

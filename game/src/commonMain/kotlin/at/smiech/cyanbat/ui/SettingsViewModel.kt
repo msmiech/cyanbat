@@ -22,10 +22,18 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), true)
 
     val displayMode: StateFlow<DisplayMode> = settings.displayMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), DisplayMode.DEFAULT)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            DisplayMode.DEFAULT
+        )
 
     val themeMode: StateFlow<ThemeMode> = settings.themeMode
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), ThemeMode.DEFAULT)
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            ThemeMode.DEFAULT
+        )
 
     fun setMusicEnabled(enabled: Boolean) = viewModelScope.launch {
         settings.setMusicEnabled(enabled)

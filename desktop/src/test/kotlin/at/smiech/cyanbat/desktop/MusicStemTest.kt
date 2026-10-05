@@ -30,7 +30,12 @@ import kotlin.test.assertTrue
  */
 class MusicStemTest {
 
-    private val stages: List<Stage> = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT).let { GameAssets.load(it.graphics, it.audio).stages }
+    private val stages: List<Stage> = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT).let {
+        GameAssets.load(
+            it.graphics,
+            it.audio
+        ).stages
+    }
 
     /** The music that is not layered, from `tools/generate_{menu,game_over,victory}_music.py`. */
     private val tracks = listOf("music/menu.wav", "music/game_over.wav", GameAssets.VICTORY_MUSIC)
@@ -74,10 +79,18 @@ class MusicStemTest {
     fun `stems are whole bars at the tempo the game lands changes on`() {
         for ((stage, piece) in pieces) {
             val framesPerBar = piece.grid.framesPerBar(OUTPUT_RATE)
-            assertEquals(framesPerBar, round(framesPerBar), "$stage (${piece.name}): a bar is not whole frames")
+            assertEquals(
+                framesPerBar,
+                round(framesPerBar),
+                "$stage (${piece.name}): a bar is not whole frames"
+            )
             for (name in piece.stems) {
                 val frames = clip(name).frames
-                assertEquals(0, frames % framesPerBar.toInt(), "$name is ${frames / framesPerBar} bars long")
+                assertEquals(
+                    0,
+                    frames % framesPerBar.toInt(),
+                    "$name is ${frames / framesPerBar} bars long"
+                )
             }
         }
     }
@@ -89,7 +102,11 @@ class MusicStemTest {
             val lengths = piece.stems.associateWith { clip(it).frames }
             val longest = lengths.values.max()
             for ((name, frames) in lengths) {
-                assertEquals(0, longest % frames, "$name ($frames frames) against the longest ($longest)")
+                assertEquals(
+                    0,
+                    longest % frames,
+                    "$name ($frames frames) against the longest ($longest)"
+                )
             }
         }
     }
@@ -103,7 +120,8 @@ class MusicStemTest {
     fun `stems and tracks carry sound without clipping`() {
         for (name in pieces.flatMap { (_, piece) -> piece.stems } + tracks) {
             val stem = clip(name)
-            val samples = FloatArray(stem.frames * 2).also { stem.cursor().read(it, 0, stem.frames) }
+            val samples =
+                FloatArray(stem.frames * 2).also { stem.cursor().read(it, 0, stem.frames) }
             val rms = sqrt(samples.sumOf { (it * it).toDouble() } / samples.size)
             val peak = samples.maxOf { abs(it) }
             assertTrue(rms > 0.01, "$name is nearly silent: rms $rms")

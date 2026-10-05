@@ -118,7 +118,10 @@ class CacoImpBrainTest {
 
     @Test
     fun `it opens on straight bolts and fires on its own cadence`() {
-        assertEquals(CacoImpBrain.SMOULDERING_GUN.volleys, world.getComponent(imp, GunComponent::class)!!.volleys)
+        assertEquals(
+            CacoImpBrain.SMOULDERING_GUN.volleys,
+            world.getComponent(imp, GunComponent::class)!!.volleys
+        )
 
         run(CacoImpBrain.SMOULDERING_GUN.interval * 3 + 0.1f)
 
@@ -139,7 +142,10 @@ class CacoImpBrainTest {
 
         run(CACO_IMP_DOUSE_SECONDS - 0.05f)
         assertEquals(CacoImpBrain.Prowl.DOUSE, brain.prowl)
-        assertTrue(light.intensity < CACO_IMP_SMOULDER_INTENSITY * 0.2f, "its light is not going out")
+        assertTrue(
+            light.intensity < CACO_IMP_SMOULDER_INTENSITY * 0.2f,
+            "its light is not going out"
+        )
         val before = rect
         run(0.1f)
         assertEquals(CacoImpBrain.Prowl.PROWL, brain.prowl)
@@ -148,8 +154,16 @@ class CacoImpBrainTest {
 
         runUntil { brain.prowl == CacoImpBrain.Prowl.LURK }
         assertEquals(0f, light.intensity)
-        assertTrue(hypot(rect.left - brain.stationX, rect.top - brain.stationY) < 1f, "it stopped short")
-        assertTrue(hypot(rect.left - before.left, rect.top - before.top) >= CACO_IMP_PROWL_LEAST_MOVE - 2f)
+        assertTrue(
+            hypot(rect.left - brain.stationX, rect.top - brain.stationY) < 1f,
+            "it stopped short"
+        )
+        assertTrue(
+            hypot(
+                rect.left - before.left,
+                rect.top - before.top
+            ) >= CACO_IMP_PROWL_LEAST_MOVE - 2f
+        )
     }
 
     @Test
@@ -161,7 +175,12 @@ class CacoImpBrainTest {
             runUntil { brain.prowl == CacoImpBrain.Prowl.PROWL }
             val centerX = brain.stationX + rect.width / 2f
             val centerY = brain.stationY + rect.height / 2f
-            assertTrue(hypot(centerX - batRect.centerX, centerY - batRect.centerY) >= CACO_IMP_PROWL_BAT_CLEARANCE)
+            assertTrue(
+                hypot(
+                    centerX - batRect.centerX,
+                    centerY - batRect.centerY
+                ) >= CACO_IMP_PROWL_BAT_CLEARANCE
+            )
             assertTrue(brain.stationX >= FRAME_BUFFER_WIDTH * CACO_IMP_PROWL_LEFTMOST)
             assertTrue(brain.stationX + rect.width <= FRAME_BUFFER_WIDTH)
             assertTrue(brain.stationY >= 0f && brain.stationY + rect.height <= FRAME_BUFFER_HEIGHT)

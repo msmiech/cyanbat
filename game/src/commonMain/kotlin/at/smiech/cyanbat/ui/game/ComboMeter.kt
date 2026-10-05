@@ -110,6 +110,7 @@ internal class ComboMeter(private val random: Random = Random.Default) {
                 titlePopTime = 0f
                 flare = 0f
             }
+
             streak > this.streak -> flare = maxOf(flare, COMBO_KILL_FLARE)
         }
         this.multiplier = multiplier
@@ -145,7 +146,7 @@ internal class ComboMeter(private val random: Random = Random.Default) {
         val last = maxOf(titleUntil, countUntil) - 1
         for (column in from until until) {
             val wave = 0.5f + 0.25f * sin(column * 0.9f + seconds * 6f) +
-                0.25f * sin(column * 0.37f - seconds * 3.7f)
+                    0.25f * sin(column * 0.37f - seconds * 3.7f)
             val fromEnd = minOf(column - first, last - column)
             val taper = (0.45f + 0.55f * fromEnd / TAPER_COLUMNS).coerceAtMost(1f)
             val stoked = (heat * (1f - TONGUE_DEPTH * wave) * taper).roundToInt()
@@ -182,7 +183,8 @@ internal class ComboMeter(private val random: Random = Random.Default) {
         val color = ComboHeat.color(multiplier, seconds)
         val bob = BOB_GROWTH * ComboHeat.flameStrength(multiplier)
         val titlePop = titlePopTime / COMBO_POP_SECONDS
-        val titleSize = (COMBO_FONT_SIZE * (1f + COMBO_TITLE_POP_GROWTH * titlePop * titlePop)).roundToInt()
+        val titleSize =
+            (COMBO_FONT_SIZE * (1f + COMBO_TITLE_POP_GROWTH * titlePop * titlePop)).roundToInt()
         val baseCount = ComboHeat.countSize(multiplier)
         val pop = popFraction()
         val countSize = (baseCount * (1f + COMBO_POP_GROWTH * pop * pop)).roundToInt()
@@ -194,7 +196,16 @@ internal class ComboMeter(private val random: Random = Random.Default) {
         val left = x + shakeX
         val titleEnd = drawGlyphs(g, titleGlyphs, left, titleBaseline, titleSize, color, bob, 0)
         val countStart = titleEnd + GAP
-        val countEnd = drawGlyphs(g, countGlyphs, countStart, countBaseline, countSize, color, bob, titleGlyphs.size)
+        val countEnd = drawGlyphs(
+            g,
+            countGlyphs,
+            countStart,
+            countBaseline,
+            countSize,
+            color,
+            bob,
+            titleGlyphs.size
+        )
 
         titleFrom = columnOf(left, fireLeft)
         titleUntil = columnOf(titleEnd, fireLeft)
@@ -269,7 +280,8 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     /** How much of the pop is left, from 1 the tick it starts down to 0. */
     private fun popFraction(): Float = popTime / COMBO_POP_SECONDS
 
-    private fun columnOf(x: Int, fireLeft: Int): Int = floor((x - fireLeft).toFloat() / CELL).toInt()
+    private fun columnOf(x: Int, fireLeft: Int): Int =
+        floor((x - fireLeft).toFloat() / CELL).toInt()
 
     private fun rowOf(y: Int, fireTop: Int): Int = floor((y - fireTop).toFloat() / CELL).toInt()
 
