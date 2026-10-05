@@ -17,6 +17,9 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
     val isSoundEnabled: StateFlow<Boolean> = settings.isSoundEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), true)
 
+    val isVibrationEnabled: StateFlow<Boolean> = settings.isVibrationEnabled
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), true)
+
     val displayMode: StateFlow<DisplayMode> = settings.displayMode
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), DisplayMode.DEFAULT)
 
@@ -26,6 +29,10 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
 
     fun setSoundEnabled(enabled: Boolean) = viewModelScope.launch {
         settings.setSoundEnabled(enabled)
+    }
+
+    fun setVibrationEnabled(enabled: Boolean) = viewModelScope.launch {
+        settings.setVibrationEnabled(enabled)
     }
 
     fun setDisplayMode(mode: DisplayMode) = viewModelScope.launch {

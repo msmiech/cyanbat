@@ -36,6 +36,7 @@ import at.smiech.cyanbat.resources.settings_display_stretch_hint
 import at.smiech.cyanbat.resources.settings_display_title
 import at.smiech.cyanbat.resources.settings_music_title
 import at.smiech.cyanbat.resources.settings_sound_title
+import at.smiech.cyanbat.resources.settings_vibration_title
 import at.smiech.engine.DisplayMode
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -44,13 +45,17 @@ import org.jetbrains.compose.resources.stringResource
 fun SettingsScreen(viewModel: SettingsViewModel) {
     val musicEnabled by viewModel.isMusicEnabled.collectAsState()
     val soundEnabled by viewModel.isSoundEnabled.collectAsState()
+    val vibrationEnabled by viewModel.isVibrationEnabled.collectAsState()
     val displayMode by viewModel.displayMode.collectAsState()
     SettingsContent(
         musicEnabled = musicEnabled,
         soundEnabled = soundEnabled,
+        // Null hides the switch, on a platform with nothing to vibrate.
+        vibrationEnabled = vibrationEnabled.takeIf { canVibrate },
         displayMode = displayMode,
         onMusicEnabledChanged = viewModel::setMusicEnabled,
         onSoundEnabledChanged = viewModel::setSoundEnabled,
+        onVibrationEnabledChanged = viewModel::setVibrationEnabled,
         onDisplayModeChanged = viewModel::setDisplayMode,
     )
 }
@@ -59,9 +64,11 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
 private fun SettingsContent(
     musicEnabled: Boolean,
     soundEnabled: Boolean,
+    vibrationEnabled: Boolean?,
     displayMode: DisplayMode,
     onMusicEnabledChanged: (Boolean) -> Unit,
     onSoundEnabledChanged: (Boolean) -> Unit,
+    onVibrationEnabledChanged: (Boolean) -> Unit,
     onDisplayModeChanged: (DisplayMode) -> Unit,
 ) {
     Surface {
@@ -84,6 +91,14 @@ private fun SettingsContent(
                 soundEnabled,
                 onSoundEnabledChanged
             )
+            if (vibrationEnabled != null) {
+                Spacer(modifier = Modifier.height(16.dp))
+                SettingRow(
+                    stringResource(Res.string.settings_vibration_title),
+                    vibrationEnabled,
+                    onVibrationEnabledChanged
+                )
+            }
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = stringResource(Res.string.settings_display_title),

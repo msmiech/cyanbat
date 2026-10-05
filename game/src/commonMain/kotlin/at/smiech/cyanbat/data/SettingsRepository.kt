@@ -13,10 +13,14 @@ interface SettingsRepository {
     val isMusicEnabled: Flow<Boolean>
     val isSoundEnabled: Flow<Boolean>
 
+    /** Whether a hit buzzes the phone, or the controller in use if it can rumble; on until set. */
+    val isVibrationEnabled: Flow<Boolean>
+
     /** How the game is fitted to a screen that is not its shape; [DisplayMode.DEFAULT] until set. */
     val displayMode: Flow<DisplayMode>
 
     suspend fun setMusicEnabled(enabled: Boolean)
     suspend fun setSoundEnabled(enabled: Boolean)
+    suspend fun setVibrationEnabled(enabled: Boolean)
     suspend fun setDisplayMode(mode: DisplayMode)
 }

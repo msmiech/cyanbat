@@ -28,6 +28,7 @@
 
     <string name="settings_music_title">Music</string>
     <string name="settings_sound_title">Sounds</string>
+    <string name="settings_vibration_title">Vibration</string>
     <string name="settings_display_title">Display</string>
     <string name="settings_display_stretch">Stretch to fit screen</string>
     <string name="settings_display_stretch_hint">Fills the screen, but draws the game out of shape on screens that are not 16:9.</string>

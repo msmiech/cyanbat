@@ -270,6 +270,12 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   pads) feed it.
 - Android's Back arrives as `GameButton.BACK` from the back-pressed dispatcher, because gesture
   navigation raises no key event.
+- Vibration goes to whatever the player is holding, and only to that. `AndroidGameActivity`
+  remembers the device of the last key, or stick past its dead zone, that the game took, and a
+  touch hands it back to the phone; `AndroidHaptics` rumbles that device's motors if it has any,
+  and the phone's otherwise. The player's switch is applied by `ObservedHaptics`, which the host
+  wraps round the haptics it hands the game. The desktop reads no pads, so it has nothing to
+  vibrate and its Settings leave the switch out (`canVibrate`).
 
 **Rendering.** One `Graphics` for every platform: `ComposeGraphics`, in the engine's common code,
 drawn through Compose's Canvas - HWUI, and so the GPU, on Android; Skia on the desktop (and on
