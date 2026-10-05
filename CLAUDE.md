@@ -207,8 +207,10 @@ moves tick to tick: a light's sprite is cached by radius and color, never by str
 by `NagaBrain` along a curve from where it came up out of the water to its head while it rears and
 strikes, and along its head's path while it swims; it changes between the two only under the water.
 Every part carries a `BossPartComponent`: a shot that hits a part lands on the head, which carries
-the health (a plate passes on only its `share` of it); the bat flying into it lands nothing. The
-brain holds the plates' ids for the whole fight, which is safe only because nothing else moves,
+the health (a plate passes on only its `share` of it). A shot lands on the boss once and spends one
+pierce on it, however many parts it meets (`GameScreen.hasAlreadyStruck`); one that meets the head
+lands there, whole. Nothing but the bat's weapons wears down any boss, these or the others: the bat
+flying into one lands nothing. The brain holds the plates' ids for the whole fight, which is safe only because nothing else moves,
 culls or kills them; `GameScreen` removes them when the boss dies. Its health bar is pinned to the
 screen (`HealthBarComponent.pinnedTo`), because the head spends half the fight under the sand. The
 Naga's is pinned for the same reason, and its fight is five phases, at fifths of its health
