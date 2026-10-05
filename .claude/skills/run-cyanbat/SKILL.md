@@ -131,6 +131,15 @@ lifecycle, and there are no instrumentation tests. Verify those on the emulator.
   presses BACK instead, which keeps the same window ID — check that the driver
   prints `same window`, otherwise you measured an activity recreation, not a resume.
 
+- **A configuration change the game activity does not declare restarts the run.**
+  `adb logcat -b events -d | grep relaunch` shows each relaunch as `wm_relaunch_resume_activity`,
+  ending in the mask of what changed, in hex (`200` uiMode, `1000` density, `40000000` fontScale).
+  The emulator makes them mid-run with `cmd uimode night yes`, `wm density 360`, `wm size 900x2000`,
+  `settings put system font_scale 1.3` and
+  `cmd locale set-app-locales at.smiech.cyanbat --user 0 --locales ar-EG`; put each back after
+  (`night no`, `wm density reset`, `wm size reset`, `font_scale 1.0`, `--locales ''`). A pad or a
+  keyboard connecting changes nothing on `Medium_Phone`, which already has a keyboard and a d-pad.
+
 - **`adb shell cat` corrupts binary output.** It rewrites every `0x0a` as `0d 0a`,
   so the DataStore protobuf decodes to a wrong number (a stored 1350 reads back as
   1734). Use `adb exec-out` for anything binary, screenshots included.
