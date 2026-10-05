@@ -7,6 +7,14 @@ interface Input {
         var y = 0
         var pointer = 0
 
+        /**
+         * Set on a [TOUCH_UP] the system made rather than the finger: Android's back gesture, or
+         * the notification shade, taking over a touch that began on the game. The touch is over all
+         * the same, so whatever was following it lets go - but nobody lifted a finger on anything,
+         * so it is no tap.
+         */
+        var canceled = false
+
         companion object {
             const val TOUCH_DOWN = 0
             const val TOUCH_UP = 1

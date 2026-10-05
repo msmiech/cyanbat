@@ -12,6 +12,11 @@ import at.smiech.engine.Input.TouchEvent
  * whichever card happened to be under the fingertip. An arming delay only narrows that window,
  * because a finger can stay down for as long as it likes. Requiring the press as well closes it.
  *
+ * A touch the system canceled is no tap either, though it went down and came up while listening:
+ * Android's back gesture starts as a touch on the game and is canceled once the system takes it
+ * over. Read as a tap, it resumed the pause screen just before the Back it was meant to quit it
+ * with arrived - and that Back paused the game again, so the player could never get out.
+ *
  * Call [reset] when the overlay opens, then hand every frame's events to [taps].
  */
 internal class TapDetector {
@@ -34,7 +39,7 @@ internal class TapDetector {
         for (event in events) {
             when (event.type) {
                 TouchEvent.TOUCH_DOWN -> pressed += event.pointer
-                TouchEvent.TOUCH_UP -> if (pressed.remove(event.pointer)) result += event
+                TouchEvent.TOUCH_UP -> if (pressed.remove(event.pointer) && !event.canceled) result += event
             }
         }
         return result

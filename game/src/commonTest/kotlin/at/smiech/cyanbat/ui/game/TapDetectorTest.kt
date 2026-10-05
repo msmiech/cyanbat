@@ -61,6 +61,19 @@ class TapDetectorTest {
         assertEquals(listOf(2), result.map { it.pointer })
     }
 
+    /**
+     * Android's back gesture: a touch on the game that the system cancels once it sees the swipe is
+     * its own. On the pause screen it resumed the run, just ahead of the Back that was meant to quit.
+     */
+    @Test
+    fun `a touch the system canceled is no tap`() {
+        val taps = TapDetector()
+        val canceled = up().also { it.canceled = true }
+        assertTrue(taps.taps(listOf(down(), drag(), canceled)).isEmpty())
+        // And it is over: a release of the same pointer afterwards completes nothing.
+        assertTrue(taps.taps(listOf(up())).isEmpty())
+    }
+
     @Test
     fun `a release is a tap only once`() {
         val taps = TapDetector()

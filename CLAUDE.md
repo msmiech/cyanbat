@@ -313,6 +313,10 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   pads) feed it.
 - Android's Back arrives as `GameButton.BACK` from the back-pressed dispatcher, because gesture
   navigation raises no key event.
+- The back *gesture* starts as a touch on the game, which the system cancels once it claims the
+  swipe. The cancel reaches the game as a `TOUCH_UP` marked `canceled` (Compose's made-up release,
+  already consumed; see `ComposePointerAdapter`), and `TapDetector` never counts one as a tap: read
+  as a tap, it resumed the pause screen just before the Back meant to quit it.
 - Vibration goes to whatever the player is holding, and only to that. `AndroidGameActivity`
   remembers the device of the last key, or stick past its dead zone, that the game took, and a
   touch hands it back to the phone; `AndroidHaptics` rumbles that device's motors if it has any,
