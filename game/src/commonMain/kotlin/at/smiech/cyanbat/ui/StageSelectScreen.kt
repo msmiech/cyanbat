@@ -32,12 +32,15 @@ import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.stage1_preview
 import at.smiech.cyanbat.resources.stage2_preview
 import at.smiech.cyanbat.resources.stage3_preview
+import at.smiech.cyanbat.resources.stage4_preview
 import at.smiech.cyanbat.resources.stage_1_description
 import at.smiech.cyanbat.resources.stage_1_name
 import at.smiech.cyanbat.resources.stage_2_description
 import at.smiech.cyanbat.resources.stage_2_name
 import at.smiech.cyanbat.resources.stage_3_description
 import at.smiech.cyanbat.resources.stage_3_name
+import at.smiech.cyanbat.resources.stage_4_description
+import at.smiech.cyanbat.resources.stage_4_name
 import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.resources.stage_locked
 import at.smiech.cyanbat.resources.stage_select_title
@@ -61,6 +64,7 @@ private val STAGES = listOf(
     StageEntry(1, Res.string.stage_1_name, Res.string.stage_1_description, Res.drawable.stage1_preview),
     StageEntry(2, Res.string.stage_2_name, Res.string.stage_2_description, Res.drawable.stage2_preview),
     StageEntry(3, Res.string.stage_3_name, Res.string.stage_3_description, Res.drawable.stage3_preview),
+    StageEntry(4, Res.string.stage_4_name, Res.string.stage_4_description, Res.drawable.stage4_preview),
 )
 
 /**

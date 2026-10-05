@@ -14,6 +14,7 @@ hostiles placed where they would be mid-run.
 Written to the shared Compose resources, where the menu picks them up on both platforms.
 """
 
+import math
 import pathlib
 
 from PIL import Image, ImageDraw
@@ -181,9 +182,97 @@ def desert():
     return scene
 
 
+# The lagoon's sky is drawn by the game too: these are `Daybreak.SKY`'s sunrise and early morning,
+# zenith to horizon, blended a little toward the morning - the striped sun just clear of the sea.
+# Keep them in step with `Daybreak` if that changes.
+LAGOON_SUNRISE = ((0x2E, 0x2E, 0x86), (0x72, 0x44, 0xA8), (0xEC, 0x5C, 0x9C), (0xFF, 0x9C, 0x6E))
+LAGOON_MORNING = ((0x3E, 0x78, 0xCC), (0x9C, 0x7C, 0xD0), (0xFF, 0x88, 0xB8), (0xFF, 0xC0, 0x9A))
+LAGOON_HORIZON = 232
+
+# The lagoon's scenery is drawn in four lights, stacked; the card is lit by the third, sunrise.
+SUNRISE_ROW = 2
+
+
+def lagoon_sky(height):
+    stops = [mix(a, b, 0.25) for a, b in zip(LAGOON_SUNRISE, LAGOON_MORNING)]
+    for i in range(len(SKY_STOPS) - 1):
+        if height <= SKY_STOPS[i + 1] or i == len(SKY_STOPS) - 2:
+            t = (height - SKY_STOPS[i]) / (SKY_STOPS[i + 1] - SKY_STOPS[i])
+            return mix(stops[i], stops[i + 1], max(0.0, min(1.0, t)))
+
+
+def banded_sun(scene, x, y, radius, crown, foot, bands):
+    """The sun as the game draws one rising through the haze over the sea, a row at a time."""
+    draw = ImageDraw.Draw(scene)
+    rows = round(radius)
+    for row in range(-rows, rows):
+        dy = row + 0.5
+        down = dy / radius
+        if down > 0.12 and (down * 5) % 1 < (0.12 + 0.43 * down) * bands:
+            continue
+        half = max(0.0, radius * radius - dy * dy) ** 0.5
+        if half < 0.5:
+            continue
+        color = mix(crown, foot, (dy + radius) / (2 * radius))
+        draw.rectangle((round(x - half), round(y + row), round(x + half) - 1, round(y + row)), fill=color + (255,))
+        core = max(0.0, (radius * 0.72) ** 2 - dy * dy) ** 0.5
+        if core >= 0.5:
+            draw.rectangle((round(x - core), round(y + row), round(x + core) - 1, round(y + row)),
+                           fill=mix(color, (255, 255, 255), 0.55) + (255,))
+
+
+def lagoon():
+    scene = Image.new("RGBA", (WIDTH, HEIGHT))
+    draw = ImageDraw.Draw(scene)
+    for top in range(0, HEIGHT, BAND):
+        color = lagoon_sky((top + BAND / 2) / LAGOON_HORIZON)
+        draw.rectangle((0, top, WIDTH, top + BAND - 1), fill=color + (255,))
+
+    # The sun half out of the sea on the right, swollen, banded by the haze, in its three halos.
+    sun_x, sun_y, radius = 566, 226, 22
+    crown, foot = (255, 116, 128), (255, 64, 138)
+    for ring, alpha in ((3.4, 0.1), (2.4, 0.16), (1.6, 0.26)):
+        halo = Image.new("RGBA", scene.size, (0, 0, 0, 0))
+        r = radius * ring
+        ImageDraw.Draw(halo).ellipse((sun_x - r, sun_y - r, sun_x + r, sun_y + r), fill=crown + (round(255 * alpha),))
+        scene.alpha_composite(halo)
+    banded_sun(scene, sun_x, sun_y, radius, crown, foot, 1.0)
+
+    for name, top, x in (("lagoonClouds.png", 12, 260), ("lagoonSea.png", 232, 0), ("lagoonFar.png", 164, 120),
+                         ("lagoonMid.png", 186, 140), ("lagoonNear.png", 302, 200)):
+        scene.alpha_composite(keyframe(name, SUNRISE_ROW, x, WIDTH), (0, top))
+
+    arch = keyframe("lagoonObstacle4.png", SUNRISE_ROW)
+    scene.alpha_composite(arch, (40, HEIGHT - arch.height))
+    needle = keyframe("lagoonObstacle1.png", SUNRISE_ROW)
+    scene.alpha_composite(needle, (452, HEIGHT - needle.height))
+
+    sheet = load("lagoonEnemies.png")
+    # A shark leaping forward out of the water behind the bat, a school of piranhas, a crab behind
+    # its shell's bubble, and a puffer throwing its ring of spines.
+    scene.alpha_composite(turned(enemy(sheet, 2, 1), -34), (70, 230))
+    for i, (x, y) in enumerate(((509, 96), (531, 84), (527, 112), (553, 100), (549, 124), (571, 110))):
+        scene.alpha_composite(enemy(sheet, 0, i % 4), (x, y))
+    scene.alpha_composite(enemy(sheet, 1, 2), (431, 196))
+    bubble(scene, 447, 210, 22)
+    scene.alpha_composite(enemy(sheet, 3, 2), (352, 112))
+    spine = frame(load("shot.png"), 24, 2)
+    for k in range(8):
+        angle = k * 45 + 22
+        r = 30
+        px = 368 + r * math.cos(math.radians(angle)) - 12
+        py = 126 + r * math.sin(math.radians(angle)) - 6
+        scene.alpha_composite(turned(spine, angle), (round(px), round(py)))
+    scene.alpha_composite(frame(load("cyanBat.png"), BAT_W, 1, WOUND_ROWS), (168, 150))
+    shot(scene, 0, 222, 164)
+    shot(scene, 0, 277, 164)
+    return scene
+
+
 def main() -> int:
     OUT.mkdir(parents=True, exist_ok=True)
-    for name, build in (("stage1_preview.png", jungle), ("stage2_preview.png", cave), ("stage3_preview.png", desert)):
+    for name, build in (("stage1_preview.png", jungle), ("stage2_preview.png", cave), ("stage3_preview.png", desert),
+                        ("stage4_preview.png", lagoon)):
         image = build().convert("RGB")
         image.save(OUT / name)
         print(f"{OUT / name} ({image.width}x{image.height})")

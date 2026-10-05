@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.resource.Stage
+import at.smiech.engine.Pixmap
 import kotlin.random.Random
 
 /**
@@ -10,6 +11,9 @@ import kotlin.random.Random
  * Timed off the caller's fixed tick, as [EnemyGenerator] is, rather than off the wall clock. It
  * used to wait on a GlobalScope coroutine, whose countdown ran on while the game was paused and
  * outlived the screen that started it.
+ *
+ * @param dayPosition how far through its day the stage is, for a stage whose ground changes on the way
+ *   to its boss; see [at.smiech.cyanbat.resource.Approach].
  */
 class ObstacleGenerator(
     private val worldWidth: Int,
@@ -17,6 +21,7 @@ class ObstacleGenerator(
     private val factory: EntityFactory,
     var stage: Stage,
     private val random: Random = Random.Default,
+    private val dayPosition: () -> Float = { 0f },
 ) {
     /** Zero, so the first update places an obstacle straight away, as the old generator did. */
     private var timeUntilNextObstacle = 0f
@@ -38,7 +43,8 @@ class ObstacleGenerator(
         val obstaclePixmap = if (random.nextBoolean()) {
             stage.topObstacles.takeIf { it.isNotEmpty() }?.let { it[random.nextInt(it.size)] }
         } else {
-            stage.bottomObstacles[random.nextInt(stage.bottomObstacles.size)]?.also {
+            val ground = groundObstacles()
+            ground[random.nextInt(ground.size)]?.also {
                 y = worldHeight.toFloat() - it.height / keyframes
             }
         }
@@ -53,6 +59,18 @@ class ObstacleGenerator(
                 keyframed = keyframes > 1,
             )
         }
+    }
+
+    /**
+     * What this obstacle on the ground is drawn from: the stage's own, or - on the way to its boss -
+     * what the ground is turning into, as often as the approach has got. The dice are only rolled
+     * once it has begun, so a stage without one places exactly what it always did.
+     */
+    private fun groundObstacles(): Array<Pixmap?> {
+        val approach = stage.approach ?: return stage.bottomObstacles
+        val share = approach.share(dayPosition())
+        if (share <= 0f) return stage.bottomObstacles
+        return if (random.nextFloat() < share) approach.bottomObstacles else stage.bottomObstacles
     }
 
     private companion object {

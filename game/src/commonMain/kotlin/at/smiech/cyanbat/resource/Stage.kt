@@ -1,6 +1,5 @@
 package at.smiech.cyanbat.resource
 
-import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.engine.Pixmap
 
 /**
@@ -15,6 +14,8 @@ import at.smiech.engine.Pixmap
  * @param bossSheet the boss's own sheet, for a boss drawn at its own size rather than magnified
  *   off [enemySheet].
  * @param lighting how dark the stage is flown, for one flown in the dark; null for daylight.
+ * @param approach what the stage's obstacles turn into on the way to its boss; null for a stage whose
+ *   scenery is the same from start to finish.
  */
 data class Stage(
     val id: Int,
@@ -26,6 +27,7 @@ data class Stage(
     val enemySheet: Pixmap,
     val bossSheet: Pixmap? = null,
     val lighting: StageLighting? = null,
+    val approach: Approach? = null,
 ) {
     /**
      * How many times of day each obstacle is drawn in, one above the other on its sheet. A stage
@@ -33,7 +35,22 @@ data class Stage(
      * under a night sky reads as a sticker on the picture.
      */
     val obstacleKeyframes: Int
-        get() = if (backdrop is Backdrop.Nightfall) Daylight.KEYFRAMES.size else 1
+        get() = (backdrop as? Backdrop.Sky)?.day?.keyframes?.size ?: 1
+}
+
+/**
+ * What a stage's ground turns into on the way to its boss: from [from] of the way through its day, a
+ * share of the obstacles that stand on it are drawn from [bottomObstacles] instead of the stage's own,
+ * a share that grows to all of them by [until]. The backdrop changes over the same stretch; see
+ * [ParallaxLayer.ahead].
+ *
+ * The obstacles keep the stage's footprints, one for one, so the scenery changes and the flying does
+ * not.
+ */
+class Approach(val from: Float, val until: Float, val bottomObstacles: Array<Pixmap?>) {
+    /** How much of the ground has turned by [position], as 0..1. */
+    fun share(position: Float): Float =
+        if (until <= from) (if (position >= from) 1f else 0f) else ((position - from) / (until - from)).coerceIn(0f, 1f)
 }
 
 /**

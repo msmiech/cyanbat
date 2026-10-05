@@ -17,10 +17,10 @@ class DaylightTest {
 
     @Test
     fun `the day runs from noon at the start to night when the boss arrives and holds there`() {
-        assertEquals(0f, Daylight.position(0f, 300f))
-        assertEquals(0.5f, Daylight.position(150f, 300f))
-        assertEquals(1f, Daylight.position(300f, 300f))
-        assertEquals(1f, Daylight.position(420f, 300f), "the night should hold through the boss fight")
+        assertEquals(0f, Day.position(0f, 300f))
+        assertEquals(0.5f, Day.position(150f, 300f))
+        assertEquals(1f, Day.position(300f, 300f))
+        assertEquals(1f, Day.position(420f, 300f), "the night should hold through the boss fight")
     }
 
     // region the ground
