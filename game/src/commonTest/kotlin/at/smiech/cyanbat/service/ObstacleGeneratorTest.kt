@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.resource.Approach
 import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.ParallaxLayer
 import at.smiech.cyanbat.resource.Stage
@@ -36,7 +37,7 @@ class ObstacleGeneratorTest {
     private val openSky = Stage(
         id = 3,
         name = "TEST",
-        backdrop = Backdrop.Nightfall(listOf(ParallaxLayer(Sheet(960, 400), top = 150, speed = 1f)), Sheet(24, 24)),
+        backdrop = Backdrop.Sky(Daylight, listOf(ParallaxLayer(Sheet(960, 400), top = 150, speed = 1f)), Sheet(24, 24), horizonY = 276),
         topObstacles = emptyArray(),
         bottomObstacles = arrayOf(Sheet(38, 57 * keyframes), Sheet(96, 54 * keyframes)),
         music = StageMusic("test", MusicGrid(beatsPerMinute = 120.0, beatsPerBar = 4)),
@@ -45,10 +46,19 @@ class ObstacleGeneratorTest {
 
     private fun obstacles() = world.query(CollisionComponent::class, TransformComponent::class)
 
-    private fun placeFor(seconds: Float, stage: Stage) {
-        val generator = ObstacleGenerator(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, EntityFactory(world), stage, Random(20260926))
+    private fun placeFor(seconds: Float, stage: Stage, dayPosition: Float = 0f) {
+        val generator = ObstacleGenerator(
+            FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, EntityFactory(world), stage, Random(20260926),
+            dayPosition = { dayPosition },
+        )
         repeat((seconds / TICK_INITIAL).toInt()) { generator.update(TICK_INITIAL) }
     }
+
+    /** The lagoon's way: its limestone giving way to the temple's stones as the temple comes in sight. */
+    private val temple = arrayOf<Pixmap?>(Sheet(41, 46 * keyframes), Sheet(76, 50 * keyframes))
+    private val approaching = openSky.copy(approach = Approach(from = 0.6f, until = 0.9f, bottomObstacles = temple))
+
+    private fun drawnFrom(): List<Pixmap> = obstacles().map { world.getComponent(it, SpriteComponent::class)!!.pixmap }
 
     @Test
     fun `under an open sky everything stands on the ground`() {
@@ -72,6 +82,23 @@ class ObstacleGeneratorTest {
         placeFor(60f, openSky)
 
         assertTrue(obstacles().size < ceilingStage * 0.75f, "${obstacles().size} on the ground against $ceilingStage in all")
+    }
+
+    @Test
+    fun `the ground turns to the temple's stones only on the way to the boss`() {
+        placeFor(30f, approaching, dayPosition = 0.3f)
+        assertTrue(drawnFrom().none { it in temple }, "the temple's stones came before the temple")
+        obstacles().forEach { world.removeEntity(it) }
+        world.update(TICK_INITIAL, null)
+
+        placeFor(30f, approaching, dayPosition = 0.95f)
+        assertTrue(drawnFrom().isNotEmpty() && drawnFrom().all { it in temple }, "the limestone outlasted the approach")
+        obstacles().forEach { world.removeEntity(it) }
+        world.update(TICK_INITIAL, null)
+
+        placeFor(60f, approaching, dayPosition = 0.75f)
+        val stones = drawnFrom().count { it in temple }
+        assertTrue(stones in 1 until drawnFrom().size, "halfway in, $stones of ${drawnFrom().size} were the temple's")
     }
 
     @Test

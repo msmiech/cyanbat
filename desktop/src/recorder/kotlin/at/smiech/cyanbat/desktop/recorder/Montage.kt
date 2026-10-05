@@ -26,6 +26,12 @@ class Coverage(
      */
     val showsBoss: Boolean get() = arrivalSeconds > 0f || finale
 
+    /**
+     * Whether the footage is the stage's opening and its hours and nothing else - no level up, no
+     * action, no boss - so a run need only be flown as far as its last hour.
+     */
+    val onlyScenery: Boolean get() = !levelUp && actionSeconds <= 0f && !showsBoss
+
     companion object {
         /** The whole stage, from its title to the boss going down. */
         val WHOLE = Coverage(

@@ -500,9 +500,9 @@ const val MAX_CRITICAL_CHANCE = 0.5f
 
 // --- Shot colorways ----------------------------------------------------------------------------
 //
-// `shot.png` is one bolt drawn thirteen times over: the player's cyan, then the cave's three enemy
+// `shot.png` is one bolt drawn fourteen times over: the player's cyan, then the cave's three enemy
 // palettes in the order the enemy sheet lays them out, then the jungle's shooters, the Sand Wyrm's,
-// and one per ElitePalette. Which colorway a species fires is on EnemySpecies, and an elite fires
+// one per ElitePalette, and the Naga's. Which colorway a species fires is on EnemySpecies, and an elite fires
 // its palette's instead. A shot is the color of whatever fired it, so a screen
 // holding the bat's fire and the boss's at the same time says which is which by color rather than
 // by which way a bolt happens to be travelling.
@@ -532,6 +532,7 @@ val SHOT_BODY_COLORS = intArrayOf(
     0xFF74EE3C.toInt(), // venom
     0xFFA458FF.toInt(), // ultraviolet
     0xFFFF40C4.toInt(), // fuchsia
+    0xFFFF3D8E.toInt(), // neon pink, the Naga's
 )
 
 
@@ -798,3 +799,109 @@ const val CACO_IMP_SUMMON_SECONDS = 8f
 // the bar, one of a ring about a fifth.
 const val CACO_IMP_BOLT_DAMAGE = 0.45f
 const val CACO_IMP_RING_DAMAGE = 0.3f
+
+
+// --- The lagoon --------------------------------------------------------------------------------
+//
+// Stage 4 is flown from night to noon across a bay of limestone islands, toward a temple standing
+// in the water; what the sky does is in Daybreak. Its enemies school, scuttle, throw rings of
+// spines, and come at the bat from behind - what each species does is in EnemySpecies, and these are
+// the numbers underneath.
+
+// Where something coming from behind leaps from, as a fraction of the frame's width, picked per shark
+// from this range: behind where the bat usually flies, so the arc it throws forward tops out about
+// where the bat is.
+const val BEHIND_HOLD_X_MIN_FRACTION = 0.06f
+const val BEHIND_HOLD_X_MAX_FRACTION = 0.28f
+
+
+// --- The Naga ----------------------------------------------------------------------------------
+//
+// Stage 4's boss, and the longest fight in the game: a hooded serpent of a head and twelve parts that
+// rears up out of the water, sways, spits and strikes at the bat, and dives to come up somewhere
+// else. Five phases rather than three, a fifth of its health apiece; see NagaBrain. Like the Sand
+// Wyrm, every part is its own entity, and what lands on the body lands on the head, which carries
+// the health.
+
+// Every part is drawn in a square frame this size on its sheet, and so is the water it throws up -
+// bigger than the Sand Wyrm's, as it is.
+const val NAGA_FRAME = 64
+
+// Its jaws working, two frames on a slow beat.
+const val NAGA_HEAD_FRAMES = 2
+const val NAGA_HEAD_FRAME_SECONDS = 0.18f
+
+// The water a rise throws up, four frames from the sheet's eighth.
+const val NAGA_SPLASH_FRAME = 7
+const val NAGA_SPLASH_FRAMES = 4
+const val NAGA_SPLASH_FRAME_SECONDS = 0.07f
+
+// How far apart its parts sit along its body: the spacing they keep along the path the head has swum,
+// and the least and most they stretch to while it rears, where the body runs from the water to the
+// head however far the head has gone.
+const val NAGA_SPACING = 21f
+const val NAGA_SPACING_LEAST = 15f
+const val NAGA_SPACING_MOST = 27f
+
+// The health fractions at which it enters its second, third, fourth and fifth phases: a fifth of its
+// health apiece, where every other boss has three phases at its wounds' marks. Its wounds still show
+// at WOUND_MARKS, as everything's do.
+const val NAGA_PHASE_2_AT = 0.8f
+const val NAGA_PHASE_3_AT = 0.6f
+const val NAGA_PHASE_4_AT = 0.4f
+const val NAGA_PHASE_5_AT = 0.2f
+
+// How much more health it has than its stage's difficulty gives a boss: well over twice the Sand
+// Wyrm's, for a fight of five phases rather than three.
+const val NAGA_VITALITY = 1.8f
+
+// What its head and its body deal on contact, as shares of the boss damage its stage scales to, set
+// as the Sand Wyrm's are: its strike is aimed at the bat, so its head is its attack, and its body is
+// a long thing to brush.
+const val NAGA_HEAD_DAMAGE = 0.75f
+const val NAGA_BODY_DAMAGE = 0.3f
+
+// How much of a shot into its body carries through to the head, as the Sand Wyrm's plates do: half,
+// so the hood is the place to aim and the body is still worth hitting.
+const val NAGA_PLATE_SHARE = 0.5f
+
+// What its spit deals, as a share of the head's contact damage: an aimed bolt about a third of the
+// bat's bar, and a bolt of a ring about a fifth.
+const val NAGA_SPIT_DAMAGE = 0.42f
+const val NAGA_RING_DAMAGE = 0.28f
+
+// The colorway of shot.png its spit is drawn in: neon pink, like the light in its hood.
+const val NAGA_SHOT_VARIANT = 13
+
+// The shield its hood raises as it enters its fourth and its fifth phase, as a fraction of its full
+// health. Like the Moth Queen's, it does not recharge: a wall to break through, once a phase.
+const val NAGA_SHIELD_FRACTION = 0.08f
+
+// Its round, in seconds. Under the water between rises, less once it is enraged, and of that the time
+// the water spends boiling where it is about to come up - the warning, never shorter than this. Then
+// coming up and going back down, and how long it rears between them while it only spits.
+const val NAGA_SUBMERGED_SECONDS = 1.9f
+const val NAGA_ENRAGED_SUBMERGED_SECONDS = 1.2f
+const val NAGA_TELL_SECONDS = 1.1f
+const val NAGA_RISE_SECONDS = 0.8f
+const val NAGA_SINK_SECONDS = 0.7f
+const val NAGA_REAR_SECONDS = 3.4f
+
+// Seconds between its spits while it rears, and between them once it is enraged.
+const val NAGA_SPIT_SECONDS = 1.1f
+const val NAGA_ENRAGED_SPIT_SECONDS = 0.8f
+
+// Its strike, from its second phase: it draws its head back - the warning, shorter enraged - then
+// strikes straight at where the bat was as the warning ended, at this many pixels a tick, as far as
+// its reach from where it came up, and draws back to its station again.
+const val NAGA_COIL_SECONDS = 0.55f
+const val NAGA_ENRAGED_COIL_SECONDS = 0.4f
+const val NAGA_STRIKE_SPEED = 8f
+const val NAGA_STRIKE_REACH = 280f
+const val NAGA_RECOIL_SECONDS = 0.5f
+
+// Its swim, from its fourth phase: in from the right low over the water, its body following its
+// head's path in humps that break the surface and dip under it, at this many pixels a tick across
+// the frame, faster enraged.
+const val NAGA_SWIM_SPEED = 2.3f
+const val NAGA_ENRAGED_SWIM_SPEED = 2.9f

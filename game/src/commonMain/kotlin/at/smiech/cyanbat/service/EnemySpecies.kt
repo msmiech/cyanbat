@@ -26,6 +26,12 @@ enum class Squad(val cost: Float) {
      * spends watching it, and a leaper right behind it would arrive inside that warning.
      */
     BURROW(1.4f),
+
+    /**
+     * Alone, and from behind: in from the left edge along the waterline with only its fin showing,
+     * overtaking the bat; see [EnemySpecies.SHARK]. Costed as a burrower is, for the same warning.
+     */
+    FROM_BEHIND(1.4f),
 }
 
 /**
@@ -61,7 +67,9 @@ data class EnemyGun(val interval: Float, val volleys: List<Volley>)
  *   for a shield that stays broken.
  * @param canBeShielded whether a wave's `shieldChance` can give it a shield anyway.
  * @param facesHeading whether its sprite turns to point where it is flying. Only for the ones whose
- *   flight is an arc - a loop, a leap - which a sprite held level would fly sideways through.
+ *   flight is an arc - a loop, a leap, a weave - which a sprite held level would fly sideways through.
+ * @param drawnFacingRight whether its art faces right rather than left, as everything hostile's does:
+ *   for the one that comes from behind, and so flies to the right.
  */
 enum class EnemySpecies(
     val strip: Int,
@@ -78,6 +86,7 @@ enum class EnemySpecies(
     val shieldRegrowth: Float = 0f,
     val canBeShielded: Boolean = false,
     val facesHeading: Boolean = false,
+    val drawnFacingRight: Boolean = false,
 ) {
     // --- the cave, on `enemies.png` ------------------------------------------------------------
 
@@ -180,6 +189,63 @@ enum class EnemySpecies(
         gun = EnemyGun(3.4f, listOf(Volley(ShotPattern.STRAIGHT, speed = 2.6f))),
         innateShield = 0.6f, shieldRegrowth = 0.35f,
     ),
+
+    // --- the lagoon, on `lagoonEnemies.png` ----------------------------------------------------
+
+    /**
+     * The lagoon's swarm: a school of piranhas, quicker and hungrier than the desert's locusts, and
+     * as flimsy one by one.
+     */
+    PIRANHA(
+        strip = 0, speedX = -2.3f, movement = EnemyMovementType.SWARM, shotVariant = 5,
+        squad = Squad.SWARM, hitPointFactor = 0.42f, damageFactor = 0.6f, collisionTolerance = 8f,
+    ),
+
+    /**
+     * The tank: a crab in a shell that grows back if it is left alone, scuttling up and down as it
+     * comes - a zigzag, which is hard to keep a gun on - and snapping heavy bolts straight ahead.
+     */
+    CRAB(
+        strip = 1, speedX = -1.1f, movement = EnemyMovementType.ZIGZAG, shotVariant = 3,
+        hitPointFactor = 1.25f, damageFactor = 1.2f,
+        gun = EnemyGun(3.0f, listOf(Volley(ShotPattern.STRAIGHT, speed = 2.7f))),
+        innateShield = 0.55f, shieldRegrowth = 0.3f,
+    ),
+
+    /**
+     * Comes from behind: in from the left edge along the waterline with only its fin showing,
+     * overtaking the bat, and leaping out at its height - forward, the way the bat flies, turning to
+     * point along its arc. The one thing in the game that does not come from ahead, and so the one
+     * drawn facing right.
+     */
+    SHARK(
+        strip = 2, speedX = 1.5f, movement = EnemyMovementType.LEAP, shotVariant = 3,
+        squad = Squad.FROM_BEHIND, hitPointFactor = 1.4f, damageFactor = 1.4f, collisionTolerance = 6f,
+        facesHeading = true, drawnFacingRight = true,
+    ),
+
+    /**
+     * Hangs on station, drifting into the player's lane, and puffs itself up to throw a ring of
+     * spines - a boss's pattern, the first ordinary enemy to fire one. Slow to fire again, since a
+     * ring is eight bolts at once: at the djinn's pace, the puffers on station by noon filled the
+     * frame with spines before the Naga ever rose.
+     */
+    PUFFER(
+        strip = 3, speedX = -1.5f, movement = EnemyMovementType.HOVER, shotVariant = 2,
+        hitPointFactor = 1.1f, damageFactor = 0.9f,
+        gun = EnemyGun(4.4f, listOf(Volley(ShotPattern.RADIAL, count = 8, speed = 1.9f, damageFactor = 0.5f))),
+        canBeShielded = true,
+    ),
+
+    /**
+     * The Naga's brood: a sea krait weaving in a wide S, turning to point along it as it goes, so it
+     * swims rather than slides. Later in the stage some are armed.
+     */
+    KRAIT(
+        strip = 4, speedX = -1.7f, movement = EnemyMovementType.SINE, shotVariant = 5,
+        hitPointFactor = 1.0f, damageFactor = 1.1f, collisionTolerance = 6f,
+        armable = true, canBeShielded = true, facesHeading = true,
+    ),
     ;
 
     companion object {
@@ -188,5 +254,11 @@ enum class EnemySpecies(
          * thing to watch rather than a second species, so it stays simple.
          */
         val ISSUED_GUN = EnemyGun(2.8f, listOf(Volley(ShotPattern.STRAIGHT, speed = 2.4f)))
+
+        /**
+         * What is issued instead to something [drawnFacingRight], which comes from behind: a bolt
+         * fired straight ahead of it would fly away from the bat, so it aims.
+         */
+        val ISSUED_AIMED_GUN = EnemyGun(2.8f, listOf(Volley(ShotPattern.AIMED, speed = 2.4f)))
     }
 }

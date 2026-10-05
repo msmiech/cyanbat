@@ -6,8 +6,8 @@ import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.EliteComponent
 import at.smiech.cyanbat.ecs.GunComponent
-import at.smiech.cyanbat.ecs.NightfallSystem
 import at.smiech.cyanbat.ecs.ShotPattern
+import at.smiech.cyanbat.ecs.SkySystem
 import at.smiech.cyanbat.ecs.Volley
 import at.smiech.cyanbat.music.MusicDirector
 import at.smiech.cyanbat.progress.PlayerLoadout
@@ -16,7 +16,8 @@ import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.SoundEffect
-import at.smiech.cyanbat.scenery.Daylight
+import at.smiech.cyanbat.resource.StageMusic
+import at.smiech.cyanbat.scenery.Day
 import at.smiech.cyanbat.service.BossKind
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
@@ -167,7 +168,7 @@ class GameScreen(
         onWaveChanged = { wave -> announce("WAVE ${wave.index + 1}") },
         onBossSpawned = {
             announce(progression.design.bossName)
-            director?.onBossArrived()
+            onBossMusic()
         },
         bossPixmap = currentStage.bossSheet,
         onBossPhaseChanged = { phase ->
@@ -179,7 +180,8 @@ class GameScreen(
         worldWidth = game.frameBufferWidth,
         worldHeight = game.frameBufferHeight,
         factory,
-        currentStage
+        currentStage,
+        dayPosition = ::dayPosition,
     )
 
     /**
@@ -294,24 +296,14 @@ class GameScreen(
         game.graphics?.let { g = it }
 
         // Setup Systems
-        // A sky that turns from day to night is the back of the picture, so it goes first: every
-        // system after it draws on top. Its update puts the obstacles in the same light on the same
-        // tick, and reads the stage clock as it stands after the tick before, which is where the
+        // A sky that changes with the time of day is the back of the picture, so it goes first:
+        // every system after it draws on top. Its update puts the obstacles in the same light on the
+        // same tick, and reads the stage clock as it stands after the tick before, which is where the
         // generator leaves it.
         val backdrop = currentStage.backdrop
-        if (backdrop is Backdrop.Nightfall) {
+        if (backdrop is Backdrop.Sky) {
             world.addSystem(
-                NightfallSystem(
-                    backdrop,
-                    game.frameBufferWidth,
-                    game.frameBufferHeight,
-                    dayPosition = {
-                        Daylight.position(
-                            enmGen.elapsedSeconds,
-                            progression.bossTimeSeconds
-                        )
-                    },
-                )
+                SkySystem(backdrop, game.frameBufferWidth, game.frameBufferHeight, dayPosition = ::dayPosition)
             )
         }
         world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight))
@@ -388,6 +380,12 @@ class GameScreen(
         startStageMusic()
         initStats()
     }
+
+    /**
+     * How far through its day the stage is, off the stage clock, for a stage whose sky and scenery
+     * change on the way to its boss; see [Day.position].
+     */
+    private fun dayPosition(): Float = Day.position(enmGen.elapsedSeconds, progression.bossTimeSeconds)
 
     /**
      * Spawns a shot at the shooter's leading edge, centered on it vertically.
@@ -959,6 +957,12 @@ class GameScreen(
         BossKind.CACO_IMP -> if (phase >= 3) "THE IMP BLAZES" else "LIGHTS OUT"
         BossKind.MOTH_QUEEN -> if (phase >= 3) "QUEEN ENRAGED" else "SWARM CALLED"
         BossKind.SAND_WYRM -> if (phase >= 3) "WYRM ENRAGED" else "THE BROOD RISES"
+        BossKind.NAGA -> when (phase) {
+            2 -> "THE NAGA STRIKES"
+            3 -> "THE BROOD AWAKES"
+            4 -> "THE TIDE TURNS"
+            else -> "NAGA ENRAGED"
+        }
     }
 
     /** Puts [text] up over the run for [seconds], replacing whatever was there. */
@@ -1735,13 +1739,35 @@ class GameScreen(
         (music ?: openStageMusic())?.play()
     }
 
+    /**
+     * What the run is playing now: the stage's own piece, or once the boss is here, the boss fight's,
+     * for a stage that has one.
+     */
+    private val score: StageMusic
+        get() = currentStage.music.boss?.takeIf { enmGen.bossSpawned } ?: currentStage.music
+
     private fun openStageMusic(): LayeredMusic? {
         val audio = game.audio ?: return null
-        val score = currentStage.music
+        val score = score
         return audio.newLayeredMusic(score.stems, score.grid).also {
             music = it
             director = MusicDirector(it, score.grid, progression.bossWave, progression.difficulty)
         }
+    }
+
+    /**
+     * The boss is here. Its entrance is a drop to the bed for a bar and a slam on the downbeat: of
+     * the stage's own music, or - for a stage whose boss is fought to a piece of its own - of that
+     * piece, which the stage's music stops dead for and which opens on its bed alone.
+     */
+    private fun onBossMusic() {
+        if (currentStage.music.boss != null && music != null) {
+            music?.dispose()
+            music = null
+            director = null
+            startStageMusic()
+        }
+        director?.onBossArrived()
     }
 
     /**

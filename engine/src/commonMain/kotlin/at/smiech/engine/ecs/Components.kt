@@ -294,6 +294,7 @@ enum class EnemyMovementType {
      * leaps. The leap is thrown once, aimed so its apex is the player's height at that instant,
      * and after that it is gravity's: it arcs over and falls back out through the bottom. The
      * cruise is the tell, and a leap that is never steered can always be flown out from under.
+     * One cruising to the right, in from behind, leaps once it has come as far right as its station.
      */
     LEAP,
 

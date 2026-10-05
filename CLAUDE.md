@@ -88,7 +88,8 @@ playfield for wide screens; it would change difficulty by device.
 - **System order is load-bearing.** It is set, with a comment per placement, in `GameScreen`'s
   `init`; read it before adding a system.
 - Sprite rotation is cosmetic. Collision boxes always stay axis-aligned. Hostile art faces left,
-  so something that turns to face its heading carries `FacesVelocityComponent(180f)`.
+  so something that turns to face its heading carries `FacesVelocityComponent(180f)` - all but the
+  lagoon's shark, which comes from behind and so is drawn facing right (`drawnFacingRight`).
 
 **A run.** `GameScreen` is one run of one stage.
 - Pause, the level-up offer and "stage complete" are state inside it rather than separate
@@ -110,8 +111,9 @@ playfield for wide screens; it would change difficulty by device.
 
 **Stage content is split four ways.**
 - `Stage` (registered in `GameAssets.load`) is how a stage looks and sounds. Its `Backdrop` is
-  either a `Strip` (the jungle, the cave: one tiled image) or a `Nightfall` (the desert: a sky the
-  game draws, going from noon to night on the stage clock, over parallax bands of ground).
+  either a `Strip` (the jungle, the cave: one tiled image) or a `Sky` (the desert and the lagoon: a
+  sky the game draws, changing with the time of day on the stage clock, over parallax bands of
+  ground). Its `Approach`, where it has one, is what its obstacles turn into on the way to its boss.
 - `StageDesign` is its waves and boss; `StageDesign.forStage` maps a stage id to its design. Its
   `bossToughness` keeps a boss harder than the waves that lead to it: the Moth Queen is fought at
   the strength she had as stage 2's boss, at the end of an eased opening stage.
@@ -124,16 +126,29 @@ Adding a stage touches all four, plus new generators in `tools/` (its music amon
 `StageMusic` in `GameAssets`), a preview card, the stage select's strings, and the recorder's
 `STAGE_COVERAGE`, which says how much of the stage the README's reel shows.
 
-**The desert's day.** `Daylight` is a pure function of how far through its day the stage is -
-`Daylight.position`, elapsed time over the boss's arrival - and says what the sky, sun, moon and
-stars look like then. `NightfallSystem` draws it, first in the system order, and puts every entity
-carrying a `CrossfadeComponent` (the desert's obstacles) in the same light.
-- Scenery lit by the day is drawn once per `Daylight.KEYFRAMES` entry (noon, golden hour, sunset,
-  night), stacked top to bottom on its sheet, and crossfaded between neighbors with
-  `drawPixmapFaded`. A generator writes the shapes once as materials and each keyframe as a palette,
-  so the rows cannot drift apart.
-- The sun the player can see sets on the right, so the desert's scenery is lit from the right; the
-  night palettes turn that round, to the moon on the left.
+**The lagoon** (stage 4) is the hardest stage: its waves are the desert's design pushed further, with
+sharks that come in from behind along the waterline (`Squad.FROM_BEHIND`, a `LEAP` cruising right)
+and puffers that throw rings. A temple comes into sight on the way to the Naga: three of its bands
+switch to temple strips, and its obstacles to temple stones.
+
+**The sky's day.** A `Day` is a pure function of how far through its day the stage is -
+`Day.position`, elapsed time over the boss's arrival - and says what the sky, sun, moon and stars
+look like then: `Daylight` is the desert's, from noon into night, and `Daybreak` the lagoon's, from
+night into noon. `SkySystem` draws a `Backdrop.Sky` by its day, first in the system order, and puts
+every entity carrying a `CrossfadeComponent` (the obstacles) in the same light.
+- Scenery lit by the day is drawn once per entry of its day's `keyframes` (the desert's noon, golden
+  hour, sunset and night; the lagoon's night, dawn, sunrise and noon), stacked top to bottom on its
+  sheet, and crossfaded between neighbors with `drawPixmapFaded`. A generator writes the shapes once
+  as materials and each keyframe as a palette, so the rows cannot drift apart.
+- The sun the player can see is on the right - it sets there in the desert and rises there in the
+  lagoon - so the scenery is lit from the right; the night palettes turn that round, to the moon on
+  the left.
+- The lagoon's sun rises out of the sea banded by the haze (`Day.sunBands`), drawn a row at a time,
+  and lays a path of glints on the water (`Day.sunGlitter`) over the band with `water` rows.
+- A band can turn into other scenery on the way to the boss (`ParallaxLayer.ahead`, from its
+  `aheadFrom`): each stretch of it not yet in view is drawn from the other strip, so the new scenery
+  scrolls in from the right. The two strips of a pair share their first and last columns, which the
+  generator keeps to the band's own water and haze, so either follows on from the other.
 
 **The cave's dark.** The cave is flown in the dark (`Stage.lighting`, a `StageLighting`); the jungle
 and the desert are flown in daylight, and none of this runs there.
@@ -184,21 +199,25 @@ it had got to. Its light is the factory's `LightComponent`, changed in place, an
 moves tick to tick: a light's sprite is cached by radius and color, never by strength.
 
 **Bosses with a body.** The Sand Wyrm is a head plus nine plates, each an entity, laid by
-`SandWyrmBrain` along the path the head has flown. Every part carries a `BossPartComponent`: a
-shot that hits a part lands on the head, which carries the health (a plate passes on only its
-`share` of it); the bat flying into it lands nothing. The brain holds the plates' ids for the whole fight, which is safe only because nothing
-else moves, culls or kills them; `GameScreen` removes them when the boss dies. Its health bar is
-pinned to the screen (`HealthBarComponent.pinnedTo`), because the head spends half the fight under
-the sand.
+`SandWyrmBrain` along the path the head has flown. The Naga is a hooded head plus twelve parts, laid
+by `NagaBrain` along a curve from where it came up out of the water to its head while it rears and
+strikes, and along its head's path while it swims; it changes between the two only under the water.
+Every part carries a `BossPartComponent`: a shot that hits a part lands on the head, which carries
+the health (a plate passes on only its `share` of it); the bat flying into it lands nothing. The
+brain holds the plates' ids for the whole fight, which is safe only because nothing else moves,
+culls or kills them; `GameScreen` removes them when the boss dies. Its health bar is pinned to the
+screen (`HealthBarComponent.pinnedTo`), because the head spends half the fight under the sand. The
+Naga's is pinned for the same reason, and its fight is five phases, at fifths of its health
+(`NAGA_PHASE_*_AT`), where every other boss changes phase at its wounds' marks.
 
-**Wounds.** Every creature's sheet - the bat's, the three enemy sheets, both boss sheets - stacks
+**Wounds.** Every creature's sheet - the bat's, the enemy sheets, the boss sheets - stacks
 each frame three times, top to bottom: unhurt, wounded, battered (`WOUND_ROWS`). `WoundSystem`
 moves a sprite down a row as its health falls past `WOUND_MARKS`, read off the health every tick,
 so healing undoes it. The bosses change phase at the same marks.
 - A creature's pixmap is three pictures tall. Its sprite must set `srcHeight` to one row - the
   default is the whole pixmap - and anything sized off the sheet divides by `WOUND_ROWS`.
-- The Sand Wyrm's plates have no health; `SandWyrmBrain` draws them from the head's row. Its sand
-  plume is drawn on the top row only.
+- The Sand Wyrm's plates and the Naga's parts have no health; their brains draw them from the head's
+  row. The sand plume and the Naga's splash are drawn on the top row only.
 - The dead are left alone: the bat falls on its one-row death sheet, which is drawn battered.
 - A wound also slows an ordinary enemy: `GameScreen` sets its `PaceComponent` from the row
   (`WOUNDED_PACE`, `WOUNDED_FIRE_RATE`) through `WoundSystem`'s callback. A pace is a clock of the
@@ -214,8 +233,9 @@ swarm, or a formation's leader.
 - `WaveDesign.eliteChance` is rolled once per group in `EnemyGenerator.spawnGroup`. Boss summons
   skip that roll, so a boss never calls up an elite.
 - An elite has `ELITE_HIT_POINT_FACTOR` its kind's health (not its shield), and fires its kind's
-  gun - or the issued one, for a kind that carries none - at `ELITE_FIRE_INTERVAL_FACTOR` the
-  interval. Its `ElitePalette` is the color of its `AuraComponent` and of its `shot.png` colorway.
+  gun - or the issued one, for a kind that carries none, aimed for one that comes from behind - at
+  `ELITE_FIRE_INTERVAL_FACTOR` the interval. Its `ElitePalette` is the color of its `AuraComponent`
+  and of its `shot.png` colorway.
   `SpriteSheetTest` holds each colorway's body to its palette's rim.
 - `GameScreen` reads its `EliteComponent` as it dies, to pay `ELITE_SCORE_FACTOR` and
   `ELITE_EXPERIENCE_FACTOR` kills' worth; it is still one kill to the streak.
@@ -257,6 +277,10 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   it has been read.
 - `GameScreen` opens its stage's music the first time it plays it and disposes it with itself, so
   a run with music off never reads the stems and the next stage's run does not play over this one.
+- A stage's boss can be fought to a piece of its own (`StageMusic.boss`; the lagoon's Naga): as it
+  arrives the stage's music is disposed and the boss's opened, with a director of its own, which
+  holds it on its bed for a bar and slams everything in. Every layer is up for the whole fight, so
+  its stems are there for the drops at its phases. `MusicStemTest` holds every piece to its grid.
   The fanfare is the same (`GameAssets.VICTORY_MUSIC`): each won run opens its own, because a
   track paused partway resumes from there, and a fanfare has to start from the top.
 - The grid is declared twice, in the stage's generator and in its `StageMusic` in `GameAssets`.
@@ -370,8 +394,10 @@ set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
   each run to a few short clips, and `GifEncoder` writes the stages as one reel, each stage on a
   palette of its own.
 - The reel shows less of each stage than of the one before (`STAGE_COVERAGE`), to leave the later
-  stages to discover: the jungle whole, a few glimpses of the cave, fewer of the desert. The desert's
-  boss is never shown; its flight stops before the Sand Wyrm arrives, so no frame of it is taped.
+  stages to discover: the jungle whole, a few glimpses of the cave, fewer of the desert, and only the
+  lagoon's sunrise. Neither the desert's boss nor the lagoon's is ever shown: a stage whose footage
+  is only its hours (`Coverage.onlyScenery`) is flown no further than the last of them, so no frame
+  of either boss is taped - and the autopilot need not survive the lagoon to its Naga.
 - Runs are random, so unlike the art a re-recording is never byte for byte the same. Re-record after
   a visible change.
 - `RunProbe` reads a handful of `GameScreen`'s private fields by reflection (`world`, `batId`,
@@ -382,9 +408,9 @@ set in `:desktop` (`desktop/src/recorder`), which never ships in the app.
 
 ## Conventions
 
-- **"Stage" vs "level".** The jungle, the cave and the desert are *stages*. "Level" only ever means
-  the bat's experience level, which buys power-ups. Keep the two apart in code, comments and
-  on-screen text. The jungle was the forest, and stage 2, until it moved to the front; persisted
+- **"Stage" vs "level".** The jungle, the cave, the desert and the lagoon are *stages*. "Level" only
+  ever means the bat's experience level, which buys power-ups. Keep the two apart in code, comments
+  and on-screen text. The jungle was the forest, and stage 2, until it moved to the front; persisted
   highscores were moved with it (`StageOrderMigration`, and its desktop twin).
 - **American English** everywhere, identifiers and player-facing text included: color, center,
   behavior, armor.

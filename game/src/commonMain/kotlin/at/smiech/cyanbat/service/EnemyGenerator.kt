@@ -4,6 +4,8 @@ import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.util.BOSS_BAR_HEIGHT
 import at.smiech.cyanbat.util.BOSS_BAR_TOP
 import at.smiech.cyanbat.util.BOSS_BAR_WIDTH
+import at.smiech.cyanbat.util.BEHIND_HOLD_X_MAX_FRACTION
+import at.smiech.cyanbat.util.BEHIND_HOLD_X_MIN_FRACTION
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.BURROW_SHOWING
 import at.smiech.cyanbat.util.ELITE_FIRE_INTERVAL_FACTOR
@@ -15,6 +17,9 @@ import at.smiech.cyanbat.util.FORMATION_RANK_SPACING_Y
 import at.smiech.cyanbat.util.GROUP_EDGE_MARGIN
 import at.smiech.cyanbat.util.HOLD_X_MAX_FRACTION
 import at.smiech.cyanbat.util.HOLD_X_MIN_FRACTION
+import at.smiech.cyanbat.util.NAGA_BODY_DAMAGE
+import at.smiech.cyanbat.util.NAGA_FRAME
+import at.smiech.cyanbat.util.NAGA_HEAD_DAMAGE
 import at.smiech.cyanbat.util.SAND_WYRM_BODY_DAMAGE
 import at.smiech.cyanbat.util.SAND_WYRM_FRAME
 import at.smiech.cyanbat.util.SAND_WYRM_HEAD_DAMAGE
@@ -81,7 +86,7 @@ class EnemyGenerator(
     var bossSpawned = false
         private set
 
-    /** The boss's own logic; see [CacoImpBrain], [MothQueenBrain] and [SandWyrmBrain]. */
+    /** The boss's own logic; see [CacoImpBrain], [MothQueenBrain], [SandWyrmBrain] and [NagaBrain]. */
     var bossBrain: BossBrain? = null
         private set
 
@@ -162,6 +167,7 @@ class EnemyGenerator(
             Squad.SWARM -> spawnSwarm(species, wave, elite = elite)
             Squad.V_FORMATION -> spawnFormation(species, wave, elite)
             Squad.BURROW -> spawnBurrowed(species, wave, elite = elite)
+            Squad.FROM_BEHIND -> spawnBehind(species, wave, elite)
         }
         return species.squad.cost
     }
@@ -225,6 +231,14 @@ class EnemyGenerator(
         spawn(species, wave, x = x, laneY = worldHeight - BURROW_SHOWING, elite = elite)
     }
 
+    /**
+     * In along the bottom edge from the left - behind the bat - with only its fin above the water, to
+     * leap forward from its station; see [EnemySpecies.SHARK].
+     */
+    private fun spawnBehind(species: EnemySpecies, wave: EnemyWave, elite: Boolean) {
+        spawn(species, wave, x = -ENEMY_COLLISION_WIDTH, laneY = worldHeight - BURROW_SHOWING, elite = elite)
+    }
+
     /** A center for a group's path, far enough from the edges that its sway stays on screen. */
     private fun groupLane(): Float =
         GROUP_EDGE_MARGIN + random.nextFloat() * (worldHeight - 2f * GROUP_EDGE_MARGIN)
@@ -264,10 +278,13 @@ class EnemyGenerator(
         val issued = species.gun ?: EnemySpecies.ISSUED_GUN.takeIf {
             species.armable && wave.gunChance > 0f && random.nextFloat() < wave.gunChance
         }
-        val gun = if (elite) eliteGun(issued) else issued
+        val gun = if (elite) eliteGun(issued, species) else issued
         val palette = if (elite) ElitePalette.entries[random.nextInt(ElitePalette.entries.size)] else null
-        val holdX = when (species.movement) {
-            EnemyMovementType.HOVER, EnemyMovementType.DIVE, EnemyMovementType.LEAP, EnemyMovementType.LOOP ->
+        val holdX = when {
+            // Behind the bat, for something coming from behind, so its leap tops out about where the bat is.
+            species.squad == Squad.FROM_BEHIND ->
+                xSpawnPosition * (BEHIND_HOLD_X_MIN_FRACTION + random.nextFloat() * (BEHIND_HOLD_X_MAX_FRACTION - BEHIND_HOLD_X_MIN_FRACTION))
+            species.movement in HOLDING ->
                 xSpawnPosition * (HOLD_X_MIN_FRACTION + random.nextFloat() * (HOLD_X_MAX_FRACTION - HOLD_X_MIN_FRACTION))
             else -> 0f
         }
@@ -296,11 +313,12 @@ class EnemyGenerator(
     }
 
     /**
-     * What an elite fires: its kind's own gun, or the waves' issued one for a kind that carries none,
-     * on a shorter cadence either way; see [ELITE_FIRE_INTERVAL_FACTOR].
+     * What an elite fires: its kind's own gun, or the waves' issued one for a kind that carries none -
+     * an aimed one for a kind that comes from behind - on a shorter cadence either way; see
+     * [ELITE_FIRE_INTERVAL_FACTOR].
      */
-    private fun eliteGun(gun: EnemyGun?): EnemyGun {
-        val base = gun ?: EnemySpecies.ISSUED_GUN
+    private fun eliteGun(gun: EnemyGun?, species: EnemySpecies): EnemyGun {
+        val base = gun ?: if (species.drawnFacingRight) EnemySpecies.ISSUED_AIMED_GUN else EnemySpecies.ISSUED_GUN
         return base.copy(interval = base.interval * ELITE_FIRE_INTERVAL_FACTOR)
     }
 
@@ -381,6 +399,34 @@ class EnemyGenerator(
                 )
                 ids.first()
             }
+
+            BossKind.NAGA -> {
+                val sheet = requireNotNull(bossPixmap) { "The Naga needs its own sheet" }
+                val ids = factory.createNaga(
+                    // Under the water; its brain buries it properly and picks where it first comes up.
+                    x = xSpawnPosition * 0.7f,
+                    y = worldHeight + NAGA_FRAME.toFloat(),
+                    pixmap = sheet,
+                    hitPoints = wave.hitPoints,
+                    damage = (wave.damage * NAGA_HEAD_DAMAGE).roundToInt().coerceAtLeast(1),
+                    bodyDamage = (wave.damage * NAGA_BODY_DAMAGE).roundToInt().coerceAtLeast(1),
+                    gun = NagaBrain.GUN,
+                    bar = pinnedBar(),
+                )
+                bossBrain = NagaBrain(
+                    factory.world,
+                    factory,
+                    sheet,
+                    headId = ids.first(),
+                    parts = ids.drop(1),
+                    frameWidth = xSpawnPosition,
+                    frameHeight = worldHeight,
+                    random = random,
+                    onSummon = ::summonBrood,
+                    onPhaseChanged = onBossPhaseChanged,
+                )
+                ids.first()
+            }
         }
         bossId = id
         onBossSpawned(id)
@@ -433,7 +479,31 @@ class EnemyGenerator(
         repeat(count) { spawnBurrowed(EnemySpecies.WYRMLING, escort, x = xSpawnPosition + it * SUMMON_SPACING) }
     }
 
+    /**
+     * The Naga's brood, called up out of the sea: [kraits] of its kraits in from the right in lanes a
+     * way apart, and with them - enraged - a school of piranhas low over the water, all at the strength
+     * of the wave that escorted it in.
+     */
+    private fun summonBrood(kraits: Int, school: Boolean) {
+        val escort = progression.escortWave()
+        val lanes = worldHeight - 2f * GROUP_EDGE_MARGIN
+        repeat(kraits) {
+            val laneY = GROUP_EDGE_MARGIN + lanes * (it + 0.5f) / kraits
+            spawn(
+                EnemySpecies.KRAIT, escort,
+                x = xSpawnPosition + it * SUMMON_SPACING * 0.5f,
+                laneY = laneY - realEnemyHeight / 2f,
+            )
+        }
+        if (school) spawnSwarm(EnemySpecies.PIRANHA, escort, worldHeight - GROUP_EDGE_MARGIN)
+    }
+
     private companion object {
+        /** The movements that stop somewhere on screen, and so pick where. */
+        val HOLDING = setOf(
+            EnemyMovementType.HOVER, EnemyMovementType.DIVE, EnemyMovementType.LEAP, EnemyMovementType.LOOP,
+        )
+
         /** How far apart, along the sand, wyrmlings called up together start out. */
         const val SUMMON_SPACING = 90f
 
