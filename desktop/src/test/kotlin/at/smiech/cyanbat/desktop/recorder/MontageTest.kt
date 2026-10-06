@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** Which frames [Montage] cuts from a run, and in what order. */
 class MontageTest {
 
     private val frameSeconds = 0.057f

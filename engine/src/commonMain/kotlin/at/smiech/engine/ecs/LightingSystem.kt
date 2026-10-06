@@ -14,22 +14,22 @@ import kotlin.math.sin
 import kotlin.math.sqrt
 
 /**
- * Makes the stage dark: the frame lit only by [ambient], and lit back up around every
- * [LightComponent], with every [OccluderComponent] in a light's way throwing a shadow away from it -
- * and, where it shines, catching a glint of the light on the side facing it.
+ * Makes the stage dark: the frame lit only by [ambient], brightened around every [LightComponent],
+ * with every [OccluderComponent] in a light's way casting a shadow and, if it shines, catching a
+ * glint on the lit side.
  *
- * Add it after every pass that draws what light falls on, and before the passes that draw what is
- * itself a light: whatever is drawn after it is drawn as bright as it is, and whatever before it as
- * bright as the light it stands in. See [Graphics.drawLighting].
+ * Add it after the passes that draw what light falls on and before those that draw lights
+ * themselves: what is drawn after it keeps its own brightness, what is drawn before is as bright as
+ * the light it stands in. See [Graphics.drawLighting].
  *
- * Every light throws shadows, not only the brightest: a shot flying past a creature throws its shadow
- * across the scenery behind it. That is affordable because only what a light reaches can throw one
- * from it - a shot's light reaches a few dozen pixels - and an outline throws its shadow in a few
- * dozen points. It also ages the lights that fade, and takes away those that go with their light.
+ * Every light casts shadows, so a shot flying past a creature throws its shadow on the scenery
+ * behind. That is affordable because only occluders within a light's reach cast from it, and an
+ * outline's shadow is a few dozen points. It also ages fading lights and removes those that go with
+ * their light.
  *
- * The light is worked out on the tick and drawn on the frame. A frame no tick has moved on since the
- * last - a paused one, or the second of two frames on a fast screen - is lit as the last one was, and
- * [Graphics.drawLighting] knows the light by its version and does not draw it again.
+ * The light is computed per tick and drawn per frame. A frame with no tick since the last (paused,
+ * or the second of two frames on a fast screen) reuses it, and [Graphics.drawLighting] recognizes
+ * it by its version and does not render it again.
  *
  * @param glow see [Lighting.glow].
  */
@@ -47,14 +47,14 @@ class LightingSystem(
     private val lighting = Lighting()
     private val silhouettes = Silhouettes()
 
-    /** Set by every tick, and cleared once the light has been worked out from what the tick left. */
+    /** Set by every tick and cleared once the light has been recomputed. */
     private var stale = true
 
-    /** This tick's occluders, the first [occluderCount] of them; kept from tick to tick. */
+    /** This tick's occluders, the first [occluderCount] of them; reused across ticks. */
     private val standing = ArrayList<Occluder>()
     private var occluderCount = 0
 
-    /** Every occluder's outline in frame pixels, one after another; see [Occluder.from]. */
+    /** Every occluder's outline in frame pixels, stored consecutively; see [Occluder.from]. */
     private var outlines = FloatArray(256)
 
     override fun onAttach(world: World) {
@@ -82,7 +82,10 @@ class LightingSystem(
         graphics.drawLighting(lighting)
     }
 
-    /** Works out the light as the world stands: every light that shows in the frame, and its shadows. */
+    /**
+     * Computes the light as the world stands: every light in the frame, with its
+     * shadows and glints.
+     */
     private fun light(world: World) {
         lighting.begin(ambient, glow)
         gatherOccluders(world)
@@ -104,9 +107,9 @@ class LightingSystem(
     }
 
     /**
-     * Every occluder's outline, in frame pixels: its sprite's silhouette for the frame it is drawn
-     * from, put where [RenderSystem] puts the sprite - at its box's corner, truncated to the pixel,
-     * magnified with it and turned with it.
+     * Every occluder's outline in frame pixels: its sprite's current silhouette, placed as
+     * [RenderSystem] places the sprite (at its box's corner, truncated to the pixel, magnified and
+     * turned with it).
      */
     private fun gatherOccluders(world: World) {
         occluderCount = 0
@@ -137,8 +140,8 @@ class LightingSystem(
             occluder.turned = sprite.rotationDegrees != 0f
             occluder.shine = occluders.require(id).shine
 
-            // A blit paints a column and a row short of its box and stretches its picture over what is
-            // left, so a magnified sprite's pixels stand that much further apart.
+            // A blit paints a column and a row short of its box and stretches the picture over the
+            // rest, so a magnified sprite's pixels sit that much further apart.
             val scaleX =
                 if (sprite.srcWidth > 1) (occluder.dstWidth - 1f) / (sprite.srcWidth - 1) else sprite.scale
             val scaleY =
@@ -182,8 +185,8 @@ class LightingSystem(
     }
 
     /**
-     * Every shadow thrown across [light]'s disc, from its center: the middle of its pixel. An occluder
-     * wholly out of its reach throws nothing.
+     * Every shadow cast across [light]'s disc from its center, the middle of its pixel. An occluder
+     * wholly out of reach casts nothing.
      */
     private fun castShadows(light: Lighting.Light) {
         val centerX = light.x + 0.5f
@@ -205,12 +208,12 @@ class LightingSystem(
     }
 
     /**
-     * A glint of [light] off every occluder that shines and that it reaches: from the light's side,
-     * and none at all for one standing in another's shadow, or with the light inside it - a
-     * creature's own glow does not glint off itself.
+     * A glint of [light] off every shining occluder it reaches, on the light's
+     * side; none for one in another's shadow or with the light inside it, since a
+     * creature's own glow does not glint off it.
      *
-     * It dies away with the light, but more slowly: the creature at the edge of a light, dim and
-     * easy to miss, is the one whose outline most needs drawing in.
+     * It fades with distance more slowly than the light does: a dim creature at the edge of a light
+     * is the one whose outline most needs showing.
      */
     private fun glint(light: Lighting.Light) {
         val centerX = light.x + 0.5f
@@ -246,13 +249,13 @@ class LightingSystem(
         }
     }
 
-    /** The disc covers the pixels whose centers are within its radius and a half of its own. */
+    /** The disc covers the pixels whose centers lie within its radius plus a half. */
     private fun reachOf(light: Lighting.Light): Float = light.radius + 1f
 
     /**
      * One occluder as this tick found it: its sprite's frame and where it is drawn, its outline in
-     * [outlines] from [from] until [until] and the box around that, and for the light being worked
-     * out, which of its shadows this one threw.
+     * [outlines] from [from] until [until] with its bounding box, and, for the light being
+     * computed, which of the light's shadows it cast.
      */
     private class Occluder {
         var pixmap: Pixmap? = null
@@ -293,7 +296,10 @@ class LightingSystem(
         const val OUT_OF_REACH = -3
         const val LIGHT_INSIDE = -2
 
-        /** What it holds when the light reaches it and it threw no shadow, which a convex outline always does. */
+        /**
+         * What it holds when the light reaches it but it cast no shadow, which
+         * should not happen for a convex outline.
+         */
         const val NO_SHADOW = -1
     }
 }

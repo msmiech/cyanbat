@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** How a shield's bubble takes hits. */
 class ShieldSystemTest {
 
     private val world = World().apply { addSystem(ShieldSystem()) }

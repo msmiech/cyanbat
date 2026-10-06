@@ -5,7 +5,6 @@ import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.DamageComponent
 import at.smiech.engine.ecs.EnemyBehaviorComponent
@@ -22,7 +21,6 @@ import kotlin.test.assertTrue
 
 /** Stands in for the enemy sheet: only its height is ever read out of a pixmap here. */
 private class FakePixmap(override val width: Int = 201, override val height: Int = 29) : Pixmap {
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 
@@ -37,6 +35,7 @@ private const val WORLD_WIDTH = FRAME_BUFFER_WIDTH
 private val PLAIN = StageProgression(design = StageDesign.CAVE)
 private const val WORLD_HEIGHT = FRAME_BUFFER_HEIGHT
 
+/** How [EnemyGenerator] paces and scales a stage's spawns. */
 class EnemyGeneratorTest {
 
     private val world = World()
@@ -231,19 +230,6 @@ class EnemyGeneratorTest {
         // A pause is simply not calling update, however long it lasts.
         assertEquals(spawnedBeforePause, enemies().size)
         assertEquals(elapsedBeforePause, generator.elapsedSeconds)
-    }
-
-    @Test
-    fun `starting a new stage puts the clock and the wave and the boss back to the beginning`() {
-        val generator = generator()
-        generator.run(5 * MINUTE + 1f)
-
-        generator.startStage(StageProgression.forStage(2))
-
-        assertEquals(0f, generator.elapsedSeconds)
-        assertEquals(0, generator.currentWave.index)
-        assertTrue(!generator.bossSpawned)
-        assertNull(generator.bossId)
     }
 
     // endregion

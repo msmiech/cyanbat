@@ -20,7 +20,6 @@ import kotlin.test.assertTrue
 
 private class NamedSheet(val name: String, override val width: Int, override val height: Int) :
     Pixmap {
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 
@@ -75,7 +74,7 @@ private class CallRecordingGraphics : Graphics {
         calls += Drawn("faded", (pixmap as NamedSheet).name, x, y, srcWidth, srcHeight, srcX)
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+    override fun newPixmap(filename: String) =
         throw UnsupportedOperationException()
 
     override fun clear(color: Int) = Unit

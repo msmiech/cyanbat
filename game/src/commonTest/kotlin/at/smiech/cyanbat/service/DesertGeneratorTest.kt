@@ -12,7 +12,6 @@ import at.smiech.cyanbat.util.SAND_WYRM_SPACING
 import at.smiech.cyanbat.util.SHIELD_REGROWTH_DELAY_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.EnemyBehaviorComponent
 import at.smiech.engine.ecs.EnemyBehaviorSystem
@@ -39,7 +38,6 @@ import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
 private class DesertSheet(override val width: Int, override val height: Int) : Pixmap {
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 

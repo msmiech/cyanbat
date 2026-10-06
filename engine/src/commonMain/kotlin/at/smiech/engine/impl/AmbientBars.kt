@@ -14,22 +14,19 @@ import kotlin.math.min
 import kotlin.time.TimeSource
 
 /**
- * Lights the bars beside the frame with whatever is at its edges, the way a video player's ambient
- * mode does - see [at.smiech.engine.DisplayMode.AMBIENT].
+ * Lights the bars beside the frame with the colors at its edges, like a video player's ambient
+ * mode; see [at.smiech.engine.DisplayMode.AMBIENT].
  *
- * It reads a strip along each edge that faces a bar and averages it into [BANDS] colors, so the
- * light follows what is on screen: the pale rock of an obstacle scrolling in lifts the bar on its
- * side, and the jungle's greens tint the sides green. Each bar is painted in those colors and graded
- * from the frame's edge out into the dark, so it reads as light spilling out of the frame rather
- * than as a second, blurrier copy of the game competing with the first.
+ * A strip along each edge that faces a bar is averaged into [BANDS] colors, so the light follows
+ * what is on screen. Each bar is painted in those colors and darkened from the frame's edge
+ * outward, so it reads as light spilling from the frame rather than a blurry copy of the game.
  *
- * The frame is drawn straight into the window, with nothing left behind to read, so the strips are
- * drawn a second time into a picture of the bars' own: at the frame's size, on the CPU, and only
- * the strips, which keeps it to a small part of the frame's pixels. [SAMPLE_SECONDS] apart rather
- * than every frame, since the colors ease toward each new reading over a fraction of a second
- * anyway - so that a shot or an explosion flashing past an edge warms its bar instead of strobing it.
+ * The frame is drawn straight into the window, leaving nothing to read back, so the strips are
+ * drawn a second time into a picture of their own: at the frame's size, on the CPU, and only the
+ * strips. Readings are [SAMPLE_SECONDS] apart rather than every frame, and the colors ease toward
+ * each one, so a shot or explosion passing an edge warms its bar instead of strobing it.
  *
- * Holds that easing between frames, so one instance belongs to one surface.
+ * Holds the easing between frames, so one instance belongs to one surface.
  */
 class AmbientBars {
     /** The eased colors along each edge, as RGB triples from 0 to 1: left, right, top, bottom. */
@@ -58,8 +55,8 @@ class AmbientBars {
             sample(graphics, sides, caps)
             lastSample = now
         }
-        // The first frame takes its reading as it is: easing in from black would light the bars up
-        // a beat after the game appeared, which reads as a glitch rather than as ambience.
+        // The first frame takes its reading as is: easing in from black would light the bars a beat
+        // after the game appeared, which looks like a glitch.
         val ease = lastFrame?.let { easeFor((now - it).inWholeMicroseconds / 1_000_000f) } ?: 1f
         lastFrame = now
         for (edge in edges.indices) {
@@ -159,11 +156,11 @@ class AmbientBars {
     }
 
     /**
-     * Paints one bar: its edge's colors laid along it where the frame is beside it, then darkened
-     * from the frame's edge out to the screen's - lightest where it touches the game.
+     * Paints one bar: its edge's colors laid along it, then darkened from the frame's edge out to
+     * the screen's, lightest where it touches the game.
      *
-     * [glowTowardsEnd] is which way the frame is: toward the bar's far end (the left and top bars,
-     * which sit before the frame) or its near end (the right and bottom ones).
+     * [glowTowardsEnd] says where the frame is: at the bar's far end (the left and top bars, which
+     * come before the frame) or its near end (the right and bottom ones).
      */
     private fun DrawScope.bar(
         edge: Int,
@@ -214,15 +211,15 @@ class AmbientBars {
     }
 
     companion object {
-        /** How many colors each edge is read as. Few enough that the bars stay soft light, not a picture. */
+        /** How many colors each edge is read as: few enough that the bars stay soft light. */
         const val BANDS = 10
 
         /** How deep into the frame an edge is read, in frame pixels. */
         const val STRIP = 12
 
         /**
-         * Seconds between readings: a twentieth, against an ease of a fifth, so a bar never jumps
-         * and a reading never costs more than a small slice of every third frame or so.
+         * Seconds between readings. Short against [EASE_SECONDS], so a bar never jumps, and long
+         * enough that a reading costs a small slice of about every third frame.
          */
         const val SAMPLE_SECONDS = 0.05f
 
@@ -238,7 +235,9 @@ class AmbientBars {
         private const val TOP = 2
         private const val BOTTOM = 3
 
-        /** How far to ease toward a new reading after [seconds] - the same rate whatever the frame rate. */
+        /**
+         * How far to ease toward a new reading after [seconds], at the same rate at any frame rate.
+         */
         internal fun easeFor(seconds: Float): Float = 1f - exp(-seconds / EASE_SECONDS)
     }
 }

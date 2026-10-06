@@ -1,12 +1,12 @@
 package at.smiech.cyanbat.service
 
 /**
- * The logic of a boss that does more than its movement pattern: the Moth Queen's phases, the Sand
- * Wyrm's breaches. Run by [EnemyGenerator] on the stage clock from the moment the boss arrives.
+ * The logic of a boss that does more than follow a movement pattern, such as the
+ * Moth Queen's phases or the Sand Wyrm's breaches. Run by [EnemyGenerator] on the
+ * stage clock once the boss arrives.
  *
- * What a brain changes is state on the boss's own components - its gun, its weapon's cadence, its
- * shield, its movement - so what the boss does is still exactly what the systems run. The brain only
- * decides when it changes.
+ * A brain only changes state on the boss's components (its gun, weapon cadence, shield, movement),
+ * so the systems still run everything the boss does; the brain decides when it changes.
  */
 interface BossBrain {
     /** One tick of the fight, after the world has moved for it. */

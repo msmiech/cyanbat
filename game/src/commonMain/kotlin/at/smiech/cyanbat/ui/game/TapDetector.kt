@@ -3,19 +3,16 @@ package at.smiech.cyanbat.ui.game
 import at.smiech.engine.Input.TouchEvent
 
 /**
- * Picks the taps out of a touch stream: releases of pointers that also went *down* while this
+ * Picks the taps out of a touch stream: releases of pointers that also went down while this
  * detector was listening.
  *
- * An overlay that opens mid-run opens under a finger that is still steering the bat. When that
- * finger lifts, its release is not the player answering the overlay - they never pressed anything
- * on it - but a bare "any TOUCH_UP" check reads it as exactly that: the level up dialog picked
- * whichever card happened to be under the fingertip. An arming delay only narrows that window,
- * because a finger can stay down for as long as it likes. Requiring the press as well closes it.
+ * An overlay that opens mid-run opens under a finger still steering the bat, and that finger's
+ * release is not an answer to the overlay; read as one, the level-up dialog picked whatever card
+ * was under the fingertip. An arming delay only narrows that window; requiring the press closes it.
  *
- * A touch the system canceled is no tap either, though it went down and came up while listening:
- * Android's back gesture starts as a touch on the game and is canceled once the system takes it
- * over. Read as a tap, it resumed the pause screen just before the Back it was meant to quit it
- * with arrived - and that Back paused the game again, so the player could never get out.
+ * A touch the system canceled is no tap either. Android's back gesture starts as a touch on the
+ * game and is canceled once the system claims it; read as a tap, it resumed the pause screen just
+ * before the Back arrived, which paused it again, so the player could never quit.
  *
  * Call [reset] when the overlay opens, then hand every frame's events to [taps].
  */

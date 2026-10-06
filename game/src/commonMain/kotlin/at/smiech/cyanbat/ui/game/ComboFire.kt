@@ -7,15 +7,13 @@ import kotlin.random.Random
  * The fire the combo readout burns in: a small grid of heat that rises a row a tick, cooling and
  * drifting as it goes, fed from whichever cells are stoked.
  *
- * The old demoscene fire, the one Doom's console ports opened on. Every tick each cell takes its
- * heat from a cell in the row below - straight under it, or a step to one side, more often the
- * right than the left, so the flames stream back the way a bat flying right would leave them - and
- * loses some of it on the way. Stoke hotter and the flames stand taller; stop stoking and the fire goes out, bottom to
- * top, in as many ticks as it is tall.
+ * The classic demoscene fire effect. Every tick each cell takes its heat from a cell in the row
+ * below (straight under it, or a step to one side, more often the right, so the flames stream back
+ * as behind a bat flying right) and loses some on the way. Stoke hotter and the flames stand
+ * taller; stop, and the fire goes out bottom to top in as many ticks as it is tall.
  *
- * Ticked on the game's fixed tick like everything else, so it freezes with the run on pause. Drawn
- * a row at a time as runs of one color, which draws the sixteen hundred or so cells of a roaring
- * fire in some six hundred rectangles.
+ * Ticked on the game's fixed tick, so it freezes on pause. Drawn row by row as runs of one color,
+ * which draws a roaring fire's 1600 or so cells in about 600 rectangles.
  *
  * @param width cells across.
  * @param height cells up, which is the tallest the flames can stand.
@@ -39,15 +37,13 @@ internal class ComboFire(
     fun rise() {
         if (!lit) return
         var burning = false
-        // Four bits of randomness a cell - two for where it takes from, two for the cooling - drawn
-        // eight cells to a number.
+        // Four random bits per cell (two for the source, two for the cooling), eight cells per Int.
         var bits = 0
         var bitsLeft = 0
-        // Every cell takes its heat from one below it, where the classic fire has every cell hand
-        // its heat to one above. Handed up, a cell nobody hands anything to keeps the heat it had a
-        // tick ago, and down the edge of a fire this narrow that leaves a column of stale heat
-        // standing; taken, every cell is fresh every tick. In place, top row first, because each row
-        // is read into the one above before the one below overwrites it.
+        // Every cell takes its heat from below, where the classic fire hands it up:
+        // handed up, a cell nobody hands anything to keeps stale heat, which left a
+        // column standing at the edge of a fire this narrow. In place, top row
+        // first, so each row is read before it is overwritten.
         for (y in 0 until height - 1) {
             val row = y * width
             val below = row + width
@@ -56,8 +52,8 @@ internal class ComboFire(
                     bits = random.nextInt()
                     bitsLeft = 8
                 }
-                // Clamped at the edges rather than wrapped, or a flame leaving one side would come
-                // back in at the other a row higher.
+                // Clamped at the edges rather than wrapped, or a flame leaving one side would
+                // reappear at the other.
                 val from = below + (x + SOURCE[bits and 3]).coerceIn(0, width - 1)
                 val heat = (cells[from] - COOLING[(bits ushr 2) and 3]).coerceAtLeast(0)
                 cells[row + x] = heat.toByte()
@@ -79,13 +75,12 @@ internal class ComboFire(
     }
 
     /**
-     * Puts the fire on screen with its top left corner at [left], [top], each cell a [cell] pixel
-     * square.
+     * Draws the fire with its top left corner at [left], [top], each cell a [cell]-pixel square.
      *
-     * [palette] runs from the coolest color at index 1 to the hottest at its end; index 0 is never
-     * drawn, since it is where there is no fire. A cell at [fullHeat] or hotter takes the hottest
-     * color and cooler cells take their share of the rest, so a small fire still has a bright heart:
-     * how tall it stands says how hot it is, not how dim.
+     * [palette] runs from the coolest color at index 1 to the hottest at its end;
+     * index 0, no fire, is never drawn. A cell at [fullHeat] or hotter takes the
+     * hottest color and cooler cells their share of the rest, so a small fire still
+     * has a bright heart: its height shows its heat, not its color.
      */
     fun draw(g: Graphics, left: Int, top: Int, cell: Int, palette: IntArray, fullHeat: Int) {
         if (!lit || fullHeat <= 0) return
@@ -123,20 +118,19 @@ internal class ComboFire(
         return 0
     }
 
-    /** Rounded up, so the faintest cell still shows as the coolest color rather than as nothing. */
+    /** A cell's palette index, rounded up so the faintest cell still shows in the coolest color. */
     private fun levelOf(cell: Int, levels: Int, fullHeat: Int): Int =
         if (cell <= 0) 0 else ((cell * levels + fullHeat - 1) / fullHeat).coerceAtMost(levels)
 
     private companion object {
         /**
-         * Where under it a cell takes its heat from, by a two-bit roll: the left, straight under, or
-         * the right twice as often - so the flames lean left by a quarter of a cell a row, which is
-         * the streaming back. The classic fire's half a cell blows it clean off the letters it is
-         * meant to be burning on.
+         * Where below a cell takes its heat from, by a two-bit roll: left, straight under, or right
+         * twice as often, so the flames lean left a quarter of a cell per row. The classic fire's
+         * half a cell blew the flames clean off the letters.
          */
         val SOURCE = intArrayOf(-1, 0, 1, 1)
 
-        /** What it loses on the way, by another: a degree a row on average, and never quite evenly. */
+        /** The heat lost per row, by another roll: one on average, unevenly. */
         val COOLING = intArrayOf(0, 1, 1, 2)
     }
 }

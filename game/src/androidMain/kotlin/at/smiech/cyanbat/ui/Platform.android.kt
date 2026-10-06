@@ -31,6 +31,7 @@ internal actual fun SystemBarIcons(overDark: Boolean) {
     }
 }
 
+/** The activity this context belongs to, through any wrappers around it. */
 private tailrec fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this
     is ContextWrapper -> baseContext.findActivity()

@@ -4,19 +4,14 @@ import at.smiech.engine.ecs.AuraColors
 import at.smiech.engine.ecs.Component
 
 /**
- * The colors an elite can come out in, one picked at random for each: the glow around it, and the
- * bolts it fires, which are the same hue - so an elite's fire says which of the enemies on screen
- * it came from.
+ * The colors an elite can come in, one picked at random each: its glow and its bolts share a hue,
+ * so an elite's fire shows which enemy it came from.
  *
- * None of them is a color the bat wears. Not its cyan, which is how the player finds it on a busy
- * screen, and not the gold of its own aura, which is how they read how far their run has come.
- * Between those, they are spread round the wheel as far apart as they will go, so two elites on
- * screen at once are told apart at a glance.
+ * None is a color the bat wears (its cyan, or its aura's gold), and they are spread round the color
+ * wheel so two elites on screen are told apart at a glance.
  *
- * Each core is its hue lightened, but well short of the near white the bat's gold settles into. Over
- * the dark of the cave a pale core is what reads as light, but one that pale in every palette gave
- * every elite the same pastel glow - scarlet came out rose, next to a fuchsia that was rose too - and
- * the hue was left to the faint outer rings to carry.
+ * Each core is its hue lightened, but well short of near white: cores that pale
+ * made every elite the same pastel glow.
  *
  * @param shotVariant the colorway of `shot.png` its bolts are drawn in. `generate_shot_sprite.py`
  *   draws each one's body in exactly this palette's [AuraColors.rim], which `SpriteSheetTest` holds
@@ -71,10 +66,8 @@ enum class ElitePalette(val shotVariant: Int, val aura: AuraColors) {
 }
 
 /**
- * Marks an enemy as an elite, and says which [palette] it wears.
- *
- * Everything else about being one is set on the components it spawns with: the health, the faster
- * gun, the aura and the colorway its shots are drawn in. This is what the run reads when it is shot
- * down, to pay out what an elite is worth.
+ * Marks an enemy as an elite wearing [palette]. Its health, faster gun, aura and
+ * shot colorway are set on the components it spawns with; the run reads this when
+ * it dies to pay out an elite's worth.
  */
 class EliteComponent(val palette: ElitePalette) : Component

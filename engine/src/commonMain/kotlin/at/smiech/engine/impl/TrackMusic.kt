@@ -6,15 +6,14 @@ import at.smiech.engine.MusicGrid
 import at.smiech.engine.Quantum
 
 /**
- * A piece of music played straight through, on the machinery of a stage's layered music: its one
- * stem decoded in common code by a [StemMixer], and handed to the device by the platform's
- * [LayeredMusic], with its only layer all the way up.
+ * A single track played on the machinery of a stage's layered music: one stem decoded in common
+ * code by a [StemMixer] and handed to the device by the platform's [LayeredMusic], its only layer
+ * fully up.
  *
- * So the menu's and the game over's music is decoded exactly as the stages' is, with no codec in
- * the way: the menu's loop comes round without a gap, and the game over's track, which does not
- * loop, stops at its end.
+ * The menu's and the game over's music is thus decoded exactly as the stages' is, with no platform
+ * codec in the way: the menu's loop has no gap, and a track that does not loop stops at its end.
  *
- * @param player plays [mixer]'s output; this track owns it, and disposes of it.
+ * @param player plays [mixer]'s output; this track owns it and disposes of it.
  */
 class TrackMusic(private val mixer: StemMixer, private val player: LayeredMusic) : Music {
     init {
@@ -40,7 +39,7 @@ class TrackMusic(private val mixer: StemMixer, private val player: LayeredMusic)
     override fun dispose() = player.dispose()
 
     companion object {
-        /** A track never moves its layer on the beat, so any grid serves: a beat a second. */
+        /** A track never changes its layer on the beat, so any grid serves: one beat a second. */
         private val GRID = MusicGrid(beatsPerMinute = 60.0, beatsPerBar = 1)
 
         /** A track of [clip], played by whatever [play] builds around its mixer. */

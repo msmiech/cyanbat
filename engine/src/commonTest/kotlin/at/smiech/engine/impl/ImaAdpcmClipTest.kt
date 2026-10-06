@@ -11,6 +11,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 import kotlin.test.assertTrue
 
+/** Decoding an [ImaAdpcmClip]: the round trip, rewinding and looping. */
 class ImaAdpcmClipTest {
 
     private fun sine(frames: Int, hz: Double, rate: Int, amplitude: Double = 0.5) =

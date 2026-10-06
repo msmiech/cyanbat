@@ -27,7 +27,7 @@ private class StringRecordingGraphics : Graphics {
 
     override fun measureString(s: String, fontSize: Int) = 0
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+    override fun newPixmap(filename: String) =
         throw UnsupportedOperationException()
 
     override fun clear(color: Int) = Unit
@@ -65,6 +65,7 @@ private class StringRecordingGraphics : Graphics {
 
 private fun alphaOf(color: Int) = (color shr 24) and 0xFF
 
+/** How [FloatingTextSystem] draws, moves and fades floating text. */
 class FloatingTextSystemTest {
 
     private val world = World().apply {

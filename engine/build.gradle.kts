@@ -30,8 +30,8 @@ kotlin {
             dependencies {
                 // Compose Multiplatform, not androidx: these resolve to androidx.compose on the
                 // Android target and to the Skiko-backed artifacts on the JVM and iOS targets.
-                implementation(compose.runtime)
-                implementation(compose.foundation)
+                implementation(libs.jetbrains.compose.runtime)
+                implementation(libs.jetbrains.compose.foundation)
             }
         }
         commonTest {

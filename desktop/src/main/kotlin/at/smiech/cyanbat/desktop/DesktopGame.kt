@@ -23,8 +23,8 @@ class DesktopGame(
     override val frameBufferWidth: Int,
     override val frameBufferHeight: Int,
     /**
-     * Keyboard state. Passed in rather than created here because the window that receives the
-     * key events outlives any single game instance.
+     * Keyboard state. Passed in rather than created here because the window that receives the key
+     * events outlives any single game instance.
      */
     val controlHandler: ControlHandler = ControlHandler(),
 ) : Game {
@@ -42,15 +42,14 @@ class DesktopGame(
     override val input: Input = DesktopInput(touchHandler, controlHandler)
 
     override var currentScreen: Screen? = null
-    override val startScreen: Screen? get() = currentScreen
 
     /** Where [capture] draws the frame, kept from one capture to the next. */
     private val captured by lazy { ImageBitmap(frameBufferWidth, frameBufferHeight) }
     private val capturedPixels by lazy { IntArray(frameBufferWidth * frameBufferHeight) }
 
     /**
-     * The frame the current screen last presented, drawn at the frame's own size, as ARGB pixels a
-     * row at a time: what the recorder tapes and the tests read. The next capture reuses the array.
+     * The frame the current screen last presented, drawn at the frame's own size, as ARGB pixels
+     * row by row, for the recorder and the tests. The next capture reuses the array.
      */
     fun capture(): IntArray {
         graphics.drawInto(captured)
@@ -58,15 +57,14 @@ class DesktopGame(
         return capturedPixels
     }
 
-    /** Assets ride along as classpath resources; see the resources srcDir in build.gradle.kts. */
+    /** Assets are classpath resources; see the resources srcDir in build.gradle.kts. */
     private fun openAsset(name: String): java.io.InputStream =
-        javaClass.getResourceAsStream("/$name") ?: error("Asset <$name> not found on the classpath")
+        javaClass.getResourceAsStream("/$name") ?: error("Asset $name not found on the classpath")
 
     /**
-     * An asset decoded by Skia and marked immutable, which is a matter of speed and nothing else.
-     * Compose's desktop canvas wraps a bitmap in a fresh Skia image every time it draws it, and
-     * copies the whole of one that could still change to do it: every strip of the desert's ground,
-     * every frame, was a copy of the whole sheet.
+     * An asset decoded by Skia and marked immutable, for speed. Compose's desktop canvas wraps a
+     * bitmap in a new Skia image on every draw and copies one that could still change: each strip
+     * of the desert's ground was a copy of its whole sheet, every frame.
      */
     private fun loadImage(name: String): ImageBitmap {
         val bytes = openAsset(name).use { it.readBytes() }

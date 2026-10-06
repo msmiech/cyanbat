@@ -152,7 +152,7 @@ class ComposeGraphicsTest {
         val graphics = graphics(16, 16, "white" to solid(4, 4, EngineColors.WHITE))
         graphics.clear(EngineColors.BLACK)
         graphics.drawPixmap(
-            graphics.newPixmap("white", Graphics.PixmapFormat.ARGB8888),
+            graphics.newPixmap("white"),
             2,
             2,
             0,
@@ -172,7 +172,7 @@ class ComposeGraphicsTest {
     fun `a turned sprite's flash covers the turned sprite`() {
         fun frame(flash: Boolean): Picture {
             val graphics = graphics(48, 48, "sprite" to sprite())
-            val sprite = graphics.newPixmap("sprite", Graphics.PixmapFormat.ARGB8888)
+            val sprite = graphics.newPixmap("sprite")
             graphics.clear(EngineColors.BLACK)
             graphics.drawPixmap(sprite, 10, 12, 0, 0, 6, 5, 18, 15, 33f)
             if (flash) graphics.drawPixmapSilhouette(
@@ -383,7 +383,7 @@ class ComposeGraphicsTest {
     @Test
     fun `a glint lights the edge of a sprite facing the light in the light's color`() {
         val graphics = graphics(48, 48, "disc" to disc(16, GRAY))
-        val disc = graphics.newPixmap("disc", Graphics.PixmapFormat.ARGB8888)
+        val disc = graphics.newPixmap("disc")
         graphics.clear(EngineColors.BLACK)
         graphics.drawPixmap(disc, 16, 16, 0, 0, 16, 16)
         graphics.drawLighting(Lighting().apply {
@@ -411,7 +411,7 @@ class ComposeGraphicsTest {
      * a translucent rectangle, a pixel, an oval, an outline and a line.
      */
     private fun ComposeGraphics.drawScene() {
-        val sprite = newPixmap("sprite", Graphics.PixmapFormat.ARGB8888)
+        val sprite = newPixmap("sprite")
         clear(BACKGROUND)
         drawPixmap(sprite, SPRITE_X, SPRITE_Y, 0, 0, 6, 5)
         drawPixmap(sprite, 12, 2, 0, 0, 6, 5, 11, 9)

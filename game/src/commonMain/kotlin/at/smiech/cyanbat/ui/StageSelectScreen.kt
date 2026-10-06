@@ -64,6 +64,7 @@ private data class StageEntry(
 /** How tall a card's preview strip is. */
 private val PREVIEW_HEIGHT = 130.dp
 
+/** Every stage's card, in order. */
 private val STAGES = listOf(
     StageEntry(
         1,
@@ -92,11 +93,8 @@ private val STAGES = listOf(
 )
 
 /**
- * The stage select, reached from Start Game once the player has cleared a stage.
- *
- * Before that there is nothing to choose between, so Start Game goes straight into stage 1 and
- * this screen is never shown - a menu with one live option and one padlock is a menu asking the
- * player to read it for no reason.
+ * The stage select, reached from Start Game once the player has cleared a stage. Until then there
+ * is nothing to choose, so Start Game goes straight into stage 1.
  */
 @Composable
 fun StageSelectScreen(
@@ -115,6 +113,7 @@ fun StageSelectScreen(
     )
 }
 
+/** The stage select's layout: a row of cards, the cursor starting on the furthest stage open. */
 @Composable
 private fun StageSelectContent(
     highestUnlocked: Int,
@@ -136,8 +135,8 @@ private fun StageSelectContent(
                 style = MaterialTheme.typography.headlineMedium,
             )
             Spacer(Modifier.height(16.dp))
-            // Wide enough that each of three cards keeps about the width each of two had, so a
-            // preview strip is still a picture of the stage rather than a sliver of it.
+            // Capped wide enough that each card's preview strip is still a picture of the stage
+            // rather than a sliver of it.
             Row(
                 modifier = Modifier.widthIn(max = 1000.dp).fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),

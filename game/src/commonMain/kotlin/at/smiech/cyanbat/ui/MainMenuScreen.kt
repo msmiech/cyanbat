@@ -63,15 +63,17 @@ import org.jetbrains.compose.resources.stringResource
 private enum class MainChoice { START, SETTINGS, HELP, CREDITS, EXIT }
 
 /**
- * The cursor on the title screen, which is drawn over a dark sky rather than the light surface of
- * the screens behind it, and on buttons filled with the theme's primary: so not in that primary,
- * but in the bat's own cyan, pale enough to stand out from both.
+ * The title screen's cursor. Its buttons sit on a dark sky and are filled with the theme's primary,
+ * so the cursor is the bat's own cyan, pale enough to stand out from both.
  */
 private val CURSOR_ON_SKY = Color(0xFFA6F6FF)
 
 /** How far one press of up or down scrolls the help text. */
 private val HELP_SCROLL_STEP = 48.dp
 
+/**
+ * The title screen: the title over the flowing sky, and the menu's buttons. Plays the menu music.
+ */
 @Composable
 fun MainMenuScreen(
     viewModel: MainMenuViewModel,
@@ -173,6 +175,7 @@ private fun HelpDialog(dismiss: () -> Unit) {
     }
 }
 
+/** The title screen's layout, with the cursor starting on [home]. */
 @Composable
 private fun MainMenuContent(home: MainChoice, onChoose: (MainChoice) -> Unit) {
     val cursor = remember { MainChoice.entries.associateWith { FocusRequester() } }
@@ -217,6 +220,7 @@ private fun MainMenuContent(home: MainChoice, onChoose: (MainChoice) -> Unit) {
     }
 }
 
+/** The title screen's button for [choice], ringed while the cursor is on it. */
 @Composable
 private fun MenuButton(
     choice: MainChoice,
@@ -234,6 +238,7 @@ private fun MenuButton(
     }
 }
 
+/** The button's caption. */
 private val MainChoice.label: StringResource
     get() = when (this) {
         MainChoice.START -> Res.string.button_start_game

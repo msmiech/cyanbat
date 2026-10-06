@@ -17,6 +17,7 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
+/** How the frost beam's rays are traced across the frame, and what they catch. */
 class FrostBeamSystemTest {
 
     private var bat: Rect? = Rect.fromLTWH(78f, 160f, 45f, 40f)

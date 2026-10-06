@@ -7,6 +7,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** [TrackMusic]: a single track on the mixer, looping or played once. */
 class TrackMusicTest {
 
     /** Plays nothing: hands the track's orders to its mixer, as a platform's player does. */

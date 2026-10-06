@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** The geometry of a [Rect]. */
 class RectTest {
 
     @Test
@@ -18,35 +19,15 @@ class RectTest {
 
     @Test
     fun `center is the midpoint`() {
-        val r = Rect.fromLTRB(10f, 20f, 30f, 60f)
+        val r = Rect(10f, 20f, 30f, 60f)
         assertEquals(20f, r.centerX)
         assertEquals(40f, r.centerY)
     }
 
-    @Test
-    fun `overlapping rects intersect and touching ones do not`() {
-        val a = Rect.fromLTWH(0f, 0f, 10f, 10f)
-        assertTrue(a.intersects(Rect.fromLTWH(5f, 5f, 10f, 10f)))
-        // Edge-to-edge is a miss: the comparison is strict, so a sprite exactly
-        // abutting another does not count as a hit.
-        assertFalse(a.intersects(Rect.fromLTWH(10f, 0f, 10f, 10f)))
-        assertFalse(a.intersects(Rect.fromLTWH(20f, 20f, 5f, 5f)))
-    }
-
-    @Test
-    fun `intersects is symmetric`() {
-        val a = Rect.fromLTWH(0f, 0f, 10f, 10f)
-        val b = Rect.fromLTWH(5f, 5f, 10f, 10f)
-        assertEquals(a.intersects(b), b.intersects(a))
-    }
-
-    /**
-     * Unlike [Rect.intersects], containment includes the border: a grab box is there to be
-     * generous, and a touch landing exactly on its edge should count.
-     */
+    /** Containment includes the border: a grab box is generous, so a touch on its edge counts. */
     @Test
     fun `contains includes the edges and excludes points beyond them`() {
-        val r = Rect.fromLTRB(10f, 20f, 30f, 40f)
+        val r = Rect(10f, 20f, 30f, 40f)
         assertTrue(r.contains(20f, 30f))
         assertTrue(r.contains(10f, 20f))
         assertTrue(r.contains(30f, 40f))
@@ -122,20 +103,5 @@ class Vector2Test {
         val v = Vector2(1f, 2f).copy(y = 9f)
         assertEquals(1f, v.x)
         assertEquals(9f, v.y)
-    }
-
-    @Test
-    fun `arithmetic operates componentwise`() {
-        val sum = Vector2(1f, 2f) + Vector2(3f, 4f)
-        assertEquals(4f, sum.x)
-        assertEquals(6f, sum.y)
-
-        val diff = Vector2(5f, 5f) - Vector2(1f, 2f)
-        assertEquals(4f, diff.x)
-        assertEquals(3f, diff.y)
-
-        val scaled = Vector2(1.5f, -2f) * 2f
-        assertEquals(3f, scaled.x)
-        assertEquals(-4f, scaled.y)
     }
 }

@@ -3,7 +3,6 @@ package at.smiech.cyanbat.ecs
 import at.smiech.cyanbat.util.FROST_DRIFT
 import at.smiech.cyanbat.util.FROST_THAW_SECONDS
 import at.smiech.cyanbat.util.FROST_TINT
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AnimationSystem
@@ -27,10 +26,10 @@ import kotlin.test.assertTrue
 private object CreatureSheet : Pixmap {
     override val width = 128
     override val height = 29
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 
+/** How a freeze holds an enemy still, and how it ends. */
 class FrostSystemTest {
 
     private val thawed = mutableListOf<EntityId>()

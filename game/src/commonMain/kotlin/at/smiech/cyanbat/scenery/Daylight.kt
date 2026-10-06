@@ -1,16 +1,11 @@
 package at.smiech.cyanbat.scenery
 
-import at.smiech.cyanbat.scenery.Daylight.SKY
-import at.smiech.cyanbat.scenery.Daylight.SKY_POSITIONS
-
-
 /**
- * The desert's day, from noon at the stage's first second to night on its boss's: what the sky, the
- * sun, the moon and the stars look like at any point in between.
+ * The desert's day, from noon at the stage's start to night at its boss.
  *
- * The day follows the waves. Noon for the first; the long afternoon through the second and third,
- * the light going gold; the sun going down in the fourth; dusk in the fifth, with the first stars;
- * and night - black and purple, the moon up and every star out - the moment the boss arrives.
+ * The day follows the waves: noon for the first; the afternoon turning gold through the second and
+ * third; sunset in the fourth; dusk with the first stars in the fifth; and night, the moon up and
+ * every star out, when the boss arrives.
  */
 object Daylight : Day {
 
@@ -23,19 +18,23 @@ object Daylight : Day {
 
     // --- the sky ---------------------------------------------------------------------------------
 
-    /** How far down the sky each of a keyframe's colors sits, as 0 at the top of the frame to 1 at the horizon. */
+    /**
+     * Where each of a keyframe's colors sits, from 0 at the top of the frame to 1 at the horizon.
+     */
     private val SKY_STOPS = floatArrayOf(0f, 0.4f, 0.75f, 1f)
 
-    /** Where each [SKY] keyframe is at full strength. More of them than the ground has: the sky is where the evening happens. */
+    /**
+     * Where each [SKY] keyframe is at full strength; more than the ground has,
+     * since the sky carries the evening.
+     */
     private val SKY_POSITIONS = floatArrayOf(0f, 0.33f, 0.52f, 0.66f, 0.79f, 0.9f, 1f)
 
     /**
      * The sky at each of [SKY_POSITIONS], zenith to horizon.
      *
-     * Bright and yellow while the sun is high: a desert noon is bleached rather than blue, and a
-     * pale, warm sky is also what keeps the bat's cyan the coolest thing on screen. The golden
-     * hour deepens it, sunset puts a purple zenith over a burning horizon, and night comes down
-     * from the top - black overhead while the last of the glow is still purple along the dunes.
+     * Pale yellow while the sun is high (a bleached desert noon, which also keeps the bat's cyan
+     * the coolest thing on screen), deepening through the golden hour to a purple zenith over a
+     * burning horizon at sunset; night comes down from the top while the dunes still glow purple.
      */
     private val SKY = arrayOf(
         colors(0xF0D696, 0xF8E4AE, 0xFCEEC4, 0xFFF6DA), // noon
@@ -52,13 +51,10 @@ object Daylight : Day {
 
     // --- the sun ---------------------------------------------------------------------------------
 
-    /** When the sun has gone below the dunes, and so the last position it is drawn at. */
+    /** When the sun has gone below the dunes: the last position it is drawn at. */
     const val SUNSET = 0.76f
 
-    /**
-     * When the sun sits on the far dunes, half of it down: the picture of the desert's evening,
-     * which is where the gameplay footage looks in on it.
-     */
+    /** When the sun sits half down on the far dunes: the moment the reel shows. */
     const val SUNDOWN = 0.61f
 
     override val showcase: Float get() = SUNDOWN
@@ -71,8 +67,8 @@ object Daylight : Day {
     override fun sunUp(position: Float): Boolean = position < SUNSET
 
     /**
-     * The sun's center. It comes down on a slant toward the right of the frame - the way the bat is
-     * flying, so the stage flies into its sunset - at a steady rate, the way the real one sets.
+     * The sun's center, descending at a steady rate on a slant toward the right of the frame, so
+     * the bat flies into the sunset.
      */
     override fun sunX(position: Float): Float =
         NOON_X + (SET_X - NOON_X) * fraction(position, 0f, SUNSET)
@@ -80,13 +76,13 @@ object Daylight : Day {
     override fun sunY(position: Float): Float =
         NOON_Y + (SET_Y - NOON_Y) * fraction(position, 0f, SUNSET)
 
-    /** A little larger the lower it gets, which is how a low sun looks even though it is not. */
+    /** A little larger the lower it gets, as a low sun appears. */
     override fun sunRadius(position: Float): Float = 14f + 5f * smoothstep(0.3f, SUNSET, position)
 
     private val SUN_POSITIONS = floatArrayOf(0f, 0.46f, 0.66f, SUNSET)
     private val SUN_COLORS = colors(0xFFFBE2, 0xFFE896, 0xFF9C4A, 0xF45E3C)
 
-    /** White-hot at noon, gold in the afternoon, and deep orange going red as it touches the dunes. */
+    /** White-hot at noon, gold in the afternoon, deep orange to red as it touches the dunes. */
     override fun sunColor(position: Float): Int = ramp(SUN_POSITIONS, SUN_COLORS, position)
 
     /**
@@ -97,10 +93,7 @@ object Daylight : Day {
 
     // --- the night -------------------------------------------------------------------------------
 
-    /**
-     * Nothing until the sun is down, then the stars come out through dusk, the brightest first,
-     * until every one is up at nightfall.
-     */
+    /** None until the sun is down, then the stars come out through dusk, brightest first. */
     override fun starlight(position: Float): Float = smoothstep(0.66f, 0.95f, position)
 
     /** It rises into the dusk behind the first stars. */
@@ -113,6 +106,6 @@ object Daylight : Day {
     /** Where it stands, over the far pyramids. */
     override fun moonX(position: Float): Float = MOON_X
 
-    /** It climbs a little as it comes out, rather than fading in on the spot. */
+    /** It climbs a little as it fades in. */
     override fun moonY(position: Float): Float = MOON_Y + MOON_RISE * (1f - moonlight(position))
 }

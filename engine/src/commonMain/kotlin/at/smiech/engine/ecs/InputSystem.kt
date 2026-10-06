@@ -10,24 +10,21 @@ import kotlin.math.sqrt
 /**
  * Steers player-controlled entities from pointer input, or from a keyboard or game controller.
  *
- * The bat is *dragged*, not nudged: the first pointer to go down claims it and keeps it until that
- * pointer lifts, so a second finger landing mid-run cannot wrestle control away. While a pointer
- * owns the bat the sprite is pinned under it - the system moves the bat by exactly what the pointer
- * moved, so there is no lag between finger and bat to fight.
+ * The bat is dragged, not nudged: the first pointer down claims it until that pointer lifts, so a
+ * second finger cannot take control mid-run. While a pointer owns the bat, the bat moves by exactly
+ * what the pointer moved, with no lag between finger and bat.
  *
- * A touch that lands on the bat keeps the grab offset, so the bat does not snap its center to the
- * fingertip that just caught it. "On the bat" means within [GRAB_PADDING] of the sprite: a
- * fingertip covers far more of a 640x360 framebuffer than a 45x40 sprite does, and without the
- * padding the player would have to aim precisely at a bat their own finger is hiding.
+ * A touch on the bat keeps the grab offset, so the bat does not snap its center to the fingertip.
+ * "On the bat" means within [GRAB_PADDING] of the sprite: a fingertip covers far more of the
+ * 640x360 frame than the sprite does, and the player cannot aim precisely at a bat their finger
+ * hides.
  *
- * A touch that lands away from the bat still steers - that is how the game played before it was
- * draggable, and it is the only thing a tap on the far side of the screen can mean. The bat flies
- * over at [CATCH_UP_SPEED], and once it arrives it is dragged like any other grab.
+ * A touch away from the bat still steers: the bat flies over at [CATCH_UP_SPEED], and once there it
+ * is dragged like any other grab.
  *
- * Held keys and a pushed stick outrank any of that, and drop the drag while they last. The two
- * schemes cannot share a frame - one names a place to be, the other a direction to go - and a
- * player reaching for the keyboard has stopped meaning whatever the mouse last said. Letting go
- * hands control back to the next pointer event, so a mouse takes over the moment it moves again.
+ * Held keys and a pushed stick take precedence and drop the drag while they last, since one scheme
+ * names a place to be and the other a direction to go. Releasing them hands control back to the
+ * next pointer event, so a mouse takes over as soon as it moves again.
  */
 class PlayerInputSystem(
     private val frameBufferWidth: Int,
@@ -47,8 +44,7 @@ class PlayerInputSystem(
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
-        // Consuming read, so exactly one per update however many entities are steered - a second
-        // read this frame would come back empty.
+        // A consuming read, so exactly one per update however many entities are steered.
         val touchEvents = input?.touchEvents
         val controls = input?.controls ?: Controls.None
         val moveX = controls.moveX
@@ -61,11 +57,8 @@ class PlayerInputSystem(
             val control = playerControls.require(id)
 
             if (!healths.require(id).alive) {
-                // Input stops reaching a dead bat, and stops *moving* one too. It used to assign a
-                // flat downward drift here, which put the question of how a corpse falls inside
-                // the code that reads the controls - and pinned it to a constant speed that no
-                // amount of gravity elsewhere could override. DeathThroesComponent owns the fall
-                // now; this just lets go of the finger that was steering.
+                // A dead bat takes no input and is not moved here; DeathThroesComponent owns its
+                // fall. This only releases the finger that was steering.
                 control.releaseDrag()
                 return@forEach
             }
@@ -90,10 +83,9 @@ class PlayerInputSystem(
     /**
      * The step a held direction asks for, clamped to the framebuffer.
      *
-     * Speed is capped by the *combined* deflection, not per axis, so a diagonal is not the
-     * fastest way across the screen. A stick reports its own magnitude and keeps it - pushing it
-     * halfway is a request to go half speed - while two keys at right angles read 1 each and are
-     * scaled back to a single unit between them.
+     * Speed is capped by the combined deflection, not per axis, so a diagonal is not faster. A
+     * stick keeps its own magnitude (half pushed is half speed), while two keys at right angles, 1
+     * each, are scaled back to one unit between them.
      */
     private fun steer(rect: Rect, moveX: Float, moveY: Float, deltaTime: Float): Vector2 {
         val deflection = sqrt(moveX * moveX + moveY * moveY)
@@ -102,13 +94,12 @@ class PlayerInputSystem(
     }
 
     /**
-     * Lets go of a pointer that has lifted without this system seeing it lift.
+     * Releases a pointer that has lifted without this system seeing it lift.
      *
-     * The release normally arrives as a TOUCH_UP, but the events are a consuming read and this
-     * system only gets them while the world is ticking. An overlay that opens mid-drag - the level
-     * up dialog, the pause screen - reads them instead, and the finger's release goes with it. The
-     * bat then stayed bound to a pointer that no longer existed, and ignored every new touch,
-     * because a new finger arrives under a different pointer id.
+     * The release normally arrives as a TOUCH_UP, but events are a consuming read and this system
+     * only gets them while the world ticks. An overlay opening mid-drag (the level-up dialog, the
+     * pause screen) reads them instead, and without this the bat stayed bound to a vanished pointer
+     * and ignored every new touch, which arrives under a different pointer id.
      */
     private fun dropLiftedPointer(input: Input, control: PlayerControlComponent) {
         val pointer = control.activePointer
@@ -136,9 +127,9 @@ class PlayerInputSystem(
                 continue
             }
 
-            // TOUCH_DOWN and TOUCH_DRAGGED both claim a free bat. Claiming on a drag is what keeps
-            // a desktop mouse working: hosts there report motion without a button, so a pointer
-            // can steer without ever having gone down.
+            // TOUCH_DOWN and TOUCH_DRAGGED both claim a free bat. Claiming on a
+            // drag keeps a desktop mouse working: it reports motion without a
+            // button, steering without ever going down.
             if (control.activePointer == PlayerControlComponent.NO_POINTER) {
                 control.beginDrag(event.pointer, x, y, rect)
                 control.pointerHeld = input.isTouchDown(event.pointer)
@@ -166,15 +157,13 @@ class PlayerInputSystem(
         var dx = control.targetX + control.grabOffsetX - rect.centerX
         var dy = control.targetY + control.grabOffsetY - rect.centerY
 
-        // A locked-on drag is deliberately uncapped. A finger is a physical object, so whatever it
-        // did between two ticks is what the player meant; capping it would rubber-band the bat
-        // away from the fingertip exactly when the player swipes hardest, which is the lag this
-        // control exists to remove. The cost is that a hard flick can cross an obstacle without
-        // the frame-by-frame overlap test ever seeing it - cheap next to the bat lagging a swipe.
+        // A locked-on drag is deliberately uncapped: whatever the finger did between two ticks is
+        // what the player meant, and capping it would leave the bat behind the fingertip exactly
+        // when the player swipes hardest. The cost is that a hard flick can cross an obstacle
+        // without the per-frame overlap test seeing it.
         if (control.dragging) return clampToFrame(rect, dx, dy)
 
-        // Still travelling to a touch that landed away from the bat, which is a journey rather
-        // than a drag, so it is paced.
+        // Still travelling to a touch that landed away from the bat: a journey, so it is paced.
         val limit = CATCH_UP_SPEED * deltaTime
         val distance = sqrt(dx * dx + dy * dy)
         if (distance > limit) {
@@ -182,8 +171,7 @@ class PlayerInputSystem(
             dx *= scale
             dy *= scale
         } else {
-            // Arrived. The bat is under the pointer now, so from here it is dragged like one that
-            // was grabbed outright.
+            // Arrived: from here the bat is dragged like one grabbed outright.
             control.dragging = true
         }
         return clampToFrame(rect, dx, dy)
@@ -203,8 +191,8 @@ class PlayerInputSystem(
     private fun PlayerControlComponent.beginDrag(pointer: Int, x: Float, y: Float, rect: Rect) {
         activePointer = pointer
         dragging = rect.inflate(GRAB_PADDING).contains(x, y)
-        // Only a grab keeps an offset. A tap in open space means "come here", and centering the bat
-        // on it is the least surprising reading of that.
+        // Only a grab keeps an offset. A tap in open space means "come here", so the bat centers
+        // on it.
         grabOffsetX = if (dragging) rect.centerX - x else 0f
         grabOffsetY = if (dragging) rect.centerY - y else 0f
         targetX = x
@@ -221,12 +209,8 @@ class PlayerInputSystem(
 
     companion object {
         /**
-         * How far outside the sprite a touch still counts as grabbing it, in framebuffer pixels.
-         *
-         * Roughly a fingertip's width once the 640x360 framebuffer is scaled up to a phone screen,
-         * which is what makes the bat catchable without looking away from the game. A fingertip is
-         * a size on the glass rather than in the frame: this was 24 when the frame was 480x320,
-         * which a 1080 pixel tall phone scaled 3.375 times where it now scales this one 3 times.
+         * How far outside the sprite a touch still counts as grabbing it, in framebuffer pixels:
+         * roughly a fingertip's width once the 640x360 frame is scaled up to a phone screen.
          */
         const val GRAB_PADDING = 27f
 
@@ -236,11 +220,9 @@ class PlayerInputSystem(
         /**
          * Speed a fully held direction moves the bat, in framebuffer pixels per second.
          *
-         * Deliberately the same number as [CATCH_UP_SPEED]: both are the bat travelling under its
-         * own power rather than pinned to a finger, and a keyboard player and a touch player
-         * crossing the screen at different rates would be two different games.
+         * The same as [CATCH_UP_SPEED]: both are the bat flying under its own power, and keyboard
+         * and touch players should cross the screen at the same rate.
          */
         const val DIRECTIONAL_SPEED = 420f
-
     }
 }

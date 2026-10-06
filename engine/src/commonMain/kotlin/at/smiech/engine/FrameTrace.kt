@@ -1,11 +1,11 @@
 package at.smiech.engine
 
 /**
- * Marks the parts of a frame for a platform's profiler, so a recorded trace shows how long each one
- * took. Platforms without a profiler to mark supply [None].
+ * Marks the parts of a frame for a platform's profiler, so a recorded trace shows how long each
+ * took. Platforms without a profiler use [None].
  *
- * A pair of calls rather than one taking a block, because it runs every frame: a block capturing
- * the frame's delta would be an allocation per frame.
+ * A pair of calls rather than one taking a block, because a block capturing the frame's delta would
+ * allocate every frame.
  */
 interface FrameTrace {
     /** Opens a section called [name], to be closed by [end] on the same thread. */

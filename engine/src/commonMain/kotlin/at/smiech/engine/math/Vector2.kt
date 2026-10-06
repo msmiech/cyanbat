@@ -3,8 +3,8 @@ package at.smiech.engine.math
 import kotlin.jvm.JvmInline
 
 /**
- * Immutable 2D vector optimized as a value class to eliminate heap allocation.
- * Uses bit-packing to store two Floats in a single Long.
+ * An immutable 2D vector, two Floats bit-packed into one Long in a value class, so it does not
+ * allocate.
  */
 @JvmInline
 value class Vector2(val packed: Long) {
@@ -13,10 +13,7 @@ value class Vector2(val packed: Long) {
     val x: Float get() = unpackX(packed)
     val y: Float get() = unpackY(packed)
 
-    operator fun plus(other: Vector2): Vector2 = Vector2(x + other.x, y + other.y)
-    operator fun minus(other: Vector2): Vector2 = Vector2(x - other.x, y - other.y)
-    operator fun times(scale: Float): Vector2 = Vector2(x * scale, y * scale)
-
+    /** This vector with [x] or [y] replaced. */
     fun copy(x: Float = this.x, y: Float = this.y): Vector2 = Vector2(x, y)
 
     override fun toString(): String = "Vector2(x=$x, y=$y)"

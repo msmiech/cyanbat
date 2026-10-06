@@ -7,22 +7,19 @@ import kotlin.math.abs
 /**
  * Turns raw pointer state into the [Input.TouchEvent] stream the game reads.
  *
- * Platform-neutral: hosts feed it through [onPointer], via a Compose adapter on Android or an
- * AWT adapter on desktop.
+ * Platform-neutral: hosts feed it through [onPointer], via the Compose adapter on both platforms.
  *
- * Threading: NOT synchronized, deliberately. On every host the pointer callbacks and the game
- * loop run on the same thread (the Compose UI thread on Android, the same on Compose Desktop).
- * If a host ever drives the loop from a separate thread, locking has to come back - and would
- * then have to live in a JVM-only source set, since `synchronized` is not available in common
- * code.
+ * Deliberately not synchronized: on every host the pointer callbacks and the game loop run on the
+ * Compose UI thread. A host that drove the loop from another thread would need locking, and in a
+ * JVM-only source set, since common code has no `synchronized`.
  */
 class PointerTouchHandler(
     /**
      * When true, pointer motion counts as a drag even with no button held.
      *
      * Touch screens only report a position while a finger is down, so the game steers on
-     * TOUCH_DRAGGED. A mouse reports motion continuously, and requiring a held button to fly is
-     * not the desktop idiom - so desktop hosts turn this on and the bat follows the cursor.
+     * TOUCH_DRAGGED. A mouse reports motion continuously, and holding a button to fly is not the
+     * desktop idiom, so desktop hosts turn this on and the bat follows the cursor.
      */
     private val treatMotionAsDrag: Boolean = false,
 ) : TouchHandler {
@@ -41,9 +38,12 @@ class PointerTouchHandler(
     override var pointerCount = 0
 
     /**
+     * Records one pointer's state and queues the event it amounts to, if any.
+     *
      * @param rawId host pointer id; folded into a bounded slot, so ids need not be small.
-     * @param x/y the pointer in framebuffer pixels, already mapped from the host's view - see
-     *   [FrameFit]. Outside the framebuffer is allowed, over a bar beside it, and passed on as is.
+     * @param x the pointer in framebuffer pixels, already mapped from the host's view; see
+     *   [FrameFit]. A position outside the framebuffer, over a bar beside it, is passed on as is.
+     * @param y as [x].
      * @param canceled the system took the pointer away rather than the finger lifting; see
      *   [Input.TouchEvent.canceled].
      */
@@ -93,8 +93,8 @@ class PointerTouchHandler(
     override fun getTouchY(pointer: Int) = if (pointer !in 0..<MAX_POINTERS) 0 else touchY[pointer]
 
     /**
-     * Consuming read: each event is returned exactly once, then recycled on the next call. A
-     * frame that reads this twice sees an empty list the second time.
+     * Consuming read: each event is returned exactly once and recycled on the next call, so a
+     * second read in the same frame returns an empty list.
      */
     override val touchEvents: List<Input.TouchEvent>
         get() {

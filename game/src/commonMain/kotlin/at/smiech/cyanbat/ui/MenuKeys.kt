@@ -73,10 +73,11 @@ private class MenuHome {
     var requester: FocusRequester? = null
 }
 
+/** The [MenuHome] of the [MenuKeys] around a screen. */
 private val LocalMenuHome = staticCompositionLocalOf { MenuHome() }
 
 /**
- * Lets [content] be worked from a keyboard or a game pad alone: the arrows move a cursor - focus -
+ * Lets [content] be worked from a keyboard or a game pad alone: the arrows move a cursor (focus)
  * from control to control, Enter takes the one it is on, and Escape goes back through [onBack],
  * which says whether there was anywhere to go back to.
  *
@@ -204,6 +205,7 @@ private val CURSOR_WIDTH = 3.dp
  */
 @Stable
 internal class CursorMark {
+    /** Whether the cursor is on this control. */
     var isOn by mutableStateOf(false)
         private set
 
@@ -220,6 +222,7 @@ internal class CursorMark {
         if (isOn) BorderStroke(CURSOR_WIDTH, color) else null
 }
 
+/** A [CursorMark] for one control, kept across recompositions. */
 @Composable
 internal fun rememberCursorMark(): CursorMark = remember { CursorMark() }
 

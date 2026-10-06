@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** How [FrameFit] fits the frame to views of every shape. */
 class FrameFitTest {
 
     private fun fitInto(viewWidth: Int, viewHeight: Int) =

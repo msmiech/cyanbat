@@ -73,6 +73,7 @@ def notes(names: str) -> list[int]:
 
 
 def hz(midi: float) -> float:
+    """The frequency of MIDI note [midi], in equal temperament at A440."""
     return 440.0 * 2.0 ** ((midi - 69.0) / 12.0)
 
 
@@ -102,6 +103,7 @@ class Piece:
         return beat * self.samples_per_beat
 
     def seconds(self, beats: float) -> float:
+        """[beats] of this piece, in seconds."""
         return beats * 60.0 / self.bpm
 
     def rng(self, salt: int) -> np.random.Generator:
@@ -109,6 +111,7 @@ class Piece:
         return np.random.default_rng([self.seed, salt])
 
     def loop(self, bars: int) -> "Loop":
+        """A silent loop [bars] bars long, to render parts into."""
         return Loop(self, bars)
 
 
@@ -155,6 +158,7 @@ class Loop:
 
 
 def _response(sos: np.ndarray, length: int) -> np.ndarray:
+    """[sos]'s response at each bin of a real FFT [length] samples long."""
     radians = 2.0 * np.pi * np.fft.rfftfreq(length)
     _, response = signal.sosfreqz(sos, worN=radians)
     return response
@@ -167,14 +171,17 @@ def filter_loop(audio: np.ndarray, sos: np.ndarray) -> np.ndarray:
 
 
 def lowpass(cutoff: float, order: int = 2) -> np.ndarray:
+    """A Butterworth low-pass at [cutoff] Hz, as second-order sections."""
     return signal.butter(order, cutoff, "lowpass", fs=RENDER_RATE, output="sos")
 
 
 def highpass(cutoff: float, order: int = 2) -> np.ndarray:
+    """A Butterworth high-pass at [cutoff] Hz, as second-order sections."""
     return signal.butter(order, cutoff, "highpass", fs=RENDER_RATE, output="sos")
 
 
 def bandpass(low: float, high: float, order: int = 2) -> np.ndarray:
+    """A Butterworth band-pass from [low] to [high] Hz, as second-order sections."""
     return signal.butter(order, [low, high], "bandpass", fs=RENDER_RATE, output="sos")
 
 
@@ -290,6 +297,7 @@ def saturate(audio: np.ndarray, drive: float) -> np.ndarray:
 
 
 def seconds_to_samples(seconds: float) -> int:
+    """[seconds] in samples at [RENDER_RATE], never fewer than one."""
     return max(1, int(round(seconds * RENDER_RATE)))
 
 
@@ -375,6 +383,7 @@ def pitch_curve(f0: float, length: int, *, vibrato_hz: float = 0.0, vibrato_cent
 
 
 def noise(length: int, rng: np.random.Generator) -> np.ndarray:
+    """[length] samples of white noise."""
     return rng.standard_normal(length)
 
 
@@ -504,18 +513,22 @@ def drone(f0: float, length: int, rng: np.random.Generator, shape, *, voices: in
 
 # Harmonic recipes, as functions of the harmonic number.
 def saw(k):
+    """A sawtooth's harmonic [k]: every harmonic, falling as 1/k."""
     return 1.0 / k
 
 
 def square(k):
+    """A square wave's harmonic [k]: odd harmonics only, falling as 1/k."""
     return 1.0 / k if k % 2 else 0.0
 
 
 def triangle(k):
+    """A triangle wave's harmonic [k]: odd harmonics only, falling as 1/k^2 and alternating in sign."""
     return (1.0 / (k * k)) * (1 if (k // 2) % 2 == 0 else -1) if k % 2 else 0.0
 
 
 def pulse(duty):
+    """The harmonics of a pulse wave high for [duty] of each cycle."""
     return lambda k: np.sin(np.pi * k * duty) / k
 
 
@@ -542,10 +555,12 @@ OO = ((320, 70, 1.0), (800, 100, 0.3), (2300, 160, 0.08))
 
 
 def _decay(n: int, seconds: float) -> np.ndarray:
+    """[n] samples of exponential decay, falling by a factor of e every [seconds]."""
     return np.exp(-np.arange(n) / RENDER_RATE / seconds)
 
 
 def _normalized(sound: np.ndarray) -> np.ndarray:
+    """[sound] scaled so its loudest sample is at full scale."""
     return sound / max(np.max(np.abs(sound)), 1e-9)
 
 
@@ -569,6 +584,7 @@ def membrane(f0: float, seconds: float, rng: np.random.Generator, *, bend: float
 
 
 def kick(rng, *, low=46.0, high=150.0, seconds=0.32, velocity=1.0):
+    """A kick drum: a sine swept down from [high] to [low] Hz, with a click on the front. Mono."""
     n = seconds_to_samples(seconds * 2)
     t = np.arange(n) / RENDER_RATE
     freq = low + (high - low) * np.exp(-t / 0.028)
@@ -579,6 +595,7 @@ def kick(rng, *, low=46.0, high=150.0, seconds=0.32, velocity=1.0):
 
 
 def snare(rng, *, tone_hz=190.0, seconds=0.17, brush=0.0, velocity=1.0):
+    """A snare: a two-tone shell under a band-passed rattle, which [brush] softens into a sweep. Mono."""
     n = seconds_to_samples(seconds * 2)
     t = np.arange(n) / RENDER_RATE
     tone = (np.sin(2 * np.pi * tone_hz * t) + 0.5 * np.sin(2 * np.pi * tone_hz * 1.72 * t)) * _decay(n, 0.06)
@@ -590,6 +607,7 @@ def snare(rng, *, tone_hz=190.0, seconds=0.17, brush=0.0, velocity=1.0):
 
 
 def hat(rng, *, open_=False, velocity=1.0):
+    """A hi-hat of high-passed noise, closed or [open_]. Mono."""
     seconds = 0.22 if open_ else 0.035
     n = seconds_to_samples(seconds * 2.5)
     metal = one_shot_filter(noise(n, rng), highpass(6500, order=4)) * _decay(n, seconds)
@@ -597,6 +615,7 @@ def hat(rng, *, open_=False, velocity=1.0):
 
 
 def shaker(rng, *, seconds=0.05, velocity=1.0):
+    """A shaker: band-passed noise with a soft attack. Mono."""
     n = seconds_to_samples(seconds * 3)
     t = np.arange(n) / RENDER_RATE
     grains = one_shot_filter(noise(n, rng), bandpass(3500, 9000))
@@ -632,6 +651,7 @@ def bell(f0: float, rng, *, seconds=1.4, ratios=(1.0, 1.47, 2.09, 2.56, 3.21), v
 
 
 def clap(rng, *, velocity=1.0):
+    """A hand clap: three quick bursts of band-passed noise and a short tail. Mono."""
     n = seconds_to_samples(0.25)
     t = np.arange(n) / RENDER_RATE
     env = np.zeros(n)
@@ -643,6 +663,7 @@ def clap(rng, *, velocity=1.0):
 
 
 def woodblock(f0: float, rng, *, seconds=0.05, velocity=1.0):
+    """A woodblock at [f0]: a sine and a shorter inharmonic partial over a click. Mono."""
     n = seconds_to_samples(seconds * 3)
     t = np.arange(n) / RENDER_RATE
     out = np.sin(2 * np.pi * f0 * t) * _decay(n, seconds) + 0.4 * np.sin(2 * np.pi * f0 * 2.74 * t) * _decay(n, seconds / 3)
@@ -723,7 +744,6 @@ def trap_hat(rng: np.random.Generator, *, open_: bool = False, pitch: float = 1.
     a roll that climbs. Mono."""
     seconds = 0.16 if open_ else 0.022
     n = seconds_to_samples(seconds * 4 + 0.01)
-    t = np.arange(n) / RENDER_RATE
     metal = np.zeros(n)
     for f in _METAL_HZ:
         f *= pitch
@@ -917,6 +937,7 @@ def decode_ima_adpcm(path: pathlib.Path) -> np.ndarray:
 
 
 def _db(x: float) -> str:
+    """[x] in decibels, formatted for a report."""
     return f"{20 * np.log10(max(x, 1e-9)):6.1f} dB"
 
 

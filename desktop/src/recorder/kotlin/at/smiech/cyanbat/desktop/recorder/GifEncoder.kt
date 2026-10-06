@@ -7,14 +7,14 @@ import java.io.OutputStream
  * Writes an animated, endlessly looping GIF of palette-indexed frames.
  *
  * Written by hand rather than through ImageIO because that is where the file size goes. A frame
- * identical to the one before it is not stored at all - the one before it is shown for longer - and
+ * identical to the one before it is not stored at all (the one before is shown for longer), and
  * every other frame after the first is stored as only the rectangle that changed.
  *
  * Inside that rectangle, pixels that did not change can be left transparent, so the frame beneath
  * shows through. That is a large saving over a still overlay and a loss over the scrolling scenery,
  * where nearly every pixel moves and the few that happen to match only break up the runs the
- * compression feeds on. So each frame is compressed a few ways - every unchanged pixel transparent,
- * only long runs of them, none - and whichever comes out smallest is the one written.
+ * compression feeds on. So each frame is compressed a few ways (every unchanged pixel transparent,
+ * only long runs of them, none) and whichever comes out smallest is the one written.
  *
  * Frames index the palette the encoder is made with, which is written once, as the file's global
  * color table, unless they are handed one of their own. A frame on another palette carries it as a
@@ -31,13 +31,20 @@ class GifEncoder(
 ) {
     /** The last frame handed in, held back until the next one says how long it stays up. */
     private var pending: ByteArray? = null
+
+    /** The palette [pending] indexes. */
     private var pendingPalette = palette
+
+    /** How long [pending] stays up so far, in centiseconds. */
     private var pendingDelay = 0
 
     /** What the viewer is looking at before [pending] is drawn over it, or null for nothing. */
     private var shown: ByteArray? = null
+
+    /** The palette [shown] indexes. */
     private var shownPalette = palette
 
+    /** The compressor, kept across frames for its tables. */
     private val lzw = LzwEncoder()
 
     init {
@@ -81,21 +88,14 @@ class GifEncoder(
         out.flush()
     }
 
+    /** Writes [pending], whole or as its changes from [shown]. */
     private fun flushPending() {
         val frame = pending ?: return
         val base = shown
         // An index means another color on another palette, so a frame that changes palettes cannot
         // be told apart from the one before it by its indices; it is written whole.
         if (base == null || pendingPalette !== shownPalette) {
-            writeFrame(
-                0,
-                0,
-                width,
-                height,
-                pendingDelay,
-                useTransparency = false,
-                lzw.encode(frame)
-            )
+            writeFrame(0, 0, width, height, pendingDelay, useTransparency = false, lzw.encode(frame))
         } else {
             writeChanges(frame, base)
         }
@@ -160,6 +160,10 @@ class GifEncoder(
         writeFrame(left, top, boxWidth, boxHeight, pendingDelay, bestTransparent, best!!)
     }
 
+    /**
+     * Writes one frame: its control extension, its image descriptor, its own color table if it is
+     * not on the global one, and [imageData].
+     */
     private fun writeFrame(
         left: Int,
         top: Int,
@@ -201,11 +205,13 @@ class GifEncoder(
         }
     }
 
+    /** Writes [value] as a little-endian 16-bit number, as GIF stores every size and delay. */
     private fun writeShort(value: Int) {
         out.write(value and 0xFF)
         out.write(value shr 8 and 0xFF)
     }
 
+    /** Fails unless [colors] leaves an index free for transparency. */
     private fun requireFits(colors: IntArray) =
         require(colors.size <= MAX_COLORS) { "At most $MAX_COLORS colors, one index is transparency" }
 
@@ -213,11 +219,12 @@ class GifEncoder(
         /** Real colors a palette may hold; the 256th index is spent on transparency. */
         const val MAX_COLORS = 255
 
+        /** Entries in a written color table, the most GIF allows. */
         private const val TABLE_SIZE = 256
 
         /**
          * The shortest run of unchanged pixels each attempt leaves transparent: every one of them,
-         * only runs long enough to compress well, and - past any row's width - none at all.
+         * only runs long enough to compress well, and (past any row's width) none at all.
          */
         private val TRANSPARENT_RUNS = intArrayOf(1, 6, 24, Int.MAX_VALUE)
     }
@@ -227,15 +234,23 @@ class GifEncoder(
  * GIF's variable-width LZW over 8-bit indices, packed into 255-byte sub-blocks.
  *
  * The code width grows when the next free code no longer fits, and the table is cleared once all
- * 4096 codes are spent - the scheme every GIF decoder expects.
+ * 4096 codes are spent: the scheme every GIF decoder expects.
  */
 private class LzwEncoder {
+    /** The string table, open-addressed: each prefix code and symbol, packed into one key. */
     private val keys = IntArray(HASH_SIZE)
+
+    /** The code each of [keys] was given. */
     private val codes = IntArray(HASH_SIZE)
 
+    /** The image data of the frame being encoded. */
     private var out = ByteArrayOutputStream()
+
+    /** The sub-block being filled, and how much of it is. */
     private val block = ByteArray(255)
     private var blockLength = 0
+
+    /** Bits written but not yet a whole byte, low bits first, and how many there are. */
     private var bitBuffer = 0L
     private var bitCount = 0
 
@@ -288,8 +303,10 @@ private class LzwEncoder {
         return out.toByteArray()
     }
 
+    /** Where the search for [key] starts in the table. */
     private fun slotOf(key: Int): Int = (key * HASH_MULTIPLIER) ushr (32 - HASH_BITS)
 
+    /** Appends [code], [size] bits wide, low bits first. */
     private fun writeCode(code: Int, size: Int) {
         bitBuffer = bitBuffer or (code.toLong() shl bitCount)
         bitCount += size
@@ -300,11 +317,13 @@ private class LzwEncoder {
         }
     }
 
+    /** Appends a byte to the sub-block, writing it out once full. */
     private fun writeByte(value: Int) {
         block[blockLength++] = value.toByte()
         if (blockLength == block.size) flushBlock()
     }
 
+    /** Writes out the sub-block, if it holds anything. */
     private fun flushBlock() {
         if (blockLength == 0) return
         out.write(blockLength)
@@ -313,14 +332,20 @@ private class LzwEncoder {
     }
 
     private companion object {
+        /** Bits per pixel index; the codes start a bit wider, to make room for clear and end. */
         const val MIN_CODE_SIZE = 8
+
+        /** The widest code GIF allows, and so how many codes a table holds. */
         const val MAX_CODE_SIZE = 12
         const val MAX_CODES = 1 shl MAX_CODE_SIZE
 
+        /** The hash table's size as a power of two, comfortably more than [MAX_CODES]. */
         const val HASH_BITS = 14
         const val HASH_SIZE = 1 shl HASH_BITS
         const val HASH_MASK = HASH_SIZE - 1
         const val HASH_MULTIPLIER = -0x61c88647 // 0x9E3779B9, Fibonacci hashing
+
+        /** A free slot in [keys]. */
         const val EMPTY = -1
     }
 }

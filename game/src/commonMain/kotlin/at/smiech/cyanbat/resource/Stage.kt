@@ -4,13 +4,14 @@ import at.smiech.engine.Pixmap
 import org.jetbrains.compose.resources.StringResource
 
 /**
- * Everything a stage looks and sounds like. What it *plays* like - its waves and its boss - is
+ * How a stage looks and sounds. How it plays (its waves and boss) is
  * [at.smiech.cyanbat.service.StageDesign], looked up by the same [id].
  *
  * @param id 1-based, and the order stages unlock in.
- * @param name what the stage is called, which the stage select calls it too.
- * @param topObstacles what hangs into the frame from above. Empty for a stage with an open sky,
- *   where only the ground has anything standing on it.
+ * @param name what the stage is called, in the run and on the stage select.
+ * @param backdrop what the stage is flown in front of.
+ * @param topObstacles what hangs into the frame from above. Empty for a stage with an open sky.
+ * @param bottomObstacles what stands on the ground.
  * @param music what the stage plays, as layers the run turns up and down; see [StageMusic].
  * @param enemySheet the sheet every enemy of this stage is drawn from.
  * @param bossSheet the boss's own sheet, for a boss drawn at its own size rather than magnified
@@ -32,22 +33,20 @@ data class Stage(
     val approach: Approach? = null,
 ) {
     /**
-     * How many times of day each obstacle is drawn in, one above the other on its sheet. A stage
-     * whose light changes has to change its scenery's light with it: a rock still lit by noon sun
-     * under a night sky reads as a sticker on the picture.
+     * How many times of day each obstacle is drawn in, stacked on its sheet, so a stage whose light
+     * changes can relight its scenery to match.
      */
     val obstacleKeyframes: Int
         get() = (backdrop as? Backdrop.Sky)?.day?.keyframes?.size ?: 1
 }
 
 /**
- * What a stage's ground turns into on the way to its boss: from [from] of the way through its day, a
- * share of the obstacles that stand on it are drawn from [bottomObstacles] instead of the stage's own,
- * a share that grows to all of them by [until]. The backdrop changes over the same stretch; see
- * [ParallaxLayer.ahead].
+ * What a stage's ground turns into on the way to its boss: from [from] of the way through its day,
+ * a growing share of its ground obstacles is drawn from [bottomObstacles] instead, reaching all of
+ * them by [until]. The backdrop changes over the same stretch; see [ParallaxLayer.ahead].
  *
- * The obstacles keep the stage's footprints, one for one, so the scenery changes and the flying does
- * not.
+ * The replacements keep the originals' footprints one for one, so the scenery
+ * changes and the flying does not.
  */
 class Approach(val from: Float, val until: Float, val bottomObstacles: Array<Pixmap?>) {
     /** How much of the ground has turned by [position], as 0..1. */
@@ -59,8 +58,8 @@ class Approach(val from: Float, val until: Float, val bottomObstacles: Array<Pix
 }
 
 /**
- * The dark a stage is flown in: the light where no other reaches, as the color the frame is multiplied
- * by there, and how much of the light shows in the air; see `LightingSystem`. What gives off light in
- * it, and how much, is the entities' own, set where they are made.
+ * The dark a stage is flown in: the [ambient] light where no other reaches, and how
+ * much light shows in the air ([glow]); see `LightingSystem`. What gives off light
+ * is set on the entities themselves.
  */
 class StageLighting(val ambient: Int, val glow: Float)

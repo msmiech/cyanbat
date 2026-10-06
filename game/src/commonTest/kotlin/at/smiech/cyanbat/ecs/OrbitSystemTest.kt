@@ -14,6 +14,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** How [OrbitSystem] carries the orbs round the bat. */
 class OrbitSystemTest {
 
     private var center: Rect? = Rect.fromLTWH(200f, 150f, 45f, 40f)

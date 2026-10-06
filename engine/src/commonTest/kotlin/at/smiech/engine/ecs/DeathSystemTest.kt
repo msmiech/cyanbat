@@ -1,6 +1,5 @@
 package at.smiech.engine.ecs
 
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
@@ -11,7 +10,6 @@ import kotlin.test.assertTrue
 private class FakeSheet : Pixmap {
     override val width = 225
     override val height = 40
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 

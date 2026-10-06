@@ -19,8 +19,8 @@ import kotlinx.coroutines.launch
 /**
  * [HighscoreStore] backed by Jetpack DataStore, one key per stage.
  *
- * Owns a process-lifetime scope so a save issued as the game screen is being disposed still
- * completes - exactly the runs that earn a highscore are the ones that would otherwise lose it.
+ * Owns a process-lifetime scope, so a save issued as the game screen is disposed still completes:
+ * the runs that earn a highscore are exactly the ones that would otherwise lose it.
  */
 class DataStoreHighscoreStore(
     private val dataStore: DataStore<Preferences>,
@@ -73,9 +73,9 @@ internal object LegacyHighscoreMigration : DataMigration<Preferences> {
  * the jungle, which was stage 2 as the forest, flies first now, and the cave second. A record is a
  * record of a stage, not of a slot in the stage select.
  *
- * Done once, and marked done in [PREFS_KEY_STAGE_ORDER] - a swap run twice would undo itself. A
- * store with nothing in it is marked all the same, so the scores of the stages as they are now are
- * never moved.
+ * Done once, and marked done in [PREFS_KEY_STAGE_ORDER], since a swap run twice would undo itself.
+ * A store with nothing in it is marked all the same, so the scores of the stages as they are now
+ * are never moved.
  */
 internal object StageOrderMigration : DataMigration<Preferences> {
     /** The order with the jungle first. Each later reordering would get its own number. */

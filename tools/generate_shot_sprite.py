@@ -144,7 +144,6 @@ WISP_ALPHA = 96
 # Odd, so the star has a middle pixel to be drawn around.
 IMPACT_FRAME = 21
 IMPACT_CENTER = IMPACT_FRAME // 2
-IMPACT_FRAMES = 6
 TAU = 2.0 * pi
 
 # Frame by frame, from the flash to the last sparks:

@@ -181,9 +181,9 @@ import kotlin.random.Random
 /**
  * One run through one stage.
  *
- * A run is a stage: moving on to the next one builds a fresh screen, which is what resets the score,
- * the bat's experience and its power-ups. Each stage is meant to be beaten from a standing start,
- * however it was reached - through the one before it or straight from the stage select.
+ * Moving on to the next stage builds a fresh screen, which is what resets the score, the bat's
+ * experience and its power-ups, so every stage is beaten from a standing start however it was
+ * reached.
  *
  * @param stageId which stage to fly, 1-based. An id with no stage behind it flies the first.
  */
@@ -192,25 +192,31 @@ class GameScreen(
     private val env: CyanBatEnvironment,
     stageId: Int = 1,
 ) : Screen {
-    var currentStage = env.assets.stage(stageId)
+    /** The stage being flown. */
+    val currentStage = env.assets.stage(stageId)
 
     /** What the run says, in the player's language. Read off the host every time, which may swap it. */
     private val text: GameText get() = env.text
 
+    /** The run's entities and systems. */
     private val world = World()
 
     /** Whether the stage is flown in the dark, where whatever gives off light carries one. */
     private val lit = currentStage.lighting != null
+
+    /** Builds the run's entities. */
     private val factory = EntityFactory(world, lit)
 
     /**
      * Canceled in [dispose], so nothing started here outlives the screen. On the main dispatcher,
-     * which is the thread the game loop runs on, so what a coroutine here writes needs no locking.
+     * the game loop's thread, so what a coroutine here writes needs no locking.
      */
     private val screenScope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
 
+    /** The bat, which lives for the whole run. */
     private val batId: EntityId
 
+    /** The run's score, streak and multiplier; see [ScoreTracker]. */
     private val scoring = ScoreTracker()
 
     /** The burning combo readout in the HUD; see [ComboMeter]. */
@@ -218,13 +224,19 @@ class GameScreen(
 
     /** The highscore of the stage being flown, raised to this run's score whenever it is banked. */
     var highscore: Int = 0
-    var tick = TICK_INITIAL
+        private set
+
+    /** The fixed step the world is advanced by. */
+    private val tick = TICK_INITIAL
+
+    /** Frame time not yet spent on a whole tick. */
     private var tickTime = 0f
 
     /** The difficulty curve of the stage being played; see [StageProgression]. */
     private val progression = StageProgression.forStage(currentStage.id)
 
-    var enmGen = EnemyGenerator(
+    /** Spawns the stage's waves and its boss, and keeps the stage clock. */
+    val enmGen = EnemyGenerator(
         xSpawnPosition = game.frameBufferWidth,
         worldHeight = game.frameBufferHeight,
         factory,
@@ -241,7 +253,9 @@ class GameScreen(
             director?.onBossPhaseChanged()
         },
     )
-    var obsGen = ObstacleGenerator(
+
+    /** Spawns the stage's obstacles. */
+    private val obsGen = ObstacleGenerator(
         worldWidth = game.frameBufferWidth,
         worldHeight = game.frameBufferHeight,
         factory,
@@ -250,9 +264,8 @@ class GameScreen(
     )
 
     /**
-     * The stage's music, opened the first time it is played - which for a run with music turned
-     * off is never, so that run reads no stems at all. Its own, not shared through the assets,
-     * because it goes with the run: disposing the screen disposes it.
+     * The stage's music, opened the first time it plays, so a run with music off reads no stems.
+     * Owned by the run rather than the assets, and disposed with the screen.
      */
     private var music: LayeredMusic? = null
 
@@ -260,8 +273,8 @@ class GameScreen(
     private var director: MusicDirector? = null
 
     /**
-     * The fanfare of a won stage, opened as it is first played; see [GameAssets.VICTORY_MUSIC].
-     * Its own, like [music], and disposed with the screen.
+     * The fanfare of a won stage, opened when it first plays; see [GameAssets.VICTORY_MUSIC]. Owned
+     * and disposed like [music].
      */
     private var fanfare: Music? = null
 
@@ -271,7 +284,10 @@ class GameScreen(
     /** The run's sound effects; see [SoundBoard]. */
     private val sounds = SoundBoard(env.assets.audio.effects) { env.audioSettings.soundsEnabled }
 
+    /** The host's graphics, which every overlay and HUD line is drawn through. */
     private lateinit var g: Graphics
+
+    /** Seconds left of the stage's name across the frame at the start of the run. */
     private var stageNameDisplayTime = 3.0f
 
     /** The wave or boss announcement currently on screen, and what is left of its time. */
@@ -279,9 +295,8 @@ class GameScreen(
     private var bannerTime = 0f
 
     /**
-     * Set when the stage's boss goes down. The run is over, but won rather than lost: it plays on
-     * for [STAGE_COMPLETE_DELAY_SECONDS] (see [playOutVictory]), and then the player reads their
-     * score off a screen they earned.
+     * Set when the stage's boss goes down. The run is won: it plays on for
+     * [STAGE_COMPLETE_DELAY_SECONDS] (see [playOutVictory]) before the overlay shows the score.
      */
     private var stageComplete = false
 
@@ -293,9 +308,9 @@ class GameScreen(
         get() = stageComplete && victorySeconds >= STAGE_COMPLETE_DELAY_SECONDS
 
     /**
-     * Where the boss was when it went down, piece by piece - one piece for a boss that is one
-     * entity, and every one in sight for one with a body - for the aftershocks to go off in. Moved
-     * on with the blasts every tick, since the wreck is in the world, not on the screen.
+     * Where the boss was when it went down, for the aftershocks to go off in: one piece for a boss
+     * that is one entity, every part in sight for one with a body. Drifted with the blasts every
+     * tick, since the wreck is in the world, not on the screen.
      */
     private val wreck = mutableListOf<Rect>()
 
@@ -303,12 +318,8 @@ class GameScreen(
     private var stageCompleteArmingTime = 0f
 
     /**
-     * The stage clock at the moment the run ended, won or lost, which is where the timer stops.
-     * Null while the run is still being flown.
-     *
-     * The clock itself, [EnemyGenerator.elapsedSeconds], is not stopped by a death: the cave carries
-     * on around the bat as it falls. A timer still counting over a dead bat would be timing a run
-     * that is already over.
+     * The stage clock when the run ended, won or lost, where the timer stops; null while the run is
+     * flown. The clock itself, [EnemyGenerator.elapsedSeconds], runs on while the bat falls.
      */
     private var finalStageSeconds: Float? = null
 
@@ -322,10 +333,8 @@ class GameScreen(
     private val random = Random.Default
 
     /**
-     * Level ups owed but not yet spent.
-     *
-     * A count rather than a flag: one kill late in a run can cross two thresholds, and the player
-     * is owed a pick for each. They are handed out one dialog at a time.
+     * Level ups owed but not yet spent. A count, since one kill can cross two thresholds; they are
+     * offered one dialog at a time.
      */
     private var pendingLevelUps = 0
 
@@ -336,9 +345,9 @@ class GameScreen(
     private var offerArmingTime = 0f
 
     /**
-     * Taps on whichever overlay is up - level up, pause, stage complete. One is enough because
-     * only one of them reads the events on any frame (pause, over the level up dialog, reads them
-     * first), and each [TapDetector.reset]s it as it opens.
+     * Taps on whichever overlay is up: level up, pause or stage complete. One detector is enough,
+     * since only one overlay reads the events in a frame (pause first, over the level-up dialog),
+     * and each [TapDetector.reset]s it as it opens.
      */
     private val overlayTaps = TapDetector()
 
@@ -346,8 +355,8 @@ class GameScreen(
     private var regenCarry = 0f
 
     /**
-     * The run's own clock, in ticks flown, which the contact weapons' rehit times are kept on; see
-     * [strike]. Its own rather than the stage clock, which the generator owns.
+     * The run's own clock, in ticks flown, on which the contact weapons' rehit times are kept; see
+     * [strike]. Separate from the stage clock, which the generator owns.
      */
     private var contactClock = 0f
 
@@ -372,22 +381,18 @@ class GameScreen(
     private var paused = false
 
     /**
-     * Time before a tap counts as "resume", in seconds.
-     *
-     * Android's back *gesture* is a swipe from the edge, so the pointer events that pause the
-     * game are followed by the finger lifting. Without this the game would unpause on the tail of
-     * the very gesture that paused it.
+     * Time before a tap counts as "resume", in seconds, so the finger lifting at the end of the
+     * gesture that paused the game does not unpause it.
      */
     private var resumeArmingTime = 0f
 
     init {
         game.graphics?.let { g = it }
 
-        // Setup Systems
-        // A sky that changes with the time of day is the back of the picture, so it goes first:
-        // every system after it draws on top. Its update puts the obstacles in the same light on the
-        // same tick, and reads the stage clock as it stands after the tick before, which is where the
-        // generator leaves it.
+        // The systems, in the order they update and draw.
+        // A sky that changes with the time of day is the back of the picture, so it goes first.
+        // Its update lights the obstacles on the same tick, reading the stage clock as the
+        // generator left it after the tick before.
         val backdrop = currentStage.backdrop
         if (backdrop is Backdrop.Sky) {
             world.addSystem(
@@ -400,51 +405,48 @@ class GameScreen(
             )
         }
         world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight))
-        // Before the movement it feeds: the gravity it adds this tick is the gravity this tick
-        // moves by, rather than arriving one frame late.
+        // Before the movement it feeds, so the gravity it adds moves the bat this
+        // tick, not the next.
         world.addSystem(DeathSystem { dyingId -> shedDeathPuff(dyingId) })
         world.addSystem(MovementSystem())
-        // Straight after the movement that carries a shot into an edge, and well before the
-        // culling that would remove it there.
+        // Straight after the movement that carries a shot into an edge, and before the culling
+        // that would remove it there.
         world.addSystem(BounceSystem(game.frameBufferWidth, game.frameBufferHeight))
-        // After the movement, which a frozen enemy's pace has held still, so the drift with the
-        // scenery is the whole of how it moves; and before the weapons, which its pace holds too.
+        // After the movement, which a frozen enemy's pace holds still, so drifting with the scenery
+        // is all it does; and before the weapons, which its pace holds too.
         world.addSystem(FrostSystem { id -> thaw(id) })
-        // After the movement that carried the bat, so the ring goes round where the bat is now, and
-        // before the collisions, so an orb hits what it is drawn over.
+        // After the bat has moved, so the ring circles where it is now, and before the collisions,
+        // so an orb hits what it is drawn over.
         world.addSystem(orbit)
         world.addSystem(WeaponSystem { shooterId -> fireShot(shooterId) })
         world.addSystem(BackgroundScrollingSystem(game.frameBufferWidth, factory))
         world.addSystem(EnemyBehaviorSystem())
-        // After everything that can set a velocity - the steering, the movement, the bounce, the
-        // enemy patterns - so a shot is drawn pointing the way it is travelling on this frame
-        // rather than the way it was travelling on the last one.
+        // After everything that can set a velocity (steering, movement, bounce, enemy patterns), so
+        // a shot points the way it travels on this frame, not the last.
         world.addSystem(FacingSystem())
         world.addSystem(AnimationSystem())
-        // Before the collisions that arm a flash, so a hit landing this tick gets a full frame lit
-        // rather than being aged down on the very tick it happened.
+        // Before the collisions that arm a flash, so a hit landing this tick is lit for a full
+        // frame rather than aged on the tick it happened.
         world.addSystem(HitFlashSystem())
         world.addSystem(collisions)
-        // After the collisions that land the hits, so the blow that takes something past a mark
-        // shows on the frame it lands - and slows it from the next. The Sand Wyrm's brain reads the
-        // head's row off it later in the same tick, to draw the body from.
+        // After the collisions, so the blow that takes something past a mark shows on the frame it
+        // lands and slows it from the next. The Sand Wyrm's brain reads the head's row later in the
+        // tick, to draw the body from.
         world.addSystem(WoundSystem { id, row -> slowWounded(id, row) })
-        // With the height too: enemy fire is aimed and fanned now, and leaves through the top and
-        // bottom as well as the sides.
+        // With the height too: aimed and fanned enemy fire leaves through the top and bottom as
+        // well as the sides.
         world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight))
-        // The scenery strip of the jungle and the cave, on a pass of its own under every other
-        // sprite: it is a sprite itself, and drawn in one pass with the rest it went down over every
-        // halo, so no aura in either stage ever showed one.
+        // The jungle's and the cave's scenery strip, in a pass of its own under every other sprite:
+        // drawn in one pass with the rest, it covered every halo.
         world.addSystem(RenderSystem(layers = Int.MIN_VALUE until SPRITE_LAYERS_FROM))
-        // Over the scenery and under the sprites, so the halo is light coming off whatever wears it
-        // rather than a wash over it. This is also the pass that advances the aura's clock; see
-        // [AuraSystem.Layer].
+        // Over the scenery and under the sprites, so a halo is light coming off its wearer rather
+        // than a wash over it. This pass also advances the aura's clock; see [AuraSystem.Layer].
         world.addSystem(AuraSystem(AuraSystem.Layer.HALO))
-        // The sprites in two passes, with the dark of a stage flown in the dark between them: under it
-        // the obstacles and everything hostile, as lit as whatever light reaches them; over it the
-        // shots, the bat and the blasts, each a light itself or the heart of one, and as bright as it
-        // is drawn. The dark goes over the scenery and the halos too, and under every effect after
-        // it. In daylight the two passes draw what one would.
+        // The sprites in two passes, with a dark stage's dark between them: under it the obstacles
+        // and everything hostile, lit by whatever reaches them; over it the shots, the bat and the
+        // blasts, which are lights and drawn at full brightness. The dark covers the scenery and
+        // halos too, and lies under every effect after it. In daylight the two passes draw what
+        // one would.
         world.addSystem(RenderSystem(layers = SPRITE_LAYERS_FROM until LIGHTS_FROM))
         currentStage.lighting?.let {
             world.addSystem(
@@ -457,16 +459,15 @@ class GameScreen(
             )
         }
         world.addSystem(RenderSystem(layers = LIGHTS_FROM..Int.MAX_VALUE))
-        // Straight after the sprites, so a bubble encloses the enemy it protects rather than being
-        // painted over by it; and before the health bars, which must never be lost behind one.
+        // Straight after the sprites, so a bubble encloses its enemy rather than being painted
+        // over, and before the health bars, which must never be hidden behind one.
         world.addSystem(ShieldSystem())
-        // After the sprites: these four draw on top of the run rather than into it. The wake goes
-        // first of them, so the bar and the damage numbers stay legible over it. The arcs go over
-        // the wake and under the bar, which is the one thing that must never be lost behind an
-        // effect - a player who cannot read their own health cannot play the fight.
+        // After the sprites, these draw over the run. The wake goes first, so the health bars and
+        // damage numbers stay legible over it; the arcs go over the wake and under the bar, which
+        // no effect may hide.
         world.addSystem(TrailSystem { emitterId -> shedTrail(emitterId) })
-        // Over the wake, and in the cave over the dark: a beam is light. Its update needs nothing of
-        // the tick's but where things are, so it can fire from here.
+        // Over the wake, and in the cave over the dark, since a beam is light. Its update needs
+        // only where things are, so it can fire from here.
         world.addSystem(frostBeam)
         world.addSystem(AuraSystem(AuraSystem.Layer.ARCS))
         world.addSystem(HealthBarSystem(game.frameBufferHeight))
@@ -479,10 +480,10 @@ class GameScreen(
         batId = factory.createBat(
             x = (game.frameBufferWidth / 3).toFloat(),
             y = (game.frameBufferHeight / 2).toFloat(),
-            width = 45f,
+            width = BAT_FRAME_WIDTH.toFloat(),
             pixmap = env.assets.graphics.bat,
-            // From the loadout rather than the constant, so the bat is built from the same stats
-            // the power-ups go on to change and the two can never start out disagreeing.
+            // From the loadout rather than the constant, so the bat starts from the stats the
+            // power-ups change.
             shotIntervalSeconds = loadout.shotIntervalSeconds,
         )
 
@@ -498,22 +499,20 @@ class GameScreen(
         Day.position(enmGen.elapsedSeconds, progression.bossTimeSeconds)
 
     /**
-     * Spawns a shot at the shooter's leading edge, centered on it vertically.
+     * Fires [shooterId]'s weapon: a shot, or the bat's fan of them, from its leading edge and
+     * centered on it vertically, or an enemy gun's next [Volley] (see [fireVolley]).
      *
-     * Which edge leads depends on who is firing: the bat shoots to the right and the boss back to
-     * the left, so each shot leaves from the side it travels toward rather than through the
-     * sprite that fired it. A shot carries its shooter's damage, which is how the boss hits harder
-     * at range than anything else in the stage does on contact.
+     * The bat shoots right and enemies shoot left, so each shot leaves from the side it travels
+     * toward rather than through the shooter. A shot carries its shooter's damage.
      */
     private fun fireShot(shooterId: EntityId) {
-        // Once the stage is won nothing fires. Nothing hostile is left to fire or to be fired at,
-        // and the bat's gun going on under the fanfare would be a sound with no purpose.
+        // Nothing fires once the stage is won: nothing hostile is left, and the bat's gun would
+        // only be noise under the fanfare.
         if (stageComplete) return
         val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
         val isPlayer = world.hasComponent(shooterId, PlayerControlComponent::class)
-        // An enemy holds its fire until it is on screen. A volley fired from past the right edge
-        // would arrive out of nowhere, and nothing the player could see would have warned them -
-        // and nor would one from under the sand, where an elite wyrmling cruises in armed.
+        // An enemy holds its fire until it is on screen, so no shot arrives unwarned from past the
+        // right edge, or from under the sand, where an elite wyrmling cruises in armed.
         if (!isPlayer && !isOnScreen(transform.rect)) return
         val gun = if (isPlayer) null else world.getComponent(shooterId, GunComponent::class)
         if (gun != null) {
@@ -521,12 +520,11 @@ class GameScreen(
             return
         }
         val shot = env.assets.graphics.shot
-        // The sheet's own width is every colorway laid side by side, so a shot is positioned and
-        // sized by one frame of it rather than by the pixmap.
+        // The sheet lays every colorway side by side, so a shot is placed and sized by one frame of
+        // it, not by the pixmap.
         val x = if (isPlayer) transform.rect.right else transform.rect.left - SHOT_FRAME_WIDTH
         val y = transform.rect.centerY - shot.height / 2f
-        // Read off the shooter, so a bolt is the color of whatever fired it. The bat has no such
-        // component and falls through to its own cyan.
+        // A bolt takes its shooter's color; the bat has no style and falls back to its own cyan.
         val variant = world.getComponent(shooterId, ProjectileStyleComponent::class)?.variant
             ?: PLAYER_SHOT_VARIANT
         // The bat's damage is a run stat the power-ups raise; everything else deals what it was
@@ -534,9 +532,8 @@ class GameScreen(
         val damage = if (isPlayer) loadout.shotDamage else damageOf(shooterId)
 
         for (angle in spreadAngles(if (isPlayer) 1 + loadout.extraShots else 1)) {
-            // Rolled per projectile rather than per volley, so a wider fan really is more chances
-            // at one. The bat only: a critical is a reward, and one landing on the player from
-            // off screen would just be a death they cannot account for.
+            // Rolled per projectile, so a wider fan is more chances at one. The bat's shots only: a
+            // critical is a reward, not a death the player cannot account for.
             val critical = isPlayer && random.nextFloat() < loadout.criticalChance
 
             factory.createShot(
@@ -550,35 +547,31 @@ class GameScreen(
                 critical = critical,
                 variant = variant,
                 angleDegrees = angle,
-                // Piercing and ricochet are the bat's alone. An enemy shot that came back off a
-                // wall would be a hazard the player has no way to read or answer.
+                // Piercing and ricochet are the bat's alone: an enemy shot coming back off a wall
+                // would be a hazard the player cannot read.
                 pierce = if (isPlayer) loadout.shotPierce else 0,
                 bounce = if (isPlayer) loadout.shotBounce else 0,
             )
         }
 
-        // Once per volley, not once per shot: a spread is one pull of the trigger, and playing it
-        // per projectile would make a five-way fan five times as loud as a single shot. An enemy's
-        // gun has a voice of its own, darker and well under the bat's, so the gun the player is
-        // operating is still the one they hear.
+        // Once per volley, not per shot: a fan is one pull of the trigger. Enemy guns have a
+        // darker, quieter voice, so the player's own gun is still the one they hear.
         sounds.play(if (isPlayer) SoundEffect.SHOT else SoundEffect.ENEMY_SHOT)
     }
 
     /**
-     * Wholly inside the frame across, and with its middle inside it from top to bottom. Looser up
-     * and down, because a swarm or a diver routinely dips part of itself past the top or the bottom
-     * and is still plainly there; what is ruled out is firing from where nothing can be seen.
+     * Whether [rect] is wholly inside the frame across, with its middle inside it top to bottom.
+     * Looser vertically, because swarms and divers routinely dip past the top or bottom while
+     * plainly in view.
      */
     private fun isOnScreen(rect: Rect): Boolean =
         rect.left >= 0f && rect.right <= game.frameBufferWidth &&
                 rect.centerY >= 0f && rect.centerY <= game.frameBufferHeight
 
     /**
-     * One pull of an enemy's trigger: whatever [gun]'s next [Volley] is, in the shooter's color
-     * and at its damage.
-     *
-     * Everything but a straight bolt leaves from the shooter's center, because a fan or a ring
-     * spreads out from a point and a straight bolt from the edge it is travelling toward.
+     * One pull of an enemy's trigger: [gun]'s next [Volley], in the shooter's color and at its
+     * damage. A straight bolt leaves from the edge it travels toward; a fan or a ring spreads from
+     * the shooter's center.
      */
     private fun fireVolley(shooterId: EntityId, rect: Rect, gun: GunComponent) {
         val volley = gun.pull()
@@ -605,13 +598,13 @@ class GameScreen(
                 speed = volley.speed,
             )
         }
-        // Once for the volley, however many shots are in it, as for a straight bolt.
+        // Once per volley, however many shots it holds.
         sounds.play(SoundEffect.ENEMY_SHOT)
     }
 
     /**
-     * The headings of one enemy volley, in the same terms [EntityFactory.createShot] takes: degrees
-     * off straight ahead - which for an enemy is to the left - positive downwards.
+     * The headings of an enemy volley, as [EntityFactory.createShot] takes them: degrees off
+     * straight ahead (to the left, for an enemy), positive downward.
      */
     private fun volleyAngles(volley: Volley, gun: GunComponent, rect: Rect): List<Float> =
         when (volley.pattern) {
@@ -626,8 +619,8 @@ class GameScreen(
             ShotPattern.RADIAL -> {
                 val step = 360f / volley.count
                 val start = gun.spin
-                // Half a step round each time, so the lanes one ring leaves open are the ones the
-                // next ring closes.
+                // Turned half a step each ring, so the next ring closes the lanes this one leaves
+                // open.
                 gun.spin = (gun.spin + step / 2f) % 360f
                 List(volley.count) { start + it * step }
             }
@@ -635,9 +628,7 @@ class GameScreen(
 
     /**
      * The heading from [rect]'s center to the bat's, or straight ahead with no bat to aim at.
-     *
-     * Aimed where the bat *is*, not where it is going: leading the target would make a moving
-     * player unable to dodge by moving, which is the one thing a player can always do.
+     * Aimed where the bat is, not where it is going, so moving always dodges.
      */
     private fun aimAt(rect: Rect): Float {
         val health = world.getComponent(batId, HealthComponent::class)
@@ -650,10 +641,8 @@ class GameScreen(
     }
 
     /**
-     * Sheds one segment of the bat's wake, just off the back of it.
-     *
-     * Centered on the lower half of the sprite rather than sitting under it: the bat's tail is the
-     * lower band of the frame, and a wake off its belly would read as coming from the health bar instead.
+     * Sheds one segment of the bat's wake, just off its back: centered on the sprite's lower half,
+     * where the tail is, since a wake off its belly would seem to come from the health bar.
      */
     private fun shedTrail(emitterId: EntityId) {
         val rect = world.getComponent(emitterId, TransformComponent::class)?.rect ?: return
@@ -664,42 +653,41 @@ class GameScreen(
             y = rect.centerY + height / 2f,
             width = width,
             height = height,
-            // Charged Trail lengthens the wake and makes it a weapon. A segment keeps what it was
-            // shed as, so the wake turns over to a new pick within its own length.
+            // Charged Trail lengthens the wake and arms it. A segment keeps what it was shed as, so
+            // a new pick spreads down the wake within its length.
             seconds = loadout.wakeSeconds,
             charged = loadout.wakeLevel > 0,
         )
     }
 
+    /** Resolves one overlapping pair from the collision pass, which reports it in either order. */
     private fun handleCollision(id1: EntityId, id2: EntityId) {
         val group1 = collisionGroupOf(id1)
         val group2 = collisionGroupOf(id2)
-        // Only ever met by an enemy - see CollisionGroup.PLAYER_CONTACT - and on rules of its own.
+        // Contact weapons only ever meet enemies (see CollisionGroup.PLAYER_CONTACT), and land by
+        // rules of their own.
         if (group1 == CollisionGroup.PLAYER_CONTACT) return strike(id1, id2)
         if (group2 == CollisionGroup.PLAYER_CONTACT) return strike(id2, id1)
-        // Something frozen is harmless: the bat flies through it as through nothing. Nor does the bat
-        // wear it down on the way, or a frozen swarm would be a row of free kills for anyone flying
-        // along it. Its shots, its orbs and its wake still hurt it.
+        // A frozen enemy is harmless: the bat passes through it, and does not wear
+        // it down either, or a frozen swarm would be a row of free kills. The bat's
+        // shots, orbs and wake still hurt it.
         if (isBatMeetingFrost(group1, id2) || isBatMeetingFrost(group2, id1)) return
-        // Read up front: killing the boss clears it from the generator, and this pass still has to
-        // know which of the two it was looking at.
+        // Read first: killing the boss clears it from the generator, and the kill below still has
+        // to know it was the boss.
         val bossId = enmGen.bossId
 
-        // Resolved before anything is hurt: a shot that has already struck this enemy is not
-        // colliding with it any more, however many frames the two spend overlapping - or, for a
-        // boss's body, however many of its parts the shot is touching. Without this the pair would
-        // re-hit every frame, spending the pierce and killing the enemy several times over.
+        // Before anything is hurt: a shot that has already struck this enemy, or this boss through
+        // any of its parts, is done with it however long they overlap. Otherwise the pair would
+        // re-hit every frame, spending pierce and killing the enemy over and over.
         if (hasAlreadyStruck(id1, id2) || hasAlreadyStruck(id2, id1)) return
 
-        // Both read before either side takes its hit: an entity that dies here still lands the
-        // blow it arrived with, and reading afterwards would give the survivor a free pass.
+        // Both read before either takes its hit, so an entity that dies here still lands its blow.
         val damage1 = damageOf(id1)
         val damage2 = damageOf(id2)
         val died1 = damage(id1, damage2, dealtBy = id2)
         val died2 = damage(id2, damage1, dealtBy = id1)
 
-        // A kill scores when the enemy actually dies rather than on every shot that lands: past
-        // the opening wave they take more than one.
+        // A kill scores when the enemy dies, not on every shot that lands.
         if (isEnemyShotDown(group1, group2)) {
             val enemyDied = if (group1 == CollisionGroup.ENEMY) died1 else died2
             if (enemyDied) registerKill(if (group1 == CollisionGroup.ENEMY) id1 else id2, bossId)
@@ -707,8 +695,8 @@ class GameScreen(
     }
 
     /**
-     * Scores [enemyId] going down to the bat's weapons: a kill to the streak, and its wave's worth of
-     * experience - an elite several times both.
+     * Scores [enemyId] going down to the bat's weapons: a kill to the streak, and its wave's worth
+     * of experience, an elite several times both.
      *
      * @param bossId the boss as it was before the blow landed: killing it clears it from the
      *   generator, and this still has to know it was the boss.
@@ -716,21 +704,20 @@ class GameScreen(
     private fun registerKill(enemyId: EntityId, bossId: EntityId?) {
         val elite = world.hasComponent(enemyId, EliteComponent::class)
         scoring.registerEnemyDestroyed(elite)
-        // The boss is banked by completeStage, which knows it was the boss - and a part of its body
-        // going down is the boss going down. Everything else is worth what its wave is worth, and an
-        // elite several times that.
+        // The boss, or a part of its body, is banked by completeStage. Everything else is worth its
+        // wave's experience, an elite several times that.
         if (enemyId != bossId && !isBossPart(enemyId)) {
             awardExperience(PlayerProgress.experienceForKill(enmGen.currentWave.index, elite))
         }
     }
 
     /**
-     * One of the bat's contact weapons - an orb, a segment of its charged wake - touching [enemyId].
+     * One of the bat's contact weapons (an orb, or a segment of the charged wake) touching
+     * [enemyId]. Never spent, and nothing hurts it back.
      *
-     * Not spent, and nothing hurts it back. It lands at most once a rehit time on the same target,
-     * however many ticks the two spend overlapping and however many parts of it are touching; see
-     * [ContactCooldownComponent]. A part of a boss's body is the boss, so a wake the Sand Wyrm pours
-     * through lands on it once, not once a plate.
+     * It lands at most once per rehit time on a target, however long they overlap and however
+     * many parts it touches; see [ContactCooldownComponent]. A boss part counts as its boss, so a
+     * wake the Sand Wyrm pours through lands once, not once a plate.
      */
     private fun strike(weaponId: EntityId, enemyId: EntityId) {
         val weapon = world.getComponent(weaponId, ContactWeaponComponent::class)?.weapon ?: return
@@ -752,7 +739,7 @@ class GameScreen(
 
     /**
      * Whether a segment of the charged wake still shocks: not once it has faded past
-     * [WAKE_HARMLESS_FROM] of its life, where it is too faint for the player to see it doing anything.
+     * [WAKE_HARMLESS_FROM] of its life, too faint to be seen doing anything.
      */
     private fun stillCharged(segmentId: EntityId): Boolean {
         val trail = world.getComponent(segmentId, TrailComponent::class) ?: return false
@@ -770,10 +757,8 @@ class GameScreen(
     }
 
     /**
-     * Banks [amount] of experience and queues a power-up pick for every level it bought.
-     *
-     * Queued rather than shown, because this runs from inside a world update: the dialog goes up
-     * on the next frame, once the tick that earned it has finished resolving.
+     * Banks [amount] of experience and queues a power-up pick for every level it buys. Queued,
+     * because this runs inside a world update; the dialog opens next frame, once the tick resolves.
      */
     private fun awardExperience(amount: Int) {
         pendingLevelUps += progress.award((amount * loadout.experienceMultiplier).roundToInt())
@@ -781,16 +766,12 @@ class GameScreen(
     }
 
     /**
-     * Puts the bat's aura where its level says it should be.
+     * Sets the bat's aura from its level: the glow from [PlayerProgress.auraIntensity] and the tier
+     * from [PlayerProgress.auraTier]. Called on every award, not only on a level up, so the two
+     * never disagree.
      *
-     * Called on every award rather than only on a level up, because the two dials it sets move on
-     * different schedules and only one of them is a level: the glow is read straight off
-     * [PlayerProgress.level] and the tier off the same number divided down. Setting both in one
-     * place is what keeps them from ever disagreeing.
-     *
-     * Crossing a tier is the moment the effect is built around - more sparks, another arc - so it
-     * gets a flare and a sound. Compared rather than counted, so nothing is owed if two tiers are
-     * crossed at once by a single late kill.
+     * Crossing a tier (more sparks, another arc) gets a flare and a sound. Compared rather than
+     * counted, so two tiers crossed by one kill flare once.
      */
     private fun syncAura() {
         val aura = world.getComponent(batId, AuraComponent::class) ?: return
@@ -804,45 +785,40 @@ class GameScreen(
     }
 
     /**
-     * True when this pair is one of the player's shots meeting an enemy, in either order - the
-     * collision system reports pairs by entity id, not by role.
-     *
-     * Obstacles deliberately do not count: they are scenery a shot happens to clear, not a kill.
+     * True when this pair is one of the bat's shots meeting an enemy, in either order. Obstacles do
+     * not count: a shot clearing scenery is not a kill.
      */
     private fun isEnemyShotDown(group1: CollisionGroup?, group2: CollisionGroup?): Boolean =
-        setOf(group1, group2) == setOf(CollisionGroup.PLAYER_PROJECTILE, CollisionGroup.ENEMY)
+        (group1 == CollisionGroup.PLAYER_PROJECTILE && group2 == CollisionGroup.ENEMY) ||
+                (group1 == CollisionGroup.ENEMY && group2 == CollisionGroup.PLAYER_PROJECTILE)
 
+    /** [id]'s collision group, or null for something that collides with nothing. */
     private fun collisionGroupOf(id: EntityId): CollisionGroup? =
         world.getComponent(id, CollisionComponent::class)?.group
 
     /**
-     * What [id] takes off whatever it runs into.
-     *
-     * Anything spawned by a wave carries its own [DamageComponent]; the fallback is for the
-     * entities whose damage never varies - the bat itself, and the obstacles bolted to the cave.
+     * What [id] deals to whatever it runs into. Everything a wave spawns carries a
+     * [DamageComponent]; the fallback covers what never varies: the bat itself and the obstacles.
      */
     private fun damageOf(id: EntityId): Int =
         world.getComponent(id, DamageComponent::class)?.amount ?: DAMAGE_PER_HIT
 
     /**
-     * True when [id] is carrying a critical blow.
-     *
-     * Anything without a [DamageComponent] - the bat itself, an obstacle - is never critical, so
-     * ramming an enemy stays an ordinary hit however hard the run has made the bat.
+     * Whether [id] carries a critical blow. Anything without a [DamageComponent] (the bat, an
+     * obstacle) never does, so ramming an enemy stays an ordinary hit.
      */
     private fun isCritical(id: EntityId): Boolean =
         world.getComponent(id, DamageComponent::class)?.isCritical == true
 
     /**
-     * True when [shotId] has already struck [targetId] and has nothing more to land on it, and false
-     * for everything else - including the first meeting, which it records on the way.
+     * True when [shotId] has already struck [targetId] and has nothing more to land on it; false
+     * otherwise, including on the first meeting, which it records.
      *
-     * A piercing shot strikes an enemy once and goes on through it, for however many frames the two
-     * overlap. A boss's body is one enemy in many parts, and any of the bat's shots strikes it once,
-     * for one pierce, however many of its parts it touches and for however many ticks. The body
-     * bunched up as it breaches or rears puts several parts under one shot, and a shot spent on the
-     * first of them is still in the collision pass until the tick's removals are finalized: landing
-     * once a part, one fan of shots took 900 off the Sand Wyrm's bar in a single tick.
+     * A piercing shot strikes an enemy once and passes through, however many frames they overlap.
+     * A boss's body is one enemy in many parts, and a shot strikes it once, for one pierce, however
+     * many parts it touches. A body bunched up as it breaches or rears puts several parts under one
+     * shot, and a shot spent on the first is still in the pass until the tick's removals are
+     * finalized, so without this a single fan would land once per part.
      */
     private fun hasAlreadyStruck(shotId: EntityId, targetId: EntityId): Boolean {
         if (collisionGroupOf(targetId) != CollisionGroup.ENEMY) return false
@@ -851,9 +827,9 @@ class GameScreen(
 
         if (collisionGroupOf(shotId) != CollisionGroup.PLAYER_PROJECTILE) return false
         val bossId = enmGen.bossId ?: return false
-        // Where it touches the head as well, it is left for the head to take, whole, whether the pass
-        // has come to the head yet or not: the head is drawn over the body and is the place to aim,
-        // and the pass hands over the body first, since it was made first.
+        // Touching the head as well, it is left for the head to take whole, whether or not the pass
+        // has reached the head yet: the head is drawn over the body and is the place to aim, and
+        // the pass reports the body first, since it was made first.
         if (targetId != bossId && collisions.overlaps(shotId, bossId)) return true
         // Spent on another part earlier in this pass, and still in it.
         if (world.getComponent(shotId, HealthComponent::class)?.alive == false) return true
@@ -861,35 +837,30 @@ class GameScreen(
     }
 
     /**
-     * Hurts [id] for [amount], shows what it cost over an enemy that took the hit, and blows up
-     * whatever the hit destroyed.
+     * Hurts [id] for [amount], shows the cost over an enemy that took the hit, and blows up
+     * whatever the hit destroyed. Only enemies get a number: an obstacle is scenery, and the bat's
+     * loss shows on its health bar.
      *
-     * Only enemies get a number. An obstacle is scenery being cleared rather than a target, and
-     * what the bat itself has lost is already there to read on its health bar.
-     *
-     * @param dealtBy the entity on the other side of the collision, which is what decides whether
-     *   a piercing shot spends a pierce here or is spent itself.
-     * @return true if this hit is what killed it.
+     * @param dealtBy the other side of the collision, which decides whether a piercing shot spends
+     *   a pierce here or is spent itself.
+     * @return true if this hit killed it.
      */
     private fun damage(id: EntityId, amount: Int, dealtBy: EntityId): Boolean {
-        // A shot with pierce left goes through rather than being stopped. Only enemies count:
-        // scenery is what a shot is stopped by however sharp it has been made. It struck all the same,
-        // and leaves its hit where it went in.
+        // A shot with pierce left passes through an enemy, leaving its hit where it went in.
+        // Scenery stops any shot.
         val pierce = world.getComponent(id, PierceComponent::class)
         if (pierce != null && collisionGroupOf(dealtBy) == CollisionGroup.ENEMY && pierce.spend()) {
             leaveHit(id)
             return false
         }
 
-        // Only the bat's weapons wear a boss down; the bat flying into one lands nothing. Its body
-        // meeting the bat is the boss's attack, and the bat takes a hit from it once a mercy window,
-        // where every tick of the overlap - part by part, for a boss with a body - would otherwise
-        // hand the boss one: a bat held on the Caco Imp took some 1,800 off its bar a second.
+        // Only the bat's weapons wear a boss down. The bat touching one is the boss's attack; the
+        // boss has no mercy window, so ramming would hurt it every tick of the overlap, and once a
+        // part for a boss with a body.
         val part = world.getComponent(id, BossPartComponent::class)
         if ((part != null || id == enmGen.bossId) && !isBatsWeapon(dealtBy)) return false
-        // A shot that hits a part of a boss's body lands on the boss, and is shown - number and
-        // flash - on the part it hit, which is where the player was aiming; so does an orb or the
-        // wake. See [BossPartComponent].
+        // A hit on a boss part lands on the boss but shows (number and flash) on the part, where
+        // the player aimed; see [BossPartComponent].
         val target = if (part != null) enmGen.bossId ?: return false else id
         // A plate is armor and passes on only its share; see [BossPartComponent.share].
         val landing =
@@ -899,33 +870,31 @@ class GameScreen(
 
         val dealt = applyDamage(target, landing)
         if (dealt > 0 && collisionGroupOf(id) == CollisionGroup.ENEMY) {
-            // Read off whatever landed the blow, not off the amount: a crit is a property of the
-            // shot, and comparing the number against some threshold would call a heavily upgraded
-            // ordinary shot critical.
+            // Read off the blow, not the amount, which a heavily upgraded ordinary shot can match.
             showDamageText(id, dealt, critical = isCritical(dealtBy))
             lightUp(id)
         }
 
         val died = dealt > 0 && world.getComponent(target, HealthComponent::class)?.alive == false
         if (died) {
-            // What is left behind depends on what died; see [burst], which is also what decides
-            // that most things leave nothing at all.
+            // What is left behind depends on what died; see [burst].
             burst(target)
         } else if (dealt > 0 && isBatsWeapon(dealtBy)) {
-            // A shot that lands is heard landing, in an enemy or in a rock it is wearing down, and so
-            // is an orb or the wake. One that kills is heard in what it killed instead.
+            // A hit from the bat's weapons is heard landing, on an enemy or a rock; a killing one
+            // is heard in what it killed instead.
             sounds.play(SoundEffect.HIT)
         }
         return died
     }
 
+    /** Whether [id] belongs to a boss with a body, its head included; see [BossPartComponent]. */
     private fun isBossPart(id: EntityId): Boolean = world.hasComponent(id, BossPartComponent::class)
 
     /**
-     * Lets [id]'s shield take a hit of [amount], if it has one up, and says so over the enemy in
-     * the shield's own color - so a player can see their shot was spent on the bubble, not wasted.
+     * Lets [id]'s shield take a hit of [amount], if it is up, and shows the amount in the shield's
+     * color, so the player sees the shot was spent on the bubble.
      *
-     * @return true when the bubble took the hit, and nothing gets through to the enemy inside.
+     * @return true when the bubble took the hit and nothing reaches the enemy inside.
      */
     private fun absorbedByShield(id: EntityId, amount: Int): Boolean {
         if (amount <= 0 || collisionGroupOf(id) != CollisionGroup.ENEMY) return false
@@ -933,8 +902,7 @@ class GameScreen(
         val shield = world.getComponent(id, ShieldComponent::class) ?: return false
         if (!shield.absorb(amount)) return false
 
-        // A ping rather than a hit's thump, so the player hears as well as sees that nothing got
-        // through.
+        // A ping rather than a thump, so the player hears that nothing got through.
         sounds.play(SoundEffect.SHIELD_HIT)
         val rect = world.getComponent(id, TransformComponent::class)?.rect ?: return true
         factory.createDamageText(rect.left, rect.centerY, amount, color = shield.color)
@@ -946,14 +914,12 @@ class GameScreen(
         val rect = world.getComponent(id, TransformComponent::class)?.rect ?: return
         val graphics = env.assets.graphics
 
-        // What died decides what is left behind, and the two are deliberately different events.
-        // An enemy burns; a spire of limestone breaks. Sharing one effect between them said the
-        // obstacle had been detonated, in a cave where nothing is flammable.
+        // What died decides what is left behind: an enemy burns, a limestone spire breaks. One
+        // shared effect made obstacles look detonated in a cave where nothing burns.
         //
-        // Nothing else leaves a blast. A blast on every shot that lands would bury a tough enemy
-        // behind its own hit effects, and the bat's death has an animation of its own. A spent shot
-        // leaves its hit, a spark much smaller than a blast - and in the dark a flare of light, the
-        // moment the player sees what it struck.
+        // Nothing else leaves a blast: one per landed shot would bury a tough enemy in hit effects,
+        // and the bat's death has its own animation. A spent shot leaves its hit, a small spark,
+        // and in the dark a flare of light that shows what it struck.
         val (pixmap, spawn, sound) = when (collisionGroupOf(id)) {
             CollisionGroup.ENEMY ->
                 Triple(graphics.explosion, factory::createExplosion, SoundEffect.ENEMY_DEATH)
@@ -969,21 +935,20 @@ class GameScreen(
             else -> return
         }
 
-        // Never smaller than the artwork was drawn: an ordinary enemy keeps the blast it always
-        // had, and only something bigger than one scales the effect up.
+        // Never smaller than the art: only something bigger than an ordinary enemy scales it up.
         spawn(rect.centerX, rect.centerY, pixmap, (rect.height / pixmap.height).coerceAtLeast(1f))
 
-        // Not once the stage is won. The boss's own blast was played as it went down, and it is
-        // the sound of the boss and of everything that goes up with it; see [completeStage].
+        // Silent once the stage is won: the boss's blast, played as it fell, covers everything
+        // going up with it; see [completeStage].
         if (!stageComplete) sounds.play(sound)
     }
 
     /**
-     * The hit [shotId] leaves where it struck, in its own colorway; see [EntityFactory.createImpact].
+     * The hit [shotId] leaves where it struck, in its colorway; see [EntityFactory.createImpact].
      *
-     * At its nose rather than its middle: half a bolt back from where it struck, the spark went off
-     * inside the shot, short of what it hit. The nose is found along the way the shot was going, since
-     * a shot flies at every angle and a bounced one comes back the way it went.
+     * At its nose rather than its middle, where the spark went off inside the shot, short of what
+     * it hit. The nose is found along the shot's heading, since shots fly at every angle and
+     * bounced ones come back.
      */
     private fun leaveHit(shotId: EntityId) {
         val rect = world.getComponent(shotId, TransformComponent::class)?.rect ?: return
@@ -1002,10 +967,9 @@ class GameScreen(
     }
 
     /**
-     * Takes [amount] off [targetId]'s health and kills it at zero, returning what actually landed.
-     *
-     * Nothing lands on something with no health to lose, on something already dead, or on a player
-     * still inside the cooldown that follows their last hit - or on one who has won the stage.
+     * Takes [amount] off [targetId]'s health, killing it at zero, and returns what landed. Nothing
+     * lands on something without health or already dead, nor on a bat inside its mercy window or
+     * one that has won the stage.
      */
     private fun applyDamage(targetId: EntityId, amount: Int): Int {
         val health = world.getComponent(targetId, HealthComponent::class) ?: return 0
@@ -1013,28 +977,25 @@ class GameScreen(
 
         var incoming = amount
 
-        // The bat is the only entity with a cooldown: without one a single obstacle would strip the
-        // whole bar over the frames the two sprites spend overlapping. How long that cooldown runs
-        // and how much of the hit gets through are both run stats the power-ups raise.
+        // Only the bat has a cooldown; without it one obstacle would strip the
+        // whole bar while the two overlap. Its length, and how much of a hit gets
+        // through, are stats the power-ups raise.
         val control = world.getComponent(targetId, PlayerControlComponent::class)
         if (control != null) {
-            // Everything hostile went down with the boss, but not before the end of the tick: the
-            // rest of the collision pass the boss died in still sees it. A stage won is won, and the
-            // bat flies out the seconds after it untouchable.
+            // The hostiles cleared with the boss are still in the rest of that tick's collision
+            // pass; a won stage leaves the bat untouchable.
             if (stageComplete || control.hitCooldown > 0f) return 0
             control.hitCooldown = loadout.hitCooldownSeconds
             scoring.registerPlayerHit()
             director?.onPlayerHit()
 
-            // The flat cut comes off first and the armor scales what survives it, so the two
-            // stack the way a player would expect rather than one swallowing the other. Rounded up
-            // and floored at one: no amount of either can make a hit free, which would leave a run
-            // the player cannot lose.
+            // The flat cut comes off first and armor scales the rest, so the two stack as expected.
+            // Floored at one, so no hit is ever free and a run can always be lost.
             incoming = ((incoming - loadout.flatDamageReduction) * loadout.damageTaken)
                 .roundToInt()
                 .coerceAtLeast(1)
 
-            // Vibrate on hit
+            // Felt as well as seen.
             env.haptics.vibrate(HIT_VIBRATION_MILLIS)
         }
 
@@ -1042,8 +1003,7 @@ class GameScreen(
         val dealt = minOf(incoming, health.hitPoints)
         health.hitPoints -= dealt
         if (health.hitPoints <= 0) {
-            // The damage still landed and is still reported: a revive is the bat surviving a blow
-            // that would have killed it, not the blow never happening.
+            // Still reported: a revive survives the blow rather than undoing it.
             if (control != null && revive(health)) {
                 sounds.play(SoundEffect.BAT_HIT)
                 return dealt
@@ -1064,11 +1024,9 @@ class GameScreen(
     }
 
     /**
-     * Spends a Second Life, if the run has one, putting the bat back on its feet at half a bar.
-     *
-     * Half rather than full because a free death should keep a run alive, not undo the damage that
-     * ended it - and the mercy window is reset alongside, or the same enemy would take the new
-     * health off before the player's hand had moved.
+     * Spends a Second Life, if the run has one, putting the bat back at [REVIVE_HEALTH_FRACTION] of
+     * its bar: enough to keep the run alive without undoing what ended it. The mercy window
+     * restarts too, or the same enemy would take the new health at once.
      */
     private fun revive(health: HealthComponent): Boolean {
         if (!loadout.useRevive()) return false
@@ -1082,13 +1040,9 @@ class GameScreen(
     }
 
     /**
-     * The stage's boss is down, so the stage is over.
-     *
-     * The run stops here rather than rolling on into a sixth minute of enemies: a boss that could
-     * be beaten and then followed by more of the same would not be a boss. Everything hostile goes
-     * down with it, the run plays out a few seconds more - the wreck going up, the fanfare coming in
-     * (see [playOutVictory]) - and then the player reads their total off the overlay and taps out
-     * when they are ready.
+     * The stage's boss is down, so the stage is won. Everything hostile goes down with it, the run
+     * plays on a few seconds (the wreck going up, the fanfare coming in; see [playOutVictory]), and
+     * the overlay then shows the total.
      */
     private fun completeStage() {
         if (stageComplete) return
@@ -1102,35 +1056,34 @@ class GameScreen(
         clearHostiles()
         enmGen.clearBoss()
         scoring.awardStageCleared()
-        // Banked even though the run ends here: the total is what the victory screen reports, and
-        // a boss worth nothing would read as a boss that did not count.
+        // Banked though the run ends here: a boss worth nothing would read as one
+        // that did not count.
         awardExperience(XP_PER_BOSS)
-        // The highscore is not banked yet. This runs partway through a tick, and the score moves
-        // on before the tick is over; update banks it once it is.
-        // Unlocked the moment it is earned, not when the player taps through: a player who quits
-        // from the victory screen has still beaten the stage.
+        // The highscore is banked by update once the tick is over, since the score can still move
+        // within it. The next stage unlocks now, not on tapping through: a player who quits from
+        // the overlay has still won.
         nextStageId?.let { env.stageUnlocks.unlockAsync(it) }
 
-        // The stage's music stops dead on the kill, and the blast fills the silence it leaves. The
-        // victory's fanfare takes over once the blast has had its moment; see [playOutVictory].
+        // The music stops dead on the kill and the blast fills the silence; the fanfare follows
+        // (see [playOutVictory]).
         music?.pause()
         sounds.play(SoundEffect.BOSS_DEATH)
-        // Its name went up as it arrived, and goes up again as it falls - held until the overlay
-        // takes over, so the seconds between are seen to be the victory and not the game hanging.
+        // Its fall is announced and held until the overlay, so the seconds between read as the
+        // victory rather than a hang.
         announce(text[bossFalls()], seconds = STAGE_COMPLETE_DELAY_SECONDS)
     }
 
     /**
-     * A boss with a body goes up all along it, not only where the killing blow landed: every part
-     * bursts where it is and is taken off. Only its brain ever removed them, and the brain goes with
-     * the boss, so this is the one other place that does.
+     * A boss with a body goes up all along it: every part in sight bursts, and
+     * every part is removed. This is the one place besides the boss's brain, which
+     * goes with the boss, that removes them.
      */
     private fun explodeBossBody() {
         for (part in world.query(BossPartComponent::class, TransformComponent::class)) {
-            // The boss itself went up where the killing blow landed, and the health cull takes it.
+            // The head burst where the killing blow landed, and goes with the dead.
             if (part == enmGen.bossId) continue
             val rect = world.getComponent(part, TransformComponent::class)?.rect ?: continue
-            // Only the ones in sight: a part still under the sand has nothing to show for it.
+            // Only parts in sight burst; one under the sand would never be seen.
             if (inSight(rect)) {
                 val blast = env.assets.graphics.explosion
                 factory.createExplosion(
@@ -1146,23 +1099,20 @@ class GameScreen(
     }
 
     /**
-     * Everything hostile goes down with its boss: whatever it called in goes up where it is, and
-     * every shot still in the air is gone. The run plays on for a few seconds after the boss, and
-     * nothing in them should be left to hurt the bat, or to need shooting.
+     * Everything hostile goes down with its boss: whatever it called in bursts
+     * where it is, and every enemy shot is removed, so nothing in the seconds after
+     * can hurt the bat or need shooting.
      */
     private fun clearHostiles() {
         for (id in world.query(CollisionComponent::class, TransformComponent::class)) {
             val group = collisionGroupOf(id)
             if (group == CollisionGroup.ENEMY_PROJECTILE) world.removeEntity(id)
-            // The boss and its body have gone up already, where they were.
+            // The boss and its body have already gone up.
             if (group != CollisionGroup.ENEMY || id == enmGen.bossId || isBossPart(id)) continue
-            // Only what is in sight goes up. A blast off the edge would drift into the frame with
-            // nothing behind it, and one under the sand would never be seen at all.
-            if (world.getComponent(
-                    id,
-                    TransformComponent::class
-                )?.rect?.let(::inSight) == true
-            ) burst(id)
+            // Only what is in sight bursts: a blast off the edge would drift in with nothing behind
+            // it, and one under the sand would never be seen.
+            val rect = world.getComponent(id, TransformComponent::class)?.rect
+            if (rect != null && inSight(rect)) burst(id)
             world.removeEntity(id)
         }
     }
@@ -1185,8 +1135,8 @@ class GameScreen(
     }
 
     /**
-     * The banner the stage's boss goes down under. A whole line of its own rather than its name
-     * with a word put after it, because in some languages the word has to agree with the name.
+     * The banner the stage's boss falls under: a whole line rather than its name plus a word, since
+     * in some languages the word has to agree with the name.
      */
     private fun bossFalls(): StringResource = when (progression.design.boss) {
         BossKind.MOTH_QUEEN -> Res.string.boss_moth_queen_falls
@@ -1223,15 +1173,12 @@ class GameScreen(
     /**
      * Puts the bat into its death throes: the limp sheet, played once, and a tumbling fall.
      *
-     * The sprite and the animation are *replaced* rather than a second entity being spawned in the
-     * bat's place. Everything already watching this entity - the screen's own health and position
-     * checks, the aura, the wake - keeps watching the same one, and each of those systems already
-     * knows to stop when its owner is dead. A stand-in would have meant teaching all of them about
-     * a second bat.
+     * The sprite and animation are replaced rather than a stand-in spawned, so everything watching
+     * this entity (the screen's health and position checks, the aura, the wake) keeps watching it,
+     * and already stops when its owner is dead.
      *
-     * The one-shot animation is why [at.smiech.engine.ecs.LifetimeSystem] has to leave the player
-     * alone when an animation finishes: without that, the bat would be deleted the instant its
-     * death animation ended, halfway through the fall the player is meant to watch.
+     * [LifetimeSystem] leaves the player alone when this one-shot animation finishes; otherwise the
+     * bat would be removed halfway through its fall.
      */
     private fun beginDeath(batId: EntityId) {
         val sprite = world.getComponent(batId, SpriteComponent::class) ?: return
@@ -1262,10 +1209,11 @@ class GameScreen(
                 puffInterval = DEATH_PUFF_INTERVAL_SECONDS,
             ),
         )
-        // Kept off the previous sprite's rotation, which is zero for the bat but would not be for
-        // anything that had been turned before it died.
+        // Carried over from the previous sprite: zero for the bat, but not for anything turned
+        // before it died.
         world.getComponent(batId, SpriteComponent::class)?.rotationDegrees = sprite.rotationDegrees
-        // In the dark, its light goes out as it falls, rather than going over the bottom edge with it.
+        // In the dark, its light fades as it falls rather than dropping off the
+        // bottom edge with it.
         world.getComponent(batId, LightComponent::class)?.let { light ->
             world.addComponent(
                 batId,
@@ -1277,8 +1225,8 @@ class GameScreen(
                 ),
             )
         }
-        // Its orbs go out with it, each in a puff of its own: nothing circles a falling bat, and an
-        // orb left hanging where the ring was would go on hurting whatever flew into it.
+        // Its orbs go out with it, each in a puff: one left hanging would go on hurting whatever
+        // flew into it.
         for (orb in world.query(OrbComponent::class)) {
             world.getComponent(orb, TransformComponent::class)?.rect?.let { rect ->
                 factory.createExplosion(
@@ -1296,8 +1244,7 @@ class GameScreen(
     private fun shedDeathPuff(dyingId: EntityId) {
         val rect = world.getComponent(dyingId, TransformComponent::class)?.rect ?: return
         factory.createExplosion(
-            // Scattered over the sprite rather than centered on it, so the pieces come off the
-            // whole animal instead of pulsing out of one point.
+            // Scattered over the sprite, so the pieces come off the whole animal, not one point.
             centerX = rect.centerX + (random.nextFloat() - 0.5f) * rect.width,
             centerY = rect.centerY + (random.nextFloat() - 0.5f) * rect.height,
             pixmap = env.assets.graphics.explosion,
@@ -1318,17 +1265,11 @@ class GameScreen(
     }
 
     /**
-     * Lights [enemyId] up for [HIT_FLASH_SECONDS], so a hit that lands is visible on the thing it
-     * landed on rather than only in the number floating off it.
+     * Flashes [enemyId] for [HIT_FLASH_SECONDS], so a hit shows on what it landed on, not only in
+     * its number.
      *
-     * Re-armed rather than added twice when the enemy is already lit: a second hit landing mid
-     * flash restarts it, which is what makes sustained fire read as a burst of separate impacts
-     * instead of one continuous glow.
-     *
-     * Fires on any damage an enemy takes, not only on damage from a shot. The alternative was to
-     * light up only for projectiles, which would leave the bat ramming an enemy showing a damage
-     * number and no flash - the two are one piece of feedback, and having them disagree about
-     * whether a hit happened would read as a bug.
+     * An enemy already lit is re-armed, so sustained fire reads as separate impacts rather than one
+     * glow. Fires on any damage, not only shots, so a number never appears without a flash.
      */
     private fun lightUp(enemyId: EntityId) {
         val existing = world.getComponent(enemyId, HitFlashComponent::class)
@@ -1340,12 +1281,9 @@ class GameScreen(
     }
 
     /**
-     * Sets a wounded enemy's pace to what its [row] of wounds leaves it; see [WOUNDED_PACE] and
-     * [WOUNDED_FIRE_RATE].
-     *
-     * Only ordinary enemies carry a pace, so the bat and the bosses go on at full pace however hurt
-     * they look. Called on the way back up a row too, which nothing hostile does yet, so the pace
-     * would follow a heal the way the picture does.
+     * Sets a wounded enemy's pace for its [row] of wounds; see [WOUNDED_PACE] and
+     * [WOUNDED_FIRE_RATE]. Only ordinary enemies carry a pace, so the bat and the bosses never
+     * slow. Also called going back up a row, so a heal would restore the pace with the picture.
      *
      * A frozen enemy's pace is the frost's until it thaws; see [thaw].
      */
@@ -1357,8 +1295,8 @@ class GameScreen(
     }
 
     /**
-     * A frozen enemy coming free: it goes back to the pace of the row of wounds it has reached by
-     * now, which a hit while it was frozen may have moved it down.
+     * A frozen enemy coming free: back to the pace of the row of wounds it has reached, which hits
+     * while it was frozen may have moved.
      */
     private fun thaw(id: EntityId) {
         slowWounded(id, world.getComponent(id, WoundComponent::class)?.row ?: 0)
@@ -1370,30 +1308,29 @@ class GameScreen(
         factory.createDamageText(rect.left, rect.centerY, damage, critical)
     }
 
+    /** Starts the run's score from zero and reads the stage's highscore. */
     private fun initStats() {
         scoring.reset()
         readHighscore()
     }
 
-    // A one-shot read: nothing outside this screen writes the highscore during a run, so there is
-    // nothing to keep observing. Stays on the main thread, which is the only thread that touches
-    // `highscore`.
+    /**
+     * Reads the stage's highscore once, since nothing else writes it during a run. On the main
+     * thread, the only one that touches [highscore].
+     */
     private fun readHighscore() = screenScope.launch {
         // Merged rather than assigned, in case this run has already beaten the stored value.
         highscore = maxOf(highscore, env.highscores.read(currentStage.id))
     }
 
     override fun update(deltaTime: Float) {
-        // Ahead of everything that returns early. The music plays on under the level up dialog,
-        // and what it does there - muffled - is the point.
+        // Ahead of every early return: the music plays on, muffled, under the level-up dialog.
         steerMusic(deltaTime)
-        // The clock the sound effects are held apart by. It can run on through a pause, since
-        // nothing plays during one.
+        // The sound effects' clock; it may run through a pause, since nothing plays then.
         sounds.advance(deltaTime)
 
-        // Ahead of the pause controls, which would otherwise read the player's way out of a won
-        // stage as a request to pause it. A pause the host made while it was up is still answered
-        // by them, so the player can tap their way back to it.
+        // Ahead of the pause controls, which would read the way out of a won stage as a pause. A
+        // pause the host made over it is still theirs to answer, so a tap returns to the overlay.
         if (stageCompleteShown && !paused) {
             handleStageCompleteControls(deltaTime)
             return
@@ -1404,8 +1341,8 @@ class GameScreen(
             return
         }
 
-        // A level up owed is a level up shown, before anything else moves: the pick is meant to
-        // change the fight the player is in, not the one after it.
+        // An owed level up is offered before anything moves, so the pick changes the fight the
+        // player is in.
         if (offer.isEmpty() && pendingLevelUps > 0) openLevelUpOffer()
         if (offer.isNotEmpty()) {
             handlePowerUpChoice(deltaTime)
@@ -1428,20 +1365,18 @@ class GameScreen(
             // After the world, so a kill or a hit in this tick's collisions shows on this tick.
             comboMeter.update(tick, scoring.hitStreak, scoring.multiplier)
 
-            // The stage clock is the fixed tick, not the wall clock: a paused game is a paused
-            // stage, and a slow frame costs the player no ground on the wave they are in.
+            // The stage clock runs on the fixed tick, not the wall clock: a paused game is a paused
+            // stage.
             enmGen.update(tick)
-            // Held back for the boss. The duel is fought in an open cave, because a boss pinning
-            // the player against scenery they cannot outrun is a death with nothing to read in it.
+            // No obstacles during the boss: one pinning the player against scenery they cannot
+            // outrun is an unfair death.
             if (!enmGen.bossSpawned) obsGen.update(tick)
 
-            // The score of a won stage is banked here, once the tick that won it has resolved,
-            // rather than as the boss goes down. That happens partway through the collision pass,
-            // and the score still moves after it: the kill itself is counted, and so is any later
-            // kill in the same pass. The overlay shows the record and the score side by side, where
-            // a record lower than the score beside it reads as a bug. The frame's remaining ticks
-            // are dropped: from the next frame the run plays out its victory instead, where nothing
-            // is left that scores; see [playOutVictory].
+            // A won stage's score is banked once the winning tick has resolved, not as the boss
+            // goes down partway through the collision pass, after which the kill and any later
+            // ones in the pass still score; banked early, the overlay could show a record below
+            // the score. The frame's remaining ticks are dropped: from the next frame the run
+            // plays out its victory; see [playOutVictory].
             if (stageComplete) {
                 saveHighscore()
                 break
@@ -1452,9 +1387,8 @@ class GameScreen(
         if (!health.alive) {
             val transform = world.getComponent(batId, TransformComponent::class)!!
             if (transform.rect.top > game.frameBufferHeight) {
-                // Banked again on the way out. The score can still move while the bat falls - a
-                // shot already in flight can land a kill - and the screen that follows shows the
-                // two side by side, where a record lower than the score beside it reads as a bug.
+                // Banked again on the way out: a shot in flight can still score while the bat
+                // falls, and the game over screen shows the record beside the score.
                 saveHighscore()
                 game.setScreen(GameOverScreen(game, env, scoring.score, highscore))
             }
@@ -1467,9 +1401,7 @@ class GameScreen(
         offer = PowerUp.offer(loadout)
         offerArmingTime = POWER_UP_ARMING_SECONDS
         overlayTaps.reset()
-        // The music is not paused for this. It plays on under a muffle while the offer is up,
-        // which [steerMusic] reads off the offer itself; an empty one - which the uncapped
-        // power-ups rule out - is never shown, and so never muffles anything either.
+        // The music plays on, muffled while the offer is up; [steerMusic] reads that off the offer.
     }
 
     /** Hands the director where the run stands, once a frame; see [MusicDirector]. */
@@ -1484,25 +1416,21 @@ class GameScreen(
     }
 
     /**
-     * Reads a pick off the level up dialog: a tap on a card, or its number key.
+     * Reads a pick off the level-up dialog: a tap on a card, or its number key.
      *
-     * Armed on a delay for the same reason the pause overlay is - the player was steering with a
-     * finger down when the level up landed, and the lift that follows is not a choice. There is no
-     * way to dismiss this without picking: the pick is the reward, and a dialog that could be
-     * waved away would just be a tax on the player who did not read it in time.
+     * Armed on a delay, like the pause overlay, so the finger that was steering when it opened does
+     * not pick. It cannot be dismissed without picking: the pick is the reward.
      */
     private fun handlePowerUpChoice(deltaTime: Float) {
         offerArmingTime -= deltaTime
 
         val input = game.input
         val controls = input?.controls
-        // Consumed whether or not they can act yet, so the buffer does not hand the whole backlog
-        // to the run the moment the dialog closes.
-        // Only taps begun on the dialog. The finger that was steering when it opened is still
-        // down, and its lift used to pick whatever card it happened to be over.
+        // Read whether or not they can act yet, so no backlog reaches the run when the dialog
+        // closes. Only taps begun on the dialog count; see [TapDetector].
         val touches = overlayTaps.taps(input?.touchEvents.orEmpty())
-        // CONFIRM picks the leftmost card: a game pad has no number keys, and its A button is the
-        // only thing on it a player will reach for first.
+        // CONFIRM picks the leftmost card: a pad has no number keys, and A is what a player reaches
+        // for first.
         val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
         val pressed = GameButton.CHOICES.map { controls?.consumePress(it) == true }
 
@@ -1540,10 +1468,8 @@ class GameScreen(
     }
 
     /**
-     * Pushes the run's earned stats onto the bat's components.
-     *
-     * One place rather than each power-up reaching into the world for itself: a power-up says what
-     * the bat is now, and this is what makes it so.
+     * Pushes the run's earned stats onto the bat's components, in one place: a power-up says what
+     * the bat is now, and this makes it so.
      */
     private fun applyLoadout() {
         world.getComponent(batId, WeaponComponent::class)?.interval = loadout.shotIntervalSeconds
@@ -1554,15 +1480,14 @@ class GameScreen(
 
         val health = world.getComponent(batId, HealthComponent::class) ?: return
         health.maxHitPoints = loadout.maxHitPoints
-        // Capped at the bar rather than added blindly, so healing a nearly full bat is worth
-        // whatever room is actually left in it.
+        // Capped at the bar, so healing a nearly full bat fills only the room left.
         val heal = loadout.takePendingHeal()
         if (heal > 0) health.hitPoints = (health.hitPoints + heal).coerceAtMost(health.maxHitPoints)
     }
 
     /**
-     * Sends round as many orbs as the loadout says the bat has, each made at its share of the ring as
-     * it will be with every new one in; the orbs already circling ease over to theirs.
+     * Adds orbs until the bat has as many as the loadout says, each made at its share of the full
+     * ring; the orbs already circling ease over to theirs.
      */
     private fun syncOrbs() {
         val circling = world.query(OrbComponent::class).size
@@ -1576,8 +1501,8 @@ class GameScreen(
                 OrbitSystem.shareOf(index, loadout.orbs)
             )
         }
-        // Out on the ring at once, rather than on the bat until the next tick: the run is drawn under
-        // the dialog that bought them, which is still up.
+        // Placed on the ring now rather than next tick, since the run is drawn under the dialog
+        // that bought them.
         orbit.arrange(world)
     }
 
@@ -1588,10 +1513,9 @@ class GameScreen(
     }
 
     /**
-     * What the frost beam may freeze: an ordinary enemy, which carries a pace for the frost to hold
-     * still. Never the boss or a part of its body, which carry none - a boss fight that could be
-     * stopped dead would not be one - and never an elite, which carries one but is a prize to chase
-     * rather than a hazard to be switched off.
+     * What the frost beam may freeze: an ordinary enemy, whose pace the frost can hold. Never a
+     * boss or its parts, which carry none, and never an elite, which is a prize to chase rather
+     * than a hazard to switch off.
      */
     private fun canFreeze(id: EntityId): Boolean =
         id != enmGen.bossId && !isBossPart(id) &&
@@ -1599,8 +1523,8 @@ class GameScreen(
                 !world.hasComponent(id, EliteComponent::class)
 
     /**
-     * A frost beam going off is heard, and in the dark it leaves a flash of its cold light on everything
-     * it froze, the way a shot does where it lands: there, that is when the player sees what it caught.
+     * A frost beam going off is heard, and in the dark it flashes its cold light on everything it
+     * froze, as a shot does where it lands, so the player sees what it caught.
      */
     private fun frostBeamFired(frozen: List<EntityId>) {
         sounds.play(SoundEffect.FROST_BEAM)
@@ -1618,18 +1542,16 @@ class GameScreen(
     }
 
     /**
-     * Puts back whatever Regeneration is owed this tick.
-     *
-     * Fractional health is carried rather than rounded, for the same reason the score bonus carries
-     * its remainder: two health a second is well under a point per tick, and rounding each tick
-     * would heal nothing at all. Only a living bat regenerates, and only up to its own bar.
+     * Restores whatever Regeneration owes this tick. Fractional health carries over, as the score
+     * bonus does: two health a second is well under a point a tick, and rounding each tick would
+     * heal nothing. Only a living bat regenerates, and only up to its bar.
      */
     private fun regenerate(deltaTime: Float) {
         if (loadout.healthRegenPerSecond <= 0f) return
         val health = world.getComponent(batId, HealthComponent::class) ?: return
         if (!health.alive || health.hitPoints >= health.maxHitPoints) {
-            // Dropped rather than banked: health owed while the bar is already full would
-            // otherwise pour out in one lump the instant the bat took its next hit.
+            // Dropped, not banked, or health owed while full would pour out in one lump at the next
+            // hit.
             regenCarry = 0f
             return
         }
@@ -1642,14 +1564,13 @@ class GameScreen(
     }
 
     /**
-     * The seconds between the boss going down and the overlay coming up, which the run plays on
-     * through, so the boss is seen going up rather than frozen in its first frame of fire.
+     * Plays the run on between the boss going down and the overlay coming up, so the boss is seen
+     * exploding rather than frozen in its first frame of fire.
      *
-     * The bat still flies, though nothing is left for it to shoot or to be hurt by: everything
-     * hostile went down with the boss ([clearHostiles]). The wreck goes up again on each of
-     * [BOSS_AFTERSHOCK_SECONDS], the fanfare comes in at [VICTORY_FANFARE_DELAY_SECONDS], and the
-     * overlay lands on its drop. The stage clock holds where the boss left it, nothing new
-     * arrives, and no level up is offered: a pick would change nothing now.
+     * The bat still flies, with nothing left to shoot or be hurt by ([clearHostiles]). The wreck
+     * bursts again at each of [BOSS_AFTERSHOCK_SECONDS], the fanfare comes in at
+     * [VICTORY_FANFARE_DELAY_SECONDS], and the overlay lands on its drop. The stage clock holds,
+     * nothing new arrives, and no level up is offered.
      */
     private fun playOutVictory(deltaTime: Float) {
         val before = victorySeconds
@@ -1657,9 +1578,7 @@ class GameScreen(
         fun reached(seconds: Float) = before < seconds && victorySeconds >= seconds
 
         BOSS_AFTERSHOCK_SECONDS.forEachIndexed { index, seconds ->
-            if (reached(seconds)) aftershock(
-                index
-            )
+            if (reached(seconds)) aftershock(index)
         }
         if (reached(VICTORY_FANFARE_DELAY_SECONDS)) playFanfare()
         if (bannerTime > 0) bannerTime -= deltaTime
@@ -1677,14 +1596,13 @@ class GameScreen(
         if (stageCompleteShown) {
             stageCompleteArmingTime = STAGE_COMPLETE_ARMING_SECONDS
             overlayTaps.reset()
-            // The overlay says it now. Nothing counts a banner down under the overlay, so one left
-            // a hair short of its end would stay there.
+            // The overlay says it now, and nothing counts the banner down under it.
             bannerTime = 0f
         }
     }
 
     /**
-     * The wreck going up again, [index] blasts after the first, somewhere on a piece of the boss:
+     * The wreck bursting again, [index] blasts after the first, somewhere on a piece of the boss:
      * one of the blasts in the boss's death sound, seen as well as heard.
      */
     private fun aftershock(index: Int) {
@@ -1712,17 +1630,15 @@ class GameScreen(
     }
 
     /**
-     * The stage is won. A tap or Confirm flies on to the next stage, where there is one; Back
-     * leaves for the menu, and so does a tap on the last stage.
-     *
-     * Armed on a delay for the same reason the pause overlay is: the player can still be steering
-     * with a finger down as it comes up, and the lift that follows is not them asking to leave.
+     * The stage complete overlay's controls: a tap or Confirm flies on to the next stage, if there
+     * is one; Back leaves for the menu, as does a tap on the last stage. Armed on a delay, like the
+     * pause overlay, so a steering finger lifting is not read as leaving.
      */
     private fun handleStageCompleteControls(deltaTime: Float) {
         stageCompleteArmingTime -= deltaTime
 
         val input = game.input
-        // Read whether or not it can act on them, so the buffer does not hoard events.
+        // Read whether or not it can act on them, so events do not pile up.
         val tapped = overlayTaps.taps(input?.touchEvents.orEmpty()).isNotEmpty()
         val controls = input?.controls
         val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
@@ -1738,8 +1654,8 @@ class GameScreen(
     }
 
     /**
-     * Flies on to stage [id], on a fresh screen - which is the reset: a new run's score, a bat at
-     * level 1, and no power-ups. The highscore was already banked on the tick the boss went down.
+     * Flies on to stage [id] on a fresh screen, which resets the score, the bat's level and its
+     * power-ups. The highscore was banked on the tick the boss went down.
      */
     private fun startStage(id: Int) {
         game.setScreen(GameScreen(game, env, id))
@@ -1754,9 +1670,8 @@ class GameScreen(
         val input = game.input
         val controls = input?.controls
 
-        // Back pauses a running game and leaves a paused one. That second meaning is what makes
-        // the Android back button safe to intercept: it still gets the player out, in two presses
-        // rather than one, without a button the touch UI does not have.
+        // Back pauses a running game and quits a paused one, so taking over Android's Back still
+        // lets the player out, in two presses.
         if (controls?.consumePress(GameButton.BACK) == true) {
             if (paused) {
                 saveHighscore()
@@ -1772,13 +1687,13 @@ class GameScreen(
         if (!paused) return false
 
         resumeArmingTime -= deltaTime
-        // Read even when it cannot resume: the buffer is drained by reading it, and a pause spent
-        // hoarding events would dump them all on the bat at once on the way back in.
+        // Read even when it cannot resume, so events do not pile up and reach the bat all at once.
         val tapped = overlayTaps.taps(input?.touchEvents.orEmpty()).isNotEmpty()
         if (tapped && resumeArmingTime <= 0f) setPaused(false)
         return true
     }
 
+    /** Pauses or resumes the run and its music, re-arming the pause overlay on every pause. */
     private fun setPaused(value: Boolean) {
         if (paused == value) return
         paused = value
@@ -1786,8 +1701,7 @@ class GameScreen(
             resumeArmingTime = RESUME_ARMING_SECONDS
             overlayTaps.reset()
             music?.pause()
-            // Held only if it is still going: a fanfare that has played out would start again
-            // from the top if it were played once more.
+            // Held only while still playing: one that has ended would restart from the top.
             if (fanfare?.isPlaying == true) {
                 fanfare?.pause()
                 fanfareHeld = true
@@ -1798,9 +1712,8 @@ class GameScreen(
     }
 
     /**
-     * Puts back whatever a pause cut off: the stage's music while the run is being flown, and the
-     * fanfare once it has been won. Nothing once the bat is dead: the game over track owns playback
-     * then, and resuming would put two tracks on top of each other.
+     * Restores what a pause cut off: the stage's music during the run, the fanfare once it is won.
+     * Nothing once the bat is dead, since the game over track owns playback then.
      */
     private fun resumeMusic() {
         when {
@@ -1813,6 +1726,7 @@ class GameScreen(
         }
     }
 
+    /** The pause overlay: the run dimmed, and how to resume or quit. */
     private fun drawPauseOverlay() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
         drawCentered(text[Res.string.pause_title], 160, 30, EngineColors.CYAN)
@@ -1820,22 +1734,20 @@ class GameScreen(
         drawCentered(text[Res.string.pause_quit], 217, 15, EngineColors.WHITE)
     }
 
-    fun saveHighscore() {
+    /** Raises [highscore] to the run's score if it beat it, and stores it. */
+    private fun saveHighscore() {
         if (scoring.score > highscore) {
             highscore = scoring.score
         }
 
-        // Deliberately not on screenScope: this runs as the bat dies, moments before the screen is
-        // swapped out and disposed, and the write has to survive that.
+        // Not on screenScope: this runs moments before the screen is disposed, and the write has to
+        // outlive it.
         env.highscores.saveAsync(currentStage.id, highscore)
     }
 
     /**
-     * The banner a new wave or the boss arrives on, held for [WAVE_BANNER_SECONDS].
-     *
-     * Outlined rather than plain, because it lands over whatever the run happens to be drawing,
-     * and centered on its measured width, because what it says runs from "WAVE 2" to "THE MOTH
-     * QUEEN".
+     * The banner a new wave or the boss arrives on, held for [WAVE_BANNER_SECONDS]. Outlined, since
+     * it lands over anything, and centered by its measured width.
      */
     private fun drawBanner(text: String) {
         g.drawOutlinedString(
@@ -1848,11 +1760,8 @@ class GameScreen(
     }
 
     /**
-     * Draws [text] centered across the framebuffer, which is how every overlay line is placed.
-     *
-     * Centered on its measured width rather than at an x picked by eye: the faces the platforms
-     * draw text in disagree on widths, so a picked x is off center in all but one of them, and
-     * has to be picked again whenever the line is reworded.
+     * Draws [text] centered across the frame by its measured width, as every overlay line is: the
+     * platforms' faces disagree on widths, so no fixed x is centered in all of them.
      */
     private fun drawCentered(text: String, y: Int, fontSize: Int, color: Int) {
         g.drawString(text, centeredX(text, fontSize), y, fontSize, color)
@@ -1863,11 +1772,8 @@ class GameScreen(
         (game.frameBufferWidth - g.measureString(text, fontSize)) / 2
 
     /**
-     * What the player gets for clearing the stage: the run's total against the stage's highscore,
-     * and the way out.
-     *
-     * Drawn over the stage rather than on a screen of its own, so the last thing they see is the
-     * cave they beat with the wreckage of the boss still clearing off it.
+     * The stage complete overlay: the run's total against the stage's highscore, and the way on.
+     * Drawn over the stage, so the boss's wreckage is still clearing behind it.
      */
     private fun drawStageCompleteOverlay() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
@@ -1875,11 +1781,10 @@ class GameScreen(
         drawCentered(text[currentStage.name], 170, 15, EngineColors.CYAN)
 
         val score = text.format(Res.string.score, scoring.score)
-        // Already raised by this run if it beat the record, which is how the player can tell that
-        // it did: the two numbers match.
+        // Already raised by this run if it set the record, so the two numbers then match.
         val record = text.format(Res.string.stage_highscore, highscore)
-        // The two share a left edge, so they read as one block, and it is the block that is
-        // centered, by the wider of the two. Centering each line on its own would stagger them.
+        // The two share a left edge and are centered as one block, by the wider, so they do not
+        // stagger.
         val width = maxOf(g.measureString(score, 20), g.measureString(record, 15))
         val left = (game.frameBufferWidth - width) / 2
         g.drawString(score, left, 195, 20, EngineColors.WHITE)
@@ -1896,14 +1801,9 @@ class GameScreen(
     }
 
     /**
-     * The level up dialog: what the bat just reached, and the three things it can become.
-     *
-     * Cards are drawn rather than composed, because this screen draws a 640x360 frame: the
-     * row of cards is centered on that frame, and so are the two lines over it, by their measured
-     * widths, as the other overlays' lines are. A card is its own tap target, and carries no
-     * number: what it does is the whole of what the player needs to read. The number keys still
-     * pick by position for anyone on a keyboard, which is a shortcut rather than the advertised
-     * way in.
+     * The level-up dialog: the bat's new level and the cards on offer, drawn into the frame and
+     * centered by measured width like the other overlays. Each card is its own tap target and
+     * carries no number; the number keys still pick by position, as a keyboard shortcut.
      */
     private fun drawPowerUpOffer() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
@@ -1915,11 +1815,12 @@ class GameScreen(
         }
     }
 
+    /** Card [index] of the offer: its panel, title and wrapped description. */
     private fun drawPowerUpCard(index: Int, powerUp: PowerUp) {
         val left = cardLeft(index)
         g.apply {
-            // A filled panel behind the text, then a cyan lip along the top, so a card reads as a
-            // thing to press rather than as words floating over the run.
+            // A panel with a cyan lip, so a card reads as something to press rather than words
+            // over the run.
             drawRect(left, POWER_UP_CARD_TOP, POWER_UP_CARD_WIDTH, POWER_UP_CARD_HEIGHT, CARD_FILL)
             drawRect(left, POWER_UP_CARD_TOP, POWER_UP_CARD_WIDTH, 2, EngineColors.CYAN)
 
@@ -1930,8 +1831,8 @@ class GameScreen(
                 14,
                 EngineColors.CYAN
             )
-            // Broken on whole words by measured width rather than by counting characters: a count
-            // that fits in Arial runs off the card in the wider DejaVu Sans.
+            // Wrapped by measured width, not character count: a count that fits in Arial runs off
+            // the card in the wider DejaVu Sans.
             val description = text.format(powerUp.describe(loadout), *powerUp.numbers.toTypedArray())
             wrapWords(description, POWER_UP_CARD_WIDTH - 2 * POWER_UP_CARD_PADDING) { measureString(it, 11) }
                 .forEachIndexed { line, words ->
@@ -1947,12 +1848,8 @@ class GameScreen(
     }
 
     /**
-     * The experience bar, across the very top edge.
-     *
-     * Up there because it is the one strip of the frame nothing else uses - the HUD text starts
-     * below it and the bat never reaches it - and because a bar the player reads out of the corner
-     * of their eye is the point: it says how close the next choice is without asking to be looked
-     * at.
+     * The experience bar, along the top edge, a strip nothing else uses: read out of the corner of
+     * the eye, it says how close the next pick is without asking to be looked at.
      */
     private fun drawExperienceBar() {
         val filled = (game.frameBufferWidth * progress.fraction).roundToInt()
@@ -1961,17 +1858,12 @@ class GameScreen(
     }
 
     /**
-     * The stage timer, top center: how long this stage has been flown, in minutes and seconds.
+     * The stage timer, top center, in minutes and seconds. Read off the wave readout's clock, so it
+     * holds still wherever the stage does and stops when the run ends; see [finalStageSeconds].
      *
-     * Read off the same clock as the wave readout, so it holds still wherever the stage does - the
-     * pause overlay, the level up dialog - and stops where the run ended; see [finalStageSeconds].
-     * Level with the score, just under the experience bar, and outlined like the banner because the
-     * stalactites hang through this strip and the bat can fly up into it. White rather than the
-     * HUD's cyan, so it does not run into the bar filling above it.
-     *
-     * Centered on its measured width, which holds still as the seconds tick over: the sans-serif
-     * faces it is drawn in give every digit the same advance, so every reading is as wide as the
-     * last.
+     * Outlined, since stalactites and the bat pass through this strip, and white, so it does not
+     * run into the cyan bar above. Every digit has the same advance in the faces it is drawn in,
+     * so centering it by measured width does not jitter.
      */
     private fun drawStageTimer() {
         val time = formatStageTime(finalStageSeconds ?: enmGen.elapsedSeconds)
@@ -2001,29 +1893,22 @@ class GameScreen(
     }
 
     /**
-     * The text HUD. Health is deliberately not part of it: it rides under the bat, where the
-     * player is already looking. Nor is the highscore, which is a record to read between runs
-     * rather than a number to watch during one - the end screens and the stage select show it.
+     * The text HUD. Health is not in it, since it rides under the bat, where the player looks; nor
+     * the highscore, a record for between runs that the end screens and stage select show.
      *
-     * Every line of it is outlined. The jungle and the cave are dark enough for plain cyan, but
-     * the desert flies under a bleached noon sky, where cyan on pale yellow all but disappears.
+     * Every line is outlined, since cyan all but vanishes against the desert's bleached noon sky.
      */
     private fun drawStats() {
-        // Always shown, even at x1: a multiplier the player only sees once they have earned it is
-        // a mechanic they never learn exists. Drawn first, because its fire reaches up behind the
-        // lines above it, and last in the column, because the hotter it burns the bigger its count
-        // grows, and down there it grows into nothing else.
+        // Always shown, even at x1, so the player learns the multiplier exists. Drawn first, since
+        // its fire reaches up behind the lines above, and lowest in the column, so its growing
+        // count runs into nothing.
         comboMeter.draw(g, 5, COMBO_BASELINE, text)
         g.apply {
             drawOutlinedString(text.format(Res.string.score, scoring.score), 5, 20, 15, EngineColors.CYAN)
-            // How far into the stage the player is, which is the only reading they get on how
-            // much harder the next minute is about to be - and on how close the boss is.
+            // How far into the stage the player is, and so how close the boss is.
             drawOutlinedString(waveLabel(), 5, 40, 15, EngineColors.CYAN)
-            // The other half of that race: how much stronger the bat has got while the cave was
-            // getting harder. The bar across the top edge is the fine detail; this is the count,
-            // in the top right corner the bar fills toward, kept the same 5px off the edge as the
-            // column on the left. Right-aligned by its measured width, because the face it comes
-            // out in, and so its width, varies by platform.
+            // The bat's level, top right where the experience bar fills toward, 5 px in like the
+            // left column and right-aligned by its measured width.
             val level = text.format(Res.string.hud_level, progress.level)
             drawOutlinedString(
                 level,
@@ -2036,9 +1921,8 @@ class GameScreen(
     }
 
     /**
-     * The wave readout: which minute the player is in, or that the boss is here.
-     *
-     * Waves are numbered from one for the player, where the code indexes them from zero.
+     * The wave readout: which minute the player is in, or that the boss is here. Numbered from one
+     * for the player, where the code indexes waves from zero.
      */
     private fun waveLabel(): String = when {
         enmGen.bossSpawned -> text[Res.string.hud_boss]
@@ -2046,8 +1930,8 @@ class GameScreen(
     }
 
     /**
-     * The stage's name, across the middle of the frame for the opening seconds of the run. Outlined
-     * like the banners, because the desert opens at noon, and yellow on its pale sky does not read.
+     * The stage's name across the middle of the frame for the run's opening seconds, outlined like
+     * the banners because yellow does not read on the desert's pale noon sky.
      */
     private fun drawStageName() {
         val name = text[currentStage.name]
@@ -2073,6 +1957,7 @@ class GameScreen(
     private val score: StageMusic
         get() = currentStage.music.boss?.takeIf { enmGen.bossSpawned } ?: currentStage.music
 
+    /** Opens [score]'s stems and a director for them, or returns null without audio. */
     private fun openStageMusic(): LayeredMusic? {
         val audio = game.audio ?: return null
         val score = score
@@ -2083,9 +1968,9 @@ class GameScreen(
     }
 
     /**
-     * The boss is here. Its entrance is a drop to the bed for a bar and a slam on the downbeat: of
-     * the stage's own music, or - for a stage whose boss is fought to a piece of its own - of that
-     * piece, which the stage's music stops dead for and which opens on its bed alone.
+     * The boss arrives: the music drops to its bed for a bar and slams in on the downbeat. For a
+     * stage whose boss has a piece of its own, the stage's music stops dead and the boss's opens on
+     * its bed alone.
      */
     private fun onBossMusic() {
         if (currentStage.music.boss != null && music != null) {
@@ -2098,30 +1983,27 @@ class GameScreen(
     }
 
     /**
-     * The host going away pauses the run outright, not just its music. The player is not at the
-     * controls, and a game that carries on the moment the window comes back costs them a life
-     * before they have looked at it.
+     * The host going away pauses the run outright, not just its music, so the player is not hit
+     * before looking at the screen again.
      */
     override fun pause() {
         setPaused(true)
     }
 
     /**
-     * Deliberately does not clear [paused]: coming back to the app should not drop the player
-     * straight into a dodge. They resume when they are ready.
+     * Leaves [paused] set, so coming back to the app does not drop the player straight into a
+     * dodge; they resume when ready.
      */
     override fun resume() {
-        // The run survives untouched - only playback needs restoring, and only if the player had
-        // not paused by hand.
+        // Only playback needs restoring, and only if the run is not paused.
         if (paused) return
         resumeMusic()
     }
 
     override fun dispose() {
         screenScope.cancel()
-        // Flying on to the next stage builds a fresh screen, which opens that stage's music; this
-        // one's has to go, or the two would play over each other - and so does the fanfare, which
-        // a player tapping straight through would otherwise hear on into the next stage.
+        // The next stage's screen opens its own music, so this one's and the fanfare must go, or
+        // they would play on over it.
         music?.dispose()
         music = null
         director = null
@@ -2137,17 +2019,17 @@ class GameScreen(
         const val XP_BAR_EMPTY = 0x80000000.toInt()
 
         /**
-         * The combo readout's line, under the score and the wave. Further below the wave than the
-         * wave is below the score, because the count swells upward as the streak climbs and it
-         * needs the room to do it without touching the line above.
+         * The combo readout's baseline, under the score and the wave, with extra room above, since
+         * its count swells upward as the streak climbs.
          */
         const val COMBO_BASELINE = 66
 
+        /** Degrees in a radian. */
         const val DEGREES_PER_RADIAN = 57.29578f
 
         /**
-         * The lowest z index that is drawn over a halo. The scenery strip sits well below it, and
-         * every sprite of the run - the obstacles up - at or above it.
+         * The lowest z index drawn over a halo: the scenery strip sits below it, and every sprite
+         * of the run, the obstacles up, at or above it.
          */
         const val SPRITE_LAYERS_FROM = 0
 
@@ -2159,8 +2041,8 @@ class GameScreen(
         const val LIGHTS_FROM = 15
 
         /**
-         * How big each part of a boss's body goes up, against the part itself. Under one: ten of
-         * them go off at once, and at full size they would be a single wall of fire.
+         * The size of each boss part's blast against the part. Under one, since ten go off at once,
+         * and at full size they would be a single wall of fire.
          */
         const val BODY_BLAST_SCALE = 0.85f
     }

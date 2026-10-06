@@ -29,7 +29,7 @@ private class AuraRecordingGraphics : Graphics {
         blips += Blip(x, y, width, height, color)
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+    override fun newPixmap(filename: String) =
         throw UnsupportedOperationException()
 
     override fun clear(color: Int) = Unit
@@ -64,6 +64,7 @@ private class AuraRecordingGraphics : Graphics {
     override val height = 320
 }
 
+/** What [AuraSystem] draws as an aura charges and grows. */
 class AuraSystemTest {
 
     private val world = World().apply {

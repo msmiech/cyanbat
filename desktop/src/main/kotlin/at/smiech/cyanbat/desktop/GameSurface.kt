@@ -26,7 +26,7 @@ import at.smiech.engine.impl.onComposeKeyEvent
 import at.smiech.engine.impl.onComposePointerEvent
 
 /**
- * Draws the game's frame and drives it from Compose's frame callback - the desktop counterpart of
+ * Draws the game's frame and drives it from Compose's frame callback: the desktop counterpart of
  * the Canvas in AndroidGameActivity.
  *
  * @param displayMode how the frame is fitted to the window, as the player set it.
@@ -35,9 +35,9 @@ import at.smiech.engine.impl.onComposePointerEvent
 fun GameSurface(game: DesktopGame, displayMode: DisplayMode) {
     val loop = remember(game) { GameLoop(game) }
 
-    // Losing focus is desktop's onPause: it pauses the run, for the same reason Android's does -
-    // nobody is at the controls. It also drops anything held, because the key-up goes to whoever
-    // has focus now and the bat would otherwise fly on a key nobody is pressing.
+    // Losing focus is the desktop's onPause: it pauses the run, as Android's does, since nobody is
+    // at the controls. It also drops anything held, because the key-up goes to whatever has focus
+    // now, and the bat would otherwise fly on a key nobody is pressing.
     val windowFocused = LocalWindowInfo.current.isWindowFocused
     LaunchedEffect(windowFocused) {
         if (!windowFocused) {
@@ -79,15 +79,14 @@ fun GameSurface(game: DesktopGame, displayMode: DisplayMode) {
             modifier = Modifier
                 .fillMaxSize()
                 // The game surface owns focus for as long as it is on screen. Without this the
-                // scene can sit with no focus owner at all - a mouse click on a Compose button
-                // does not take focus - and Compose routes key events through the focus system,
-                // so keys reach nobody even though the window is plainly in the foreground.
+                // scene can sit with no focus owner at all (a click on a Compose button does not
+                // take focus), and as Compose routes keys through focus, they reach nobody even
+                // though the window is plainly in the foreground.
                 .focusRequester(focusRequester)
                 .focusable()
-                // Handled here rather than left to bubble up to the window, so that the keys the
-                // game claims are consumed before Compose can read them as focus traversal. The
-                // arrow keys are the ones that matter: unclaimed, they move focus instead of the
-                // bat.
+                // Handled here rather than left to bubble up to the window, so the keys the game
+                // claims are consumed before Compose can read them as focus traversal: unclaimed,
+                // the arrows move focus instead of the bat.
                 .onKeyEvent(game.controlHandler::onComposeKeyEvent)
                 .pointerInput(fit) {
                     awaitPointerEventScope {
@@ -104,7 +103,8 @@ fun GameSurface(game: DesktopGame, displayMode: DisplayMode) {
             drawGameFrame(
                 game.graphics,
                 fit,
-                ambientBars.takeIf { displayMode == DisplayMode.AMBIENT })
+                ambientBars.takeIf { displayMode == DisplayMode.AMBIENT },
+            )
         }
     }
 }

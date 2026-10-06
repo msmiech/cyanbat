@@ -11,14 +11,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 
 /**
- * Menu music, the music setting, which stages are open, and each stage's highscore.
+ * Menu music, the music setting, which stages are open, and each stage's highscore. The menu track
+ * plays through the engine's [Music], so both platforms behave alike.
  *
- * A plain multiplatform [ViewModel]; the old AndroidViewModel(Application) form has no KMP
- * equivalent, and the menu track now goes through the engine's [Music] abstraction rather than
- * MediaPlayer, so desktop gets the same behavior.
- *
- * Shared by the main screen and the stage select - both ask for it from the same owner - so the
- * menu track is one track across the two, and stopping it from either stops it.
+ * Shared by the main screen and the stage select, which ask the same owner for it, so the menu
+ * track is one track across the two, and stopping it from either stops it.
  */
 class MainMenuViewModel(
     settings: SettingsRepository,
@@ -27,6 +24,7 @@ class MainMenuViewModel(
     highscores: HighscoreStore,
 ) : ViewModel() {
 
+    /** Whether music is on; the menu track plays only while it is. */
     val isMusicEnabled: StateFlow<Boolean> = settings.isMusicEnabled
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), true)
 
@@ -44,6 +42,7 @@ class MainMenuViewModel(
     val highscores: StateFlow<Map<Int, Int>> = highscores.byStage
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
+    /** Starts the menu track, looping, if music is on. */
     fun startMusic() {
         if (!isMusicEnabled.value) return
         menuMusic?.apply {
@@ -52,6 +51,7 @@ class MainMenuViewModel(
         }
     }
 
+    /** Pauses the menu track, if it is playing. */
     fun stopMusic() {
         menuMusic?.takeIf { it.isPlaying }?.pause()
     }
@@ -62,6 +62,10 @@ class MainMenuViewModel(
     }
 
     private companion object {
+        /**
+         * How long the music setting stays collected once nothing observes it, as
+         * across a rotation.
+         */
         const val STOP_TIMEOUT_MILLIS = 5_000L
     }
 }

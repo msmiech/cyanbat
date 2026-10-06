@@ -3,8 +3,8 @@ package at.smiech.engine
 import kotlin.math.roundToInt
 
 /**
- * Packed ARGB colors, matching what [Graphics] takes. These exist so screen code does not need
- * `android.graphics.Color`, which would pin it to one platform.
+ * Packed ARGB colors and color helpers, matching what [Graphics] takes, so screen code does not
+ * depend on a platform's color class.
  */
 object EngineColors {
     const val BLACK: Int = 0xFF000000.toInt()
@@ -15,15 +15,11 @@ object EngineColors {
 
     /**
      * A shield bubble: pale periwinkle. Cool, so it reads as a barrier rather than as part of the
-     * warm enemy inside it, and pale and violet-leaning enough not to be mistaken for the bat's
-     * cyan.
+     * warm enemy inside it, and violet enough not to be mistaken for the bat's cyan.
      */
     const val SHIELD: Int = 0xFFB8C4FF.toInt()
 
-    /**
-     * [color] at [alpha] of its opacity, where alpha runs 0..1. Both platforms honor the alpha
-     * byte in every draw call, so this is all a fade needs.
-     */
+    /** [color] with its alpha replaced by [alpha], where alpha runs 0..1. */
     fun withAlpha(color: Int, alpha: Float): Int {
         val opacity = (alpha.coerceIn(0f, 1f) * 255f).roundToInt()
         return (color and 0x00FFFFFF) or (opacity shl 24)
@@ -32,9 +28,8 @@ object EngineColors {
     /**
      * [color] with its own alpha scaled by [factor], where [factor] runs 0..1.
      *
-     * Distinct from [withAlpha], which replaces the alpha outright. This one keeps whatever
-     * opacity a color was authored at and fades from there, so a fill that was never meant to be
-     * solid does not become solid the moment something fades it in.
+     * Unlike [withAlpha], this keeps the opacity the color was authored at, so a translucent fill
+     * does not turn solid when something fades it in.
      */
     fun scaleAlpha(color: Int, factor: Float): Int {
         val scaled = ((color ushr 24) * factor.coerceIn(0f, 1f)).roundToInt().coerceIn(0, 255)
@@ -44,10 +39,8 @@ object EngineColors {
     /**
      * [from] blended toward [to], where [t] runs 0..1.
      *
-     * Channel by channel in sRGB, which is not physically correct but is what a palette ramp
-     * between two neighboring hues wants: the point is to walk a gradient somebody picked by eye,
-     * not to be right about light. Alpha is interpolated with the rest, so a fade to a transparent
-     * color works.
+     * Channel by channel in sRGB: not physically correct, but what a ramp between two hand-picked
+     * palette colors wants. Alpha is interpolated too, so a fade to a transparent color works.
      */
     fun lerp(from: Int, to: Int, t: Float): Int {
         val amount = t.coerceIn(0f, 1f)

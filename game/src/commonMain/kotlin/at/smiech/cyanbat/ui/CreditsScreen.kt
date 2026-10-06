@@ -23,6 +23,9 @@ import at.smiech.cyanbat.resources.credit_music_title
 import at.smiech.cyanbat.resources.credits_headline
 import org.jetbrains.compose.resources.stringResource
 
+/**
+ * The credits: who made the game and its music, the framework it began from, and the AI disclosure.
+ */
 @Composable
 fun CreditsScreen() {
     Surface {

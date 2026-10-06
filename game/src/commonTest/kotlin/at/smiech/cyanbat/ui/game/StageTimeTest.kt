@@ -4,6 +4,7 @@ import at.smiech.cyanbat.service.StageProgression
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+/** How the stage timer reads; see [formatStageTime]. */
 class StageTimeTest {
 
     @Test

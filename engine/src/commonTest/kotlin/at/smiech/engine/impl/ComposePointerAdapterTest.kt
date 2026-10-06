@@ -10,6 +10,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** How Compose's pointer events reach the game as touch events, cancels included. */
 class ComposePointerAdapterTest {
 
     /** A view the framebuffer's own size, so a view pixel is a frame pixel. */

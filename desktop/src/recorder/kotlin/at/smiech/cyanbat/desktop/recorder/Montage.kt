@@ -9,7 +9,7 @@ import kotlin.math.roundToInt
  *
  * @param levelUp whether a level up dialog is shown.
  * @param actionSeconds how long the busiest stretch runs, or 0 for none.
- * @param scenerySeconds how long each hour asked for of a stage whose look changes runs, or 0 for none.
+ * @param scenerySeconds how long each clip of a stage's changing look runs, or 0 for none.
  * @param arrivalSeconds how long the boss is shown arriving, or 0 for none.
  * @param finale whether the boss is shown going down, with the stage complete overlay after it.
  */
@@ -27,8 +27,8 @@ class Coverage(
     val showsBoss: Boolean get() = arrivalSeconds > 0f || finale
 
     /**
-     * Whether the footage is the stage's opening and its hours and nothing else - no level up, no
-     * action, no boss - so a run need only be flown as far as its last hour.
+     * Whether the footage is the stage's opening and its hours and nothing else (no level up, no
+     * action, no boss), so a run need only be flown as far as its last hour.
      */
     val onlyScenery: Boolean get() = !levelUp && actionSeconds <= 0f && !showsBoss
 
@@ -50,12 +50,12 @@ class Coverage(
  * Up to six clips, each picked for what it shows rather than for where it falls. The opening is
  * always there; each of the rest only if the stage's [Coverage] asks for it:
  * - the opening, with the stage's name over it;
- * - a level up, from just before the dialog opens to the bat flying on with its pick - Spread Shot
+ * - a level up, from just before the dialog opens to the bat flying on with its pick: Spread Shot
  *   where there is one, since that is the pick whose effect shows at once;
  * - the busiest stretch from the stage's most varied wave on, by enemies on screen and blasts,
  *   preferring one the bat comes through without a hit;
- * - for a stage whose look changes with its clock, the hours that show it changing - the desert's
- *   sunset, between its noon opening and its boss's night;
+ * - for a stage whose look changes with its clock, the hours that show it changing, such as the
+ *   desert's sunset, between its noon opening and its boss's night;
  * - the boss arriving under its banner;
  * - the boss going down, and the stage complete overlay after it.
  *
@@ -65,17 +65,31 @@ class Coverage(
  * levels.
  */
 object Montage {
+    /** How long the opening runs, under the stage's name. */
     private const val OPENING_SECONDS = 1.6f
+
+    /** How much of the level up clip comes before the dialog opens. */
     private const val OFFER_LEAD_SECONDS = 0.3f
+
+    /** How much of it comes after the dialog closes, with the bat flying on with its pick. */
     private const val OFFER_TAIL_SECONDS = 1.0f
+
+    /** How much of the arrival clip comes before the boss appears. */
     private const val ARRIVAL_LEAD_SECONDS = 0.2f
+
+    /** How much of the finale comes before the boss goes down. */
     private const val FINALE_LEAD_SECONDS = 2.8f
 
     /** Clips closer than this are not worth a cut; the two run into one. */
     private const val MERGE_GAP_SECONDS = 1.5f
 
+    /** What a blast on screen counts for in the busiest stretch, against one enemy. */
     private const val BLAST_WEIGHT = 3f
+
+    /** What a hit on the bat costs a stretch: enough that one without a hit nearly always wins. */
     private const val HIT_WEIGHT = 40f
+
+    /** What a wave's banner on screen adds, so the stretch leans toward showing one. */
     private const val BANNER_WEIGHT = 2f
 
     /**
@@ -101,21 +115,19 @@ object Montage {
         val bossAt = moments.indexOfFirst { it.bossSpawned }
         val completeAt = moments.indexOfFirst { it.complete }
         require(!coverage.showsBoss || bossAt > 0) { "Only a run flown to its boss can show it" }
-        require(!coverage.finale || completeAt > bossAt) { "Only a run that beat its boss can show it going down" }
+        require(!coverage.finale || completeAt > bossAt) {
+            "Only a run that beat its boss can show it going down"
+        }
 
         val arrival = if (coverage.arrivalSeconds > 0f) {
-            earlier(moments, bossAt, frames(ARRIVAL_LEAD_SECONDS))..later(
-                moments,
-                bossAt,
-                frames(coverage.arrivalSeconds)
-            )
+            earlier(moments, bossAt, frames(ARRIVAL_LEAD_SECONDS))..
+                    later(moments, bossAt, frames(coverage.arrivalSeconds))
         } else {
             null
         }
         val finale = if (coverage.finale) {
-            earlier(moments, completeAt, frames(FINALE_LEAD_SECONDS)).coerceAtLeast(
-                arrival?.first ?: bossAt
-            )..last
+            val from = earlier(moments, completeAt, frames(FINALE_LEAD_SECONDS))
+            from.coerceAtLeast(arrival?.first ?: bossAt)..last
         } else {
             null
         }
@@ -134,11 +146,7 @@ object Montage {
             val wanted = waves.filter { moments[it].wave >= actionWave }
             listOfNotNull(wanted.firstOrNull()?.let { it..wanted.last() }, waves)
                 .firstNotNullOfOrNull {
-                    busiest(
-                        moments,
-                        outside(it, levelUp),
-                        frames(coverage.actionSeconds)
-                    )
+                    busiest(moments, outside(it, levelUp), frames(coverage.actionSeconds))
                 }
         } else {
             null
@@ -149,9 +157,8 @@ object Montage {
                 val start =
                     waves.firstOrNull { moments[it].seconds >= seconds && !moments[it].offer }
                 start?.let {
-                    it..later(moments, it, frames(coverage.scenerySeconds)).coerceAtMost(
-                        waves.last
-                    )
+                    val end = later(moments, it, frames(coverage.scenerySeconds))
+                    it..end.coerceAtMost(waves.last)
                 }
             }
         } else {
@@ -159,16 +166,13 @@ object Montage {
         }
 
         val clips = merge(
-            (listOfNotNull(
-                opening,
-                levelUp,
-                action,
-                arrival,
-                finale
-            ) + views).sortedBy { it.first },
+            (listOfNotNull(opening, levelUp, action, arrival, finale) + views).sortedBy { it.first },
             frames(MERGE_GAP_SECONDS),
         )
-        return clips.map { clip -> clip.filter { !moments[it].offer || (levelUp != null && it in levelUp) } }
+        // Dialogs are cut out of every clip but the level up's.
+        return clips.map { clip ->
+            clip.filter { !moments[it].offer || (levelUp != null && it in levelUp) }
+        }
     }
 
     /** The frame [count] dialog-free frames before [from]. */
@@ -247,6 +251,7 @@ object Montage {
         return if (bestStart < 0) null else bestStart..<(bestStart + length)
     }
 
+    /** [clips], in order, with any closer together than [gap] frames joined into one. */
     private fun merge(clips: List<IntRange>, gap: Int): List<IntRange> {
         val merged = mutableListOf<IntRange>()
         for (clip in clips) {

@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** The cadence [WeaponSystem] fires at. */
 class WeaponSystemTest {
 
     private class Harness(interval: Float = 1f, alive: Boolean? = null) {

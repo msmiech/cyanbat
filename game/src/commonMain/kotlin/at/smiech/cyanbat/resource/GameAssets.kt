@@ -9,7 +9,6 @@ import at.smiech.cyanbat.scenery.Daybreak
 import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.util.CAVE_AMBIENT
 import at.smiech.cyanbat.util.CAVE_GLOW
-import at.smiech.engine.Graphics.PixmapFormat
 import at.smiech.engine.Music
 import at.smiech.engine.MusicGrid
 import at.smiech.engine.Pixmap
@@ -17,10 +16,11 @@ import at.smiech.engine.Sound
 import at.smiech.engine.Audio as EngineAudio
 import at.smiech.engine.Graphics as EngineGraphics
 
+/** Every asset a run uses, loaded once by [load] and shared by the screens. */
 data class GameAssets(
-    var graphics: Graphics,
-    var audio: Audio,
-    var stages: List<Stage> = emptyList()
+    val graphics: Graphics,
+    val audio: Audio,
+    val stages: List<Stage> = emptyList()
 ) {
     /** The stage with this id, or the first one for an id nothing is registered under. */
     fun stage(id: Int): Stage = stages.firstOrNull { it.id == id } ?: stages.first()
@@ -28,24 +28,33 @@ data class GameAssets(
     /** Whether a stage follows [id], and so whether clearing it has anything to unlock. */
     fun hasStageAfter(id: Int): Boolean = stages.any { it.id == id + 1 }
 
+    /** The sprites shared by every stage. */
     data class Graphics(
-        var bat: Pixmap,
+        /** The bat's wingbeat, in its three wound rows. */
+        val bat: Pixmap,
         /** The bat going limp: five frames played once, then held while it tumbles and falls. */
-        var batDeath: Pixmap,
-        var gameOver: Pixmap,
-        var explosion: Pixmap,
-        /** Rock coming apart, for an obstacle; the explosion is for things that burn. */
-        var shatter: Pixmap,
-        var shot: Pixmap,
-        /** A shot's hit, played where it strikes: in the colorways of [shot], in the same order. */
-        var impact: Pixmap,
+        val batDeath: Pixmap,
+        /** The game over screen's artwork. */
+        val gameOver: Pixmap,
+        /** A blast, for things that burn. */
+        val explosion: Pixmap,
+        /** Rock coming apart, for an obstacle. */
+        val shatter: Pixmap,
+        /** Every projectile, one colorway per row. */
+        val shot: Pixmap,
+        /** A shot's hit, played where it strikes, in the colorways of [shot] in the same order. */
+        val impact: Pixmap,
         /** The orb Guardian Orb sends round the bat: six frames of a glint going round it. */
-        var orb: Pixmap,
+        val orb: Pixmap,
     )
 
+    /** The sounds and music shared by every stage. */
     data class Audio(
-        var gameOverMusic: Music,
-        /** Every [SoundEffect], loaded up front: they play mid-fight, where a load would stall it. */
+        val gameOverMusic: Music,
+        /**
+         * Every [SoundEffect], loaded up front, since loading mid-fight would stall
+         * it. Mutable so a test can listen in.
+         */
         var effects: Map<SoundEffect, Sound>,
     )
 
@@ -53,22 +62,18 @@ data class GameAssets(
         /**
          * The fanfare a won stage gets, from tools/generate_victory_music.py.
          *
-         * Opened by the run that wins rather than loaded with the rest: it plays once, from the top,
-         * and a track that has been played partway carries on from there the next time. So each win
-         * gets a fresh one, and the run that opened it disposes of it - which also stops it the
-         * moment the player flies on, rather than over the next stage's music.
+         * Opened by the winning run rather than loaded with the rest: it must play from the top,
+         * and a track paused partway resumes from there. The run disposes of it, which also stops
+         * it as soon as the player flies on.
          */
         const val VICTORY_MUSIC = "music/victory.wav"
 
         /**
-         * Loads every asset the game uses, through whichever platform's [EngineGraphics] and
-         * [EngineAudio] it is handed.
-         *
-         * Shared, because the Android activity and the desktop window used to carry a copy each,
-         * and a stage added to one of them would have been missing from the other.
+         * Loads every asset the game uses through the platform's [EngineGraphics] and
+         * [EngineAudio], so every host registers the same stages.
          */
         fun load(g: EngineGraphics, a: EngineAudio): GameAssets {
-            fun pixmap(name: String) = g.newPixmap(name, PixmapFormat.ARGB8888)
+            fun pixmap(name: String) = g.newPixmap(name)
 
             return GameAssets(
                 graphics = Graphics(
@@ -124,7 +129,7 @@ data class GameAssets(
                             MusicGrid(beatsPerMinute = 63.0, beatsPerBar = 4)
                         ),
                         enemySheet = pixmap("enemies.png"),
-                        // Underground, and so the one stage flown in the dark, by the bat's own light.
+                        // Underground, so the one stage flown in the dark, by the bat's own light.
                         lighting = StageLighting(ambient = CAVE_AMBIENT, glow = CAVE_GLOW),
                     ),
                     Stage(
@@ -132,8 +137,8 @@ data class GameAssets(
                         name = Res.string.stage_3_name,
                         backdrop = Backdrop.Sky(
                             day = Daylight,
-                            // The far band barely moves and the near one moves with the rocks
-                            // standing on it, so the three read as three distances.
+                            // The far band barely moves and the near one moves with the rocks on
+                            // it, so the three read as three distances.
                             layers = listOf(
                                 ParallaxLayer(pixmap("desertFar.png"), top = 192, speed = 0.2f),
                                 ParallaxLayer(pixmap("desertMid.png"), top = 254, speed = 0.5f),
@@ -143,8 +148,8 @@ data class GameAssets(
                             // Level with the far dunes, where the ground takes over from the sky.
                             horizonY = 276,
                         ),
-                        // An open sky: nothing hangs into the desert from above. What comes at the
-                        // bat from outside the frame here comes up out of the sand instead.
+                        // An open sky: nothing hangs in from above; threats come up
+                        // out of the sand.
                         topObstacles = emptyArray(),
                         bottomObstacles = arrayOf(
                             pixmap("desertObstacle1.png"),
@@ -164,11 +169,10 @@ data class GameAssets(
                         name = Res.string.stage_4_name,
                         backdrop = Backdrop.Sky(
                             day = Daybreak,
-                            // Clouds high up and barely moving; the open sea, from the horizon to the
-                            // bottom of the frame; limestone islands far off on the horizon, then
-                            // nearer ones; and the water the obstacles stand in. The far islands give
-                            // way to a temple on the horizon on the way to the Naga, then the nearer
-                            // islands to its ruins, and last the water to its moat.
+                            // High, slow clouds; the open sea from the horizon down; far limestone
+                            // islands, then nearer ones; and the water the obstacles stand in. On
+                            // the way to the Naga the far islands give way to a temple, the nearer
+                            // ones to its ruins, and the water to its moat.
                             layers = listOf(
                                 ParallaxLayer(pixmap("lagoonClouds.png"), top = 12, speed = 0.12f),
                                 ParallaxLayer(pixmap("lagoonSea.png"), top = 232, speed = 0.45f),
@@ -210,8 +214,8 @@ data class GameAssets(
                                 pixmap("templeObstacle4.png"),
                             ),
                         ),
-                        // The flight to the temple, and then the Naga to a piece of its own, faster
-                        // and wilder, which the run hands over to as it rises.
+                        // The flight to the temple, then a faster piece of the
+                        // Naga's own, handed over to as it rises.
                         music = StageMusic(
                             "lagoon",
                             MusicGrid(beatsPerMinute = 135.0, beatsPerBar = 4),

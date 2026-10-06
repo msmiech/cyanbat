@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** Which pairs [CollisionSystem] reports as colliding. */
 class CollisionSystemTest {
 
     private class Harness {

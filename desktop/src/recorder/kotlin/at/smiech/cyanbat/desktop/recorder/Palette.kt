@@ -1,13 +1,15 @@
 package at.smiech.cyanbat.desktop.recorder
 
+import kotlin.math.sqrt
+
 /**
  * The colors of one stage's footage as a single GIF palette, and the lookup that maps its frames
  * onto it.
  *
- * Exact whenever the footage has few enough colors, which pixel art usually does: each background is
- * a dozen colors. What pushes it over is blending - the dimmed overlays, the fading wake and damage
- * numbers - and then the palette is cut down by median cut, weighted by how often each color is
- * used, and every color maps to its nearest entry. Never dithered: dither is noise, and noise is
+ * Exact whenever the footage has few enough colors, which pixel art usually does: each background
+ * is a dozen colors. What pushes it over is blending (the dimmed overlays, the fading wake and
+ * damage numbers), and then the palette is cut down by median cut, weighted by how often each color
+ * is used, and every color maps to its nearest entry. Never dithered: dither is noise, and noise is
  * what a pixel-art GIF can least afford, to the eye and in bytes.
  */
 class Palette private constructor(
@@ -25,11 +27,8 @@ class Palette private constructor(
             // Runs of one color are most of a pixel-art frame, so the previous answer usually holds.
             if (rgb != lastRgb) {
                 lastRgb = rgb
-                lastIndex = lookup[rgb] ?: error(
-                    "Color %06x was not in the frames the palette was built from".format(
-                        rgb
-                    )
-                )
+                lastIndex = lookup[rgb]
+                    ?: error("Color %06x was not in the palette's frames".format(rgb))
             }
             out[i] = lastIndex.toByte()
         }
@@ -38,8 +37,10 @@ class Palette private constructor(
 
     /** Collects the colors of every frame handed to [add], then builds the palette from them. */
     class Builder {
+        /** How many pixels of each color have been added. */
         private val counts = HashMap<Int, Long>()
 
+        /** Counts [frame]'s colors, a run of one color at a time. */
         fun add(frame: IntArray) {
             var run = frame[0] and RGB_MASK
             var length = 0L
@@ -56,6 +57,9 @@ class Palette private constructor(
             counts.merge(run, length) { a, b -> a + b }
         }
 
+        /**
+         * The palette: every color added if they fit in [maxColors], cut down by median cut if not.
+         */
         fun build(maxColors: Int = GifEncoder.MAX_COLORS): Palette {
             val distinct = counts.keys.toIntArray()
             val entries = if (distinct.size <= maxColors) {
@@ -75,10 +79,13 @@ class Palette private constructor(
     }
 
     private companion object {
+        /** A pixel's color without its alpha. */
         const val RGB_MASK = 0xFFFFFF
 
+        /** The 8-bit channel of [rgb] that sits [shift] bits up. */
         fun channel(rgb: Int, shift: Int) = rgb shr shift and 0xFF
 
+        /** The index of [palette]'s entry nearest [rgb]. */
         fun nearest(palette: IntArray, rgb: Int): Int {
             var best = 0
             var bestDistance = Int.MAX_VALUE
@@ -111,13 +118,9 @@ class Palette private constructor(
                     if (box.size < 2) continue
                     val weight = box.sumOf { counts[it] }.toDouble()
                     for (shift in intArrayOf(16, 8, 0)) {
-                        val range = box.maxOf {
-                            channel(
-                                colors[it],
-                                shift
-                            )
-                        } - box.minOf { channel(colors[it], shift) }
-                        val score = range * Math.sqrt(weight)
+                        val range = box.maxOf { channel(colors[it], shift) } -
+                                box.minOf { channel(colors[it], shift) }
+                        val score = range * sqrt(weight)
                         if (score > pickScore) {
                             pickScore = score
                             pick = b

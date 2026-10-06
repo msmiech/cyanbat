@@ -6,29 +6,31 @@ import at.smiech.engine.GameButton
 import kotlin.math.abs
 
 /**
- * Turns raw key, pad and gesture state into the [Controls] the game reads - the keyboard and
+ * Turns raw key, pad and gesture state into the [Controls] the game reads: the keyboard and
  * controller counterpart of [PointerTouchHandler].
  *
- * Platform-neutral: hosts feed it through the small [onDirection] / [onAxis] / [onButton] surface,
- * via a Compose adapter on desktop and an `android.view` one on Android. Adding a device means
- * writing another adapter, not touching this class or any screen.
+ * Platform-neutral: hosts feed it through [onDirection], [onAxis] and [onButton], via a Compose
+ * adapter on the desktop and an `android.view` one on Android. A new device needs only a new
+ * adapter.
  *
- * Threading: NOT synchronized, for the same reason [PointerTouchHandler] is not. Key and motion
- * callbacks arrive on the host's UI thread, which is the thread the game loop runs on.
+ * Not synchronized, for the same reason as [PointerTouchHandler]: key and motion callbacks arrive
+ * on the host's UI thread, which is the thread the game loop runs on.
  */
 class ControlHandler : Controls {
     private val heldDirections = BooleanArray(Direction.entries.size)
     private val heldButtons = BooleanArray(GameButton.entries.size)
 
-    /** Presses seen but not yet read. Separate from [heldButtons] so a tap shorter than a frame
-     *  still registers, and so a held key registers exactly once. */
+    /**
+     * Presses seen but not yet read. Separate from [heldButtons] so a tap shorter than a frame
+     * still registers, and a held key registers exactly once.
+     */
     private val pendingPresses = BooleanArray(GameButton.entries.size)
 
     private var axisX = 0f
     private var axisY = 0f
 
-    // A key beats the stick it shares an axis with. They are rarely both live, and when they are
-    // the deliberate press is the better guess at intent than a stick resting off center.
+    // A key beats the stick on the same axis. They are rarely both live, and when they are, the
+    // deliberate press says more about intent than a stick resting off center.
     override val moveX: Float
         get() = digital(Direction.LEFT, Direction.RIGHT) ?: axisX
 
@@ -48,6 +50,7 @@ class ControlHandler : Controls {
         return pressed
     }
 
+    /** A digital direction pressed or released. */
     fun onDirection(direction: Direction, pressed: Boolean) {
         heldDirections[direction.ordinal] = pressed
     }
@@ -55,7 +58,7 @@ class ControlHandler : Controls {
     /**
      * Absolute stick position, both axes at once.
      *
-     * The dead zone is rescaled rather than merely cut out, so the first pixel of real travel
+     * Travel past the dead zone is rescaled rather than just cut, so the first bit of real travel
      * moves the bat slowly instead of jumping it to a fifth of full speed.
      */
     fun onAxis(x: Float, y: Float) {
@@ -71,8 +74,8 @@ class ControlHandler : Controls {
     }
 
     /**
-     * A button that reports both edges. The press is recorded on the way down only, so a host
-     * repeating key-downs while a key is held - as Android does - still yields one press.
+     * A button that reports both edges. The press is recorded on the way down only, so a host that
+     * repeats key-downs while a key is held, as Android does, still yields one press.
      */
     fun onButton(button: GameButton, pressed: Boolean) {
         val index = button.ordinal
@@ -80,9 +83,7 @@ class ControlHandler : Controls {
         heldButtons[index] = pressed
     }
 
-    /**
-     * A press with no release to come: a system gesture, or a button the host only reports once.
-     */
+    /** A press with no release to follow: a system gesture, or a button the host reports once. */
     fun onButtonPress(button: GameButton) {
         pendingPresses[button.ordinal] = true
     }
@@ -90,9 +91,9 @@ class ControlHandler : Controls {
     /**
      * Forgets everything held.
      *
-     * Hosts call this when they stop receiving input mid-press - a window losing focus, an
-     * activity going to the background - because the matching release is delivered to whoever has
-     * focus now, and without it the bat would fly off on a key nobody is pressing any more.
+     * Hosts call this when they stop receiving input mid-press, as when a window loses focus or an
+     * activity goes to the background: the release goes to whoever has focus now, and without this
+     * the bat would keep flying on a key nobody is pressing.
      */
     fun releaseAll() {
         heldDirections.fill(false)

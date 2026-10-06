@@ -4,18 +4,15 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
 /**
- * Persistence for each stage's highscore.
+ * Persistence for each stage's highscore. One record per stage, because a run flies one stage and
+ * the stages do not score alike.
  *
- * One record per stage rather than one for the whole game: a run flies a single stage, and the
- * stages do not score alike, so a shared number would only ever say which stage it was set on.
+ * The read is scoped to the caller, but the write happens as the bat dies, moments before the game
+ * screen is torn down, so it must survive that teardown: implementations own a process-lifetime
+ * scope for [saveAsync].
  *
- * The asymmetry is deliberate. The read is scoped to whoever asks for it, but the write happens
- * as the bat dies - moments before the game screen is torn down - so it must not be cancellable
- * by that teardown. Implementations own a process-lifetime scope for [saveAsync].
- *
- * [saveAsync] only ever raises the stored value. The screen saves whatever it believes the
- * highscore to be, and a run that ends before its read has come back believes it is zero - so a
- * store that took the value as given would let a short run overwrite the real record.
+ * [saveAsync] only ever raises the stored value. A run that ends before its read returns believes
+ * the highscore is zero, and must not overwrite the real record.
  */
 interface HighscoreStore {
     /** Every stage's highscore, by stage id. A stage nothing has been scored on is absent. */

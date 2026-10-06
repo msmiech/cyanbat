@@ -22,7 +22,7 @@ private class LightRecordingGraphics : Graphics {
         draws++
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+    override fun newPixmap(filename: String) =
         throw UnsupportedOperationException()
 
     override fun clear(color: Int) = Unit
@@ -87,7 +87,6 @@ private class LightRecordingGraphics : Graphics {
 private class ShapeSheet(private val size: Int, private val round: Boolean) : Pixmap {
     override val width = size
     override val height = size
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 
     override fun readPixels(buffer: IntArray, x: Int, y: Int, width: Int, height: Int): Boolean {
@@ -102,6 +101,7 @@ private class ShapeSheet(private val size: Int, private val round: Boolean) : Pi
     }
 }
 
+/** What [LightingSystem] works out of the lights in a frame, their shadows and their glints. */
 class LightingSystemTest {
 
     private val graphics = LightRecordingGraphics()

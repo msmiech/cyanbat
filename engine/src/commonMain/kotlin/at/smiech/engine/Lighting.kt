@@ -3,41 +3,39 @@ package at.smiech.engine
 import kotlin.math.roundToInt
 
 /**
- * The light a frame is lit by, as [Graphics.drawLighting] takes it: [ambient] everywhere, and every
- * point light in it brightening a disc around itself, less the shadows that whatever stands in its
- * way throws across that disc. The lights are laid over the dark one after another, in the order they
- * were added: each takes the light toward its own color by as much as it shines there.
+ * A frame's light, as [Graphics.drawLighting] takes it: [ambient] everywhere, plus
+ * point lights that each brighten a disc around themselves, minus the shadows cast
+ * across that disc. The lights are laid over the dark in the order added, each
+ * moving the light toward its own color by as much as it shines there.
  *
- * Refilled once a tick by whatever works the light out - `LightingSystem` - and kept from frame to
- * frame, lights and all, so that filling it allocates nothing once a run has seen its busiest moment.
- * [version] moves on whenever it is refilled, which is how a [Graphics] that turns it into pixels
- * tells a frame whose light has not changed - a paused one, or a second frame between two ticks - and
- * keeps what it drew the last time.
+ * Refilled once a tick by `LightingSystem` and reused across frames, lights and all, so filling it
+ * stops allocating once a run has seen its busiest moment. [version] advances on every refill, so a
+ * [Graphics] can tell when the light is unchanged (a paused frame, or a second frame between ticks)
+ * and keep what it drew last time.
  */
 class Lighting {
     /**
-     * The light where no point light reaches, as the color the frame is multiplied by there: the
-     * dark. Opaque black would be no light at all.
+     * The light where no point light reaches: the color the frame is multiplied by there. Opaque
+     * black would be no light at all.
      */
     var ambient: Int = EngineColors.BLACK
         private set
 
     /**
-     * How much of the light is added to the frame on top of lighting it, as 0..1: the light seen in
-     * the air rather than only on what it falls on. A frame lit by multiplying alone shows a colored
-     * light only on things of its own color, and a cyan light over the cave's navy walls barely
-     * shows at all.
+     * How much of the light is added on top of the multiplied frame, 0..1: light seen in the air,
+     * not only on surfaces. Multiplying alone shows a colored light only on things of its own
+     * color; a cyan light on the cave's navy walls barely showed at all.
      */
     var glow: Float = 0f
         private set
 
-    /** Moves on every time the light is refilled; see the class. */
+    /** Advances every time the light is refilled; see the class. */
     var version: Int = 0
         private set
 
     private val lights = ArrayList<Light>()
 
-    /** How many lights this frame has, [get] reading them out. */
+    /** How many lights this frame has; [get] reads them. */
     var count: Int = 0
         private set
 
@@ -49,7 +47,7 @@ class Lighting {
 
     private val glints = ArrayList<Glint>()
 
-    /** How many glints this frame has, [glint] reading them out. */
+    /** How many glints this frame has; [glint] reads them. */
     var glintCount: Int = 0
         private set
 
@@ -105,10 +103,9 @@ class Lighting {
     }
 
     /**
-     * A light catching the rounded edge of a sprite it shines on, as [Gloss] works it out: the sprite's
-     * frame and where it is drawn, which way the light comes from, and in what color and how brightly.
-     * Laid over the frame after the light, added onto what is there, since a glint is light coming back
-     * off a thing rather than the light it stands in.
+     * A light catching the rounded edge of a sprite, as [Gloss] computes it: the sprite's frame and
+     * where it is drawn, the light's direction, color and strength. Added over the frame after the
+     * light, since a glint is light reflected off a surface rather than light it stands in.
      */
     class Glint internal constructor() {
         lateinit var pixmap: Pixmap
@@ -149,12 +146,12 @@ class Lighting {
     }
 
     /**
-     * One point light of a [Lighting], and the shadows thrown across its disc.
+     * One point light of a [Lighting], and the shadows cast across its disc.
      *
-     * A shadow is a polygon in frame pixels, its points one after another in [shadowPoints] as x and
-     * y; shadow `i` runs from where the one before it ends, [shadowEnd] `(i - 1)`, to [shadowEnd]
-     * `(i)`. A pixel whose center lies inside any of them gets none of this light, and the polygons
-     * are free to overlap each other: a pixel in two shadows is no darker than in one.
+     * A shadow is a polygon in frame pixels, its points stored consecutively in [shadowPoints] as x
+     * and y; shadow `i` runs from [shadowEnd] `(i - 1)` to [shadowEnd] `(i)`. A pixel whose center
+     * lies inside any of them gets none of this light. Polygons may overlap: a pixel in two shadows
+     * is no darker than in one.
      */
     class Light internal constructor() {
         var x: Int = 0
@@ -193,9 +190,9 @@ class Lighting {
         }
 
         /**
-         * Whether the point ([x], [y]) lies in any of this light's shadows but shadow [except] - the one
-         * thrown by whatever the point belongs to, which is never in its own shadow. Even-odd, which a
-         * shadow, never crossing itself, does not tell from non-zero.
+         * Whether the point ([x], [y]) lies in any of this light's shadows other than [except], the
+         * one cast by whatever the point belongs to. Tested even-odd, which for a shadow that never
+         * crosses itself is the same as non-zero.
          */
         fun inShadow(x: Float, y: Float, except: Int = -1): Boolean {
             var start = 0
@@ -249,28 +246,29 @@ class Lighting {
 
     companion object {
         /**
-         * How many steps a light falls off in from full to nothing. Banded rather than smooth, like the
-         * shading on every sprite in the game and the rings of an aura's halo: a gradient a few pixels
-         * at a time is what light looks like in pixel art.
+         * How many steps a light falls off in, from full to nothing. Banded rather
+         * than smooth, like the sprites' shading and an aura's halo, because that
+         * is how light looks in pixel art.
          */
         const val BANDS = 16
 
         /**
-         * The rings a light of [radius] is drawn in, outermost and dimmest first, as a ring's radius and
-         * its brightness, 0 to 255, in turn.
+         * The rings a light of [radius] is drawn in, outermost and dimmest first, as pairs of a
+         * ring's radius and its brightness, 0 to 255.
          *
-         * A ring of radius r covers the pixels [Raster.oval] gives the circle drawn in the box 2r + 1
-         * across centered on the light's pixel. Each ring is brighter than the one outside it, so a
-         * pixel's brightness is that of the innermost ring it lies in: [falloff] at its distance,
-         * rounded to the nearest of the [BANDS] steps.
+         * A ring of radius r covers the pixels [Raster.oval] gives for the circle
+         * in the 2r + 1 box centered on the light's pixel. Each ring is brighter
+         * than the one outside it, so a pixel's brightness is its innermost ring's:
+         * [falloff] at its distance, rounded to one of [BANDS] steps.
          */
         fun rings(radius: Int): IntArray {
             val rings = IntArray(2 * BANDS)
             var count = 0
             for (band in 1..BANDS) {
-                // Out to here the light is nearer this band's brightness than the one below it's.
+                // Up to here the light is nearer this band's brightness than the band below's.
                 val reach = radius * reachOf((band - 0.5f) / BANDS)
-                // The circle drawn r + 1/2 pixels out from the light's center is the one nearest it.
+                // The circle r + 1/2 pixels out from the light's center is the
+                // nearest to that reach.
                 val ringRadius = (reach - 0.5f).roundToInt()
                 if (ringRadius < 0) continue
                 rings[count++] = ringRadius
@@ -280,24 +278,22 @@ class Lighting {
         }
 
         /**
-         * How far out a light shines at full strength, as a share of its radius, before it starts to
-         * fall off. A light that fades from its very center leaves little between its middle distance
-         * and the dark for a shadow to show against; one that holds and then falls throws a shadow
-         * that reads across most of its reach, as a lantern's does.
+         * How far a light shines at full strength, as a fraction of its radius, before it falls
+         * off. A light fading from its very center leaves too little brightness for shadows to show
+         * against; one that holds and then falls casts shadows that read across most of its reach.
          */
         const val FULL_REACH = 0.45f
 
         /**
-         * How bright a light is [t] of the way out to its radius: 1 out to [FULL_REACH], nothing at its
-         * edge, and easing out of the one and into the other, so it neither ends at a rim nor dims in
-         * a visible step from its full strength.
+         * A light's brightness [t] of the way out to its radius: 1 up to [FULL_REACH], 0 at the
+         * edge, with a smoothstep between, so it neither ends in a rim nor dims in a visible step.
          */
         fun falloff(t: Float): Float {
             val s = ((t - FULL_REACH) / (1f - FULL_REACH)).coerceIn(0f, 1f)
             return 1f - s * s * (3f - 2f * s)
         }
 
-        /** How far out [falloff] has come down to [brightness], found by halving, since it only falls. */
+        /** Where [falloff] reaches [brightness], found by bisection since it only decreases. */
         private fun reachOf(brightness: Float): Float {
             var near = 0f
             var far = 1f

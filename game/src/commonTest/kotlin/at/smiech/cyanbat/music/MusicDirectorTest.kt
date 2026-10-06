@@ -43,6 +43,7 @@ private class RecordingMusic : LayeredMusic {
     override fun dispose() = Unit
 }
 
+/** Which layers [MusicDirector] brings in and takes out as a run goes on. */
 class MusicDirectorTest {
 
     /** 120 beats a minute in four: a bar is two seconds. */
@@ -145,7 +146,7 @@ class MusicDirectorTest {
         assertEquals(0f, music.level(MusicLayer.FURY), "and a hit puts it out")
     }
 
-    /** Doom's entrance: the music drops out from under the banner and comes back all at once. */
+    /** The boss's entrance: the music drops out under the banner and comes back all at once. */
     @Test
     fun `the boss drops the music to its bed and slams back in on a downbeat`() {
         val director = director()
@@ -174,7 +175,7 @@ class MusicDirectorTest {
         assertEquals(MusicLayer.entries.toSet(), music.playing())
     }
 
-    /** SSX's hang time: the run holds still, and the music carries on under a muffle. */
+    /** The run holds still for a pick, and the music carries on under a muffle. */
     @Test
     fun `the level up dialog muffles the music without dropping a layer`() {
         val director = director()

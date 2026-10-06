@@ -23,9 +23,9 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /**
- * A frost beam as it shows for a moment after it has fired: from where it left the bat to where it
- * left the frame. Drawn and reaped by [FrostBeamSystem]. It is light and nothing else - nothing to
- * collide with, and it has done its work by the time it is seen.
+ * A frost beam as it shows briefly after firing, from where it leaves the bat to
+ * where it leaves the frame. Drawn and removed by [FrostBeamSystem]. Purely visual:
+ * it has done its work by the time it is seen.
  */
 class FrostBeamComponent(val fromX: Float, val fromY: Float, val toX: Float, val toY: Float) :
     Component {
@@ -34,21 +34,18 @@ class FrostBeamComponent(val fromX: Float, val fromY: Float, val toX: Float, val
 }
 
 /**
- * The bat's frost beam. Every [intervalSeconds] it picks an enemy on screen at random, fires from the
- * bat's middle through that enemy's on to the edge of the frame, and freezes every enemy the beam
- * passes through for [freezeSeconds]; see [FrostSystem].
+ * The bat's frost beam. Every [intervalSeconds] it picks a random enemy on screen, fires from the
+ * bat's middle through it to the edge of the frame, and freezes every enemy the beam passes through
+ * for [freezeSeconds]; see [FrostSystem].
  *
- * What it may freeze is [canFreeze]'s call - the run's, which knows a boss, a part of one and an elite
- * when it sees one. It never aims at anything else, and goes through anything else as if it were not
- * there. It prefers an enemy not frozen yet, since one that is gains little; only with nothing else to
- * aim at does it pick one again.
+ * [canFreeze] decides what it may freeze (the run excludes bosses, their parts and elites); it
+ * never aims at anything else and passes through it. It prefers an enemy not yet frozen.
  *
- * Its charge holds while there is nothing to aim at, so a beam come round on an empty screen goes off
- * at the first enemy to arrive rather than waiting out another interval. It is paced on the tick, as
- * everything that paces the fight is: a paused run is a paused beam.
+ * Its charge holds while there is nothing to aim at, so a beam that comes round on an empty screen
+ * fires at the first enemy to arrive. It is paced on the tick, so a paused run pauses the beam.
  *
- * Its update can go anywhere in the order; its draw belongs over the sprites, and in a stage flown in
- * the dark over the dark too, because a beam is light.
+ * Its update can go anywhere in the order; its draw belongs over the sprites, and over the dark in
+ * a dark stage, because a beam is light.
  *
  * @param origin the box the beam leaves from - the bat's - or null while it may not fire.
  * @param onFire called with every enemy a beam froze, the one it was aimed at first, and the beam.
@@ -138,8 +135,7 @@ class FrostBeamSystem(
     }
 
     /**
-     * One of [reachable] that is plainly on screen - its middle inside the frame - at random, and one
-     * not frozen yet if there is one.
+     * A random one of [reachable] whose middle is inside the frame, preferring one not yet frozen.
      */
     private fun pickTarget(world: World, reachable: List<EntityId>): EntityId? {
         val onScreen = reachable.filter { id ->
@@ -160,16 +156,16 @@ class FrostBeamSystem(
     }
 
     /**
-     * A white core with a glow either side of it and a deep blue edge outside that: five lines a pixel
-     * apart, across the beam's run, so on the grid they lie side by side and none goes over another.
+     * A white core with a glow either side and a deep blue edge outside that: five lines a pixel
+     * apart across the beam, side by side on the grid without overlapping.
      */
     private fun drawBeam(graphics: Graphics, beam: FrostBeamComponent, strength: Float) {
         val x0 = beam.fromX.roundToInt()
         val y0 = beam.fromY.roundToInt()
         val x1 = beam.toX.roundToInt()
         val y1 = beam.toY.roundToInt()
-        // A steep beam is a pixel a row, so its lines are laid side by side across; a shallow one is
-        // a pixel a column, and laid one over the other.
+        // A steep beam is one pixel per row, so its lines are offset horizontally; a shallow one is
+        // one pixel per column, so they are offset vertically.
         val steep = abs(y1 - y0) > abs(x1 - x0)
         for (band in BANDS) {
             val dx = if (steep) band.offset else 0
@@ -193,9 +189,8 @@ class FrostBeamSystem(
         )
 
         /**
-         * Where a ray from ([fromX], [fromY]) through ([throughX], [throughY]) leaves a frame [width]
-         * by [height]: never short of the point it was aimed through, however that sits against the
-         * frame.
+         * Where a ray from ([fromX], [fromY]) through ([throughX], [throughY]) leaves a [width] by
+         * [height] frame, never short of the point it was aimed through.
          */
         fun rayToEdge(
             fromX: Float,
@@ -223,9 +218,9 @@ class FrostBeamSystem(
         }
 
         /**
-         * The stretch of the segment from ([x0], [y0]) to ([x1], [y1]) inside [box], as how far along
-         * the segment it goes in and comes out, 0..1 - or null when the segment misses the box.
-         * Liang and Barsky's clip, one edge of the box at a time.
+         * The part of the segment from ([x0], [y0]) to ([x1], [y1]) inside [box], as the fractions
+         * along the segment where it enters and leaves, 0..1; null when it misses. Liang-Barsky
+         * clipping, one edge at a time.
          */
         fun clipSegment(
             x0: Float,

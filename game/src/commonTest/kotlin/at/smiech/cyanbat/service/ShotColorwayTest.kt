@@ -10,7 +10,6 @@ import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AnimationSystem
@@ -24,7 +23,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 private class SheetPixmap(override val width: Int, override val height: Int) : Pixmap {
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 

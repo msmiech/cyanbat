@@ -1,21 +1,15 @@
 package at.smiech.cyanbat.scenery
 
-import at.smiech.cyanbat.scenery.Daybreak.SKY_POSITIONS
-
-
 /**
- * The lagoon's day, from night at the stage's first second to noon on its boss's: the desert's
- * [Daylight] run the other way, and in other colors.
+ * The lagoon's day, from night at the stage's start to noon at its boss: the desert's [Daylight] in
+ * reverse, in other colors.
  *
- * The day follows the waves. Night for the first, the moon going down over the sea behind the bat and
- * the stars going out one by one; the dawn coming up magenta and pink along the horizon through the
- * second; the sun rising out of the sea ahead in the third, cut into bands by the haze over the water
- * and laying a path of glints across it; the morning in the fourth, the sky turning from violet to
- * turquoise over a pink horizon; and the full light of noon - a cyan sky over pale pink haze - by the
- * time the boss arrives. The colors are a beach town's neon at dawn more than a postcard's.
+ * The day follows the waves: night for the first, the moon setting behind the bat and the stars
+ * going out; dawn in magenta and pink along the horizon through the second; the sun rising out of
+ * the sea in the third, banded by haze and laying a path of glints; morning in the fourth, the sky
+ * turning from violet to turquoise; and noon, a cyan sky over pale pink haze, by the boss.
  *
- * Sky this bright behind the bat is safe: the bat is drawn dark, in navy and deep blue, and reads on
- * pale cyan as it does on the desert's pale yellow.
+ * A sky this bright is safe behind the bat, which is drawn in navy and deep blue.
  */
 object Daybreak : Day {
 
@@ -33,12 +27,9 @@ object Daybreak : Day {
     private val SKY_POSITIONS = floatArrayOf(0f, 0.16f, 0.3f, 0.42f, 0.55f, 0.72f, 0.86f, 1f)
 
     /**
-     * The sky at each of [SKY_POSITIONS], zenith to horizon.
-     *
-     * The night is indigo with a purple glow low down; the dawn comes up from the horizon in magenta
-     * and hot pink under a violet sky; at sunrise the horizon burns peach under pink and purple; and
-     * the morning clears from the top down, periwinkle and then turquoise, until noon is a cyan
-     * zenith paling to near white and a pink haze along the sea.
+     * The sky at each of [SKY_POSITIONS], zenith to horizon: indigo night with a purple glow low
+     * down; a magenta and hot pink dawn under violet; a peach horizon at sunrise; then the morning
+     * clearing from the top, periwinkle then turquoise, to a cyan noon over a pink haze.
      */
     private val SKY = arrayOf(
         colors(0x0A0820, 0x150F38, 0x261650, 0x3A1C62), // night
@@ -60,14 +51,16 @@ object Daybreak : Day {
     const val SUNRISE = 0.36f
 
     /**
-     * When the sun stands half out of the sea, banded by its haze, with its path of glints the
-     * longest it gets: the picture of the lagoon's morning, which is where the reel looks in on it.
+     * When the sun stands half out of the sea, banded by haze, with its longest path of glints: the
+     * moment the reel shows.
      */
     const val SUNUP = 0.43f
 
     override val showcase: Float get() = SUNUP
 
-    /** Its course, from rising out of the sea on the right - the way the bat flies - to high at noon. */
+    /**
+     * Its course, from rising out of the sea on the right, where the bat flies, to high at noon.
+     */
     private const val RISE_X = 520f
     private const val RISE_Y = 254f
     private const val NOON_X = 404f
@@ -82,7 +75,7 @@ object Daybreak : Day {
     override fun sunY(position: Float): Float =
         RISE_Y + (NOON_Y - RISE_Y) * fraction(position, SUNRISE, HIGH)
 
-    /** Swollen while it is low, shrinking as it climbs. */
+    /** Larger while low, shrinking as it climbs. */
     override fun sunRadius(position: Float): Float = 23f - 8f * smoothstep(0.42f, 0.88f, position)
 
     private val SUN_POSITIONS = floatArrayOf(SUNRISE, 0.46f, 0.6f, 0.86f)
@@ -95,26 +88,26 @@ object Daybreak : Day {
     /** Shading down into magenta at its foot while it is low; one color by the late morning. */
     override fun sunLowColor(position: Float): Int = ramp(SUN_POSITIONS, SUN_FOOT_COLORS, position)
 
-    /** A halo that sets the dawn alight while it is low, and settles to a pale haze as it climbs. */
+    /** A strong halo while low, settling to a pale haze as it climbs. */
     override fun sunGlow(position: Float): Float =
         0.35f + 0.65f * (1f - smoothstep(0.46f, 0.8f, position))
 
-    /** Banded through the haze over the sea as it rises, and clear of it by the middle of the morning. */
+    /** Banded by the haze as it rises, clear of it by mid-morning. */
     override fun sunBands(position: Float): Float = 1f - smoothstep(0.46f, 0.62f, position)
 
-    /** Its path on the water, from the moment it is up until it is too high to lay one. */
+    /** Its path on the water, from sunrise until it is too high. */
     override fun sunGlitter(position: Float): Float =
         smoothstep(SUNRISE, 0.41f, position) * (1f - smoothstep(0.6f, 0.82f, position))
 
     // --- the night -------------------------------------------------------------------------------
 
-    /** Every star out at the start, going out through the dawn, the faintest first. */
+    /** Every star out at the start, fading through the dawn, faintest first. */
     override fun starlight(position: Float): Float = 1f - smoothstep(0.12f, 0.36f, position)
 
-    /** Up through the night, and gone into the brightening sky before the sun is. */
+    /** Up through the night, gone before the sun rises. */
     override fun moonlight(position: Float): Float = 1f - smoothstep(0.2f, 0.36f, position)
 
-    /** Going down behind the bat, low over the sea on the left, as the dawn comes up ahead. */
+    /** Setting behind the bat, low over the sea on the left, as the dawn comes up ahead. */
     private const val MOON_START_X = 128f
     private const val MOON_START_Y = 46f
     private const val MOON_END_X = 92f

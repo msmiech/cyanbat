@@ -9,6 +9,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNull
 
+/** [PreferencesHighscoreStore], and the migrations that moved old highscores to their stages. */
 class PreferencesHighscoreStoreTest {
 
     /** A node of the test's own, so it never reads or writes the game's real scores. */

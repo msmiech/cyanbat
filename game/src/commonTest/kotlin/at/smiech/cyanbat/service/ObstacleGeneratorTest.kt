@@ -11,7 +11,6 @@ import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
-import at.smiech.engine.Graphics
 import at.smiech.engine.MusicGrid
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.CollisionComponent
@@ -25,7 +24,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 private class Sheet(override val width: Int, override val height: Int) : Pixmap {
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 

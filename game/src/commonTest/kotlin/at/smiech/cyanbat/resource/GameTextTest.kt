@@ -9,6 +9,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFailsWith
 
+/** How [GameText] fills in its placeholders. */
 class GameTextTest {
 
     private val text = GameText(

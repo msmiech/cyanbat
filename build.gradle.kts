@@ -44,13 +44,17 @@ extra["cyanbatVersionCode"] = major * 10000 + minor * 100 + patch
 extra["cyanbatPackageVersion"] = "$major.$minor.$patch"
 
 /*
- * Tests run in English, whatever language the machine is set to: the menu's tests find its buttons
- * by their English labels, and the run's read its English banners. TranslationsTest and
- * GameTextLayoutTest switch the language themselves, where they check the others.
+ * Tests run in English whatever the machine's language: the menu's tests find buttons by their
+ * English labels, and the run's read English banners. TranslationsTest and GameTextLayoutTest
+ * switch the language themselves to check the others.
+ *
+ * Native access is granted up front because Skia loads its library through System.load, which the
+ * JDK otherwise warns about and will eventually refuse.
  */
 subprojects {
     tasks.withType<Test>().configureEach {
         systemProperty("user.language", "en")
         systemProperty("user.country", "US")
+        jvmArgs("--enable-native-access=ALL-UNNAMED")
     }
 }

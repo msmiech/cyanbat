@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** Which touches [TapDetector] counts as taps. */
 class TapDetectorTest {
 
     private fun event(type: Int, pointer: Int = 0, x: Int = 0, y: Int = 0) = TouchEvent().also {

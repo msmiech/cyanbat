@@ -22,6 +22,7 @@ import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.random.Random
 
+/** A full turn, in radians. */
 private const val TAU = (2 * PI).toFloat()
 
 /** Sky, top to bottom: deep teal fading down to near black, darkest where the buttons sit. */
@@ -30,8 +31,13 @@ private val SKY = listOf(Color(0xFF0D4B5A), Color(0xFF07313D), Color(0xFF03141B)
 /** A soft pool of light behind the wave, so it seems to glow rather than lie on the sky. */
 private val WAVE_LIGHT = Color(0x382FC4D8)
 
+/** The strands of light. */
 private val STRAND = Color(0xFFE4FCFF)
+
+/** The faint body of a sheet, between its outermost strands. */
 private val SHEET_BODY = Color(0xFF9FEFFF)
+
+/** The tint at the edge of a sparkle's white heart. */
 private val SPARKLE_TINT = Color(0xFFBFF6FF)
 
 /** Line segments per strand across the screen. The swells are long; more buys nothing visible. */
@@ -40,15 +46,19 @@ private const val SAMPLES = 64
 /** How far a strand weaves off its place in the sheet, as a fraction of the height. */
 private const val RIPPLE = 0.012f
 
+/** How many sparkles drift along the wave. */
 private const val SPARKLE_COUNT = 48
 
 /** Fixed, so the sparkles scatter the same way every time the menu opens. */
 private const val SPARKLE_SEED = 0x5EED
 
-/** A sparkle's halo and glints, in multiples of its radius. */
+/** How far a sparkle's halo reaches, in multiples of its radius. */
 private const val HALO = 4f
+
+/** How far a glint reaches either side of its sparkle, in multiples of its radius. */
 private const val GLINT = 5f
 
+/** A sparkle's halo, at a radius of one; each sparkle is drawn scaled to its own. */
 private val SPARKLE_HALO = Brush.radialGradient(
     0f to Color.White,
     0.2f to SPARKLE_TINT.copy(alpha = 0.55f),
@@ -56,9 +66,12 @@ private val SPARKLE_HALO = Brush.radialGradient(
     center = Offset.Zero,
     radius = HALO,
 )
+
+/** A glint's arm across, at a radius of one. */
 private val GLINT_ACROSS = Brush.horizontalGradient(
     listOf(Color.Transparent, Color.White, Color.Transparent), startX = -GLINT, endX = GLINT,
 )
+/** A glint's arm down, likewise. */
 private val GLINT_DOWN = Brush.verticalGradient(
     listOf(Color.Transparent, Color.White, Color.Transparent), startY = -GLINT, endY = GLINT,
 )
@@ -78,6 +91,7 @@ private class Sheet(
     val swell: Float,
     /** Half the sheet's breadth where it is widest. */
     val breadth: Float,
+    /** How many strands the sheet is made of. */
     val strands: Int,
     /** Radians per second the swells roll at. */
     val speed: Float,
@@ -102,6 +116,7 @@ private class Sheet(
         RIPPLE * sin(TAU * 1.3f * u - 1.2f * speed * t + 2.6f * f + phase)
 }
 
+/** The wave's two sheets, back to front. */
 private val SHEETS = listOf(
     Sheet(
         left = 0.50f,
@@ -140,12 +155,15 @@ private class Sparkle(
     val bob: Float,
     /** Radians per second it twinkles at. */
     val twinkle: Float,
+    /** Keeps its bob and twinkle out of step with the others'. */
     val phase: Float,
+    /** Its radius in dp at its brightest. */
     val radius: Float,
     /** Whether it flares into a four-pointed star when it peaks, or only glows. */
     val glints: Boolean,
 )
 
+/** [SPARKLE_COUNT] sparkles, each given its character by [random]. */
 private fun scatterSparkles(random: Random): List<Sparkle> = List(SPARKLE_COUNT) {
     Sparkle(
         start = random.nextFloat(),
@@ -161,12 +179,12 @@ private fun scatterSparkles(random: Random): List<Sparkle> = List(SPARKLE_COUNT)
 }
 
 /**
- * The main menu's backdrop: a ribbon of light rolling slowly across a deep teal sky, after the
- * "flow" behind the PlayStation 3's XMB, with sparkles drifting along it.
+ * The main menu's backdrop: a ribbon of light rolling slowly across a deep teal sky, with sparkles
+ * drifting along it.
  *
- * Nothing here is stepped. Every strand and every sparkle is a function of the seconds since the
- * menu appeared, so there is no particle state to update or keep - a sparkle is wherever its seed
- * and the clock put it.
+ * Nothing here is stepped. Every strand and sparkle is a function of the seconds since the menu
+ * appeared, so there is no particle state to update or keep: a sparkle is wherever its seed and the
+ * clock put it.
  */
 @Composable
 fun FlowBackground(modifier: Modifier = Modifier) {
@@ -212,6 +230,7 @@ private fun rememberSeconds(): FloatState {
     return seconds
 }
 
+/** Draws [sheet] [t] seconds in: its faint body, then its strands, the edges brightest. */
 private fun DrawScope.drawSheet(
     sheet: Sheet,
     t: Float,
@@ -232,31 +251,23 @@ private fun DrawScope.drawSheet(
 
     for (s in 0 until sheet.strands) {
         val f = -1f + 2f * s / (sheet.strands - 1)
-        // The outermost strands carry the sheet's edges and are far brighter than its inside -
-        // the look of a glassy surface catching the light along its rims.
+        // The outermost strands are the sheet's edges, far brighter than its inside, like glass
+        // catching the light along its rims.
         val f2 = f * f
         val edge = f2 * f2 * f2 * f2
+        val alpha = (0.07f + 0.43f * edge) * sheet.brightness
         path.reset()
         traceStrand(path, sheet, t, f)
         if (edge > 0.5f) {
             drawPath(path, STRAND, alpha = 0.07f * sheet.brightness, style = edgeHalo)
-            drawPath(
-                path,
-                STRAND,
-                alpha = (0.07f + 0.43f * edge) * sheet.brightness,
-                style = edgeLine
-            )
+            drawPath(path, STRAND, alpha = alpha, style = edgeLine)
         } else {
-            drawPath(
-                path,
-                STRAND,
-                alpha = (0.07f + 0.43f * edge) * sheet.brightness,
-                style = hairline
-            )
+            drawPath(path, STRAND, alpha = alpha, style = hairline)
         }
     }
 }
 
+/** Traces the strand at [f] (-1 to 1 across [sheet]) into [path], from left to right. */
 private fun DrawScope.traceStrand(path: Path, sheet: Sheet, t: Float, f: Float) {
     path.moveTo(0f, strandY(sheet, 0f, t, f))
     for (i in 1..SAMPLES) {
@@ -265,15 +276,17 @@ private fun DrawScope.traceStrand(path: Path, sheet: Sheet, t: Float, f: Float) 
     }
 }
 
+/** How far down the screen the strand at [f] is, [u] of the way across. */
 private fun DrawScope.strandY(sheet: Sheet, u: Float, t: Float, f: Float): Float =
     size.height * (sheet.middle(u, t) + f * sheet.span(u, t) + sheet.ripple(u, t, f))
 
+/** Draws [sparkle] where [t] seconds of drifting have carried it, at its current twinkle. */
 private fun DrawScope.drawSparkle(sparkle: Sparkle, t: Float) {
     val u = (sparkle.start + sparkle.drift * t) % 1f
     // Fade in and out at the screen's edges, so wrapping around from right to left is never seen.
     val edgeFade = minOf(1f, u / 0.06f, (1f - u) / 0.06f)
     val glow = 0.5f + 0.5f * sin(sparkle.twinkle * t + sparkle.phase)
-    // Squared: most of the time a sparkle is dim, and it peaks only briefly - a twinkle, not a pulse.
+    // Squared, so a sparkle is mostly dim and peaks only briefly: a twinkle, not a pulse.
     val alpha = glow * glow * edgeFade
     if (alpha < 0.01f) return
 

@@ -5,6 +5,7 @@ import at.smiech.engine.Sound
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+/** When [SoundBoard] plays an effect, and how loud. */
 class SoundBoardTest {
 
     /** Every effect through a sound that only writes down what it was asked to play. */

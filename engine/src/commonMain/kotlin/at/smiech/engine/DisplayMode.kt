@@ -1,32 +1,30 @@
 package at.smiech.engine
 
 /**
- * How the framebuffer is shown on a screen that is not its own shape. The game's is 16:9, which
- * fits a good many screens exactly, but phones run on to 21:9, and tablets and some monitors are
- * squarer than it.
- *
- * The player's choice, in the menu's settings, because each of these is somebody's favorite: some
- * people want the whole screen used, some want the game the shape it was drawn, and some want the
- * shape without the dead black either side of it.
+ * How the 16:9 framebuffer is fitted to a screen of another shape: phones run to 21:9, while
+ * tablets and some monitors are squarer. The player picks one in Settings.
  */
 enum class DisplayMode {
-    /** Scaled to fill the screen, each axis on its own: no bars, but the game drawn out of shape. */
+    /** Scaled to fill the screen, each axis on its own: no bars, but the picture is distorted. */
     STRETCH,
 
-    /** Scaled evenly to fit and centered, with black bars in whatever space is left over. */
+    /** Scaled evenly to fit and centered, with black bars in the space left over. */
     BLACK_BARS,
 
     /**
-     * As [BLACK_BARS], but the bars are lit with the colors at the frame's edges - a video player's
-     * ambient mode, so the cave's glow runs out to the sides of the screen instead of stopping dead.
+     * As [BLACK_BARS], but the bars are lit with the colors at the frame's edges, like a video
+     * player's ambient mode.
      */
     AMBIENT;
 
     companion object {
-        /** What a player gets until they choose otherwise: the game in its own shape, and no dead black. */
+        /** The mode until the player chooses another: undistorted, and without dead black bars. */
         val DEFAULT = AMBIENT
 
-        /** The mode stored as [name], or [DEFAULT] for anything unrecognized - a newer build's mode, say. */
+        /**
+         * The mode stored as [name], or [DEFAULT] for anything unrecognized, such
+         * as a newer build's.
+         */
         fun fromName(name: String?): DisplayMode =
             entries.firstOrNull { it.name == name } ?: DEFAULT
     }

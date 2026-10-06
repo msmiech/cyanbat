@@ -50,12 +50,14 @@ tasks.register<JavaExec>("recordGameplay") {
     classpath = sourceSets["recorder"].runtimeClasspath
     mainClass = "at.smiech.cyanbat.desktop.recorder.RecordGameplayKt"
     workingDir = rootDir
-    jvmArgs("-Djava.awt.headless=true")
+    jvmArgs("-Djava.awt.headless=true", "--enable-native-access=ALL-UNNAMED")
     maxHeapSize = "2g"
 }
 
 compose.desktop {
     application {
+        // Skia loads its native library through System.load, which the JDK warns about otherwise.
+        jvmArgs += "--enable-native-access=ALL-UNNAMED"
         mainClass = "at.smiech.cyanbat.desktop.MainKt"
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)

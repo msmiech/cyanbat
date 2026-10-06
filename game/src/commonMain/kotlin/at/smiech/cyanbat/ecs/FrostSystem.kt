@@ -15,28 +15,27 @@ import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.World
 
 /**
- * How long an enemy has left frozen; see [FrostSystem]. Zero for one that is not frozen, or is no
- * longer: it is disarmed rather than taken off, as components are here.
+ * How long an enemy has left frozen; see [FrostSystem]. Zero when not frozen: disarmed rather than
+ * removed, like other components here.
  */
 class FrostComponent(var seconds: Float = 0f) : Component {
+    /** Whether any freeze is left. */
     val frozen: Boolean get() = seconds > 0f
 }
 
 /**
- * Holds every frozen enemy still - its flight, its wingbeat and its gun, all of which run on its
- * [PaceComponent] - and drifts it with the scenery, washed in [FROST_TINT], until its time is up.
- * What it does to the bat meanwhile, which is nothing, is the run's to decide; see [isFrozen].
+ * Holds every frozen enemy still (its flight, wingbeat and gun all run on its [PaceComponent]) and
+ * drifts it with the scenery, tinted [FROST_TINT], until it thaws. That a frozen enemy is harmless
+ * to the bat is the run's decision; see [isFrozen].
  *
- * The pace is held at nothing every tick rather than once, since a wound sets it too; the run leaves a
- * frozen enemy's pace alone, and is handed it back through [onThaw] as the frost lets go. The drift is
- * the whole of how something frozen moves: its own velocity is still there, held still by its pace, and
- * it picks up where it left off.
+ * The pace is zeroed every tick rather than once, since a wound sets it too; the run leaves a
+ * frozen enemy's pace alone and restores it through [onThaw]. The drift is the only movement: the
+ * enemy's own velocity is kept, and it carries on where it left off.
  *
- * Add it after the movement, which a frozen pace has held still, and before the collisions, so a
- * frozen enemy is met where it has drifted to.
+ * Add it after the movement and before the collisions, so a frozen enemy is met
+ * where it drifted to.
  *
- * @param onThaw called as each one comes free, to put its pace back: what that is - a wounded enemy is
- *   slower than a whole one - is the run's business.
+ * @param onThaw called as each enemy thaws, to restore its pace, which depends on its wounds.
  */
 class FrostSystem(private val onThaw: (EntityId) -> Unit) : GameSystem() {
     private lateinit var frosts: ComponentMapper<FrostComponent>
@@ -71,19 +70,18 @@ class FrostSystem(private val onThaw: (EntityId) -> Unit) : GameSystem() {
             tints[id]?.color = tintFor(frost.seconds)
             val transform = transforms.require(id)
             transform.rect = transform.rect.offset(FROST_DRIFT, 0f)
-            // Gone once it has drifted off the left. The lifetime cull only takes what is travelling
-            // that way, and something frozen mid loop can be pointing back the way it came.
+            // Removed once it drifts off the left: the lifetime cull only takes what travels that
+            // way, and something frozen mid-loop can be pointing back the way it came.
             if (transform.rect.right < 0f) world.removeEntity(id)
         }
     }
 
     companion object {
         /**
-         * Freezes [id] for [seconds] from now, or leaves it frozen for longer if it already is: a
-         * second beam never cuts a freeze short.
+         * Freezes [id] for [seconds], or leaves it frozen longer if it already is: a second beam
+         * never cuts a freeze short.
          *
-         * Holds its pace at once rather than from the next tick, so nothing it was about to do this
-         * tick - a step, a shot - gets out after the beam has caught it.
+         * Zeroes its pace at once, so nothing it was about to do this tick escapes the beam.
          */
         fun freeze(world: World, id: EntityId, seconds: Float) {
             val frost = world.getComponent(id, FrostComponent::class)
@@ -102,7 +100,7 @@ class FrostSystem(private val onThaw: (EntityId) -> Unit) : GameSystem() {
         fun isFrozen(world: World, id: EntityId): Boolean =
             world.getComponent(id, FrostComponent::class)?.frozen == true
 
-        /** The wash over something with [seconds] of its freeze left: full until the thaw sets in. */
+        /** The tint for [seconds] of freeze left: full strength until the thaw begins. */
         fun tintFor(seconds: Float): Int =
             EngineColors.scaleAlpha(FROST_TINT, (seconds / FROST_THAW_SECONDS).coerceIn(0f, 1f))
     }

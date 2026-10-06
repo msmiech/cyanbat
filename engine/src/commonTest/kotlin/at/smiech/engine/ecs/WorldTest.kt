@@ -19,6 +19,7 @@ private class RecordingSystem : GameSystem() {
     }
 }
 
+/** The basics of [World]: entities, components and queries. */
 class WorldTest {
 
     private fun World.spawn(x: Float = 0f): EntityId {

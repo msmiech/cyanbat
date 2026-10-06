@@ -3,7 +3,6 @@ package at.smiech.cyanbat.ecs
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.BackgroundComponent
 import at.smiech.engine.ecs.LifetimeSystem
@@ -15,7 +14,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 private class StripPixmap(override val width: Int, override val height: Int) : Pixmap {
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 

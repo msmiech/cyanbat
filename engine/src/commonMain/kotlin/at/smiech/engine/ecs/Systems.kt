@@ -12,10 +12,7 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
-/**
- * System that moves entities based on their velocity, slowed by a [PaceComponent] where there is
- * one.
- */
+/** Moves entities by their velocity each tick, slowed by a [PaceComponent] where there is one. */
 class MovementSystem : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var velocities: ComponentMapper<VelocityComponent>
@@ -42,8 +39,8 @@ class MovementSystem : GameSystem() {
 private const val BOSS_APPROACH_SPEED = -1.1f
 
 /**
- * Its weave once it is there: slow and wide enough that the player has to follow it, but never so
- * fast that it cannot be tracked with a thumb.
+ * Its weave on station: slow and wide enough that the player has to follow it, never so fast that a
+ * thumb cannot track it.
  */
 private const val BOSS_WEAVE_AMPLITUDE = 60f
 private const val BOSS_WEAVE_FREQUENCY = 0.9f
@@ -65,8 +62,8 @@ private const val SURGE_FLOOR = 0.3f
 private const val SURGE_GAIN = 1.4f
 
 /**
- * A hover: how long it hangs on station, how quickly its lane drifts toward the player's - slow,
- * so it tracks a player who sits still and loses one who keeps moving - and how it bobs there.
+ * A hover: how long it hangs on station, how quickly its lane drifts toward the player's (slowly,
+ * so it tracks a player who sits still and loses one who keeps moving), and how it bobs there.
  */
 private const val HOVER_SECONDS = 5f
 private const val HOVER_LANE_DRIFT = 0.35f
@@ -74,9 +71,9 @@ private const val HOVER_BOB = 10f
 private const val HOVER_LEAVE_FACTOR = 1.3f
 
 /**
- * A dive: how long the tell lasts - the moment it checks its swing and backs off a little, which
- * is the player's warning - and how fast it comes once committed. Its closing speed never drops
- * below [DIVE_MIN_CLOSING], so a player who has slipped behind it cannot make it fly backwards.
+ * A dive: how long the tell lasts (it pauses and backs off a little, warning the player) and how
+ * fast it comes once committed. Its closing speed never drops below [DIVE_MIN_CLOSING], so a player
+ * who has slipped behind it cannot make it fly backwards.
  */
 private const val DIVE_TELL_SECONDS = 0.45f
 private const val DIVE_TELL_BACKOFF = 0.4f
@@ -96,12 +93,12 @@ private const val FIGURE_EIGHT_FREQUENCY = 0.7f
 private const val FIGURE_EIGHT_TRACKING = 0.06f
 
 /**
- * A leap. Gravity is in pixels per tick, per second, like [DeathThroesComponent.gravity], and set so
- * a leap from the sand to mid-frame and back takes about two and a half seconds - long enough to see
- * it coming down. The apex is kept below [LEAP_HIGHEST_TOP] from the top of the frame, so a player
- * hugging the ceiling is not simply out of reach, and above [LEAP_LEAST_RISE] from where it left,
- * so a player hugging the ground still gets a leap rather than a hop. With no player to aim at it
- * rises [LEAP_BLIND_RISE].
+ * A leap. Gravity is in pixels per tick, per second, like [DeathThroesComponent.gravity],
+ * set so a leap from the sand to mid-frame and back takes about two and a half seconds,
+ * long enough to see it coming down. The apex stays at least [LEAP_HIGHEST_TOP] below the
+ * top of the frame, so hugging the ceiling is not a safe spot, and at least
+ * [LEAP_LEAST_RISE] above the start, so a player near the ground still faces a leap
+ * rather than a hop. With no player to aim at it rises [LEAP_BLIND_RISE].
  */
 private const val LEAP_GRAVITY = 4.8f
 private const val LEAP_HIGHEST_TOP = 48f
@@ -111,22 +108,22 @@ private const val LEAP_FORWARD_FACTOR = 1.25f
 
 /**
  * A loop: how much faster than its cruise it flies the circle, and how long one turn takes. At the
- * desert's closing speeds that is a circle of about forty pixels' radius - big enough to read as a
- * loop rather than a wobble, small enough to stay on screen from any lane.
+ * desert's closing speeds that is a radius of about forty pixels: big enough to read as a loop,
+ * small enough to stay on screen from any lane.
  */
 private const val LOOP_SPEED_FACTOR = 1.6f
 private const val LOOP_SECONDS = 1.8f
 private const val LOOP_LEAVE_FACTOR = 1.5f
 
 /**
- * A glide eases in over its last stretch: once it is near enough, it covers [GLIDE_EASING] of what is
- * left a tick, and never less than [GLIDE_SLOWEST] of a pixel, so it settles onto its station rather
- * than creeping up on the last pixel for ever.
+ * A glide eases in over its last stretch: near its station it covers [GLIDE_EASING] of the
+ * remaining distance per tick, but never less than [GLIDE_SLOWEST] of a pixel, so it settles rather
+ * than creeping up on the last pixel forever.
  */
 private const val GLIDE_EASING = 0.05f
 private const val GLIDE_SLOWEST = 0.3f
 
-/** How near its station a glide counts as there, which its last step always lands well inside. */
+/** How near its station a glide counts as arrived; its last step always lands well inside this. */
 private const val GLIDE_ARRIVED = 0.01f
 
 private const val PI_F = 3.1415927f
@@ -138,15 +135,14 @@ private const val STAGE_HOLD = 1
 private const val STAGE_COMMITTED = 2
 
 /**
- * System that handles enemy movement patterns.
+ * Runs enemy flight patterns; see [EnemyMovementType].
  *
- * Some patterns aim at the player, so it looks the player up once per update: the first living
- * entity carrying a [PlayerControlComponent]. With none - a test world, or a bat already dead -
- * those patterns fly on as if nobody were there.
+ * Some patterns aim at the player, looked up once per update as the first living entity carrying a
+ * [PlayerControlComponent]. With none (a test world, or a dead bat) they fly on as if nobody were
+ * there.
  *
  * A [PaceComponent] slows an enemy's own clock: every timer here runs on its time, and
- * [MovementSystem] carries it its share of each velocity, so a slowed pattern is the same pattern
- * played slower.
+ * [MovementSystem] scales its velocity, so a slowed pattern is the same pattern played slower.
  */
 class EnemyBehaviorSystem : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -211,23 +207,23 @@ class EnemyBehaviorSystem : GameSystem() {
                 EnemyMovementType.ZIGZAG -> {
                     if (behavior.elapsedTime > behavior.nextDirectionChange) {
                         behavior.verticalDirection *= -1f
-                        behavior.nextDirectionChange = behavior.elapsedTime + 0.8f // simplified
+                        behavior.nextDirectionChange = behavior.elapsedTime + 0.8f
                     }
                     velocity.velocity =
                         velocity.velocity.copy(y = behavior.verticalDirection * 2.5f)
                 }
 
                 EnemyMovementType.BOSS -> {
-                    // Closes from the edge it entered on, then stops dead at its station. Its own
-                    // x velocity is overwritten here rather than decayed, so the entrance reads as
-                    // one deliberate move instead of a drift.
+                    // Closes from the edge it entered on, then stops dead at its station. Its x
+                    // velocity is overwritten rather than decayed, so the entrance reads as one
+                    // deliberate move instead of a drift.
                     val closing = transform.rect.left > behavior.holdX
                     val targetY = behavior.initialY +
                             sin(behavior.elapsedTime * BOSS_WEAVE_FREQUENCY) * BOSS_WEAVE_AMPLITUDE
                     velocity.velocity = Vector2(
                         x = if (closing) BOSS_APPROACH_SPEED else 0f,
-                        // Chased rather than set outright, so the boss eases into the turns at the
-                        // top and bottom of its weave instead of snapping between them.
+                        // Chased rather than set outright, so the boss eases into the turns of its
+                        // weave instead of snapping between them.
                         y = (targetY - transform.rect.top) * BOSS_WEAVE_TRACKING,
                     )
                 }
@@ -246,9 +242,8 @@ class EnemyBehaviorSystem : GameSystem() {
     }
 
     /**
-     * Straight at the station, at full speed until the last stretch and easing onto it from there,
-     * so it settles where it was sent rather than stopping dead. Not steered by anything else on the
-     * way: whatever sent it there chose the line.
+     * Straight at the station, at full speed until the last stretch and easing in from there, so it
+     * settles rather than stopping dead. Nothing else steers it on the way.
      */
     private fun glide(
         transform: TransformComponent,
@@ -272,12 +267,11 @@ class EnemyBehaviorSystem : GameSystem() {
     }
 
     /**
-     * A slowed leaper is thrown as hard as ever and falls on its own time, which is what keeps a
-     * slowed leap the same height: it is only the climb and the fall that take longer.
+     * A slowed leaper is thrown as hard as ever and falls on its own time, so a slowed leap keeps
+     * its height; only the climb and the fall take longer.
      *
-     * Most leapers come in from the right, the way everything hostile does, and leap once they are
-     * as far left as their station. One cruising right - in from behind the bat - leaps once it is
-     * as far right as its station instead.
+     * Most leapers come in from the right and leap once they are as far left as their station. One
+     * cruising right, in from behind the bat, leaps once it is as far right as its station.
      */
     private fun leap(
         transform: TransformComponent,
@@ -292,7 +286,7 @@ class EnemyBehaviorSystem : GameSystem() {
                 if (behavior.baseSpeedX > 0f) rect.left < behavior.holdX else rect.left > behavior.holdX
             if (short) {
                 // Held to its lane rather than left to drift, so the back showing above the sand
-                // stays the same height all the way in: that sliver is the whole of the warning.
+                // stays the same height all the way in: that sliver is the only warning.
                 velocity.velocity =
                     Vector2(behavior.baseSpeedX, (behavior.initialY - rect.top) * 0.2f)
                 return
@@ -302,15 +296,15 @@ class EnemyBehaviorSystem : GameSystem() {
                 Vector2(behavior.baseSpeedX * LEAP_FORWARD_FACTOR, launchSpeed(rect, deltaTime))
             return
         }
-        // Committed, and gravity's from here: nothing about the arc is steered.
+        // Committed: from here gravity alone shapes the arc.
         velocity.velocity =
             velocity.velocity.copy(y = velocity.velocity.y + LEAP_GRAVITY * deltaTime * pace)
     }
 
     /**
      * The upward speed that tops out with the enemy's middle at the player's, under [LEAP_GRAVITY]
-     * applied once a tick. Worked out on the tick's own step rather than as a continuous throw,
-     * because that is how it will actually fly: a step at a time, each one a little slower.
+     * applied once per tick. Computed for discrete ticks rather than a continuous throw, because
+     * that is how it actually flies.
      */
     private fun launchSpeed(rect: Rect, deltaTime: Float): Float {
         val gravityPerTick = LEAP_GRAVITY * deltaTime
@@ -319,7 +313,7 @@ class EnemyBehaviorSystem : GameSystem() {
             LEAP_LEAST_RISE,
             (rect.top - LEAP_HIGHEST_TOP).coerceAtLeast(LEAP_LEAST_RISE)
         )
-        // A throw of v a tick, slowing by g a tick, climbs v + (v - g) + ... which comes to
+        // A throw of v per tick, slowing by g per tick, climbs v + (v - g) + ..., which comes to
         // v²/2g + v/2. Solved for v.
         val speed =
             -gravityPerTick / 2f + sqrt(gravityPerTick * gravityPerTick / 4f + 2f * gravityPerTick * rise)
@@ -344,8 +338,8 @@ class EnemyBehaviorSystem : GameSystem() {
             )
 
             STAGE_HOLD -> {
-                // Heading round from due left, climbing first: left, up, right along the top, down,
-                // and left again, so it comes out of the loop on the line it went in on.
+                // Heading round from due left, climbing first, so it leaves the loop on the line it
+                // entered on.
                 val heading = PI_F + TWO_PI_F * behavior.stateTime / LOOP_SECONDS
                 val speed = -behavior.baseSpeedX * LOOP_SPEED_FACTOR
                 Vector2(speed * cos(heading), speed * sin(heading))
@@ -439,8 +433,8 @@ class EnemyBehaviorSystem : GameSystem() {
                 }
             }
 
-            // Committed: the heading was set once, on the way in, and is left alone. A dive that
-            // kept steering would be a homing missile, which nothing can dodge.
+            // Committed: the heading was set once and is left alone. A dive that kept steering
+            // would be a homing missile, which nothing can dodge.
         }
     }
 
@@ -506,11 +500,9 @@ class EnemyBehaviorSystem : GameSystem() {
 /**
  * Recharges [ShieldComponent]s and draws them as bubbles over whatever they protect.
  *
- * Add it after [RenderSystem]: a bubble is drawn around a sprite, and one drawn first would be
- * painted over by the enemy it is meant to be enclosing.
+ * Add it after [RenderSystem], or the enemy would be drawn over its own bubble.
  *
- * The bubble is sized off the entity's box rather than set per entity, so the same component reads
- * right on a wasp and on a boss.
+ * The bubble is sized from the entity's box, so the same component suits a wasp and a boss.
  */
 class ShieldSystem : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -530,7 +522,7 @@ class ShieldSystem : GameSystem() {
             shield.popTime = (shield.popTime - deltaTime).coerceAtLeast(0f)
             shield.sinceHit += deltaTime
 
-            // Nothing dead recharges, and nothing without a recharge rate ever comes back.
+            // Nothing dead recharges, and nothing without a recharge rate comes back.
             if (healths[id]?.alive == false) return@forEach
             if (shield.regenPerSecond <= 0f || shield.points >= shield.maxPoints) return@forEach
             if (shield.sinceHit < shield.regenDelay) return@forEach
@@ -555,8 +547,8 @@ class ShieldSystem : GameSystem() {
                 val size = (radius * 2f).roundToInt()
                 val left = (rect.centerX - radius).roundToInt()
                 val top = (rect.centerY - radius).roundToInt()
-                // Faint inside, so the enemy stays readable through it; the rim carries the
-                // strength, fading as the bubble wears down; and a hit flares both.
+                // Faint inside, so the enemy stays readable; the rim shows the strength, fading as
+                // the bubble wears down; a hit flares both.
                 graphics.drawOval(
                     left, top, size, size,
                     EngineColors.withAlpha(
@@ -580,7 +572,7 @@ class ShieldSystem : GameSystem() {
                     EngineColors.withAlpha(EngineColors.WHITE, GLINT_ALPHA),
                 )
             } else if (shield.popTime > 0f) {
-                // Going out as a ring that grows and fades, so a broken bubble is an event.
+                // A ring that grows and fades, so breaking the bubble registers as an event.
                 val progress = 1f - shield.popTime / POP_SECONDS
                 val grown = radius * (1f + progress * POP_GROWTH)
                 val size = (grown * 2f).roundToInt()
@@ -611,12 +603,10 @@ class ShieldSystem : GameSystem() {
 /**
  * Turns the sprite of every [FacesVelocityComponent] entity to point where it is going.
  *
- * Run it after everything that can change a velocity - the movement, the bounce, the steering - so
- * the angle a frame is drawn at is the direction that frame is actually travelling. A shot coming
- * off a wall then turns on the same frame it reverses, rather than a frame late.
- *
- * The artwork is assumed to point right at zero degrees, which is the axis the game's sprites are
- * drawn along.
+ * Run it after everything that can change a velocity (movement, bounce, steering), so each frame is
+ * drawn at the direction it actually travels: a shot coming off a wall turns on the frame it
+ * reverses, not a frame late. Which way the artwork itself points comes from
+ * [FacesVelocityComponent.artworkDegrees].
  */
 class FacingSystem : GameSystem() {
     private lateinit var sprites: ComponentMapper<SpriteComponent>
@@ -632,8 +622,8 @@ class FacingSystem : GameSystem() {
     override fun update(world: World, deltaTime: Float, input: Input?) {
         world.forEach(sprites, velocities, facings) { id ->
             val velocity = velocities.require(id).velocity
-            // Something at a standstill has no direction to face, so it keeps the last one it had
-            // rather than snapping to zero - which for a bullet shape would be a visible flick.
+            // At a standstill there is no direction to face, so it keeps the last one rather than
+            // snapping to zero, which for a bullet shape would be a visible flick.
             if (velocity.x == 0f && velocity.y == 0f) return@forEach
 
             val heading = atan2(velocity.y, velocity.x) * DEGREES_PER_RADIAN
@@ -643,8 +633,8 @@ class FacingSystem : GameSystem() {
     }
 
     /**
-     * Into -180..180, so artwork that faces left and is flying left sits at zero, the same as any
-     * sprite that was never turned, rather than at a full turn that only draws the same.
+     * Into -180..180, so left-facing artwork flying left sits at zero like an unturned sprite
+     * rather than at a full turn.
      */
     private fun normalized(degrees: Float): Float {
         var turned = degrees % 360f
@@ -659,8 +649,8 @@ class FacingSystem : GameSystem() {
 }
 
 /**
- * System that handles animations by updating Sprite source rectangles, on the entity's own time
- * where a [PaceComponent] slows it.
+ * Steps [AnimationComponent]s and points their sprites at the current frame, on the entity's own
+ * time where a [PaceComponent] slows it.
  */
 class AnimationSystem : GameSystem() {
     private lateinit var sprites: ComponentMapper<SpriteComponent>
@@ -700,11 +690,12 @@ class AnimationSystem : GameSystem() {
 }
 
 /**
- * System that renders entities with a SpriteComponent.
+ * Draws every entity with a [SpriteComponent], in [ZIndexComponent] order, with its crossfade, tint
+ * and hit flash.
  *
- * @param layers the z indices this pass draws. All of them by default; a world that has something
- *   to draw *between* layers adds one pass per range with that something in between. Two passes
- *   over ranges that meet draw every sprite one pass over both would, in the same order.
+ * @param layers the z indices this pass draws, all by default. A world that draws something between
+ *   layers adds one pass per range with that in between; two passes over adjoining ranges draw
+ *   exactly what one pass over both would, in the same order.
  */
 class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -735,7 +726,7 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
-        // Render system doesn't usually update logic
+        // Drawing only.
     }
 
     override fun draw(world: World, graphics: Graphics) {
@@ -765,8 +756,8 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
             val dstWidth = (sprite.srcWidth * sprite.scale).roundToInt()
             val dstHeight = (sprite.srcHeight * sprite.scale).roundToInt()
 
-            // Three paths, narrowest first. Everything but the projectiles is drawn upright at its
-            // own size, and that case must not pay for a canvas transform it does not use.
+            // Three paths, narrowest first. Most sprites are drawn upright at their own size, and
+            // that case must not pay for a transform it does not use.
             when {
                 sprite.rotationDegrees != 0f -> graphics.drawPixmap(
                     sprite.pixmap, left, top,
@@ -785,8 +776,8 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
                         sprite.pixmap, left, top,
                         sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
                     )
-                    // Straight over its own sprite and nothing else, for the same reason the flash
-                    // below is drawn here: anything later in the order has to cover both pictures.
+                    // Right over its own sprite, for the same reason as the flash below: anything
+                    // later in the order has to cover both pictures.
                     val crossfade = crossfades[id]
                     if (crossfade != null && crossfade.alpha > 0f) {
                         graphics.drawPixmapFaded(
@@ -798,10 +789,9 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
                 }
             }
 
-            // Straight over the frame just drawn, while this sprite is still the top of the
-            // picture. That is the whole reason the tint and the flash are drawn here rather than
-            // in a system of their own - see HitFlashSystem. The flash goes over the tint, so a hit
-            // on something tinted still lands as a hit.
+            // Right over the frame just drawn, while this sprite is still on top; that is why the
+            // tint and flash are drawn here rather than in a system of their own (see
+            // HitFlashSystem). The flash goes over the tint, so a hit on something tinted shows.
             val tint = tints[id]?.color ?: 0
             if (tint ushr 24 != 0) drawSilhouette(
                 graphics,
@@ -824,12 +814,8 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
     }
 
     /**
-     * [sprite]'s current frame filled with [color], where it was just drawn.
-     *
-     * Turned with the sprite when the sprite is turned. For a long time only projectiles turned, and
-     * a projectile is spent by what it hits rather than hurt by it; now a boss whose body bends along
-     * its path does both, and an upright flash over a turned segment lights up a shape that is not
-     * there.
+     * [sprite]'s current frame filled with [color], where it was just drawn, and turned with the
+     * sprite, since an upright flash over a turned boss segment would light up the wrong shape.
      */
     private fun drawSilhouette(
         graphics: Graphics,
@@ -857,11 +843,11 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
 }
 
 /**
- * Fires weapons whose cadence has come round - more slowly for an entity whose [PaceComponent]
- * has slowed its fire.
+ * Fires weapons whose cadence has come round, more slowly for an entity whose [PaceComponent] has
+ * slowed its fire.
  *
- * Spawning is delegated to [onFire] because what a projectile looks like is a game concern, not
- * an engine one - the same split CollisionSystem uses for its handler.
+ * Spawning is delegated to [onFire] because what a projectile looks like is the game's concern, the
+ * same split [CollisionSystem] uses for its handler.
  */
 class WeaponSystem(private val onFire: (EntityId) -> Unit) : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -882,8 +868,8 @@ class WeaponSystem(private val onFire: (EntityId) -> Unit) : GameSystem() {
             val health = healths[id]
             if (health == null || health.alive) {
                 val weapon = weapons.require(id)
-                // Slowed by running the cadence's clock slower rather than by stretching the
-                // interval, which the game rearms for its own reasons and would have to remember.
+                // Slowed by running the cadence's clock slower rather than stretching the interval,
+                // which the game changes for its own reasons.
                 weapon.timeSinceLastShot += deltaTime * (paces[id]?.fire ?: 1f)
                 if (weapon.timeSinceLastShot >= weapon.interval) {
                     // Subtract rather than zero, so a long frame does not lose the remainder and
@@ -899,16 +885,15 @@ class WeaponSystem(private val onFire: (EntityId) -> Unit) : GameSystem() {
 /**
  * Reflects [BounceComponent] entities off the edges of the frame, spending a bounce each time.
  *
- * Placed between [MovementSystem] and [LifetimeSystem], and it has to be: movement is what carries
- * an entity into an edge, and culling is what would remove it there. Run it earlier and it
- * reflects things that have not reached the edge yet; run it later and there is nothing left to
- * reflect.
+ * Must run between [MovementSystem], which carries an entity into an edge, and [LifetimeSystem],
+ * which would remove it there.
  *
- * Only the leading edge counts. An entity is reflected off a wall it is actually travelling into,
- * never off one it is already moving away from - without that, something that ends a frame still
- * overlapping an edge would flip back and forth and burn every bounce it has in a few frames.
+ * Only the leading edge counts: an entity is reflected off a wall it is travelling into, never one
+ * it is moving away from. Otherwise something still overlapping an edge would flip back and forth
+ * and burn all its bounces in a few frames.
  *
- * @param worldWidth/worldHeight the framebuffer, which is what the edges are.
+ * @param worldWidth the framebuffer's width, which is where the edges are.
+ * @param worldHeight the framebuffer's height.
  */
 class BounceSystem(
     private val worldWidth: Int,
@@ -934,7 +919,7 @@ class BounceSystem(
             val velocity = velocities.require(id).velocity
 
             // At most one reflection per entity per frame: a corner is two walls, and taking both
-            // at once would send the entity back the way it came for the price of two bounces.
+            // would send the entity back the way it came for two bounces.
             when {
                 rect.top < 0f && velocity.y < 0f ->
                     reflect(id, transform, velocity.copy(y = -velocity.y), dy = -rect.top)
@@ -964,10 +949,8 @@ class BounceSystem(
     }
 
     /**
-     * Turns the entity around and nudges it back inside.
-     *
-     * The nudge is what stops the same wall being hit again on the next frame, which would spend
-     * every bounce in a row and leave the entity stuck to the edge.
+     * Turns the entity around and nudges it back inside, so it does not hit the same wall again
+     * next frame and spend every bounce stuck to the edge.
      */
     private fun reflect(
         id: EntityId,
@@ -982,18 +965,14 @@ class BounceSystem(
 }
 
 /**
- * System that removes entities when they are out of bounds or marked for removal.
+ * Removes entities that have left the frame, died, or finished a one-shot animation.
  *
- * @param worldHeight when given, things that leave through the top or the bottom are culled too,
- *   once they are [VERTICAL_MARGIN] clear of the edge. For a long time nothing could: everything
- *   travelled left or right. Aimed and radial enemy fire does not, and a shot that left through the
- *   ceiling would otherwise fly on above the frame for the rest of the run.
+ * @param worldHeight when given, entities leaving through the top or bottom are culled too, once
+ *   [VERTICAL_MARGIN] clear of the edge, so aimed and radial fire does not fly on above the frame.
  *
- * Something moving is only culled at an edge it is travelling *out* through. An entity still on its
- * way in from beyond the frame is left alone, which is what lets a swarm or a formation spawn with
- * its trailing members further off screen than its leader - without that, everything behind the
- * leader was deleted on the tick it arrived. Something with no velocity is culled wherever it
- * lies, as it always was.
+ * A moving entity is only culled at an edge it is travelling out through, so one still on its way
+ * in is left alone; swarms and formations spawn their trailing members further off screen than
+ * their leader. An entity with no velocity is culled wherever it lies.
  */
 class LifetimeSystem(
     private val worldWidth: Int,
@@ -1036,25 +1015,18 @@ class LifetimeSystem(
             }
         }
 
-        // Handle HealthComponent removal
+        // The dead go at once, except the player, whose run the screen ends in its own time.
         world.forEach(healths) { id ->
             if (!healths.require(id).alive) {
-                // If it's a player, we might not want to remove it immediately
-                // but for enemies we do.
                 if (!playerControls.has(id)) {
                     world.removeEntity(id)
                 }
             }
         }
 
-        // Handle finished animations. A one-shot animation is normally the entire reason its
-        // entity exists - an explosion is a blast and nothing else - so finishing it is the same
-        // as being over.
-        //
-        // The player is the exception, and has to be: its death animation is one-shot too, and
-        // culling the bat the instant that animation ended would delete the entity the screen
-        // still reads its health and position from, mid-fall. Who ends the player's run is the
-        // screen's decision, exactly as it already is for the health cull above.
+        // A one-shot animation is usually the entity's whole purpose (an explosion is only a
+        // blast), so finishing it ends the entity. The player is the exception: its death animation
+        // is one-shot too, and the screen still reads its health and position mid-fall.
         world.forEach(animations) { id ->
             val anim = animations.require(id)
             if (anim.isFinished && !anim.isLooping && !playerControls.has(id)) {
@@ -1070,17 +1042,15 @@ class LifetimeSystem(
 }
 
 /**
- * Draws a health bar under every entity carrying a [HealthBarComponent], and nothing under the
- * ones that do not.
+ * Draws a health bar under every entity carrying a [HealthBarComponent].
  *
- * The bar spans the entity's own width, so it reads as belonging to that sprite: black underneath
- * for the whole width, then the remaining health filled in from the left edge. A full bar is
- * therefore solid [HealthBarComponent.fullColor] and an empty one solid black.
+ * The bar spans the entity's own width, so it reads as belonging to that sprite: the empty color
+ * across the whole width, with the remaining health filled in from the left.
  *
- * Add it after [RenderSystem], or the sprites of the same frame will be drawn over the bars.
+ * Add it after [RenderSystem], or the sprites of the same frame are drawn over the bars.
  *
- * @param worldHeight framebuffer height, used to keep the bar on screen when the entity is pressed
- *   right against the bottom edge - which the player, who is clamped to the frame, routinely is.
+ * @param worldHeight framebuffer height, to keep the bar on screen when the entity is pressed
+ *   against the bottom edge, as the player often is.
  */
 class HealthBarSystem(private val worldHeight: Int) : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -1094,7 +1064,7 @@ class HealthBarSystem(private val worldHeight: Int) : GameSystem() {
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
-        // Nothing to advance: a bar only ever reflects the health it is drawn from.
+        // Nothing to advance: a bar only reflects the health it is drawn from.
     }
 
     override fun draw(world: World, graphics: Graphics) {
@@ -1121,10 +1091,8 @@ class HealthBarSystem(private val worldHeight: Int) : GameSystem() {
 }
 
 /**
- * Ages [FloatingTextComponent]s, draws them fading, and reaps them once their time is up.
- *
- * Movement is left to [MovementSystem] - a floating text is just a transform with a velocity, so
- * there is nothing here worth duplicating.
+ * Ages [FloatingTextComponent]s, draws them fading, and removes them once their time is up.
+ * Movement is left to [MovementSystem], since a floating text is just a transform with a velocity.
  */
 class FloatingTextSystem : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -1147,8 +1115,8 @@ class FloatingTextSystem : GameSystem() {
         world.forEach(transforms, texts) { id ->
             val text = texts.require(id)
             val rect = transforms.require(id).rect
-            // Linear, and deliberately: a damage number is read in the first instant, so a fade
-            // that lingers near full alpha would just leave the number sitting on the screen.
+            // Linear on purpose: a damage number is read in the first instant, and a fade that
+            // lingered near full alpha would leave it cluttering the screen.
             val alpha = 1f - (text.elapsed / text.duration).coerceIn(0f, 1f)
             graphics.drawOutlinedString(
                 text.text,
@@ -1163,15 +1131,13 @@ class FloatingTextSystem : GameSystem() {
 }
 
 /**
- * Sheds trail segments off [TrailEmitterComponent]s, then ages, draws and reaps them.
+ * Sheds trail segments from [TrailEmitterComponent]s, then ages, draws and removes them.
  *
- * What a segment looks like is left to [onEmit] - size and color are a game's business, the same
- * split [WeaponSystem] uses - and how it moves is left to [MovementSystem], so a segment is just a
- * transform with a velocity. Emitting on a cadence rather than per frame is what keeps the wake the
- * same length whatever the frame rate.
+ * What a segment looks like is left to [onEmit], as [WeaponSystem] leaves its projectiles to the
+ * game, and how it moves to [MovementSystem]. Emitting on a cadence rather than per frame keeps the
+ * wake the same length at any frame rate.
  *
- * Add it after [RenderSystem]: a trail drawn before the sprites would be painted over by the
- * background, which is a sprite like any other.
+ * Add it after [RenderSystem], or the background, a sprite like any other, would cover the trail.
  */
 class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -1188,7 +1154,7 @@ class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
         world.forEach(transforms, emitters) { id ->
-            // A dead entity stops leaving a wake, the way a dead one stops shooting.
+            // A dead entity stops leaving a wake, as it stops shooting.
             val health = healths[id]
             if (health != null && !health.alive) return@forEach
 
@@ -1220,8 +1186,8 @@ class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
             val height = (rect.height * scale).roundToInt()
             if (width <= 0 || height <= 0) return@forEach
 
-            // About the center: a segment that shrank from one corner would crawl away from the
-            // line the rest of the wake sits on.
+            // About the center: a segment shrinking from one corner would drift off
+            // the wake's line.
             graphics.drawRect(
                 (rect.centerX - width / 2f).roundToInt(),
                 (rect.centerY - height / 2f).roundToInt(),
@@ -1230,7 +1196,7 @@ class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
                 EngineColors.withAlpha(trail.color, 1f - progress),
             )
 
-            // Half the segment's height, so the band of it runs down the middle of the wake.
+            // Half the segment's height, so the band runs down the middle of the wake.
             val coreHeight = height / 2
             if (trail.coreColor ushr 24 == 0 || coreHeight <= 0) return@forEach
             graphics.drawRect(
@@ -1245,18 +1211,14 @@ class TrailSystem(private val onEmit: (EntityId) -> Unit) : GameSystem() {
 }
 
 /**
- * Burns down every [HitFlashComponent], so a flash fades instead of hanging on the entity.
+ * Decays every [HitFlashComponent], so a flash fades instead of lingering on the entity.
  *
- * Update only: the drawing is [RenderSystem]'s, and deliberately, because a flash has to land
- * between its own sprite and the next one in the draw order. A system of its own drawing after the
- * sprites would put every flash above every sprite, so an enemy lighting up behind another would
- * glow through the one in front of it. [RenderSystem] is the only thing that knows where in the
- * order a given sprite sat.
+ * Update only: [RenderSystem] draws the flash, because it has to land between its own sprite and
+ * the next in the draw order. Drawn by a later system, every flash would sit above every sprite,
+ * and an enemy flashing behind another would glow through it.
  *
- * A spent flash is clamped at zero rather than taken off the entity. Removing a component would
- * change the signature a query is in the middle of iterating, and the component is a few bytes on
- * an enemy that is about to die or leave the frame anyway - where a mid-iteration structural
- * change is a class of bug that only shows up on the frame two things happen at once.
+ * A spent flash is clamped at zero rather than removed: removing a component would change a
+ * signature mid-iteration, and the component is a few bytes on an enemy about to die or leave.
  */
 class HitFlashSystem : GameSystem() {
     private lateinit var flashes: ComponentMapper<HitFlashComponent>
@@ -1278,15 +1240,14 @@ class HitFlashSystem : GameSystem() {
 /**
  * Draws every [WoundComponent] entity from the row of its sheet its health calls for.
  *
- * Add it after whatever lands the hits and before [RenderSystem], so the blow that takes something
- * past a mark shows on the frame it lands rather than the one after.
+ * Add it after whatever lands the hits and before [RenderSystem], so the blow that crosses a mark
+ * shows on the frame it lands.
  *
- * Something dead is left alone. What it looks like from there is up to whatever is killing it: the
- * bat, for one, falls on a sheet of its own, which has no wounded rows to be moved onto.
+ * The dead are left alone: the bat, for one, falls on a sheet of its own with no wounded rows.
  *
- * What else a wound does is left to [onRowChanged], called with the entity and its new row each
- * time it moves to another one, healed or hurt - the same split [WeaponSystem] uses: an engine
- * knows a creature has been wounded, not what that costs it in this game.
+ * What else a wound does is left to [onRowChanged], called with the entity and its
+ * new row whenever it changes, healed or hurt; the engine knows a creature is
+ * wounded, not what that costs in the game.
  */
 class WoundSystem(private val onRowChanged: (EntityId, Int) -> Unit = { _, _ -> }) : GameSystem() {
     private lateinit var sprites: ComponentMapper<SpriteComponent>
@@ -1315,14 +1276,12 @@ class WoundSystem(private val onRowChanged: (EntityId, Int) -> Unit = { _, _ -> 
 }
 
 /**
- * Drives everything carrying a [DeathThroesComponent]: gravity, tumble, and the blasts thrown off
- * on the way down.
+ * Drives everything carrying a [DeathThroesComponent]: gravity, tumble, and the
+ * blasts thrown off on the way down.
  *
- * Add it before [MovementSystem], so the velocity it sets is the velocity that frame is moved by
- * rather than the next one's.
+ * Add it before [MovementSystem], so the velocity it sets moves the entity this frame.
  *
- * What a blast looks like is left to [onPuff], the same split [WeaponSystem] and [TrailSystem]
- * use: an engine knows that a dying thing sheds debris, not what this game's debris is made of.
+ * What a blast looks like is left to [onPuff], as with [WeaponSystem] and [TrailSystem].
  */
 class DeathSystem(private val onPuff: (EntityId) -> Unit) : GameSystem() {
     private lateinit var velocities: ComponentMapper<VelocityComponent>
@@ -1340,17 +1299,15 @@ class DeathSystem(private val onPuff: (EntityId) -> Unit) : GameSystem() {
             val dying = throes.require(id)
             dying.elapsed += deltaTime
 
-            // Whatever it was doing when it died, plus gravity from there. Accelerating from the
-            // last velocity rather than snapping to a fixed drop is what makes the fall read as
-            // the same object carrying on, rather than as a new one being dropped in its place.
+            // Its velocity when it died, plus gravity. Accelerating from there rather than snapping
+            // to a fixed drop makes the fall read as the same object carrying on.
             val velocity = velocities.require(id)
             velocity.velocity = velocity.velocity.copy(
                 y = (velocity.velocity.y + dying.gravity * deltaTime)
                     .coerceAtMost(dying.terminalVelocity)
             )
 
-            // Not every dying thing has a sprite to turn - a dying thing with no sprite is still
-            // allowed to fall.
+            // A dying thing without a sprite still falls; it just has nothing to turn.
             sprites[id]?.let { it.rotationDegrees += dying.spinDegreesPerSecond * deltaTime }
 
             if (dying.puffInterval <= 0f) return@forEach

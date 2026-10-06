@@ -24,7 +24,7 @@ private class TrailRecordingGraphics : Graphics {
         rects += TrailRect(x, y, width, height, color)
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+    override fun newPixmap(filename: String) =
         throw UnsupportedOperationException()
 
     override fun clear(color: Int) = Unit
@@ -63,6 +63,7 @@ private class TrailRecordingGraphics : Graphics {
 
 private fun alphaOf(color: Int) = (color shr 24) and 0xFF
 
+/** When [TrailSystem] sheds the segments of a wake. */
 class TrailSystemTest {
 
     private val emitted = mutableListOf<EntityId>()

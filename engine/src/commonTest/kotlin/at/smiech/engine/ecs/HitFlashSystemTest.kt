@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** How a hit flash burns down under [HitFlashSystem]. */
 class HitFlashSystemTest {
 
     private val world = World().apply { addSystem(HitFlashSystem()) }

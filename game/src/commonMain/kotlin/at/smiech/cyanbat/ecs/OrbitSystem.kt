@@ -22,16 +22,15 @@ import kotlin.math.sin
 class OrbComponent(var offset: Float = 0f) : Component
 
 /**
- * Carries every [OrbComponent] round the box [center] hands it - the bat's - clockwise as the frame
- * is drawn, [ORB_RADIUS] out, once every [ORB_SECONDS_PER_TURN].
+ * Carries every [OrbComponent] clockwise round the box [center] returns (the bat's), [ORB_RADIUS]
+ * out, once every [ORB_SECONDS_PER_TURN].
  *
- * The orbs share the circle evenly: n of them sit a turn over n apart, by the order they were made
- * in. Whatever makes an orb places it at its share already ([shareOf]); the ones circling before it
- * ease over to their new shares over about [ORB_SETTLE_SECONDS], so a new orb spreads the ring out
- * rather than every orb jumping to its new place on the same frame.
+ * The orbs share the circle evenly in creation order. A new orb is placed at its share ([shareOf]),
+ * and the others ease to their new shares over about [ORB_SETTLE_SECONDS], so the ring spreads out
+ * rather than every orb jumping at once.
  *
- * Add it after the movement that carries the bat, so the ring goes round where the bat is this tick,
- * and before the collisions, so an orb hits what it is drawn over.
+ * Add it after the movement that carries the bat, so the ring follows the bat this tick, and before
+ * the collisions, so an orb hits what it is drawn over.
  *
  * @param center the box the orbs go round, or null to hold them where they are.
  */
@@ -55,8 +54,8 @@ class OrbitSystem(private val center: () -> Rect?) : GameSystem() {
     }
 
     /**
-     * Puts every orb where it belongs on the ring as it stands, without turning it: for an orb just
-     * made, which would otherwise sit on the bat until the next tick.
+     * Puts every orb in place on the ring without turning it, for an orb just made, which would
+     * otherwise sit on the bat until the next tick.
      *
      * @param settle how far of the way to its share each orb eases, as 0..1.
      */
@@ -69,8 +68,7 @@ class OrbitSystem(private val center: () -> Rect?) : GameSystem() {
             val orb = orbs.require(id)
             orb.offset += towards(shareOf(index++, count) - orb.offset) * settle
 
-            // Clockwise, because the frame's y runs down: from the right, an angle that grows goes
-            // down first.
+            // Clockwise, because the frame's y runs down.
             val angle = turn + orb.offset
             val transform = transforms.require(id)
             val rect = transform.rect
@@ -91,8 +89,8 @@ class OrbitSystem(private val center: () -> Rect?) : GameSystem() {
         fun shareOf(index: Int, count: Int): Float = TWO_PI * index / count
 
         /**
-         * [radians] the short way round, into -pi..pi: an orb easing to a share just past the top of
-         * the ring goes on to it rather than all the way back round.
+         * [radians] the short way round, into -pi..pi, so an orb easing to a share just past the
+         * top of the ring does not go all the way back round.
          */
         private fun towards(radians: Float): Float {
             var turned = radians % TWO_PI

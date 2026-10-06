@@ -55,19 +55,16 @@ import kotlin.math.roundToInt
 import kotlin.random.Random
 
 /**
- * A 0..1 fraction as the percentage a card shows, so the numbers on the cards can never drift from
- * the numbers the power-ups actually apply. The card's own words put the percent sign to it, where
- * its language does.
+ * A 0..1 fraction as the percentage a card shows, so the cards' numbers cannot drift from what the
+ * power-ups apply. The translated text adds the percent sign where its language puts it.
  */
 private fun percent(fraction: Float): Int = (fraction * 100).roundToInt()
 
 /**
- * One of the upgrades offered when the bat levels up.
- *
- * Each is a title, a line the player can read in the second they spend deciding, and the single
- * change it makes to a [PlayerLoadout]. Nothing here reaches into the world: a power-up says what
- * the bat is now, and the screen is what makes the bat match. Nor does it hold any words of its own,
- * only which of the game's strings are its; the screen reads them in the player's language.
+ * One of the upgrades offered when the bat levels up: a title, a one-line description, and the
+ * single change it makes to a [PlayerLoadout]. It never touches the world; the screen makes the bat
+ * match the loadout. It names its strings rather than holding text, so the screen reads them in the
+ * player's language.
  *
  * @param title what it is called, kept short enough to fit a card in the level up dialog.
  * @param description what it does, in the player's terms rather than the loadout's.
@@ -202,33 +199,30 @@ enum class PowerUp(
             if (loadout.frostLevel > 0) Res.string.power_up_frost_beam_held else description
     };
 
+    /** Makes this power-up's change to [loadout]. */
     abstract fun applyTo(loadout: PlayerLoadout)
 
     /**
      * What the card says to a run with [loadout]: its [description], unless picking it again does
-     * something the first pick did not. The weapons of their own say so - a second orb is not the
-     * same news as the first.
+     * something different, as for the standalone weapons (a second orb is not the same news as the
+     * first).
      */
     open fun describe(loadout: PlayerLoadout): StringResource = description
 
     /**
      * Whether this is still worth offering.
      *
-     * The stacking power-ups clamp, and one already at its clamp is a wasted third of a choice -
-     * worse than a wasted pick, because the player cannot tell it is wasted until after they take
-     * it. The two that scale without a ceiling never opt out, which is what guarantees an offer
-     * can always be filled.
+     * Stacking power-ups clamp, and one at its clamp would waste a third of the
+     * choice without the player being able to tell. The four with no ceiling
+     * ([VITALITY], [HEAVY_ROUNDS], [FAST_LEARNER] and [BOUNTY_HUNTER]) never opt
+     * out, which guarantees an offer can always be filled.
      */
     open fun isAvailable(loadout: PlayerLoadout): Boolean = true
 
     companion object {
         /**
-         * [POWER_UP_CHOICES] distinct power-ups to choose between, drawn at random from the ones
-         * [loadout] can still use.
-         *
-         * Distinct, because two identical cards is a choice that is not one. If fewer than three
-         * remain useful the offer is short rather than padded - [VITALITY] and [HEAVY_ROUNDS] have
-         * no ceiling, so it can never be empty.
+         * [count] distinct power-ups drawn at random from those [loadout] can still use. Should
+         * fewer be available, the offer is short rather than padded with duplicates.
          */
         fun offer(
             loadout: PlayerLoadout,

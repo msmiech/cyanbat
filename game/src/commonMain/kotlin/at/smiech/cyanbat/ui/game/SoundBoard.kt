@@ -6,14 +6,12 @@ import at.smiech.engine.Sound
 /**
  * Plays a run's sound effects: only while sounds are on, and never one too soon after itself.
  *
- * A volley, a hit or a kill can come several to a tick - a fan of shots into a swarm lands five
- * hits at once - and the two platforms disagree about a sound played over itself. Android's
- * SoundPool stacks the copies, so five hits play five times as loud and clip; the desktop's clip
- * starts over. Holding each effect to its [SoundEffect.gapSeconds] makes the two agree, and keeps a
- * busy moment a run of hits rather than a wall of noise.
+ * A fan of shots into a swarm can land five hits on one tick, and the platforms disagree about a
+ * sound played over itself: Android's SoundPool stacks the copies, which then clip, while the
+ * desktop's clip starts over. Holding each effect to its [SoundEffect.gapSeconds] makes them agree
+ * and keeps a busy moment from becoming a wall of noise.
  *
- * The gaps are measured on a clock of its own, which only moves as the run [advance]s it, so a
- * paused run holds it still along with everything else.
+ * The gaps are measured on a clock that only moves as the run [advance]s it, so pausing holds it.
  *
  * @param sounds what each effect is played through; an effect missing from it stays silent.
  * @param enabled read on every play, so turning sounds off in the settings takes at once.
@@ -27,10 +25,12 @@ class SoundBoard(
     /** When each effect last played, by [clock]; never, to begin with. */
     private val lastPlayed = FloatArray(SoundEffect.entries.size) { Float.NEGATIVE_INFINITY }
 
+    /** Advances the board's clock by one tick. */
     fun advance(deltaTime: Float) {
         clock += deltaTime
     }
 
+    /** Plays [effect] at its volume, unless sounds are off or it played too recently. */
     fun play(effect: SoundEffect) {
         if (!enabled()) return
         if (clock - lastPlayed[effect.ordinal] < effect.gapSeconds) return

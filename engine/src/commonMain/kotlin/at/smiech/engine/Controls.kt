@@ -1,11 +1,11 @@
 package at.smiech.engine
 
 /**
- * A button the game reacts to, named for what it means rather than for the key or pad button that
- * produced it.
+ * A button the game reacts to, named for its meaning rather than for the key or pad
+ * button behind it.
  *
  * Hosts own the mapping, so a keyboard, a game controller and a system gesture can all raise the
- * same [PAUSE] without the screens ever learning which one did.
+ * same [PAUSE] without the screens knowing which one did.
  */
 enum class GameButton {
     /** Suspend or resume play. Escape on a keyboard, Start on a pad. */
@@ -18,12 +18,11 @@ enum class GameButton {
     CONFIRM,
 
     /**
-     * Pick the first, second or third of whatever the screen is offering. The number keys, and a
-     * pad's face buttons.
+     * Pick the first, second or third of whatever the screen offers. The number keys, and a pad's
+     * face buttons.
      *
      * Numbered rather than named because the meaning belongs to the screen showing the choice, not
-     * to the key: the same three buttons pick a power-up here and would pick anything else
-     * elsewhere. [CONFIRM] cannot stand in - it says yes to one thing, and a choice needs three.
+     * to the key. [CONFIRM] cannot stand in: it accepts one thing, and a choice needs three.
      */
     CHOICE_1,
     CHOICE_2,
@@ -42,22 +41,21 @@ enum class Direction { LEFT, RIGHT, UP, DOWN }
 /**
  * Keyboard and game controller state, as the game logic sees it.
  *
- * Deliberately an *intent*, not a key map: movement arrives as two axes and actions as named
- * buttons, so a thumbstick needs no special case and a new input device is a host-side mapping
- * rather than a change to any screen.
+ * An *intent* rather than a key map: movement arrives as two axes and actions as named buttons, so
+ * a thumbstick needs no special case and a new input device is a host-side mapping only.
  */
 interface Controls {
     /** -1 hard left to +1 hard right. Analog from a stick, snapped to the ends by a key. */
     val moveX: Float
 
-    /** -1 up to +1 down, matching the framebuffer's y axis rather than a math one. */
+    /** -1 up to +1 down, matching the framebuffer's y axis. */
     val moveY: Float
 
     /**
      * True exactly once per press of [button], for whichever update reads it first.
      *
-     * Edge-triggered rather than level-triggered because every button here toggles something: a
-     * held Escape must not flip pause on and off for as long as a thumb rests on it.
+     * Edge-triggered because every button toggles something: a held Escape must not flip pause on
+     * and off for as long as it is held.
      */
     fun consumePress(button: GameButton): Boolean
 

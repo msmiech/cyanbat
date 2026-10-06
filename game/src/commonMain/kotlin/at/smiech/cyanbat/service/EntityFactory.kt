@@ -132,9 +132,8 @@ import kotlin.math.sin
 /**
  * Builds every entity a run is made of.
  *
- * @param lit whether the stage is flown in the dark, where what gives off light carries a
- *   [LightComponent] and what stands in its way an [OccluderComponent]. In daylight neither is added,
- *   so nothing carries bookkeeping no system will read.
+ * @param lit whether the stage is flown in the dark, where light sources carry a [LightComponent]
+ *   and what blocks light an [OccluderComponent]. In daylight neither is added.
  */
 class EntityFactory(val world: World, private val lit: Boolean = false) {
 
@@ -161,16 +160,15 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         world.addComponent(id, WoundComponent(height, WOUND_MARKS))
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.PLAYER))
         world.addComponent(id, HealthComponent(PLAYER_MAX_HIT_POINTS))
-        // Bars are for the two things a fight is decided between - the bat and the stage's boss.
-        // A bar over every passing enemy would bury the game behind them.
+        // Only the bat and the boss carry health bars; a bar over every enemy would
+        // clutter the screen.
         world.addComponent(id, HealthBarComponent(HEALTH_BAR_HEIGHT, HEALTH_BAR_OFFSET_Y))
         world.addComponent(id, PlayerControlComponent())
         world.addComponent(id, WeaponComponent(shotIntervalSeconds))
         world.addComponent(id, TrailEmitterComponent(TRAIL_INTERVAL_SECONDS))
-        // Dormant at level 1, which is where every run starts: an aura the player has not earned
-        // yet draws nothing at all. GameScreen.syncAura is what wakes it up.
+        // Dormant at level 1, where every run starts; GameScreen.syncAura wakes it up.
         world.addComponent(id, AuraComponent())
-        // What the player sees the dark by. The bat throws no shadow of its own: it is the light.
+        // What the player sees the dark by. The bat casts no shadow: it is the light.
         if (lit) world.addComponent(id, LightComponent(BAT_LIGHT_COLOR, BAT_LIGHT_RADIUS))
         world.addComponent(id, LifetimeComponent(false))
         world.addComponent(id, ZIndexComponent(20))
@@ -178,12 +176,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * One enemy of [species], at whatever strength the wave that ordered it calls for.
+     * One enemy of [species], at the strength its wave calls for.
      *
-     * [hitPoints], [damage] and [speedMultiplier] are arguments rather than constants because
-     * that is the whole of how a stage ramps: the same species, sent in tougher, angrier and
-     * faster as the minutes go by. They are fixed at spawn, so enemies already on screen keep the
-     * strength they arrived with when a wave turns over.
+     * [hitPoints], [damage] and [speedMultiplier] come from the wave, which is how a stage ramps.
+     * They are fixed at spawn, so enemies on screen keep their strength when a wave turns over.
      *
      * @param height one picture's worth of [pixmap], which stacks each species unhurt, wounded
      *   and battered; see [WoundComponent].
@@ -192,14 +188,13 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * @param phase a per-member offset into its pattern, so a swarm does not buzz in unison.
      * @param holdX where a hovering enemy stops, or a diving one commits.
      * @param shieldPoints a shield bubble to spawn behind, or zero for none.
-     * @param shieldRegrowth how much of that shield grows back a second once it has been left alone,
-     *   as a fraction of it; see [EnemySpecies.shieldRegrowth].
+     * @param shieldRegrowth the fraction of that shield that grows back per second once left alone;
+     *   see [EnemySpecies.shieldRegrowth].
      * @param gun what it fires, or null for an enemy that only rams.
      * @param firstShotDelay how long an armed enemy waits before its first volley, on top of its
-     *   interval - so a formation spawned on one tick does not fire as one.
-     * @param elite the palette it wears as an elite, or null for an ordinary enemy. What makes an
-     *   elite tougher and quicker on the trigger is already in the health and gun it is handed; this
-     *   is the glow, the color of its shots, and the mark the run pays out on.
+     *   interval, so a formation spawned on one tick does not fire as one.
+     * @param elite the palette it wears as an elite, or null. Its extra health and faster gun are
+     *   already in what it is handed; this adds the glow, the shot color and the payout marker.
      */
     fun createEnemy(
         x: Float,
@@ -246,8 +241,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             )
         )
         world.addComponent(id, WoundComponent(height.toInt(), WOUND_MARKS))
-        // At full pace until it is wounded; GameScreen slows it from there. Only an ordinary enemy
-        // carries one, so nothing a wound does can reach a boss.
+        // Full pace until wounded; GameScreen slows it from there. Only ordinary enemies carry one,
+        // so wounds never slow a boss.
         world.addComponent(id, PaceComponent())
 
         world.addComponent(
@@ -261,13 +256,12 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
                 phase = phase,
             )
         )
-        // So that anything which is given a gun fires in its own color rather than the player's - and
-        // an elite in the color of its glow rather than of its kind, which is how its fire is told
-        // from the rest of the wave's.
+        // Its shots are drawn in its own color, or an elite's in the color of its glow, so whose
+        // fire it is can be read.
         world.addComponent(id, ProjectileStyleComponent(elite?.shotVariant ?: species.shotVariant))
         if (elite != null) {
             world.addComponent(id, EliteComponent(elite))
-            // A fixed glow rather than one that grows: an elite arrives as what it is.
+            // A fixed glow, rather than one that grows like the bat's.
             world.addComponent(
                 id,
                 AuraComponent(
@@ -276,7 +270,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
                     colors = elite.aura
                 ),
             )
-            // And in the dark the glow is a light, so it is seen coming from across the cave.
+            // In the dark the glow is also a light, so it is seen coming from across the cave.
             if (lit) world.addComponent(id, LightComponent(elite.aura.rim, ELITE_LIGHT_RADIUS))
         }
         if (lit) world.addComponent(id, OccluderComponent(CREATURE_SHINE))
@@ -297,7 +291,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
                 ),
             )
         }
-        // Drawn facing left, as every hostile is - but for the one that comes from behind - and turned
+        // Drawn facing left like every hostile, except the one that comes from behind, and turned
         // from there to point along its arc.
         if (species.facesHeading) {
             val artwork =
@@ -314,22 +308,19 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * The cave's boss, the Caco Imp: the sheet's last enemy drawn [scale] times over, with a health
-     * pool worth a fight and a gun of its own, which [CacoImpBrain] rearms as the fight goes on.
+     * The cave's boss, the Caco Imp: the sheet's last enemy drawn [scale] times over, with a
+     * fight's worth of health and a gun that [CacoImpBrain] rearms as the fight goes on.
      *
-     * It differs from [createEnemy] in four ways that matter, and each is deliberate - and so does
-     * every boss, all of which are built by [createBossEntity]. It is never culled for leaving the
-     * frame, because it enters from the edge and a boss that could drift out of the stage is a boss
-     * the player can lose rather than beat. It carries a health bar, the only thing besides the bat
-     * that does, because a fight this long is unreadable without one. It holds station instead of
-     * closing, which is what [EnemyMovementType.BOSS] is for. And it carries no [PaceComponent]: its
-     * wounds show, but they never slow it or thin out its fire.
+     * Every boss, built through [createBossEntity], differs from [createEnemy] deliberately: it is
+     * never culled for leaving the frame, so it cannot drift out of the stage; it carries a health
+     * bar, as only the bat otherwise does; it holds station rather than closing; and it carries no
+     * [PaceComponent], so wounds never slow it.
      *
-     * In the dark it is alight: the fight is fought across the cave, and a boss sunk in the dark at
-     * its far end is one the player cannot read. Its brain turns the light down, out and up again.
+     * In the dark it is alight, so the fight can be read across the cave; its brain
+     * dims, douses and relights it.
      *
-     * @param bar where its health bar is pinned: it puts its light out to prowl the dark, and a bar
-     *   hanging under it would show where it had got to.
+     * @param bar where its health bar is pinned, since a bar hanging under it would show where it
+     *   prowls in the dark.
      */
     fun createBoss(
         x: Float,
@@ -351,8 +342,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         scale = scale,
         movement = EnemyMovementType.BOSS,
         shotVariant = BOSS_ENEMY_TYPE + ENEMY_SHOT_VARIANT_OFFSET,
-        // Tolerance scaled with the sprite, so the boss's box sits in from its edges by the same
-        // proportion an ordinary enemy's does.
+        // Scaled with the sprite, so the box sits in from its edges in the same proportion.
         collisionTolerance = 5f * scale,
     ).also { id ->
         world.addComponent(id, GunComponent(gun.volleys))
@@ -370,11 +360,9 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * The jungle's boss: drawn at its own size from its own sheet, rather than an enemy magnified.
-     *
-     * Everything [createBoss] says about why a boss is built the way it is holds here too. What is
-     * different is the flight - a figure eight rather than a weave - and the gun, which starts on
-     * the Moth Queen's opening volleys; [MothQueenBrain] rearms it as the fight goes on.
+     * The jungle's boss, the Moth Queen, drawn at its own size from its own sheet. Built like every
+     * boss (see [createBoss]), but flying a figure eight, with a gun [MothQueenBrain] rearms as the
+     * fight goes on.
      */
     fun createMothQueen(
         x: Float,
@@ -395,30 +383,26 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             scale = 1f,
             movement = EnemyMovementType.BOSS_FIGURE_EIGHT,
             shotVariant = MOTH_QUEEN_SHOT_VARIANT,
-            // Wide, because most of her frame is wing and the corners of it are empty air.
+            // Wide, because most of her frame is wing and its corners are empty.
             collisionTolerance = MOTH_QUEEN_COLLISION_TOLERANCE,
         )
         world.addComponent(id, GunComponent(gun.volleys))
-        // Down until she raises it, but present, so the brain only ever has to raise it.
+        // Down until she raises it, but present, so the brain only has to raise it.
         world.addComponent(id, ShieldComponent(0))
         return id
     }
 
     /**
-     * The desert's boss: a head and a train of nine armored parts behind it, each one an entity of
-     * its own so it can be run into, shot and lit up wherever it is along the body.
+     * The desert's boss, the Sand Wyrm: a head and nine armored plates, each its own entity so it
+     * can be run into, shot and flashed anywhere along the body.
      *
-     * The head is the boss: it carries the health, the pinned health bar, the gun and the leap it
-     * flies by. The plates carry no health: a shot into one lands on the head, though only
-     * [SAND_WYRM_PLATE_SHARE] of it, so the head is the place to aim. They are placed every tick by
-     * [SandWyrmBrain] along the path the head has flown - which is why nothing but the brain may
-     * move or remove them, and why they are never culled for leaving the frame: the whole wyrm
-     * spends half the fight under it. Every part, head included, is a [BossPartComponent], which
-     * is what keeps the bat from wearing it down by being hit by it.
+     * The head carries the health, the pinned health bar, the gun and the leap it flies by. A shot
+     * into a plate lands on the head at [SAND_WYRM_PLATE_SHARE], so the head is the place to aim.
+     * [SandWyrmBrain] places the plates every tick along the head's path, so nothing else may move
+     * or remove them and none is culled for leaving the frame. Every part is a [BossPartComponent].
      *
-     * The parts are created tail first, so each is drawn over the one behind it and the body
-     * overlaps toward the head the way plates do. Only the head carries a [WoundComponent], for the
-     * same reason only the head carries health; [SandWyrmBrain] draws the plates from its row.
+     * The parts are created tail first, so each is drawn over the one behind it. Only the head
+     * carries a [WoundComponent]; the brain draws the plates from its row.
      *
      * @param bodyDamage what a plate deals on contact; less than the head's, see
      *   [at.smiech.cyanbat.util.SAND_WYRM_BODY_DAMAGE].
@@ -440,8 +424,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             val id = world.createEntity()
             world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
             world.addComponent(id, VelocityComponent(Vector2.Zero))
-            // No wound of its own, because no health of its own: the brain draws every plate from
-            // the head's row, so the whole body is as battered as the health it shares.
+            // No wound of its own, as no health of its own: the brain draws it from the head's row.
             world.addComponent(
                 id,
                 SpriteComponent(
@@ -478,7 +461,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         )
         world.addComponent(head, WoundComponent(SAND_WYRM_FRAME, WOUND_MARKS))
         world.addComponent(head, FacesVelocityComponent(HOSTILE_ARTWORK_DEGREES))
-        // At rest until the brain throws it: a leap whose station can never be reached.
+        // At rest until the brain throws it: a leap whose station is unreachable.
         world.addComponent(
             head,
             EnemyBehaviorComponent(EnemyMovementType.LEAP, y, holdX = -Float.MAX_VALUE)
@@ -501,8 +484,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * Sand thrown up out of the ground, standing on [bottom] and centered on [centerX]: the tell
      * before the Sand Wyrm breaches, and the breach itself.
      *
-     * A one-shot effect like a blast, but it stays where it was thrown up rather than drifting with
-     * the scenery: the wyrm comes up where the sand boiled, and the two have to line up.
+     * A one-shot effect like a blast, but it stays put rather than drifting with the scenery, since
+     * the wyrm comes up where the sand boiled.
      */
     fun createSandPlume(
         centerX: Float,
@@ -543,21 +526,16 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * The lagoon's boss: a hooded head and a body of twelve parts behind it, each an entity of its
-     * own so it can be run into, shot and lit up wherever it is along the body - the Sand Wyrm's build,
-     * bigger, and moved by its own brain.
+     * The lagoon's boss, the Naga: a hooded head and twelve body parts, each its own entity, built
+     * like the Sand Wyrm and moved by its own brain.
      *
-     * The head is the boss: it carries the health, the pinned health bar, the gun, and a shield its
-     * hood raises late in the fight. The parts carry no health: a shot into one lands on the head,
-     * though only [NAGA_PLATE_SHARE] of it. Neither carries a movement of the engine's: [NagaBrain]
-     * places every part every tick - rearing up out of the water, striking, swimming - which is why
-     * nothing else may move or remove them, and why none is culled for leaving the frame: it spends
-     * a good part of its fight under the water, below it. Every part, head included, is a
-     * [BossPartComponent], so the bat is not wearing it down by being hit by it.
+     * The head carries the health, the pinned health bar, the gun, and a shield its hood raises
+     * late in the fight. A shot into a part lands on the head at [NAGA_PLATE_SHARE]. [NagaBrain]
+     * places every part every tick, so nothing else may move or remove them and none is culled for
+     * leaving the frame. Every part is a [BossPartComponent].
      *
-     * The parts are created tail first, so each is drawn over the one behind it and the body
-     * overlaps toward the head. Only the head carries a [WoundComponent]; the brain draws the parts
-     * from its row.
+     * The parts are created tail first, so each is drawn over the one behind it. Only the head
+     * carries a [WoundComponent]; the brain draws the parts from its row.
      *
      * @param bodyDamage what a part of the body deals on contact; less than the head's.
      * @param bar where the health bar is pinned.
@@ -616,7 +594,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         world.addComponent(head, BossPartComponent())
         world.addComponent(head, WeaponComponent(gun.interval))
         world.addComponent(head, GunComponent(gun.volleys))
-        // Down until its hood raises it, but present, so the brain only ever has to raise it.
+        // Down until its hood raises it, but present, so the brain only has to raise it.
         world.addComponent(head, ShieldComponent(0))
         if (lit) world.addComponent(head, OccluderComponent(CREATURE_SHINE))
         world.addComponent(head, LifetimeComponent(false))
@@ -626,8 +604,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
 
     /**
      * Water thrown up out of the sea, standing on [bottom] and centered on [centerX]: the boiling
-     * before the Naga rises, and the burst as it does. Stays where it was thrown, like the Sand Wyrm's
-     * sand, since the Naga comes up where the water boiled.
+     * before the Naga rises, and the burst as it does. Stays put, like the Sand Wyrm's sand.
      */
     fun createSplash(centerX: Float, bottom: Float, pixmap: Pixmap, scale: Float = 1f): EntityId {
         val size = NAGA_FRAME * scale
@@ -662,6 +639,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         return id
     }
 
+    /** What every boss shares; see [createBoss]. */
     private fun createBossEntity(
         x: Float,
         y: Float,
@@ -700,7 +678,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             id,
             AnimationComponent(frameWidth, frameHeight, frameCount, frameSeconds)
         )
-        // At the marks the fight changes phase at, for a boss that has phases; see WOUND_MARKS.
+        // At the same marks a boss with phases changes phase; see WOUND_MARKS.
         world.addComponent(id, WoundComponent(frameHeight, WOUND_MARKS))
         world.addComponent(id, EnemyBehaviorComponent(movement, y, holdX = holdX))
         world.addComponent(id, ProjectileStyleComponent(shotVariant))
@@ -716,14 +694,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * One tile of the scrolling cave, with its left edge at [x].
-     *
-     * The size is taken from the pixmap rather than passed in, and that is a fix rather than a
-     * tidy-up. It used to be handed the framebuffer's size while `RenderSystem` drew the sprite at
-     * the pixmap's - 480 against 838 - so the box the world moved and culled was not the picture
-     * anybody saw. Tiles were spaced 480 apart while being drawn 838 wide, which put a hard
-     * vertical seam through the cave every 240 ticks, sweeping across the screen as the join
-     * between one copy's column 0 and the next one's column 480.
+     * One tile of a scrolling background strip, with its left edge at [x], sized from [pixmap] so
+     * the box the world moves and culls matches the picture drawn.
      */
     fun createBackground(x: Float, pixmap: Pixmap): EntityId {
         val id = world.createEntity()
@@ -747,9 +719,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
+     * An obstacle at ([x], [y]), scrolling in with the scenery; destructible.
+     *
      * @param keyframed whether [pixmap] holds the obstacle once per time of day, a row of [height]
-     *   apiece, for a stage whose light changes; see [at.smiech.cyanbat.ecs.SkySystem], which
-     *   picks the rows.
+     *   each, for a stage whose light changes; [at.smiech.cyanbat.ecs.SkySystem] picks the rows.
      */
     fun createObstacle(
         x: Float,
@@ -773,11 +746,14 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * @param angleDegrees how far off straight the shot flies, positive downwards. A fanned shot
-     *   keeps the full [speed] along its own heading rather than along x, so the outer shots
-     *   of a spread do not lag behind the middle one.
+     * A shot, the bat's or an enemy's, flying away from its shooter.
+     *
+     * @param angleDegrees how far off straight the shot flies, positive downward. A
+     *   fanned shot keeps the full [speed] along its heading, so the outer shots of
+     *   a spread keep pace with the middle.
      * @param speed along its heading, in framebuffer pixels per tick. The bat's are [SHOT_SPEED];
      *   enemy fire is slower, so it can be seen coming.
+     * @param variant the colorway of `shot.png` it is drawn in.
      */
     fun createShot(
         x: Float,
@@ -803,13 +779,11 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             id,
             VelocityComponent(Vector2(forward * cos(radians), speed * sin(radians)))
         )
-        // The artwork is a bullet with a point on it, so where it is going is the only thing its
-        // shape means. Every shot gets this, the enemy's included: theirs travels left, and drawing
-        // it pointing right was always wrong - it just had nothing to be compared against until
-        // the bat's shots started coming back off walls.
+        // The artwork is a pointed bolt, so every shot, the enemy's included, turns
+        // to point where it is going.
         world.addComponent(id, FacesVelocityComponent())
-        // Added only when the run has earned them, so an ordinary shot carries no bookkeeping it
-        // will never use - and so the collision handler can tell a piercing shot by its component.
+        // Added only when earned, so the collision handler can tell a piercing shot
+        // by its component.
         if (pierce > 0) world.addComponent(id, PierceComponent(pierce))
         if (bounce > 0) world.addComponent(id, BounceComponent(bounce))
         world.addComponent(
@@ -820,8 +794,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
                 srcWidth = SHOT_FRAME_WIDTH,
             )
         )
-        // The bolt burns as it flies. Every shot of a volley starts on the same frame, so a spread
-        // or a ring throbs as one volley rather than as a scatter of separate lights.
+        // The bolt burns as it flies. A volley's shots start on the same frame, so a spread or ring
+        // throbs as one.
         world.addComponent(
             id,
             AnimationComponent(
@@ -842,8 +816,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         world.addComponent(id, HealthComponent(SHOT_HIT_POINTS))
         world.addComponent(id, DamageComponent(damage, isCritical = critical))
         if (lit) {
-            // A bolt glows the color of its body, so a shot lights its way across the dark and the
-            // player sees whose it is by the light it throws as well as by the bolt.
+            // A bolt glows the color of its body, so its light shows whose it is.
             val color = EngineColors.lerp(
                 SHOT_BODY_COLORS[variant],
                 EngineColors.WHITE,
@@ -858,13 +831,11 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * The hit a shot leaves where it struck, centered on ([centerX], [centerY]): a spark in the shot's
-     * own colorway, played once. Like a blast it drifts with the scenery, so it stays where the blow
-     * landed, and goes when it has played.
+     * The hit a shot leaves where it struck, centered on ([centerX], [centerY]): a spark in the
+     * shot's colorway, played once, drifting with the scenery like a blast.
      *
-     * In the dark it is a light as well, flaring up and dying away with the spark over
-     * [IMPACT_LIGHT_SECONDS]: wider than the shot's own light and paler, so what was struck is lit at
-     * the moment it is struck, and so is what is around it.
+     * In the dark it is also a light, fading over [IMPACT_LIGHT_SECONDS], wider and paler than the
+     * shot's own, so what was struck and its surroundings light up.
      *
      * @param variant the shot's colorway; see [ColorwayComponent].
      * @param isPlayer whether it was one of the bat's shots, whose hits light further.
@@ -901,10 +872,9 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         }
 
     /**
-     * A flash of light and nothing else, centered on ([centerX], [centerY]) in [color], reaching
-     * [radius]: it lights up what is there at that moment, fades over [seconds] and takes the entity
-     * with it. It drifts with the scenery, so it stays where it went off. The frost beam leaves one on
-     * everything it freezes.
+     * A flash of light alone, centered on ([centerX], [centerY]) in [color], reaching [radius]: it
+     * fades over [seconds] and is then removed, drifting with the scenery meanwhile. The frost beam
+     * leaves one on everything it freezes.
      */
     fun createFlash(
         centerX: Float,
@@ -924,16 +894,14 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * One segment of the bat's wake, shed just off its rear by [at.smiech.engine.ecs.TrailSystem].
+     * One segment of the bat's wake, shed just behind it by [at.smiech.engine.ecs.TrailSystem].
      *
-     * It drifts with the scenery rather than with the bat, so the wake marks where the bat has
-     * been instead of following it around, and it is culled at the left edge like anything else
-     * that leaves the frame.
+     * It drifts with the scenery rather than the bat, so the wake marks where the bat has been.
      *
      * @param seconds how long it lasts, and so how far behind the bat the wake reaches.
-     * @param charged whether Charged Trail has made the wake a weapon: then it shocks the enemies it
-     *   touches, as a [ContactWeapon.WAKE], and carries a bright core so the player can see that it
-     *   does. It keeps more of its size as it dies, so what hurts can be seen to the end.
+     * @param charged whether Charged Trail has made the wake a weapon: it then shocks enemies it
+     *   touches as a [ContactWeapon.WAKE], with a bright core to show it, and keeps more of its
+     *   size as it fades so its harmful extent stays visible.
      */
     fun createTrail(
         x: Float,
@@ -964,10 +932,10 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * One of the orbs circling the bat, centered on ([centerX], [centerY]) until [OrbitSystem] carries
      * it round.
      *
-     * Never culled for leaving the frame: the bat can fly along an edge with half its ring past it.
-     * Nothing hurts it - it has no health, and its collision group meets only enemies, which it hurts
-     * as a [ContactWeapon.ORB]. Drawn over the dark, under the bat, and no light of its own: it is
-     * always inside the bat's.
+     * Never culled for leaving the frame, since the bat can fly along an edge with
+     * half its ring past it. It has no health, and its collision group meets only
+     * enemies, which it hurts as a [ContactWeapon.ORB]. Drawn under the bat, with
+     * no light of its own: it is always inside the bat's.
      *
      * @param offset its place on the ring; see [OrbComponent] and [OrbitSystem.shareOf].
      */
@@ -994,15 +962,12 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * A damage number that rises from ([x], [y]) and fades out. Drawn over the run rather than in
-     * it, so it is never lost behind the enemy it belongs to.
+     * A damage number that rises from ([x], [y]) and fades out, moved by
+     * [at.smiech.engine.ecs.MovementSystem] and removed by
+     * [at.smiech.engine.ecs.FloatingTextSystem].
      *
-     * Carries no collision or health of its own, so nothing in the run can touch it: it drifts on
-     * the shared [at.smiech.engine.ecs.MovementSystem] and is reaped by
-     * [at.smiech.engine.ecs.FloatingTextSystem] when its time is up.
-     *
-     * @param color overrides the white or red, for a number that is not damage to health - what
-     *   a shield soaked up is drawn in the shield's own color.
+     * @param color overrides the white or red, for a number that is not damage to health, such as
+     *   what a shield absorbed, drawn in the shield's color.
      */
     fun createDamageText(
         x: Float,
@@ -1018,9 +983,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             id,
             FloatingTextComponent(
                 text = damage.toString(),
-                // A crit is read rather than glanced at, so it is bigger, red, and stays up
-                // longer. Three changes rather than one because a number that is only larger
-                // still gets lost in a screen of white numbers going up at the same time.
+                // A crit is bigger, red and stays up longer: size alone gets lost among the white
+                // numbers.
                 fontSize = if (critical) CRITICAL_TEXT_FONT_SIZE else DAMAGE_TEXT_FONT_SIZE,
                 color = color ?: if (critical) EngineColors.RED else EngineColors.WHITE,
                 duration = if (critical) CRITICAL_TEXT_DURATION_SECONDS else DAMAGE_TEXT_DURATION_SECONDS,
@@ -1030,11 +994,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * A blast centered on ([centerX], [centerY]).
-     *
-     * Centered rather than placed by its corner because the caller knows what died, not how big an
-     * explosion frame happens to be - and [scale] changes that size. Blowing the blast up to match
-     * is what keeps a boss from going out in the same puff as one of its escorts.
+     * A blast centered on ([centerX], [centerY]), [scale]d to match what died, so a boss does not
+     * go out in the same puff as an escort.
      */
     fun createExplosion(
         centerX: Float,
@@ -1059,11 +1020,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     }
 
     /**
-     * Rock coming apart, for an obstacle: chunks and dust rather than fire.
-     *
-     * Its own sheet rather than the explosion tinted grey, because the two are different events
-     * and the difference is in the motion, not the palette. A fireball expands from a hot core and
-     * hollows out; a break throws angular pieces outward and lets them fall.
+     * Rock coming apart, for an obstacle: chunks and dust rather than fire. Its own sheet rather
+     * than a tinted explosion, because a break moves differently: pieces thrown outward that fall.
      */
     fun createShatter(
         centerX: Float,
@@ -1076,12 +1034,9 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     )
 
     /**
-     * The shared shape of a one-shot effect left where something died, or where a shot struck.
-     *
-     * Centered rather than placed by its corner, because the caller knows what died and not how
-     * big a frame of the effect happens to be. It drifts with the scenery so it stays where the
-     * thing was in the world rather than on the screen, and it is reaped by [LifetimeComponent]
-     * and the animation cull once it has played.
+     * A one-shot effect where something died or a shot struck, centered on the given point since
+     * the caller knows what died, not the effect's frame size. It drifts with the scenery, so it
+     * stays where the thing was in the world, and is removed once it has played.
      *
      * @param baseSrcX where its frames start on [pixmap], for a sheet that holds it in several
      *   colorways.
@@ -1133,70 +1088,46 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
 
     private companion object {
         /**
-         * The bat's sheet: six frames of one wing-beat, laid out left to right, and that row again
-         * wounded and battered below it; see [WoundComponent].
-         *
-         * Six rather than the two it had, because two frames of a flap is a sprite blinking
-         * between poses; a beat needs a downstroke and a fold to read as one. The interval is set
-         * so the whole cycle still takes about the 0.4s the old pair did - the bat beats its wings
-         * at the same rate, it just has the frames to show it now.
+         * The bat's sheet: six frames of one wingbeat left to right, the row repeated wounded and
+         * battered below; see [WoundComponent]. A full beat takes about 0.4 s.
          */
         const val BAT_FRAME_COUNT = 6
         const val BAT_FRAME_SECONDS = 0.07f
 
         /**
-         * The enemy sheets: three types in the cave's and five in the jungle's and the desert's,
-         * four frames of wingbeat each, laid out type by type - and the whole row again wounded and
-         * battered below it, so the stride along a row is the same on every one of them.
-         *
-         * Four rather than the two it had, for the same reason the bat got six - and at an
-         * interval that puts the cycle at the same ~0.4s, so the hostiles and the player beat
-         * their wings at one rate instead of the enemies looking slowed down beside him.
+         * The enemy sheets: four frames of wingbeat per type, laid out type by type, the row
+         * repeated wounded and battered below, with the same stride on every sheet. A beat takes
+         * about 0.4 s, matching the bat's.
          */
         const val ENEMY_FRAME_WIDTH = 32
         const val ENEMY_FRAME_COUNT = 4
         const val ENEMY_FRAME_SECONDS = 0.1f
 
         /**
-         * The blast: eight frames of one fireball, square so it can expand in every direction.
-         *
-         * The sheet it replaced was five unrelated pictures at offsets measured off some larger
-         * sheet, walked on a 25 pixel stride that landed on two empty slots - so a death played as
-         * blob, nothing, star, nothing, rocks. The interval is a fifth of what it was, because the
-         * old five frames took a second and a half: a blast that outlives the thing it killed reads
-         * as a decal, not as an explosion.
+         * The blast: eight frames of one fireball, square so it can expand evenly. Brief, since a
+         * blast that outlives what it killed looks like a decal.
          */
         const val EXPLOSION_FRAME_WIDTH = 32
         const val EXPLOSION_FRAME_COUNT = 8
         const val EXPLOSION_FRAME_SECONDS = 0.055f
 
         /**
-         * The obstacle break: seven frames of rock and dust, a little wider than the fireball
-         * because the dust reaches further than a blast of the same nominal size.
-         *
-         * Held a touch slower than the explosion too. Fire is over the instant it has burned, but
-         * debris has to be seen falling or it reads as a flicker.
+         * The obstacle break: seven frames of rock and dust, a little wider than the fireball since
+         * the dust reaches further, and a touch slower, since debris has to be seen falling.
          */
         const val SHATTER_FRAME_WIDTH = 40
         const val SHATTER_FRAME_COUNT = 7
         const val SHATTER_FRAME_SECONDS = 0.07f
 
-        /**
-         * The sheet strip each enemy type animates from.
-         *
-         * Computed rather than tabulated. The old sheet had its strips at 0, 67 and 137 - offsets
-         * that were measured off the artwork rather than chosen - so the table and the image could
-         * disagree and nothing would say so. The regenerated sheet is laid out on an exact stride,
-         * which makes this arithmetic and the two impossible to drift apart.
-         */
+        /** Where enemy [type]'s strip starts on its sheet, which is laid out on an exact stride. */
         fun srcXOf(type: Int): Int = type.coerceAtLeast(0) * ENEMY_FRAME_WIDTH * ENEMY_FRAME_COUNT
 
         /** The boss wears the third enemy's colors, the same ones the final wave escorts it in. */
         const val BOSS_ENEMY_TYPE = 2
 
         /**
-         * A blast's light at [scale], rounded to [BLAST_LIGHT_STEP] and held to [BLAST_LIGHT_MAX_RADIUS]:
-         * every radius of light is drawn once and kept, and the bosses go up in blasts of every size.
+         * A blast's light radius at [scale], rounded to [BLAST_LIGHT_STEP] and capped at
+         * [BLAST_LIGHT_MAX_RADIUS], since every light radius is rendered once and cached.
          */
         fun blastLightRadius(scale: Float): Int =
             ((BLAST_LIGHT_RADIUS * scale / BLAST_LIGHT_STEP).roundToInt() * BLAST_LIGHT_STEP)

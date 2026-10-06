@@ -44,6 +44,7 @@ private val UNCAPPED = setOf(
     PowerUp.BOUNTY_HUNTER,
 )
 
+/** What each [PowerUp] does to the loadout, and how an offer is drawn. */
 class PowerUpTest {
 
     private val loadout = PlayerLoadout()
