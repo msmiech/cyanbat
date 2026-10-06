@@ -63,16 +63,16 @@
     <string name="score">Punkte: %1$d</string>
     <string name="hud_wave">Welle: %1$d/%2$d</string>
     <string name="hud_boss">BOSS</string>
-    <string name="hud_level">Stufe: %1$d</string>
+    <string name="hud_level">Level: %1$d</string>
 
     <string name="combo_cold">Combo:</string>
-    <string name="combo_hot">HEISS</string>
+    <string name="combo_hot">HEIß</string>
     <string name="combo_blazing">LODERND</string>
     <string name="combo_scorching">SENGEND</string>
     <string name="combo_inferno">INFERNO</string>
     <string name="combo_hellfire">HÖLLENFEUER</string>
     <string name="combo_blue_flame">BLAUE FLAMME</string>
-    <string name="combo_white_hot">WEISSGLUT</string>
+    <string name="combo_white_hot">WEIßGLUT</string>
     <string name="combo_supernova">SUPERNOVA</string>
 
     <string name="banner_wave">WELLE %1$d</string>
@@ -109,7 +109,7 @@
 
     <string name="game_over_hint">Zum Hauptmenü den Bildschirm berühren</string>
 
-    <string name="level_up_title">STUFE %1$d</string>
+    <string name="level_up_title">LEVEL %1$d</string>
     <string name="level_up_choose">Wähle ein Power-up</string>
 
     <string name="power_up_rapid_fire">Schnellfeuer</string>

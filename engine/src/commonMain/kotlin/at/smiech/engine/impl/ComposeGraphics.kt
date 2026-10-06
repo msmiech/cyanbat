@@ -36,6 +36,8 @@ import at.smiech.engine.Graphics
 import at.smiech.engine.Lighting
 import at.smiech.engine.Pixmap
 import at.smiech.engine.Raster
+import at.smiech.engine.impl.ComposeGraphics.Companion.LIGHT_CELL
+import at.smiech.engine.impl.ComposeGraphics.Companion.MAX_TINTS
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor

@@ -168,12 +168,12 @@ import at.smiech.engine.ecs.WoundComponent
 import at.smiech.engine.ecs.WoundSystem
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
-import org.jetbrains.compose.resources.StringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.StringResource
 import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.math.pow

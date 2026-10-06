@@ -10,6 +10,7 @@ import at.smiech.cyanbat.resources.combo_inferno
 import at.smiech.cyanbat.resources.combo_scorching
 import at.smiech.cyanbat.resources.combo_supernova
 import at.smiech.cyanbat.resources.combo_white_hot
+import at.smiech.cyanbat.ui.game.ComboHeat.supernova
 import at.smiech.cyanbat.util.COMBO_COUNT_GROWTH
 import at.smiech.cyanbat.util.COMBO_COUNT_MAX_SIZE
 import at.smiech.cyanbat.util.COMBO_FONT_SIZE

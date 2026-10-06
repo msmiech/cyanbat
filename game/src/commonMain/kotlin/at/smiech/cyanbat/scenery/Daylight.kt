@@ -1,5 +1,9 @@
 package at.smiech.cyanbat.scenery
 
+import at.smiech.cyanbat.scenery.Daylight.SKY
+import at.smiech.cyanbat.scenery.Daylight.SKY_POSITIONS
+
+
 /**
  * The desert's day, from noon at the stage's start to night at its boss.
  *
