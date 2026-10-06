@@ -2,6 +2,7 @@ package at.smiech.cyanbat
 
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.Window
 import androidx.activity.ComponentActivity
@@ -12,6 +13,7 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import at.smiech.cyanbat.activity.CyanBatGameActivity
+import at.smiech.cyanbat.data.AppLocale
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.data.DataStoreStageUnlockStore
@@ -33,6 +35,9 @@ internal val PREFS_KEY_DISPLAY_MODE = stringPreferencesKey("display_mode")
 
 /** Stored by name, for the same reason as the display mode. */
 internal val PREFS_KEY_THEME_MODE = stringPreferencesKey("theme_mode")
+
+/** Stored by name too, and only before Android 13, which keeps an app's language itself; see [AppLocale]. */
+internal val PREFS_KEY_LANGUAGE = stringPreferencesKey("language")
 
 /** The single highscore kept before they were per stage; see [LegacyHighscoreMigration]. */
 internal val PREFS_KEY_LEGACY_HIGH_SCORE = intPreferencesKey("highscore")
@@ -77,6 +82,7 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
 
+        AppLocale.start(this)
         audio = AndroidAudio(this)
         menuMusic = audio.newMusic("music/menu.wav")
         val settings = DataStoreSettingsRepository(dataStore)
@@ -106,6 +112,12 @@ class MainActivity : ComponentActivity() {
                 )
             )
         }
+    }
+
+    /** The language goes back on, or is read again, before the menu next reads a string. */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        AppLocale.reapply()
     }
 
     // Nothing else stops the menu track when the app leaves the screen - the menu only silences

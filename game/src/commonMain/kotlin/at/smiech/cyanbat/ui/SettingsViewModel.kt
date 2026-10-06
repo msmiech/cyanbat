@@ -2,6 +2,7 @@ package at.smiech.cyanbat.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.engine.DisplayMode
@@ -35,6 +36,13 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
             ThemeMode.DEFAULT
         )
 
+    val language: StateFlow<AppLanguage> = settings.language
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            AppLanguage.DEFAULT
+        )
+
     fun setMusicEnabled(enabled: Boolean) = viewModelScope.launch {
         settings.setMusicEnabled(enabled)
     }
@@ -53,6 +61,10 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
 
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {
         settings.setThemeMode(mode)
+    }
+
+    fun setLanguage(language: AppLanguage) = viewModelScope.launch {
+        settings.setLanguage(language)
     }
 
     private companion object {

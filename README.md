@@ -125,9 +125,9 @@ out from under the fingertip; the hit box is padded well past the sprite so it i
 aiming. A touch landing away from the bat flies it over instead, which is how the game played before
 it was draggable. Holding a key or pushing a stick overrides a drag for as long as it lasts.
 
-The game is in English, German and Polish, and follows the language the device or computer is set
-to. On Android 13 and later it can also have one of its own, under the system settings' app
-languages.
+The game is in English, German and Polish. It follows the language the device or computer is set
+to, unless you pick one under Settings → Language. On Android 13 and later that is the same setting
+as the game's entry in the system settings' app languages.
 
 Backgrounding the app — or, on desktop, the window losing focus — pauses the run, and it stays
 paused until you resume it rather than dropping you straight back into a dodge.

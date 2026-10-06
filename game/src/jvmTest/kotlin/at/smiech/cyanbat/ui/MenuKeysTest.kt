@@ -32,6 +32,7 @@ import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
+import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.FakeSettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.engine.DisplayMode
@@ -129,8 +130,9 @@ class MenuKeysTest {
         }
     }
 
-    private fun ComposeUiTest.cursorOn(text: String) {
-        onNodeWithText(text).assertIsFocused()
+    /** The cursor is on the control saying [text], the [nth] of them on a screen with more than one. */
+    private fun ComposeUiTest.cursorOn(text: String, nth: Int = 0) {
+        onAllNodesWithText(text)[nth].assertIsFocused()
     }
 
     private fun ComposeUiTest.noCursor() {
@@ -179,8 +181,9 @@ class MenuKeysTest {
         press(Key.Spacebar)
         assertFalse(menu.settings.music.value, "Space did not turn the music off")
 
-        // Down past Sounds and the theme to the display choices: Stretch, Black bars, Ambient bars.
-        press(Key.DirectionDown, times = 3)
+        // Down past Sounds, the theme and the language to the display choices: Stretch, Black bars,
+        // Ambient bars.
+        press(Key.DirectionDown, times = 4)
         press(Key.Enter)
         assertEquals(DisplayMode.STRETCH, menu.settings.display.value)
     }
@@ -197,7 +200,28 @@ class MenuKeysTest {
         assertEquals(ThemeMode.DARK, menu.settings.theme.value)
         // The menu turning dark under it leaves the cursor where it was.
         cursorOn("Dark")
+    }
+
+    /**
+     * The language's segments work as the theme's do. Choosing one redraws the whole menu in it,
+     * which puts the cursor back on the screen's first choice - but on the same screen, Settings.
+     */
+    @Test
+    fun `the language's segments take the cursor one at a time`() = menu { menu ->
         press(Key.DirectionDown)
+        press(Key.Enter)
+        press(Key.DirectionDown, times = 3)
+        // Down from the theme's System lands on the segment under it, the language row being longer.
+        cursorOn("English")
+        press(Key.DirectionLeft)
+        // The second System: the theme's is the first.
+        cursorOn("System", nth = 1)
+        press(Key.DirectionRight, times = 2)
+        cursorOn("Deutsch")
+        press(Key.Enter)
+        assertEquals(AppLanguage.GERMAN, menu.settings.chosenLanguage.value)
+        cursorOn("Music")
+        press(Key.DirectionDown, times = 4)
         cursorOn("Stretch to fit screen")
     }
 

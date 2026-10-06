@@ -22,9 +22,17 @@ interface SettingsRepository {
     /** Whether the menu is drawn light or dark; [ThemeMode.DEFAULT], following the system, until set. */
     val themeMode: Flow<ThemeMode>
 
+    /**
+     * Which language the game is in; [AppLanguage.DEFAULT], following the system, until set. A
+     * host puts a new one into effect before this emits it, so whatever is drawn on hearing of it
+     * comes out in it.
+     */
+    val language: Flow<AppLanguage>
+
     suspend fun setMusicEnabled(enabled: Boolean)
     suspend fun setSoundEnabled(enabled: Boolean)
     suspend fun setVibrationEnabled(enabled: Boolean)
     suspend fun setDisplayMode(mode: DisplayMode)
     suspend fun setThemeMode(mode: ThemeMode)
+    suspend fun setLanguage(language: AppLanguage)
 }

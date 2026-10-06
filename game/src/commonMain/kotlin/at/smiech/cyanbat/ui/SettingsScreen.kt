@@ -35,8 +35,12 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.language_english
+import at.smiech.cyanbat.resources.language_german
+import at.smiech.cyanbat.resources.language_polish
 import at.smiech.cyanbat.resources.settings
 import at.smiech.cyanbat.resources.settings_display_ambient
 import at.smiech.cyanbat.resources.settings_display_ambient_hint
@@ -45,6 +49,8 @@ import at.smiech.cyanbat.resources.settings_display_black_bars_hint
 import at.smiech.cyanbat.resources.settings_display_stretch
 import at.smiech.cyanbat.resources.settings_display_stretch_hint
 import at.smiech.cyanbat.resources.settings_display_title
+import at.smiech.cyanbat.resources.settings_language_system
+import at.smiech.cyanbat.resources.settings_language_title
 import at.smiech.cyanbat.resources.settings_music_title
 import at.smiech.cyanbat.resources.settings_sound_title
 import at.smiech.cyanbat.resources.settings_theme_dark
@@ -63,17 +69,20 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val vibrationEnabled by viewModel.isVibrationEnabled.collectAsState()
     val displayMode by viewModel.displayMode.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
+    val language by viewModel.language.collectAsState()
     SettingsContent(
         musicEnabled = musicEnabled,
         soundEnabled = soundEnabled,
         // Null hides the switch, on a platform with nothing to vibrate.
         vibrationEnabled = vibrationEnabled.takeIf { canVibrate },
         themeMode = themeMode,
+        language = language,
         displayMode = displayMode,
         onMusicEnabledChanged = viewModel::setMusicEnabled,
         onSoundEnabledChanged = viewModel::setSoundEnabled,
         onVibrationEnabledChanged = viewModel::setVibrationEnabled,
         onThemeModeChanged = viewModel::setThemeMode,
+        onLanguageChanged = viewModel::setLanguage,
         onDisplayModeChanged = viewModel::setDisplayMode,
     )
 }
@@ -93,11 +102,13 @@ private fun SettingsContent(
     soundEnabled: Boolean,
     vibrationEnabled: Boolean?,
     themeMode: ThemeMode,
+    language: AppLanguage,
     displayMode: DisplayMode,
     onMusicEnabledChanged: (Boolean) -> Unit,
     onSoundEnabledChanged: (Boolean) -> Unit,
     onVibrationEnabledChanged: (Boolean) -> Unit,
     onThemeModeChanged: (ThemeMode) -> Unit,
+    onLanguageChanged: (AppLanguage) -> Unit,
     onDisplayModeChanged: (DisplayMode) -> Unit,
 ) {
     val music = remember { FocusRequester() }
@@ -138,7 +149,19 @@ private fun SettingsContent(
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
-            ThemeRow(themeMode, onThemeModeChanged)
+            ChoiceRow(
+                stringResource(Res.string.settings_theme_title),
+                ThemeMode.entries,
+                themeMode,
+                onThemeModeChanged,
+            ) { stringResource(it.label) }
+            Spacer(modifier = Modifier.height(8.dp))
+            ChoiceRow(
+                stringResource(Res.string.settings_language_title),
+                AppLanguage.entries,
+                language,
+                onLanguageChanged,
+            ) { stringResource(it.label) }
             Spacer(modifier = Modifier.height(24.dp))
             Text(
                 text = stringResource(Res.string.settings_display_title),
@@ -194,32 +217,39 @@ private fun SettingRow(
 }
 
 /**
- * The menu's theme, as one row of three segments beside its label, in line with the switches: three
- * short words need no hints, and radio rows like the display's would push those below the fold on a
- * landscape phone. Each segment takes the cursor on its own, and the arrows walk along them.
+ * A choice of a few short words - the menu's theme, the game's language - as one row of segments
+ * beside its label, in line with the switches: short words need no hints, and radio rows like the
+ * display's would push those below the fold on a landscape phone. Each segment takes the cursor on
+ * its own, and the arrows walk along them.
  */
 @Composable
-private fun ThemeRow(themeMode: ThemeMode, onThemeModeChanged: (ThemeMode) -> Unit) {
+private fun <T> ChoiceRow(
+    label: String,
+    options: List<T>,
+    selected: T,
+    onSelected: (T) -> Unit,
+    optionLabel: @Composable (T) -> String,
+) {
     Row(
         modifier = Modifier.fillMaxWidth().padding(horizontal = ROW_INSET),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(text = stringResource(Res.string.settings_theme_title))
+        Text(text = label)
         SingleChoiceSegmentedButtonRow {
-            ThemeMode.entries.forEachIndexed { index, mode ->
+            options.forEachIndexed { index, option ->
                 val cursor = rememberCursorMark()
                 SegmentedButton(
-                    selected = mode == themeMode,
-                    onClick = { onThemeModeChanged(mode) },
-                    shape = SegmentedButtonDefaults.itemShape(index, ThemeMode.entries.size),
+                    selected = option == selected,
+                    onClick = { onSelected(option) },
+                    shape = SegmentedButtonDefaults.itemShape(index, options.size),
                     modifier = cursor.modifier,
                     // The cursor's ring in place of the segment's outline, which is the Material
                     // default the rest of the time.
                     border = cursor.border()
                         ?: SegmentedButtonDefaults.borderStroke(MaterialTheme.colorScheme.outline),
                 ) {
-                    Text(stringResource(mode.label))
+                    Text(optionLabel(option))
                 }
             }
         }
@@ -275,6 +305,18 @@ private val ThemeMode.label: StringResource
         ThemeMode.SYSTEM -> Res.string.settings_theme_system
         ThemeMode.DARK -> Res.string.settings_theme_dark
         ThemeMode.LIGHT -> Res.string.settings_theme_light
+    }
+
+/**
+ * What a language is called in Settings: each in its own words, as a player looking for theirs in a
+ * language they cannot read would look for it, and only "System" in the language the menu is in.
+ */
+private val AppLanguage.label: StringResource
+    get() = when (this) {
+        AppLanguage.SYSTEM -> Res.string.settings_language_system
+        AppLanguage.ENGLISH -> Res.string.language_english
+        AppLanguage.GERMAN -> Res.string.language_german
+        AppLanguage.POLISH -> Res.string.language_polish
     }
 
 private val DisplayMode.hint: StringResource

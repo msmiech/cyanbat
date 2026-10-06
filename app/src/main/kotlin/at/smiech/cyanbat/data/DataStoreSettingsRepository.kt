@@ -12,7 +12,10 @@ import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-/** [SettingsRepository] backed by Jetpack DataStore. */
+/**
+ * [SettingsRepository] backed by Jetpack DataStore - all but the language, which from Android 13 is
+ * the system's to keep; see [AppLocale].
+ */
 class DataStoreSettingsRepository(
     private val dataStore: DataStore<Preferences>
 ) : SettingsRepository {
@@ -31,6 +34,8 @@ class DataStoreSettingsRepository(
 
     override val themeMode: Flow<ThemeMode> =
         dataStore.data.map { ThemeMode.fromName(it[PREFS_KEY_THEME_MODE]) }
+
+    override val language: Flow<AppLanguage> = AppLocale.language
 
     override suspend fun setMusicEnabled(enabled: Boolean) {
         dataStore.edit { it[PREFS_KEY_MUSIC] = enabled }
@@ -51,4 +56,6 @@ class DataStoreSettingsRepository(
     override suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { it[PREFS_KEY_THEME_MODE] = mode.name }
     }
+
+    override suspend fun setLanguage(language: AppLanguage) = AppLocale.set(language)
 }
