@@ -38,7 +38,9 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
 - **In a git worktree** (such as `.claude/worktrees/*`) there is no `local.properties`, since it is
   gitignored, so Android tasks fail with "SDK location not found". Run them with
   `ANDROID_HOME` set to the SDK. JVM-only tasks - the tests, `:desktop:*` - do not need it.
-- JDK 21 comes from the Gradle toolchain; nothing to install.
+- JDK 25 comes from the Gradle toolchain (`jvmToolchain` in the version catalog), and Gradle itself
+  runs on the same JDK (`gradle/gradle-daemon-jvm.properties`); nothing to install. Bump the two
+  together: the second is regenerated with `./gradlew updateDaemonJvm --jvm-version=N`.
 
 ## Architecture
 

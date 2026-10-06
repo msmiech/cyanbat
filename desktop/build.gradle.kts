@@ -59,6 +59,11 @@ compose.desktop {
         // Skia loads its native library through System.load, which the JDK warns about otherwise.
         jvmArgs += "--enable-native-access=ALL-UNNAMED"
         mainClass = "at.smiech.cyanbat.desktop.MainKt"
+        // Left alone, the run task and the installers take the JDK Gradle itself runs on, not the
+        // toolchain the classes are compiled for: a daemon on an older JDK cannot load them, and
+        // the installers would bundle a runtime that cannot either.
+        javaHome = javaToolchains.launcherFor(java.toolchain).get()
+            .metadata.installationPath.asFile.absolutePath
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "CyanBat"
