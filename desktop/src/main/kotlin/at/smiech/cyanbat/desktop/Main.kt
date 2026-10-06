@@ -76,7 +76,8 @@ private fun CyanBatApp(controls: ControlHandler, playingStage: Int?, play: (stag
     // The menu outlives any single game instance, so it owns its own Audio.
     val menuAudio = remember {
         DesktopAudio { name ->
-            object {}.javaClass.getResourceAsStream("/$name") ?: error("Asset $name not found on the classpath")
+            object {}.javaClass.getResourceAsStream("/$name")
+                ?: error("Asset $name not found on the classpath")
         }
     }
     // Out here rather than in the menu branch, which leaves composition for every run: a track

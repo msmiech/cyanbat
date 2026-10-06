@@ -37,7 +37,10 @@ class TranslationsTest {
     @Test
     fun `every language has every string and none that English lacks`() {
         // So that a scan of the wrong folder, finding nothing, cannot pass for a clean one.
-        assertTrue(TRANSLATIONS.containsAll(listOf("values-de", "values-pl")), "found only $TRANSLATIONS")
+        assertTrue(
+            TRANSLATIONS.containsAll(listOf("values-de", "values-pl")),
+            "found only $TRANSLATIONS"
+        )
         val english = strings("values", translatable = true).keys
         for (folder in TRANSLATIONS) {
             val keys = strings(folder).keys

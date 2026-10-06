@@ -86,7 +86,7 @@ class PointerTouchHandler(
     }
 
     override fun isTouchDown(pointer: Int) =
-        if (pointer !in 0..<MAX_POINTERS) false else isTouched[pointer]
+        pointer in 0..<MAX_POINTERS && isTouched[pointer]
 
     override fun getTouchX(pointer: Int) = if (pointer !in 0..<MAX_POINTERS) 0 else touchX[pointer]
 

@@ -193,7 +193,12 @@ class ComposeGraphicsTest {
                 for ((x, y) in dithered.pixels()) {
                     val inSprite = x - left in 0 until 5 && y - top in 0 until 4
                     val expected =
-                        if (inSprite && Dither.keeps(x - left, y - top, level)) plain[x, y] else BACKGROUND
+                        if (inSprite && Dither.keeps(
+                                x - left,
+                                y - top,
+                                level
+                            )
+                        ) plain[x, y] else BACKGROUND
                     if (expected != BACKGROUND) shown++
                     assertEquals(
                         expected,

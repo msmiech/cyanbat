@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
     Every word the game shows, the menu's and the run's, in English. values-de and values-pl hold the
     same keys in German and Polish, and GameTextTest holds each of them to this file.
     Placeholders are %1$d and %1$s, numbered; nothing else is read as one, so a bare % is just a

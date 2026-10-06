@@ -58,7 +58,8 @@ class GameTextLayoutTest {
         createFontFamilyResolver(),
     )
 
-    private val texts: List<Pair<String, GameText>> = LANGUAGES.map { it.toLanguageTag() to textIn(it) }
+    private val texts: List<Pair<String, GameText>> =
+        LANGUAGES.map { it.toLanguageTag() to textIn(it) }
 
     /** How far from the frame's edges the HUD keeps, and so how far any line has to. */
     private val margin = 5
@@ -140,7 +141,12 @@ class GameTextLayoutTest {
         for ((language, text) in texts) {
             assertFits(language, text.format(Res.string.score, score), 15, room)
             assertFits(language, text.format(Res.string.hud_level, level), 15, room)
-            assertFits(language, text.format(Res.string.hud_wave, 5, 5), 15, FRAME_BUFFER_WIDTH - 2 * margin)
+            assertFits(
+                language,
+                text.format(Res.string.hud_wave, 5, 5),
+                15,
+                FRAME_BUFFER_WIDTH - 2 * margin
+            )
         }
     }
 
@@ -151,7 +157,8 @@ class GameTextLayoutTest {
     @Test
     fun `every power-up card has room for what it says`() {
         val room = POWER_UP_CARD_WIDTH - 2 * POWER_UP_CARD_PADDING
-        val held = Res.allStringResources.filterKeys { it.startsWith("power_up_") && it.endsWith("_held") }.values
+        val held =
+            Res.allStringResources.filterKeys { it.startsWith("power_up_") && it.endsWith("_held") }.values
         for ((language, text) in texts) {
             for (powerUp in PowerUp.entries) assertFits(language, text[powerUp.title], 14, room)
             val descriptions = PowerUp.entries.map {
@@ -159,7 +166,10 @@ class GameTextLayoutTest {
             } + held.map { text[it] }
             for (description in descriptions) {
                 val lines = wrapWords(description, room) { g.measureString(it, 11) }
-                assertTrue(lines.size <= 3, "$language: '$description' takes ${lines.size} lines: $lines")
+                assertTrue(
+                    lines.size <= 3,
+                    "$language: '$description' takes ${lines.size} lines: $lines"
+                )
                 for (line in lines) assertFits(language, line, 11, room)
             }
         }

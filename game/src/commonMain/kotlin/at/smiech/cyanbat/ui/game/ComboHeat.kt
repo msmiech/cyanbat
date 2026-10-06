@@ -10,6 +10,7 @@ import at.smiech.cyanbat.resources.combo_inferno
 import at.smiech.cyanbat.resources.combo_scorching
 import at.smiech.cyanbat.resources.combo_supernova
 import at.smiech.cyanbat.resources.combo_white_hot
+import at.smiech.cyanbat.ui.game.ComboHeat.supernova
 import at.smiech.cyanbat.util.COMBO_COUNT_GROWTH
 import at.smiech.cyanbat.util.COMBO_COUNT_MAX_SIZE
 import at.smiech.cyanbat.util.COMBO_FONT_SIZE
@@ -67,12 +68,48 @@ internal object ComboHeat {
     private val RUNGS = arrayOf(
         Rung(1, Res.string.combo_cold, EngineColors.CYAN, EngineColors.CYAN, EngineColors.CYAN),
         Rung(2, Res.string.combo_hot, 0xFFFFE45A.toInt(), 0xFFD04A10.toInt(), 0xFFFFFBE0.toInt()),
-        Rung(4, Res.string.combo_blazing, 0xFFFFA02A.toInt(), 0xFFB0200C.toInt(), 0xFFFFF0A0.toInt()),
-        Rung(6, Res.string.combo_scorching, 0xFFFF5A2A.toInt(), 0xFF8A0A10.toInt(), 0xFFFFD050.toInt()),
-        Rung(9, Res.string.combo_inferno, 0xFFFF3A6E.toInt(), 0xFF7A0838.toInt(), 0xFFFFD27A.toInt()),
-        Rung(13, Res.string.combo_hellfire, 0xFFD24BFF.toInt(), 0xFF4A0C8A.toInt(), 0xFFF6D8FF.toInt()),
-        Rung(18, Res.string.combo_blue_flame, 0xFF5AA0FF.toInt(), 0xFF1A2A9A.toInt(), 0xFFD8F4FF.toInt()),
-        Rung(25, Res.string.combo_white_hot, 0xFFEAF8FF.toInt(), 0xFF3A7AE0.toInt(), EngineColors.WHITE),
+        Rung(
+            4,
+            Res.string.combo_blazing,
+            0xFFFFA02A.toInt(),
+            0xFFB0200C.toInt(),
+            0xFFFFF0A0.toInt()
+        ),
+        Rung(
+            6,
+            Res.string.combo_scorching,
+            0xFFFF5A2A.toInt(),
+            0xFF8A0A10.toInt(),
+            0xFFFFD050.toInt()
+        ),
+        Rung(
+            9,
+            Res.string.combo_inferno,
+            0xFFFF3A6E.toInt(),
+            0xFF7A0838.toInt(),
+            0xFFFFD27A.toInt()
+        ),
+        Rung(
+            13,
+            Res.string.combo_hellfire,
+            0xFFD24BFF.toInt(),
+            0xFF4A0C8A.toInt(),
+            0xFFF6D8FF.toInt()
+        ),
+        Rung(
+            18,
+            Res.string.combo_blue_flame,
+            0xFF5AA0FF.toInt(),
+            0xFF1A2A9A.toInt(),
+            0xFFD8F4FF.toInt()
+        ),
+        Rung(
+            25,
+            Res.string.combo_white_hot,
+            0xFFEAF8FF.toInt(),
+            0xFF3A7AE0.toInt(),
+            EngineColors.WHITE
+        ),
     )
 
     /** Where the named rungs run out, and the colors start to cycle through all of them. */
