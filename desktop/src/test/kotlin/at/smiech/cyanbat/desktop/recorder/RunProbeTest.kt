@@ -6,6 +6,7 @@ import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.desktop.DesktopGame
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
@@ -15,6 +16,7 @@ import at.smiech.engine.Haptics
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.impl.ControlHandler
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.runBlocking
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -37,6 +39,7 @@ class RunProbeTest {
             game,
             CyanBatEnvironment(
                 assets = GameAssets.load(game.graphics, game.audio),
+                text = runBlocking { GameText.load() },
                 haptics = Haptics.None,
                 highscores = object : HighscoreStore {
                     override val byStage = MutableStateFlow(emptyMap<Int, Int>())

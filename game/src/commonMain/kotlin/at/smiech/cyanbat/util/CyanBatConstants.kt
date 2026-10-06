@@ -392,6 +392,9 @@ const val POWER_UP_CARD_HEIGHT = 96
 const val POWER_UP_CARD_GAP = 10
 const val POWER_UP_CARD_TOP = 150
 
+// The room between a card's edges and its text, on the left and on the right.
+const val POWER_UP_CARD_PADDING = 8
+
 // How long the dialog ignores input. The player was steering with a finger down when the level up
 // landed, and the lift that follows is not them choosing a card.
 const val POWER_UP_ARMING_SECONDS = 0.35f

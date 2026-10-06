@@ -83,7 +83,6 @@ enum class BossKind {
 data class StageDesign(
     val waves: List<WaveDesign>,
     val boss: BossKind,
-    val bossName: String,
     val bossToughness: Float = 1f,
     val bossVitality: Float = 1f,
 ) {
@@ -135,7 +134,6 @@ data class StageDesign(
                 ),
             ),
             boss = BossKind.MOTH_QUEEN,
-            bossName = "THE MOTH QUEEN",
             bossToughness = 1f + STAGE_DIFFICULTY_STEP,
         )
 
@@ -164,7 +162,6 @@ data class StageDesign(
                 WaveDesign(listOf(WEAVER, STRIKER), eliteChance = 0.07f),        // the boss escort
             ),
             boss = BossKind.CACO_IMP,
-            bossName = "THE CACO IMP",
         )
 
         /**
@@ -207,7 +204,6 @@ data class StageDesign(
                 ),
             ),
             boss = BossKind.SAND_WYRM,
-            bossName = "THE SAND WYRM",
         )
 
         /**
@@ -252,7 +248,6 @@ data class StageDesign(
                 ),
             ),
             boss = BossKind.NAGA,
-            bossName = "THE NAGA",
             bossVitality = NAGA_VITALITY,
         )
 

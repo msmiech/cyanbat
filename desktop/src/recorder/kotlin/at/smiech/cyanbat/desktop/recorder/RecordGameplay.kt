@@ -8,6 +8,7 @@ import at.smiech.cyanbat.desktop.DesktopGame
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.service.StageDesign
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.ui.game.GameScreen
@@ -30,6 +31,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.yield
 import java.awt.image.BufferedImage
 import java.io.File
+import java.util.Locale
 import javax.imageio.ImageIO
 import kotlin.math.roundToInt
 import kotlin.math.roundToLong
@@ -57,6 +59,9 @@ import kotlin.system.exitProcess
  * reel as a PNG for a look, and `--dry-run` to fly and report without recording.
  */
 fun main(args: Array<String>) {
+    // In English whatever the machine is set to: the reel is the README's, which is, and Montage
+    // tells a wave's banner by its English word.
+    Locale.setDefault(Locale.US)
     val options = Options.parse(args)
     val reel = mutableListOf<Footage>()
     val failed = runBlocking(Dispatchers.Main) {
@@ -320,6 +325,7 @@ private class Flight(
         game,
         CyanBatEnvironment(
             assets = assets,
+            text = runBlocking { GameText.load() },
             haptics = Haptics.None,
             highscores = Unsaved,
             stageUnlocks = StageUnlockStore.InMemory(),

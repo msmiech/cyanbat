@@ -50,7 +50,6 @@ class EliteGeneratorTest {
             design = StageDesign(
                 waves = listOf(WaveDesign(listOf(species), eliteChance = eliteChance)),
                 boss = boss,
-                bossName = "TEST",
             ),
         )
 

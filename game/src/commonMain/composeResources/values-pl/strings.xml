@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Polish. The same keys as values/strings.xml, which explains each; see there.
+    A stage is an "etap" and the bat's level a "poziom", so the two stay apart as they do in English.
+    Each boss falls in its own words because the word agrees with it: the queen and the Naga are
+    "pokonana", the imp and the wyrm "pokonany". A number on a card is put before "do" or "pkt",
+    which reads the same whatever the number is.
+-->
+<resources>
+    <string name="credits_headline">Twórcy</string>
+    <string name="settings">Ustawienia</string>
+
+    <string name="button_help">Pomoc</string>
+    <string name="button_settings">Ustawienia</string>
+    <string name="button_start_game">Rozpocznij grę</string>
+    <string name="button_exit">Wyjdź</string>
+    <string name="button_credits">Twórcy</string>
+    <string name="button_back">Wstecz</string>
+    <string name="button_ok">OK</string>
+
+    <string name="stage_select_title">Wybierz etap</string>
+    <string name="stage_1_name">Etap 1: Dżungla</string>
+    <string name="stage_1_description">Roje, formacje, tarcze i ogień odwetowy wśród zarośniętych ruin. Na końcu czeka Królowa Ciem.</string>
+    <string name="stage_2_name">Etap 2: Jaskinia</string>
+    <string name="stage_2_description">Pięć fal chochlików w ciemności i chochlik, który nimi dowodzi – i potrafi zgasić własne światło.</string>
+    <string name="stage_3_name">Etap 3: Pustynia</string>
+    <string name="stage_3_description">Lot od południa aż po noc, a z piasku wyskakują różne stwory. Po zmroku powstaje Piaskowy Czerw.</string>
+    <string name="stage_4_name">Etap 4: Laguna</string>
+    <string name="stage_4_description">Lot od nocy do południa nad zatoką pełną wysp, a rekiny nadpływają od tyłu. Naga wynurza się z fosy świątyni.</string>
+    <string name="stage_locked">Ukończ poprzedni etap, aby go odblokować</string>
+    <string name="stage_locked_badge">ZABLOKOWANY</string>
+    <string name="stage_highscore">Rekord: %1$d</string>
+
+    <string name="dialog_help_title">Pomoc</string>
+    <string name="dialog_help_controls_touch">• Lot: przeciągaj CyanBata palcem. Działa też klawiatura lub kontroler.\n• Pauza: przesuń palcem od krawędzi lub naciśnij Wstecz. Ponowne Wstecz wraca do menu.</string>
+    <string name="dialog_help_controls_desktop">• Lot: przeciągaj CyanBata myszą albo użyj strzałek lub WASD.\n• Pauza: Q. Ponowne Q wraca do menu.</string>
+    <string name="dialog_help_text">• Strzelanie: CyanBat strzela sam. Strzelaj do wrogów i przeszkód i nie dotykaj ani ich, ani ich pocisków.\n• Zdrowie: każde trafienie uszczupla pasek pod nietoperzem. Gdy się opróżni, gra się kończy.\n• Punkty: zdobywasz je za przetrwanie i za zestrzelenia. Zestrzelenia z rzędu podnoszą mnożnik, a każde trafienie go zeruje.\n• Awans: zestrzelenia dają doświadczenie. Każdy nowy poziom pozwala wybrać jedno z trzech ulepszeń.\n• Fale: co minutę nadciąga silniejsza fala. Po piątej pojawia się boss. Pokonaj go, aby ukończyć etap z dużą premią.\n• Etapy: w dżungli wrogowie nadlatują rojami, latają w formacjach, odpowiadają ogniem i chowają się za tarczami. Pierwszy strzał w tarczę ją rozbija. Ukończenie dżungli otwiera jaskinię, przez którą lecisz w ciemności przy własnym świetle nietoperza, a boss kryje się w mroku między zasadzkami. Ukończenie jaskini otwiera pustynię, przez którą lecisz od południa do nocy; z piasku wyskakują stwory, a pancerze skarabeuszy odrastają, jeśli zostawi się je w spokoju. Ukończenie pustyni otwiera lagunę, przez którą lecisz od nocy do południa; rekiny nadpływają od tyłu wzdłuż linii wody, a rozdymki miotają pierścienie kolców. Każdy etap zaczyna się od nowa: punkty, poziom i ulepszenia startują od zera.</string>
+
+    <string name="settings_music_title">Muzyka</string>
+    <string name="settings_sound_title">Dźwięki</string>
+    <string name="settings_vibration_title">Wibracje</string>
+    <string name="settings_theme_title">Motyw</string>
+    <string name="settings_theme_system">Systemowy</string>
+    <string name="settings_theme_dark">Ciemny</string>
+    <string name="settings_theme_light">Jasny</string>
+    <string name="settings_display_title">Wyświetlanie</string>
+    <string name="settings_display_stretch">Rozciągnij na cały ekran</string>
+    <string name="settings_display_stretch_hint">Wypełnia ekran, ale zniekształca grę na ekranach o proporcjach innych niż 16:9.</string>
+    <string name="settings_display_black_bars">Czarne pasy</string>
+    <string name="settings_display_black_bars_hint">Zachowuje proporcje gry 16:9, z czarnymi pasami tam, gdzie ekran ma inne.</string>
+    <string name="settings_display_ambient">Podświetlane pasy</string>
+    <string name="settings_display_ambient_hint">Zachowuje proporcje gry i podświetla pasy kolorami z jej krawędzi.</string>
+
+    <string name="credit_music_title">Muzyka</string>
+    <string name="credit_music_0">Oryginalna muzyka, skomponowana i zsyntetyzowana w kodzie dla CyanBata</string>
+    <string name="credit_gameframework_title">Pierwotny framework gry</string>
+    <string name="credit_gameframework_0">Na podstawie książki „Beginning Android Games” Mario Zechnera i Roberta Greena</string>
+    <string name="credit_gameframework_1">Pierwotna implementacja: Robert Grüneis</string>
+    <string name="credit_game_development">Tę grę stworzył Martin Śmiech. Powstała jako projekt szkolny i od tamtej pory jest rozwijana jako projekt poboczny.</string>
+    <string name="credit_ai_disclosure_title">Informacja o AI</string>
+    <string name="credit_ai_disclosure_content">Nowsze wersje powstały przy wsparciu generowania kodu przez Google Gemini i Claude Opus.</string>
+
+    <string name="score">Punkty: %1$d</string>
+    <string name="hud_wave">Fala: %1$d/%2$d</string>
+    <string name="hud_boss">BOSS</string>
+    <string name="hud_level">Poziom: %1$d</string>
+
+    <string name="combo_cold">Kombo:</string>
+    <string name="combo_hot">GORĄCO</string>
+    <string name="combo_blazing">W OGNIU</string>
+    <string name="combo_scorching">POŻAR</string>
+    <string name="combo_inferno">INFERNO</string>
+    <string name="combo_hellfire">OGIEŃ PIEKŁA</string>
+    <string name="combo_blue_flame">SINY PŁOMIEŃ</string>
+    <string name="combo_white_hot">BIAŁY ŻAR</string>
+    <string name="combo_supernova">SUPERNOWA</string>
+
+    <string name="banner_wave">FALA %1$d</string>
+    <string name="banner_second_life">DRUGIE ŻYCIE</string>
+
+    <string name="boss_moth_queen">KRÓLOWA CIEM</string>
+    <string name="boss_moth_queen_swarm">NADCIĄGA RÓJ</string>
+    <string name="boss_moth_queen_enraged">KRÓLOWA WPADA W SZAŁ</string>
+    <string name="boss_moth_queen_falls">KRÓLOWA CIEM POKONANA</string>
+    <string name="boss_caco_imp">CACO-CHOCHLIK</string>
+    <string name="boss_caco_imp_lights_out">ŚWIATŁO GAŚNIE</string>
+    <string name="boss_caco_imp_blazes">CHOCHLIK PŁONIE</string>
+    <string name="boss_caco_imp_falls">CACO-CHOCHLIK POKONANY</string>
+    <string name="boss_sand_wyrm">PIASKOWY CZERW</string>
+    <string name="boss_sand_wyrm_brood">POWSTAJE POMIOT</string>
+    <string name="boss_sand_wyrm_enraged">CZERW WPADA W SZAŁ</string>
+    <string name="boss_sand_wyrm_falls">PIASKOWY CZERW POKONANY</string>
+    <string name="boss_naga">NAGA</string>
+    <string name="boss_naga_strikes">NAGA ATAKUJE</string>
+    <string name="boss_naga_brood">BUDZI SIĘ POMIOT</string>
+    <string name="boss_naga_tide">NADCHODZI PRZYPŁYW</string>
+    <string name="boss_naga_enraged">NAGA WPADA W SZAŁ</string>
+    <string name="boss_naga_falls">NAGA POKONANA</string>
+
+    <string name="pause_title">PAUZA</string>
+    <string name="pause_resume">Dotknij lub kliknij, aby wznowić</string>
+    <string name="pause_quit">Wstecz lub Q, aby wyjść</string>
+
+    <string name="stage_complete_title">ETAP UKOŃCZONY</string>
+    <string name="stage_complete_next">Dotknij lub naciśnij Enter, aby przejść do etapu %1$d</string>
+    <string name="stage_complete_menu">Wstecz lub Q, aby wrócić do menu</string>
+    <string name="stage_complete_fresh_start">Punkty, poziom i ulepszenia zaczynają się od nowa</string>
+    <string name="stage_complete_continue">Dotknij lub naciśnij Enter, aby kontynuować</string>
+
+    <string name="game_over_hint">Dotknij ekranu, aby wrócić do menu głównego</string>
+
+    <string name="level_up_title">POZIOM %1$d</string>
+    <string name="level_up_choose">Wybierz ulepszenie</string>
+
+    <string name="power_up_rapid_fire">Szybki ogień</string>
+    <string name="power_up_rapid_fire_description">Szybsze strzały</string>
+    <string name="power_up_spread_shot">Rozrzut</string>
+    <string name="power_up_spread_shot_description">O jeden pocisk więcej, wachlarzem</string>
+    <string name="power_up_vitality">Witalność</string>
+    <string name="power_up_vitality_description">+%1$d do maks. zdrowia i leczenie</string>
+    <string name="power_up_heavy_rounds">Ciężkie kule</string>
+    <string name="power_up_heavy_rounds_description">+%1$d do obrażeń na strzał</string>
+    <string name="power_up_sharpshooter">Snajper</string>
+    <string name="power_up_sharpshooter_description">+%1$d% do szansy na trafienie krytyczne</string>
+    <string name="power_up_armor_plating">Opancerzenie</string>
+    <string name="power_up_armor_plating_description">Mniejsze otrzymywane obrażenia</string>
+    <string name="power_up_second_wind">Drugi oddech</string>
+    <string name="power_up_second_wind_description">Dłuższa ochrona po trafieniu</string>
+    <string name="power_up_regeneration">Regeneracja</string>
+    <string name="power_up_regeneration_description">Odnawia %1$d pkt zdrowia na sekundę</string>
+    <string name="power_up_fast_learner">Pojętny uczeń</string>
+    <string name="power_up_fast_learner_description">+%1$d% do zdobywanego doświadczenia</string>
+    <string name="power_up_bounty_hunter">Łowca nagród</string>
+    <string name="power_up_bounty_hunter_description">+%1$d% do zdobywanych punktów</string>
+    <string name="power_up_second_life">Drugie życie</string>
+    <string name="power_up_second_life_description">Raz unikasz śmierci, wracasz z połową zdrowia</string>
+    <string name="power_up_counterweight">Przeciwwaga</string>
+    <string name="power_up_counterweight_description">-%1$d do otrzymywanych obrażeń, +%2$d% do zadawanych</string>
+    <string name="power_up_piercing_shot">Przebicie</string>
+    <string name="power_up_piercing_shot_description">Pociski przebijają o jednego wroga więcej</string>
+    <string name="power_up_ricochet">Rykoszet</string>
+    <string name="power_up_ricochet_description">Pociski odbijają się od jednej krawędzi więcej</string>
+    <string name="power_up_guardian_orb">Kula ochronna</string>
+    <string name="power_up_guardian_orb_description">Kula krąży wokół ciebie i rani wrogów</string>
+    <string name="power_up_guardian_orb_held">Do kręgu dołącza kolejna kula</string>
+    <string name="power_up_charged_trail">Iskrzący ślad</string>
+    <string name="power_up_charged_trail_description">Dłuższy ślad, który razi wrogów prądem</string>
+    <string name="power_up_charged_trail_held">Dłuższy ślad, silniejsze wyładowania</string>
+    <string name="power_up_frost_beam">Promień mrozu</string>
+    <string name="power_up_frost_beam_description">Promień zamraża linię wrogów</string>
+    <string name="power_up_frost_beam_held">Strzela częściej, zamraża na dłużej</string>
+</resources>

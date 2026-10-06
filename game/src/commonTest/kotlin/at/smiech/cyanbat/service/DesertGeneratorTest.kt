@@ -65,7 +65,7 @@ class DesertGeneratorTest {
     private val bossSheet = DesertSheet(SAND_WYRM_FRAME * 10, SAND_WYRM_FRAME)
 
     private fun only(species: EnemySpecies) = StageProgression(
-        design = StageDesign(listOf(WaveDesign(listOf(species))), BossKind.SAND_WYRM, "TEST"),
+        design = StageDesign(listOf(WaveDesign(listOf(species))), BossKind.SAND_WYRM),
         difficulty = 1.7f,
     )
 

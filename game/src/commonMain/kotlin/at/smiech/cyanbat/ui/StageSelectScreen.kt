@@ -46,6 +46,7 @@ import at.smiech.cyanbat.resources.stage_4_description
 import at.smiech.cyanbat.resources.stage_4_name
 import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.resources.stage_locked
+import at.smiech.cyanbat.resources.stage_locked_badge
 import at.smiech.cyanbat.resources.stage_select_title
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
@@ -190,7 +191,7 @@ private fun StageCard(
             )
             if (!unlocked) {
                 Text(
-                    text = "LOCKED",
+                    text = stringResource(Res.string.stage_locked_badge),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,

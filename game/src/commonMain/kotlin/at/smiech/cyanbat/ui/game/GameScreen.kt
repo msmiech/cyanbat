@@ -23,8 +23,45 @@ import at.smiech.cyanbat.progress.PlayerProgress
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.resource.SoundEffect
 import at.smiech.cyanbat.resource.StageMusic
+import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.banner_second_life
+import at.smiech.cyanbat.resources.banner_wave
+import at.smiech.cyanbat.resources.boss_caco_imp
+import at.smiech.cyanbat.resources.boss_caco_imp_blazes
+import at.smiech.cyanbat.resources.boss_caco_imp_falls
+import at.smiech.cyanbat.resources.boss_caco_imp_lights_out
+import at.smiech.cyanbat.resources.boss_moth_queen
+import at.smiech.cyanbat.resources.boss_moth_queen_enraged
+import at.smiech.cyanbat.resources.boss_moth_queen_falls
+import at.smiech.cyanbat.resources.boss_moth_queen_swarm
+import at.smiech.cyanbat.resources.boss_naga
+import at.smiech.cyanbat.resources.boss_naga_brood
+import at.smiech.cyanbat.resources.boss_naga_enraged
+import at.smiech.cyanbat.resources.boss_naga_falls
+import at.smiech.cyanbat.resources.boss_naga_strikes
+import at.smiech.cyanbat.resources.boss_naga_tide
+import at.smiech.cyanbat.resources.boss_sand_wyrm
+import at.smiech.cyanbat.resources.boss_sand_wyrm_brood
+import at.smiech.cyanbat.resources.boss_sand_wyrm_enraged
+import at.smiech.cyanbat.resources.boss_sand_wyrm_falls
+import at.smiech.cyanbat.resources.hud_boss
+import at.smiech.cyanbat.resources.hud_level
+import at.smiech.cyanbat.resources.hud_wave
+import at.smiech.cyanbat.resources.level_up_choose
+import at.smiech.cyanbat.resources.level_up_title
+import at.smiech.cyanbat.resources.pause_quit
+import at.smiech.cyanbat.resources.pause_resume
+import at.smiech.cyanbat.resources.pause_title
+import at.smiech.cyanbat.resources.score
+import at.smiech.cyanbat.resources.stage_complete_continue
+import at.smiech.cyanbat.resources.stage_complete_fresh_start
+import at.smiech.cyanbat.resources.stage_complete_menu
+import at.smiech.cyanbat.resources.stage_complete_next
+import at.smiech.cyanbat.resources.stage_complete_title
+import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.scenery.Day
 import at.smiech.cyanbat.service.BossKind
 import at.smiech.cyanbat.service.EnemyGenerator
@@ -59,6 +96,7 @@ import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.POWER_UP_ARMING_SECONDS
 import at.smiech.cyanbat.util.POWER_UP_CARD_GAP
 import at.smiech.cyanbat.util.POWER_UP_CARD_HEIGHT
+import at.smiech.cyanbat.util.POWER_UP_CARD_PADDING
 import at.smiech.cyanbat.util.POWER_UP_CARD_TOP
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
@@ -128,6 +166,7 @@ import at.smiech.engine.ecs.WoundComponent
 import at.smiech.engine.ecs.WoundSystem
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
+import org.jetbrains.compose.resources.StringResource
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -154,6 +193,9 @@ class GameScreen(
     stageId: Int = 1,
 ) : Screen {
     var currentStage = env.assets.stage(stageId)
+
+    /** What the run says, in the player's language. Read off the host every time, which may swap it. */
+    private val text: GameText get() = env.text
 
     private val world = World()
 
@@ -188,14 +230,14 @@ class GameScreen(
         factory,
         currentStage.enemySheet,
         progression = progression,
-        onWaveChanged = { wave -> announce("WAVE ${wave.index + 1}") },
+        onWaveChanged = { wave -> announce(text.format(Res.string.banner_wave, wave.index + 1)) },
         onBossSpawned = {
-            announce(progression.design.bossName)
+            announce(text[bossName()])
             onBossMusic()
         },
         bossPixmap = currentStage.bossSheet,
         onBossPhaseChanged = { phase ->
-            announce(bossPhaseBanner(phase))
+            announce(text[bossPhaseBanner(phase)])
             director?.onBossPhaseChanged()
         },
     )
@@ -1035,7 +1077,7 @@ class GameScreen(
             (health.maxHitPoints * REVIVE_HEALTH_FRACTION).roundToInt().coerceAtLeast(1)
         world.getComponent(batId, PlayerControlComponent::class)?.hitCooldown =
             loadout.hitCooldownSeconds
-        announce("SECOND LIFE")
+        announce(text[Res.string.banner_second_life])
         return true
     }
 
@@ -1075,7 +1117,7 @@ class GameScreen(
         sounds.play(SoundEffect.BOSS_DEATH)
         // Its name went up as it arrived, and goes up again as it falls - held until the overlay
         // takes over, so the seconds between are seen to be the victory and not the game hanging.
-        announce("${progression.design.bossName} FALLS", seconds = STAGE_COMPLETE_DELAY_SECONDS)
+        announce(text[bossFalls()], seconds = STAGE_COMPLETE_DELAY_SECONDS)
     }
 
     /**
@@ -1134,16 +1176,41 @@ class GameScreen(
     private val nextStageId: Int?
         get() = (currentStage.id + 1).takeIf { env.assets.hasStageAfter(currentStage.id) }
 
+    /** What the stage's boss is called, which is the banner it arrives on. */
+    private fun bossName(): StringResource = when (progression.design.boss) {
+        BossKind.MOTH_QUEEN -> Res.string.boss_moth_queen
+        BossKind.CACO_IMP -> Res.string.boss_caco_imp
+        BossKind.SAND_WYRM -> Res.string.boss_sand_wyrm
+        BossKind.NAGA -> Res.string.boss_naga
+    }
+
+    /**
+     * The banner the stage's boss goes down under. A whole line of its own rather than its name
+     * with a word put after it, because in some languages the word has to agree with the name.
+     */
+    private fun bossFalls(): StringResource = when (progression.design.boss) {
+        BossKind.MOTH_QUEEN -> Res.string.boss_moth_queen_falls
+        BossKind.CACO_IMP -> Res.string.boss_caco_imp_falls
+        BossKind.SAND_WYRM -> Res.string.boss_sand_wyrm_falls
+        BossKind.NAGA -> Res.string.boss_naga_falls
+    }
+
     /** What a boss announces on entering phase [phase]. */
-    private fun bossPhaseBanner(phase: Int): String = when (progression.design.boss) {
-        BossKind.CACO_IMP -> if (phase >= 3) "THE IMP BLAZES" else "LIGHTS OUT"
-        BossKind.MOTH_QUEEN -> if (phase >= 3) "QUEEN ENRAGED" else "SWARM CALLED"
-        BossKind.SAND_WYRM -> if (phase >= 3) "WYRM ENRAGED" else "THE BROOD RISES"
+    private fun bossPhaseBanner(phase: Int): StringResource = when (progression.design.boss) {
+        BossKind.CACO_IMP ->
+            if (phase >= 3) Res.string.boss_caco_imp_blazes else Res.string.boss_caco_imp_lights_out
+
+        BossKind.MOTH_QUEEN ->
+            if (phase >= 3) Res.string.boss_moth_queen_enraged else Res.string.boss_moth_queen_swarm
+
+        BossKind.SAND_WYRM ->
+            if (phase >= 3) Res.string.boss_sand_wyrm_enraged else Res.string.boss_sand_wyrm_brood
+
         BossKind.NAGA -> when (phase) {
-            2 -> "THE NAGA STRIKES"
-            3 -> "THE BROOD AWAKES"
-            4 -> "THE TIDE TURNS"
-            else -> "NAGA ENRAGED"
+            2 -> Res.string.boss_naga_strikes
+            3 -> Res.string.boss_naga_brood
+            4 -> Res.string.boss_naga_tide
+            else -> Res.string.boss_naga_enraged
         }
     }
 
@@ -1469,7 +1536,7 @@ class GameScreen(
         powerUp.applyTo(loadout)
         applyLoadout()
         offer = emptyList()
-        announce(powerUp.title)
+        announce(text[powerUp.title])
     }
 
     /**
@@ -1748,9 +1815,9 @@ class GameScreen(
 
     private fun drawPauseOverlay() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-        drawCentered("PAUSED", 160, 30, EngineColors.CYAN)
-        drawCentered("Tap or click to resume", 195, 15, EngineColors.WHITE)
-        drawCentered("Back or Q to quit", 217, 15, EngineColors.WHITE)
+        drawCentered(text[Res.string.pause_title], 160, 30, EngineColors.CYAN)
+        drawCentered(text[Res.string.pause_resume], 195, 15, EngineColors.WHITE)
+        drawCentered(text[Res.string.pause_quit], 217, 15, EngineColors.WHITE)
     }
 
     fun saveHighscore() {
@@ -1804,13 +1871,13 @@ class GameScreen(
      */
     private fun drawStageCompleteOverlay() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-        drawCentered("STAGE COMPLETE", 140, 30, EngineColors.YELLOW)
-        drawCentered(currentStage.name, 170, 15, EngineColors.CYAN)
+        drawCentered(text[Res.string.stage_complete_title], 140, 30, EngineColors.YELLOW)
+        drawCentered(text[currentStage.name], 170, 15, EngineColors.CYAN)
 
-        val score = "Score: ${scoring.score}"
+        val score = text.format(Res.string.score, scoring.score)
         // Already raised by this run if it beat the record, which is how the player can tell that
         // it did: the two numbers match.
-        val record = "Highscore: $highscore"
+        val record = text.format(Res.string.stage_highscore, highscore)
         // The two share a left edge, so they read as one block, and it is the block that is
         // centered, by the wider of the two. Centering each line on its own would stagger them.
         val width = maxOf(g.measureString(score, 20), g.measureString(record, 15))
@@ -1818,12 +1885,13 @@ class GameScreen(
         g.drawString(score, left, 195, 20, EngineColors.WHITE)
         g.drawString(record, left, 217, 15, EngineColors.CYAN)
 
-        if (nextStageId != null) {
-            drawCentered("Tap or press Enter for stage $nextStageId", 247, 15, EngineColors.WHITE)
-            drawCentered("Back or Q for the menu", 269, 15, EngineColors.WHITE)
-            drawCentered("Score, level and power-ups start over", 294, 13, EngineColors.CYAN)
+        val next = nextStageId
+        if (next != null) {
+            drawCentered(text.format(Res.string.stage_complete_next, next), 247, 15, EngineColors.WHITE)
+            drawCentered(text[Res.string.stage_complete_menu], 269, 15, EngineColors.WHITE)
+            drawCentered(text[Res.string.stage_complete_fresh_start], 294, 13, EngineColors.CYAN)
         } else {
-            drawCentered("Tap or press Enter to continue", 247, 15, EngineColors.WHITE)
+            drawCentered(text[Res.string.stage_complete_continue], 247, 15, EngineColors.WHITE)
         }
     }
 
@@ -1839,8 +1907,8 @@ class GameScreen(
      */
     private fun drawPowerUpOffer() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-        drawCentered("LEVEL ${progress.level}", 90, 30, EngineColors.YELLOW)
-        drawCentered("Choose an upgrade", 120, 15, EngineColors.WHITE)
+        drawCentered(text.format(Res.string.level_up_title, progress.level), 90, 30, EngineColors.YELLOW)
+        drawCentered(text[Res.string.level_up_choose], 120, 15, EngineColors.WHITE)
 
         offer.forEachIndexed { index, powerUp ->
             drawPowerUpCard(index, powerUp)
@@ -1856,45 +1924,26 @@ class GameScreen(
             drawRect(left, POWER_UP_CARD_TOP, POWER_UP_CARD_WIDTH, 2, EngineColors.CYAN)
 
             drawString(
-                powerUp.title,
-                left + CARD_PADDING,
+                text[powerUp.title],
+                left + POWER_UP_CARD_PADDING,
                 POWER_UP_CARD_TOP + 26,
                 14,
                 EngineColors.CYAN
             )
             // Broken on whole words by measured width rather than by counting characters: a count
             // that fits in Arial runs off the card in the wider DejaVu Sans.
-            wrapped(powerUp.describe(loadout), POWER_UP_CARD_WIDTH - 2 * CARD_PADDING, 11)
-                .forEachIndexed { line, text ->
+            val description = text.format(powerUp.describe(loadout), *powerUp.numbers.toTypedArray())
+            wrapWords(description, POWER_UP_CARD_WIDTH - 2 * POWER_UP_CARD_PADDING) { measureString(it, 11) }
+                .forEachIndexed { line, words ->
                     drawString(
-                        text,
-                        left + CARD_PADDING,
+                        words,
+                        left + POWER_UP_CARD_PADDING,
                         POWER_UP_CARD_TOP + 48 + line * 14,
                         11,
                         EngineColors.WHITE
                     )
                 }
         }
-    }
-
-    /**
-     * Greedy word wrap into lines no wider than [width] at [fontSize], which is all the card layout
-     * needs.
-     */
-    private fun wrapped(text: String, width: Int, fontSize: Int): List<String> {
-        val lines = mutableListOf<String>()
-        var line = ""
-        for (word in text.split(' ')) {
-            val longer = if (line.isEmpty()) word else "$line $word"
-            if (line.isNotEmpty() && g.measureString(longer, fontSize) > width) {
-                lines += line
-                line = word
-            } else {
-                line = longer
-            }
-        }
-        if (line.isNotEmpty()) lines += line
-        return lines
     }
 
     /**
@@ -1964,9 +2013,9 @@ class GameScreen(
         // a mechanic they never learn exists. Drawn first, because its fire reaches up behind the
         // lines above it, and last in the column, because the hotter it burns the bigger its count
         // grows, and down there it grows into nothing else.
-        comboMeter.draw(g, 5, COMBO_BASELINE)
+        comboMeter.draw(g, 5, COMBO_BASELINE, text)
         g.apply {
-            drawOutlinedString("Score: ${scoring.score}", 5, 20, 15, EngineColors.CYAN)
+            drawOutlinedString(text.format(Res.string.score, scoring.score), 5, 20, 15, EngineColors.CYAN)
             // How far into the stage the player is, which is the only reading they get on how
             // much harder the next minute is about to be - and on how close the boss is.
             drawOutlinedString(waveLabel(), 5, 40, 15, EngineColors.CYAN)
@@ -1975,7 +2024,7 @@ class GameScreen(
             // in the top right corner the bar fills toward, kept the same 5px off the edge as the
             // column on the left. Right-aligned by its measured width, because the face it comes
             // out in, and so its width, varies by platform.
-            val level = "Level: ${progress.level}"
+            val level = text.format(Res.string.hud_level, progress.level)
             drawOutlinedString(
                 level,
                 game.frameBufferWidth - 5 - measureString(level, 15),
@@ -1992,8 +2041,8 @@ class GameScreen(
      * Waves are numbered from one for the player, where the code indexes them from zero.
      */
     private fun waveLabel(): String = when {
-        enmGen.bossSpawned -> "BOSS"
-        else -> "Wave: ${enmGen.currentWave.index + 1}/${progression.bossWave}"
+        enmGen.bossSpawned -> text[Res.string.hud_boss]
+        else -> text.format(Res.string.hud_wave, enmGen.currentWave.index + 1, progression.bossWave)
     }
 
     /**
@@ -2001,7 +2050,7 @@ class GameScreen(
      * like the banners, because the desert opens at noon, and yellow on its pale sky does not read.
      */
     private fun drawStageName() {
-        val name = currentStage.name
+        val name = text[currentStage.name]
         g.drawOutlinedString(
             name,
             centeredX(name, 30),
@@ -2083,9 +2132,6 @@ class GameScreen(
     private companion object {
         /** A power-up card's panel: dark enough to read white text on, over a dimmed run. */
         const val CARD_FILL = 0xE6101820.toInt()
-
-        /** The room between a card's edges and its text, on the left and on the right. */
-        const val CARD_PADDING = 8
 
         /** The unfilled part of the experience bar. */
         const val XP_BAR_EMPTY = 0x80000000.toInt()

@@ -1,5 +1,15 @@
 package at.smiech.cyanbat.ui.game
 
+import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.combo_blazing
+import at.smiech.cyanbat.resources.combo_blue_flame
+import at.smiech.cyanbat.resources.combo_cold
+import at.smiech.cyanbat.resources.combo_hellfire
+import at.smiech.cyanbat.resources.combo_hot
+import at.smiech.cyanbat.resources.combo_inferno
+import at.smiech.cyanbat.resources.combo_scorching
+import at.smiech.cyanbat.resources.combo_supernova
+import at.smiech.cyanbat.resources.combo_white_hot
 import at.smiech.cyanbat.ui.game.ComboHeat.supernova
 import at.smiech.cyanbat.util.COMBO_COUNT_GROWTH
 import at.smiech.cyanbat.util.COMBO_COUNT_MAX_SIZE
@@ -7,6 +17,7 @@ import at.smiech.cyanbat.util.COMBO_FONT_SIZE
 import at.smiech.cyanbat.util.COMBO_MIN_FLAME_STRENGTH
 import at.smiech.cyanbat.util.COMBO_SUPERNOVA_CYCLES_PER_SECOND
 import at.smiech.engine.EngineColors
+import org.jetbrains.compose.resources.StringResource
 import kotlin.math.floor
 import kotlin.math.log2
 import kotlin.math.roundToInt
@@ -40,7 +51,7 @@ internal object ComboHeat {
      */
     private class Rung(
         val from: Int,
-        val title: String,
+        val title: StringResource,
         val color: Int,
         val ember: Int,
         val core: Int
@@ -59,20 +70,20 @@ internal object ComboHeat {
      * ones worth marking out.
      */
     private val RUNGS = arrayOf(
-        Rung(1, "Combo:", EngineColors.CYAN, EngineColors.CYAN, EngineColors.CYAN),
-        Rung(2, "HOT", 0xFFFFE45A.toInt(), 0xFFD04A10.toInt(), 0xFFFFFBE0.toInt()),
-        Rung(4, "BLAZING", 0xFFFFA02A.toInt(), 0xFFB0200C.toInt(), 0xFFFFF0A0.toInt()),
-        Rung(6, "SCORCHING", 0xFFFF5A2A.toInt(), 0xFF8A0A10.toInt(), 0xFFFFD050.toInt()),
-        Rung(9, "INFERNO", 0xFFFF3A6E.toInt(), 0xFF7A0838.toInt(), 0xFFFFD27A.toInt()),
-        Rung(13, "HELLFIRE", 0xFFD24BFF.toInt(), 0xFF4A0C8A.toInt(), 0xFFF6D8FF.toInt()),
-        Rung(18, "BLUE FLAME", 0xFF5AA0FF.toInt(), 0xFF1A2A9A.toInt(), 0xFFD8F4FF.toInt()),
-        Rung(25, "WHITE HOT", 0xFFEAF8FF.toInt(), 0xFF3A7AE0.toInt(), EngineColors.WHITE),
+        Rung(1, Res.string.combo_cold, EngineColors.CYAN, EngineColors.CYAN, EngineColors.CYAN),
+        Rung(2, Res.string.combo_hot, 0xFFFFE45A.toInt(), 0xFFD04A10.toInt(), 0xFFFFFBE0.toInt()),
+        Rung(4, Res.string.combo_blazing, 0xFFFFA02A.toInt(), 0xFFB0200C.toInt(), 0xFFFFF0A0.toInt()),
+        Rung(6, Res.string.combo_scorching, 0xFFFF5A2A.toInt(), 0xFF8A0A10.toInt(), 0xFFFFD050.toInt()),
+        Rung(9, Res.string.combo_inferno, 0xFFFF3A6E.toInt(), 0xFF7A0838.toInt(), 0xFFFFD27A.toInt()),
+        Rung(13, Res.string.combo_hellfire, 0xFFD24BFF.toInt(), 0xFF4A0C8A.toInt(), 0xFFF6D8FF.toInt()),
+        Rung(18, Res.string.combo_blue_flame, 0xFF5AA0FF.toInt(), 0xFF1A2A9A.toInt(), 0xFFD8F4FF.toInt()),
+        Rung(25, Res.string.combo_white_hot, 0xFFEAF8FF.toInt(), 0xFF3A7AE0.toInt(), EngineColors.WHITE),
     )
 
     /** Where the named rungs run out, and the colors start to cycle through all of them. */
     const val SUPERNOVA = 35
 
-    private const val SUPERNOVA_TITLE = "SUPERNOVA"
+    private val SUPERNOVA_TITLE = Res.string.combo_supernova
 
     /** Which rung [multiplier] is on, counting the one past the ladder's end; a change is a new title. */
     fun rung(multiplier: Int): Int {
@@ -83,7 +94,7 @@ internal object ComboHeat {
     }
 
     /** What the readout calls itself at [multiplier], in front of the count. */
-    fun title(multiplier: Int): String {
+    fun title(multiplier: Int): StringResource {
         val index = rung(multiplier)
         return if (index == RUNGS.size) SUPERNOVA_TITLE else RUNGS[index].title
     }

@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.ui.game
 
+import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.util.COMBO_FLAME_MAX_HEAT
 import at.smiech.cyanbat.util.COMBO_FLAME_MIN_HEAT
 import at.smiech.cyanbat.util.COMBO_FLARE_HEAT
@@ -84,8 +85,11 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     private var paletteColor = 0
     private var paletteCore = 0
 
+    /** The language the words above and below were last read in; another one reads them again. */
+    private var readIn: GameText? = null
+
     /** The whole readout while it is cold, which it only ever is at x1. */
-    private val coldText = "${ComboHeat.title(1)} x1"
+    private var coldText = ""
 
     /** Whether the readout is burning at all, which it does from the first step up. */
     val burning: Boolean get() = ComboHeat.burning(multiplier)
@@ -155,11 +159,17 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     }
 
     /**
-     * Draws the readout with its left edge at [x] and its text standing on [baseline]. The flames
-     * reach up from the tops of the letters, behind whatever of the HUD is above, which is drawn
-     * over them.
+     * Draws the readout with its left edge at [x] and its text standing on [baseline], its title
+     * in [text]'s words. The flames reach up from the tops of the letters, behind whatever of the
+     * HUD is above, which is drawn over them.
      */
-    fun draw(g: Graphics, x: Int, baseline: Int) {
+    fun draw(g: Graphics, x: Int, baseline: Int, text: GameText) {
+        if (text !== readIn) {
+            readIn = text
+            coldText = "${text[ComboHeat.title(1)]} x1"
+            title = ""
+            glyphsFor = 0
+        }
         val fireLeft = x - FIRE_LEFT_OF_TEXT
         val fireTop = baseline - FIRE_ROWS * CELL
         if (burning || fire.lit) {
@@ -179,7 +189,7 @@ internal class ComboMeter(private val random: Random = Random.Default) {
             return
         }
 
-        rebuildGlyphs()
+        rebuildGlyphs(text)
         val color = ComboHeat.color(multiplier, seconds)
         val bob = BOB_GROWTH * ComboHeat.flameStrength(multiplier)
         val titlePop = titlePopTime / COMBO_POP_SECONDS
@@ -242,10 +252,10 @@ internal class ComboMeter(private val random: Random = Random.Default) {
         return pen
     }
 
-    private fun rebuildGlyphs() {
+    private fun rebuildGlyphs(text: GameText) {
         if (glyphsFor == multiplier) return
         glyphsFor = multiplier
-        val newTitle = ComboHeat.title(multiplier)
+        val newTitle = text[ComboHeat.title(multiplier)]
         if (newTitle != title) {
             title = newTitle
             titleGlyphs = Array(title.length) { title[it].toString() }
@@ -302,9 +312,10 @@ internal class ComboMeter(private val random: Random = Random.Default) {
         /**
          * The fire's grid, in cells. Wide enough for the widest title and a four digit count at the
          * peak of a pop, with room for the flames to stream off to the left; tall enough for the
-         * hottest fire at the peak of a flare, standing on top of a popped count.
+         * hottest fire at the peak of a flare, standing on top of a popped count. The widest titles
+         * are the German and Polish ones, which run a good ten cells past the widest English.
          */
-        const val FIRE_COLUMNS = 110
+        const val FIRE_COLUMNS = 120
         const val FIRE_ROWS = 30
 
         /**

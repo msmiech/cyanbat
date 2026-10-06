@@ -45,7 +45,6 @@ class JungleGeneratorTest {
             design = StageDesign(
                 waves = listOf(WaveDesign(listOf(species), shieldChance, gunChance)),
                 boss = BossKind.MOTH_QUEEN,
-                bossName = "TEST",
             ),
             difficulty = 1.35f,
         )
