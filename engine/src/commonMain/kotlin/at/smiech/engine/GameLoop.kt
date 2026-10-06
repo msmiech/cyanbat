@@ -2,7 +2,7 @@ package at.smiech.engine
 
 /**
  * Drives the current screen from a host's frame callback. Shared by every platform so the timing
- * rules - in particular the delta clamp below - hold everywhere rather than being re-derived.
+ * rules, in particular the delta clamp, hold everywhere.
  *
  * Feed it the host's frame timestamp: `withFrameNanos` on Compose, a timer on Swing.
  */
@@ -14,6 +14,7 @@ class GameLoop(
 ) {
     private var lastFrameNanos = 0L
 
+    /** Updates and presents the current screen for the frame at [frameTimeNanos]. */
     fun frame(frameTimeNanos: Long) {
         // The first frame has no predecessor to measure against, so seed and skip it.
         if (lastFrameNanos == 0L) {
@@ -24,15 +25,14 @@ class GameLoop(
         val elapsed = (frameTimeNanos - lastFrameNanos) / 1e9f
         lastFrameNanos = frameTimeNanos
 
-        // A paused host stops delivering frame callbacks, so the first frame after a resume
-        // carries the whole pause in its delta. Screens step fixed-size ticks in a while-loop, so
-        // an unclamped delta replays all of that in a single frame: the player loses health to a
-        // fast-forward they never see. Time beyond the cap is dropped rather than simulated,
-        // which briefly slows game time instead of teleporting the world.
+        // A paused host stops delivering frames, so the first frame after a resume carries the
+        // whole pause in its delta. Screens step fixed ticks in a loop, so an unclamped delta would
+        // replay all of it at once and the player would take damage they never saw. Time past the
+        // cap is dropped, which briefly slows the game instead.
         val deltaTime = elapsed.coerceIn(0f, maxDeltaSeconds)
 
-        // Marked apart, because they cost different things: update is the game's logic, present
-        // the recording of the whole frame, which the host draws afterwards.
+        // Traced separately because they cost different things: update is the game logic, present
+        // records the frame the host draws afterwards.
         traced(UPDATE_SECTION) { game.currentScreen?.update(deltaTime) }
         traced(PRESENT_SECTION) { game.currentScreen?.present(deltaTime) }
     }
@@ -52,16 +52,18 @@ class GameLoop(
     }
 
     companion object {
-        /** The screen's update, as a trace names it. */
+        /** The trace section for the screen's update. */
         const val UPDATE_SECTION = "Screen.update"
 
-        /** The screen's present, as a trace names it: the frame recorded for the host to draw. */
+        /**
+         * The trace section for the screen's present, which records the frame for the host to draw.
+         */
         const val PRESENT_SECTION = "Screen.present"
 
         /**
-         * Upper bound on the delta handed to a screen, in seconds. Roughly three frames at 60Hz -
-         * loose enough to absorb ordinary frame jitter, tight enough that a resume costs a couple
-         * of ticks instead of the entire time the app spent in the background.
+         * Upper bound on the delta handed to a screen, in seconds: about three frames at 60 Hz.
+         * Loose enough to absorb frame jitter, tight enough that a resume costs a couple of ticks
+         * rather than the whole time spent in the background.
          */
         const val MAX_FRAME_DELTA_SECONDS = 0.05f
     }

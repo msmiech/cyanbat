@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.desktop.recorder
 
 import at.smiech.cyanbat.progress.PowerUp
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 import java.util.concurrent.Future
@@ -11,8 +12,15 @@ import java.util.zip.Inflater
  * What happened on one frame of a run: the facts the [Montage] picks its clips by.
  *
  * @param seconds the stage clock, which stops while a dialog is up.
+ * @param wave the current wave's index, from zero.
+ * @param bossSpawned whether the boss has arrived.
+ * @param complete whether the stage is won.
+ * @param offer whether a level up dialog is up.
+ * @param banner the wave or boss announcement on screen, if any.
  * @param enemies how many enemies are on screen, and [blasts] how many explosions.
+ * @param health the bat's health, as a fraction of its bar.
  * @param hit whether the bat lost health on this frame.
+ * @param level the bat's level, and [score] the run's score.
  * @param pick the power-up taken on this frame, which is the frame a level up dialog closes on.
  */
 data class Moment(
@@ -38,15 +46,24 @@ data class Moment(
  * Compression runs on worker threads so the run itself is not held up by it.
  */
 class Tape(private val width: Int, private val height: Int) {
+    /** The threads compressing frames. */
     private val workers: ExecutorService = Executors.newFixedThreadPool(WORKERS) { task ->
         Thread(task, "cyanbat-tape").apply { isDaemon = true }
     }
+
+    /** Every frame, compressed or on its way to being. */
     private val frames = ArrayList<Future<ByteArray>>()
+
+    /** How many of [frames], oldest first, are known to be compressed. */
     private var settled = 0
 
+    /** Each frame's [Moment], by index. */
     val moments = ArrayList<Moment>()
+
+    /** How many frames are on the tape. */
     val size: Int get() = frames.size
 
+    /** Adds a frame and its moment. [pixels] is copied, so the caller may reuse it. */
     fun add(pixels: IntArray, moment: Moment) {
         val copy = pixels.copyOf()
         frames += workers.submit<ByteArray> { deflate(copy) }
@@ -58,10 +75,12 @@ class Tape(private val width: Int, private val height: Int) {
     /** Frame [index] as 0xRRGGBB pixels. */
     fun pixels(index: Int): IntArray = inflate(frames[index].get())
 
+    /** Stops the workers once the frames they hold are compressed. */
     fun close() {
         workers.shutdown()
     }
 
+    /** [pixels] packed as three bytes each and deflated. */
     private fun deflate(pixels: IntArray): ByteArray {
         val raw = ByteArray(pixels.size * 3)
         for (i in pixels.indices) {
@@ -73,13 +92,14 @@ class Tape(private val width: Int, private val height: Int) {
         val deflater = Deflater(Deflater.BEST_SPEED)
         deflater.setInput(raw)
         deflater.finish()
-        val out = java.io.ByteArrayOutputStream(raw.size / 8)
+        val out = ByteArrayOutputStream(raw.size / 8)
         val buffer = ByteArray(64 * 1024)
         while (!deflater.finished()) out.write(buffer, 0, deflater.deflate(buffer))
         deflater.end()
         return out.toByteArray()
     }
 
+    /** A frame back from [deflate]. */
     private fun inflate(packed: ByteArray): IntArray {
         val raw = ByteArray(width * height * 3)
         val inflater = Inflater()
@@ -95,7 +115,10 @@ class Tape(private val width: Int, private val height: Int) {
     }
 
     private companion object {
+        /** Threads compressing frames. */
         const val WORKERS = 3
+
+        /** Frames that may wait to be compressed before [add] waits for them. */
         const val MAX_PENDING = 48
     }
 }

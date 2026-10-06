@@ -1,6 +1,5 @@
 package at.smiech.engine.ecs
 
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -11,7 +10,6 @@ private class FakePixmap(
     override val width: Int,
     override val height: Int
 ) : Pixmap {
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 
@@ -24,6 +22,7 @@ private const val STRIP_FRAMES = 4
 private const val SHEET_WIDTH = FRAME_WIDTH * STRIP_FRAMES * 3
 private val STRIP_OFFSETS = listOf(0, 128, 256)
 
+/** How [AnimationSystem] steps a sprite through the frames of its strip. */
 class AnimationSystemTest {
 
     private fun world(

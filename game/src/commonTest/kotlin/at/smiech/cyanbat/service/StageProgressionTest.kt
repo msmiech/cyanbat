@@ -19,6 +19,7 @@ private const val MINUTE = WAVE_DURATION_SECONDS
 
 private val CAVE_SPECIES = setOf(EnemySpecies.SCOUT, EnemySpecies.WEAVER, EnemySpecies.STRIKER)
 
+/** How [StageProgression] makes each wave harder than the last. */
 class StageProgressionTest {
 
     private val stage1 = StageProgression.forStage(1)

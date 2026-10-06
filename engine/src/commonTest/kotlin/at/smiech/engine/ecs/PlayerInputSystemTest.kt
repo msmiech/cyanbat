@@ -13,6 +13,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** How [PlayerInputSystem] turns touches, drags and the stick into the bat's movement. */
 class PlayerInputSystemTest {
 
     private companion object {
@@ -58,9 +59,6 @@ class PlayerInputSystemTest {
         override fun isTouchDown(pointer: Int) = pointer in held
         override fun getTouchX(pointer: Int) = 0
         override fun getTouchY(pointer: Int) = 0
-        override val accelX = 0f
-        override val accelY = 0f
-        override val accelZ = 0f
         override val pointerCount = 0
     }
 

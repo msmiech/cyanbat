@@ -10,20 +10,19 @@ import android.view.InputDevice
 import at.smiech.engine.Haptics
 
 /**
- * [Haptics] for whatever the player is holding: the game controller they are playing with, when it
- * has rumble motors, and the device's own vibrator otherwise - for touch, a keyboard, or a pad
- * without motors, such as many of the controllers a phone clips into, through whose grip the
- * phone's own buzz is felt.
+ * [Haptics] for whatever the player is holding: the game controller in use when it has rumble
+ * motors, otherwise the device's own vibrator. That covers touch, keyboards and motorless pads,
+ * including many clip-on controllers, through whose grip the phone's buzz is felt.
  *
- * Only one of the two buzzes. A player on a controller may have the phone on a table or a stand,
- * where it would rattle.
+ * Only one of the two vibrates: a player on a controller may have the phone on a table, where it
+ * would rattle.
  *
- * Whether a controller's motors show up depends on the kernel having a force-feedback driver for
- * it. Android's common kernels have one for the DualSense and DualShock 4 (`hid-playstation`,
- * `hid-sony`) and for Xbox One and Series pads over Bluetooth (`hid-microsoft`).
+ * A controller's motors only show up if the kernel has a force-feedback driver for it. Android's
+ * common kernels have one for the DualSense and DualShock 4 (`hid-playstation`, `hid-sony`) and for
+ * Xbox One and Series pads over Bluetooth (`hid-microsoft`).
  *
- * @param controllerInUse the id of the [InputDevice] the player last played with, or null when
- *   that was the touchscreen.
+ * @param controllerInUse the id of the [InputDevice] the player last used, or null for the
+ *   touchscreen.
  */
 class AndroidHaptics(
     context: Context,
@@ -39,16 +38,16 @@ class AndroidHaptics(
     override fun vibrate(durationMillis: Long) {
         val effect =
             VibrationEffect.createOneShot(durationMillis, VibrationEffect.DEFAULT_AMPLITUDE)
-        // Looked up afresh every time, because the controller may have been switched off or
-        // unpaired since it was last used; then the id finds nothing and the phone buzzes.
+        // Looked up on every call, because the controller may have been switched off or unpaired
+        // since; then the id finds nothing and the phone vibrates instead.
         val controller = controllerInUse()?.let(InputDevice::getDevice)
         if (controller == null || !controller.rumble(effect)) vibrator.vibrate(effect)
     }
 }
 
 /**
- * Runs [effect] on every motor a controller has at once, a pad's heavy one and its light one alike.
- * False when it has none, so the caller can buzz something else.
+ * Runs [effect] on all of a controller's motors at once, heavy and light alike. Returns false when
+ * it has none, so the caller can vibrate something else.
  */
 private fun InputDevice.rumble(effect: VibrationEffect): Boolean {
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {

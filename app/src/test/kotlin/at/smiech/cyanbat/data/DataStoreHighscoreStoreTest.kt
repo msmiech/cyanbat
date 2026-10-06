@@ -24,6 +24,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** [DataStoreHighscoreStore], and the migrations that moved old highscores to their stages. */
 class DataStoreHighscoreStoreTest {
 
     @get:Rule

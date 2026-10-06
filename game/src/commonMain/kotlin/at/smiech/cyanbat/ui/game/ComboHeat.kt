@@ -10,7 +10,6 @@ import at.smiech.cyanbat.resources.combo_inferno
 import at.smiech.cyanbat.resources.combo_scorching
 import at.smiech.cyanbat.resources.combo_supernova
 import at.smiech.cyanbat.resources.combo_white_hot
-import at.smiech.cyanbat.ui.game.ComboHeat.supernova
 import at.smiech.cyanbat.util.COMBO_COUNT_GROWTH
 import at.smiech.cyanbat.util.COMBO_COUNT_MAX_SIZE
 import at.smiech.cyanbat.util.COMBO_FONT_SIZE
@@ -23,20 +22,17 @@ import kotlin.math.log2
 import kotlin.math.roundToInt
 
 /**
- * How hot the combo readout burns at a given multiplier: what it calls itself, the color it is
- * drawn in, how big its count is and how tall the fire behind it stands.
+ * How hot the combo readout burns at a given multiplier: its title, its color, the size of its
+ * count and the height of the fire behind it.
  *
  * The multiplier has no ceiling, so neither does this. It climbs a ladder of named rungs, each a
- * hotter fire than the last - yellow, orange, red, crimson, violet, then blue and white, the way a
- * flame gets hotter - and every step between two rungs moves the color part of the way to the next,
- * so each step the player earns shows. Past the top rung the fire cycles through every color on the
- * ladder, faster the higher the streak climbs, so a streak that is still climbing always looks it.
+ * hotter fire (yellow, orange, red, crimson, violet, then blue and white), and every step between
+ * rungs moves the color part of the way to the next, so each earned step shows. Past the top rung
+ * the fire cycles through the ladder's colors, faster as the streak climbs. Topping out in blue and
+ * white also means the hottest streak burns in the bat's own cool colors.
  *
- * The top of the ladder coming round to blue and white is not only physics: the bat is the cool
- * thing on screen, and its hottest streak burns in its own colors.
- *
- * A pure function of the multiplier, and past the top rung of the clock, so the whole ladder can be
- * tested without drawing any of it.
+ * A pure function of the multiplier (and, past the top rung, of the clock), so the ladder can be
+ * tested without drawing it.
  */
 internal object ComboHeat {
 
@@ -44,10 +40,9 @@ internal object ComboHeat {
     private enum class Part { COLOR, EMBER, CORE }
 
     /**
-     * One rung: the multiplier it starts at, what the readout calls itself there, and its colors -
-     * [color] for the text and the body of the flames, [ember] for their cooling tips, and [core]
-     * for the heart they rise out of, which on the warm rungs is yellower than plain white, the way
-     * a real fire's is.
+     * One rung: the multiplier it starts at, the readout's title there, and its colors: [color] for
+     * the text and the body of the flames, [ember] for their cooling tips, and [core] for the heart
+     * they rise from, yellower than white on the warm rungs as in a real fire.
      */
     private class Rung(
         val from: Int,
@@ -56,6 +51,7 @@ internal object ComboHeat {
         val ember: Int,
         val core: Int
     ) {
+        /** This rung's color for [part]. */
         fun of(part: Part): Int = when (part) {
             Part.COLOR -> color
             Part.EMBER -> ember
@@ -64,10 +60,9 @@ internal object ComboHeat {
     }
 
     /**
-     * The first rung is no fire at all: at x1 the readout is a plain line of the HUD, cyan like the
-     * rest of it, and shouts only once there is something to shout about. The steps between rungs
-     * widen as they climb, since each step takes the same three kills and the long streaks are the
-     * ones worth marking out.
+     * The ladder. The first rung is no fire: at x1 the readout is a plain cyan HUD line. The gaps
+     * between rungs widen as they climb, since every step takes the same three kills and the long
+     * streaks are the ones worth marking.
      */
     private val RUNGS = arrayOf(
         Rung(1, Res.string.combo_cold, EngineColors.CYAN, EngineColors.CYAN, EngineColors.CYAN),
@@ -83,6 +78,7 @@ internal object ComboHeat {
     /** Where the named rungs run out, and the colors start to cycle through all of them. */
     const val SUPERNOVA = 35
 
+    /** The title past the ladder's end. */
     private val SUPERNOVA_TITLE = Res.string.combo_supernova
 
     /** Which rung [multiplier] is on, counting the one past the ladder's end; a change is a new title. */
@@ -112,9 +108,8 @@ internal object ComboHeat {
     fun coreColor(multiplier: Int, seconds: Float): Int = blend(multiplier, seconds, Part.CORE)
 
     /**
-     * The count's font size. Grows by the doubling rather than by the step, so the early steps, which
-     * every run sees, are the ones that visibly swell - and capped, so a legendary streak still fits
-     * in the corner of the frame it has to share with the cave.
+     * The count's font size. Grows per doubling rather than per step, so the early steps every run
+     * sees visibly swell, and capped so a long streak still fits its corner of the frame.
      */
     fun countSize(multiplier: Int): Int {
         val growth = (COMBO_COUNT_GROWTH * log2(multiplier)).roundToInt()
@@ -131,8 +126,8 @@ internal object ComboHeat {
     }
 
     /**
-     * Walks from the rung [multiplier] is on toward the next, by how far between the two it is.
-     * The last named rung walks into [supernova], so the ladder has no seam at its top.
+     * Blends from the rung [multiplier] is on toward the next, by how far between them it is. The
+     * last named rung blends into [supernova], so the ladder has no seam at its top.
      */
     private fun blend(multiplier: Int, seconds: Float, part: Part): Int {
         val index = rung(multiplier)
@@ -154,11 +149,10 @@ internal object ComboHeat {
 
     /**
      * The colors past the ladder: every fire on it in turn, from the first yellow up to white and
-     * back down, over and over, faster with every doubling of the multiplier past [SUPERNOVA].
+     * back, faster with every doubling of the multiplier past [SUPERNOVA].
      *
-     * Back and forth rather than round, because white straight back to yellow would be a jump; and
-     * the ladder's colors rather than the whole wheel, because a hue wheel passes through green,
-     * and a green fire reads as poison rather than as heat.
+     * Back and forth, because white straight back to yellow would jump; and the ladder's colors
+     * rather than the whole hue wheel, which passes through green, and green fire reads as poison.
      */
     private fun supernova(multiplier: Int, seconds: Float, part: Part): Int {
         val speed =
@@ -174,11 +168,12 @@ internal object ComboHeat {
     }
 }
 
+/** log2 of an Int, as a Float. */
 private fun log2(value: Int): Float = log2(value.toFloat())
 
 /**
- * [from] toward [to] by [t], opaque. [EngineColors.lerp] does the same with alpha, but builds an
- * array a call, and the combo readout blends colors a glyph at a time, every frame.
+ * [from] toward [to] by [t], opaque. [EngineColors.lerp] also blends alpha but allocates an array
+ * per call, and the readout blends colors per glyph, every frame.
  */
 internal fun mix(from: Int, to: Int, t: Float): Int {
     val amount = t.coerceIn(0f, 1f)
@@ -188,6 +183,7 @@ internal fun mix(from: Int, to: Int, t: Float): Int {
     return (0xFF shl 24) or (r shl 16) or (g shl 8) or b
 }
 
+/** One 8-bit channel of [mix]. */
 private fun mixChannel(from: Int, to: Int, t: Float): Int {
     val a = from and 0xFF
     val b = to and 0xFF

@@ -13,12 +13,12 @@ import at.smiech.engine.GameButton
 import at.smiech.engine.Screen
 
 /**
- * The run is lost: the artwork saying so, the way back to the menu, and under it what the run
- * scored against the stage's highscore.
+ * The run is lost: the artwork saying so, the way back to the menu, and what the run scored against
+ * the stage's highscore.
  *
  * @param score what the run that just ended scored.
- * @param highscore the stage's highscore with this run already counted in it, so a run that set
- *   the record shows the same number twice - which is how the player can tell that it did.
+ * @param highscore the stage's highscore including this run, so a record run shows the same number
+ *   twice.
  */
 class GameOverScreen(
     override val game: Game,
@@ -38,12 +38,11 @@ class GameOverScreen(
 
         val input = game.input
 
-        // Read the buffer whatever happens, so a screen that lingers does not hoard events.
+        // Always read the events, so they do not pile up while the screen lingers.
         val tapped = taps.taps(input?.touchEvents.orEmpty()).isNotEmpty()
         val controls = input?.controls
-        // Both buttons, and each consumed on its own rather than short-circuited: a player who
-        // died on a keyboard has no reason to guess which of the two this screen wanted, and a
-        // press left unread here would fire on the next screen.
+        // Either button leaves, and both are consumed rather than short-circuited, so a press left
+        // unread here cannot fire on the next screen.
         val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
         val backed = controls?.consumePress(GameButton.BACK) == true
 
@@ -56,17 +55,15 @@ class GameOverScreen(
     override fun present(deltaTime: Float) {
         game.graphics?.let { graphics ->
             graphics.clear(EngineColors.BLACK)
-            // The artwork was drawn for the frame the game had before, 480x320, and is hand-drawn
-            // rather than generated, so it is centered on this one rather than redrawn. Its ground
-            // is black, and so is the frame's, so it shows no edge. Its GAME OVER is English in
-            // every language; the line under it is not, so it is drawn here rather than in it (see
-            // tools/generate_game_over.py).
+            // The hand-drawn artwork was made for a 480x320 frame, so it is centered on this one;
+            // its black ground shows no edge. Its GAME OVER is English in every language; the line
+            // under it is translated, so it is drawn here (see tools/generate_game_over.py).
             val artwork = env.assets.graphics.gameOver
             val artworkLeft = (game.frameBufferWidth - artwork.width) / 2
             val artworkTop = (game.frameBufferHeight - artwork.height) / 2
             graphics.drawPixmap(artwork, artworkLeft, artworkTop)
 
-            // Every line under GAME OVER is centered on its column, each on its own measured width.
+            // Every line under GAME OVER is centered on its column by its measured width.
             fun drawCentered(text: String, baseline: Int, size: Int, color: Int) = graphics.drawString(
                 text,
                 artworkLeft + ARTWORK_CENTER_X - graphics.measureString(text, size) / 2,
@@ -87,16 +84,15 @@ class GameOverScreen(
 
     internal companion object {
         /**
-         * The column gameover.png centers its GAME OVER on, 12px right of its own center, from its
-         * left edge, which its line under GAME OVER was centered on too. Read off the artwork.
-         * Centered on the artwork instead, the lines under it would sit visibly left of it.
+         * The column gameover.png centers its GAME OVER on, from its left edge: 12 px right of the
+         * artwork's center, read off the artwork. Centered on the artwork instead, the lines under
+         * it would sit visibly left of the title.
          */
         const val ARTWORK_CENTER_X = 252
 
         /**
          * The line under GAME OVER: on the baseline the artwork had it on, from the artwork's top
-         * edge, and at the size that gives the English the width it had there. Larger than the
-         * score, as it was.
+         * edge, at the size that gives the English its original width.
          */
         const val HINT_BASELINE = 234
         const val HINT_SIZE = 24

@@ -3,7 +3,6 @@ package at.smiech.cyanbat.service
 import at.smiech.cyanbat.util.CRITICAL_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_TEXT_FONT_SIZE
 import at.smiech.engine.EngineColors
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.DamageComponent
 import at.smiech.engine.ecs.FloatingTextComponent
@@ -16,7 +15,6 @@ import kotlin.test.assertTrue
 private class StubPixmap : Pixmap {
     override val width = 24
     override val height = 12
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 

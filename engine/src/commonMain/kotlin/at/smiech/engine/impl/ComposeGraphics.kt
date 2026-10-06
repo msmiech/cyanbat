@@ -32,8 +32,6 @@ import at.smiech.engine.Graphics
 import at.smiech.engine.Lighting
 import at.smiech.engine.Pixmap
 import at.smiech.engine.Raster
-import at.smiech.engine.impl.ComposeGraphics.Companion.LIGHT_CELL
-import at.smiech.engine.impl.ComposeGraphics.Companion.MAX_TINTS
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
@@ -41,33 +39,33 @@ import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
- * The [Graphics] every platform draws the game with, through Compose's own Canvas API: HWUI, and so
- * the GPU, on Android; Skia on the desktop and on iOS.
+ * The [Graphics] every platform draws the game with, through Compose's Canvas API: HWUI, and so the
+ * GPU, on Android; Skia on the desktop and on iOS.
  *
- * A screen's present is recorded here, call by call, and the host then draws the recording into its
- * Compose Canvas with [drawGameFrame]. Recorded rather than drawn on the spot, because the game loop
- * runs in Compose's frame callback and the drawing happens later, in its draw phase; and because one
- * frame is drawn more than once - into the window, and into a small picture the [AmbientBars] read
- * the frame's edges from, or into a whole one for the recorder and the tests ([drawInto]).
+ * A screen's present is recorded here call by call, and the host draws the recording into its
+ * Compose Canvas with [drawGameFrame]. Recorded rather than drawn immediately because the game loop
+ * runs in Compose's frame callback while drawing happens later, in the draw phase, and because a
+ * frame is drawn more than once: into the window, into the small picture [AmbientBars] reads the
+ * edges from, and into a full-size one for the recorder and the tests ([drawInto]).
  *
- * Two grids are at work, which by default are one:
+ * Two grids are at work, by default the same one:
  * - The frame, [width] by [height], is what the game is laid out and played in. Every call arrives
- *   in its pixels, and the host scales it to the screen whole.
- * - The pixel grid is what the pixel art is drawn on: [gridScale] grid pixels to a frame pixel,
- *   each way. At the default of 1 it is the frame itself, and the game looks as it always has.
+ *   in its pixels, and the host scales it to the screen as a whole.
+ * - The pixel grid is what the pixel art is drawn on: [gridScale] grid pixels to a frame pixel each
+ *   way. At the default of 1 it is the frame itself.
  *
  * Everything but text lands on the grid at any screen size, because it is drawn aliased and
- * nearest-neighbor under one scale. Sprites and rectangles are whole frame pixels, which are whole
- * grid pixels at any grid, so they magnify into blocks. Ovals are worked out on the grid ([Raster]),
- * and a turned sprite is turned on it before it is drawn ([turn]): turned at the screen's resolution
- * instead, its pixels would come out as squares tilted against the grid and finer than it.
+ * nearest-neighbor under one scale. Sprites and rectangles are whole frame pixels, so they magnify
+ * into blocks. Ovals are computed on the grid ([Raster]), and a turned sprite is turned on it
+ * before it is drawn ([turn]); turned at the screen's resolution, its pixels would come out as
+ * squares tilted against the grid and finer than it.
  *
- * Text is the exception, by choice. It is laid out at its size in frame pixels, so the game places
- * it as it always has, but drawn at the screen's resolution and antialiased, so the HUD reads crisp
- * over the pixel art. An outline is a stroke around the glyphs.
+ * Text is the deliberate exception: laid out in frame pixels but drawn antialiased
+ * at the screen's resolution, so the HUD reads crisply over the pixel art. An
+ * outline is a stroke around the glyphs.
  *
- * @param loadImage decodes an asset. The host knows where its assets are and how its platform
- *   decodes them, and the desktop has to do one thing more; see `DesktopGame`.
+ * @param loadImage decodes an asset; the host knows where its assets are and how to decode them
+ *   (see `DesktopGame` for the desktop's extra step).
  * @param fontFamilyResolver how the platform finds a font.
  */
 class ComposeGraphics(
@@ -78,17 +76,16 @@ class ComposeGraphics(
 ) : Graphics {
 
     /**
-     * How many grid pixels the pixel art is drawn with to a frame pixel, each way; 1, the default,
-     * draws it on the frame's own pixels. Taken up at the start of the next frame, so a frame is
-     * never drawn on two grids.
+     * Grid pixels per frame pixel, each way; the default of 1 draws on the frame's own pixels.
+     * Takes effect at the start of the next frame, so a frame is never drawn on two grids.
      *
-     * Whole numbers only, so that a sprite's pixels and a rectangle's edges, which fall on frame
-     * pixels, fall on grid pixels too.
+     * Whole numbers only, so sprite pixels and rectangle edges, which fall on frame pixels, fall on
+     * grid pixels too.
      *
-     * A finer grid changes only what is worked out on it: an oval keeps its box, and an outline its
-     * weight of one frame pixel, with finer steps round the curve; a turned sprite keeps its pixels'
-     * size, with finer steps along its edges. A line stays on the frame's grid for now, since its
-     * weight is a frame pixel and [Raster] only lays down lines one grid pixel wide.
+     * A finer grid changes only what is computed on it: an oval keeps its box and an outline its
+     * one-frame-pixel weight, with finer steps round the curve; a turned sprite keeps its pixel
+     * size, with finer steps along its edges. Lines stay on the frame's grid, since their weight is
+     * a frame pixel and [Raster] only draws lines one grid pixel wide.
      */
     var gridScale: Int = 1
         set(value) {
@@ -100,18 +97,18 @@ class ComposeGraphics(
     private var grid = 1
 
     /**
-     * Lays text out at density 1, which makes a font size in sp a size in frame pixels. A cache
-     * larger than the default eight, because the HUD alone lays out more strings than that every
-     * frame, and each one is measured where it is placed and again where it is drawn.
+     * Lays text out at density 1, which makes a font size in sp a size in frame pixels. The cache
+     * is larger than the default eight because the HUD alone lays out more strings than that per
+     * frame, each measured where it is placed and again where it is drawn.
      */
     private val textMeasurer =
         TextMeasurer(fontFamilyResolver, FRAME_DENSITY, LayoutDirection.Ltr, TEXT_CACHE_SIZE)
     private val styles = HashMap<Int, TextStyle>()
 
     /**
-     * The frame as recorded: each command an opcode and its arguments in [ints], a fade's alpha in
-     * [floats], and the picture or the string it draws in [refs]. Kept from frame to frame and only
-     * ever rewound, so that recording one allocates nothing.
+     * The recorded frame: each command's opcode and arguments in [ints], its float arguments in
+     * [floats], and the picture or string it draws in [refs]. Rewound rather than reallocated each
+     * frame, so recording allocates nothing.
      */
     private var ints = IntArray(1024)
     private var intCount = 0
@@ -119,12 +116,12 @@ class ComposeGraphics(
     private var floatCount = 0
     private val refs = ArrayList<Any>(256)
 
-    /** The turned sprites, one for each a frame draws; see [turn]. */
+    /** The turned sprites, one per turned blit in the frame; see [turn]. */
     private val turns = ArrayList<Turn>()
     private var turnsUsed = 0
 
-    // Every paint is aliased: an antialiased edge, scaled up, would soften the grid it is meant to
-    // land on. Compose's Paint() is antialiased unless told otherwise.
+    // Every paint is aliased: an antialiased edge, scaled up, would blur the grid. Compose's
+    // Paint() is antialiased by default.
     private val shapePaint = Paint().apply { isAntiAlias = false }
     private val imagePaint =
         Paint().apply { isAntiAlias = false; filterQuality = FilterQuality.None }
@@ -136,9 +133,8 @@ class ComposeGraphics(
     private val erasePaint = Paint().apply { blendMode = BlendMode.Clear }
 
     /**
-     * Where an oval is traced as one polygon, and the right-hand ends of the runs traced so far: an
-     * x, a top and a bottom for each. Kept from shape to shape, so that drawing one allocates
-     * nothing.
+     * The path an oval is traced into as one polygon, and the right-hand ends of the runs traced so
+     * far (an x, a top and a bottom each). Reused across shapes, so drawing one allocates nothing.
      */
     private val staircase = Path()
     private var stepEnds = IntArray(3 * 128)
@@ -147,30 +143,30 @@ class ComposeGraphics(
     private val offscreen = CanvasDrawScope()
 
     /**
-     * The frame's light as [drawLighting] last worked it out - a picture of [LIGHT_CELL] by
-     * [LIGHT_CELL] frame pixels to its every pixel, drawn on the CPU - and which [Lighting], at which
-     * [Lighting.version], it holds, so that a light that has not changed since is not drawn again.
+     * The frame's light as [drawLighting] last rendered it, one pixel per [LIGHT_CELL]-square cell
+     * of frame pixels, drawn on the CPU; and the [Lighting] and [Lighting.version] it shows, so
+     * unchanged light is not rendered again.
      */
     private var lightImage: ImageBitmap? = null
     private var lightCanvas: Canvas? = null
     private var litBy: Lighting? = null
     private var litVersion = 0
 
-    /** Every light asked for so far, by radius and then color, drawn once in its rings; see [lightSprite]. */
+    /** Every light requested so far, by radius and then color, rendered once; see [lightSprite]. */
     private var lightSprites = arrayOfNulls<ArrayList<TintedLight>>(64)
 
-    /** The first lights of frames so far, each already laid over the dark; see [darkLightSprite]. */
+    /** Frames' first lights, each pre-composited over the dark; see [darkLightSprite]. */
     private val darkLights = ArrayList<DarkLight>(2)
 
-    /** Where a light that throws shadows has them cut out of it; see [shadowed]. */
+    /** Where a shadow-casting light has its shadows cut out; see [shadowed]. */
     private var shadowScratch: ImageBitmap? = null
     private var shadowCanvas: Canvas? = null
     private val shadowPath = Path()
 
-    // The light is drawn into pictures of whole cells of frame pixels, so whatever is aliased here
-    // lands on the frame's grid: a shadow's edge falls between two cells, never across one. Every draw
-    // into them is a plain copy or laid over what is there, the two blits Skia does fastest on the CPU
-    // on every platform; adding light, or tinting it as it is drawn, costs several times as much a pixel.
+    // The light is drawn in whole cells of frame pixels, so aliased edges land on the frame's grid:
+    // a shadow's edge falls between cells, never across one. Every draw into it is a plain copy
+    // (Src) or SrcOver, the two blits Skia does fastest on the CPU; adding light, or tinting it
+    // while drawing, costs several times as much per pixel.
     private val ambientPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src }
     private val ringPaint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src }
     private val copyPaint = Paint().apply {
@@ -188,9 +184,9 @@ class ComposeGraphics(
     }
 
     /**
-     * How each frame of the art glints, in each direction a light can come from: a picture the frame's
-     * size, white where it catches the light and as opaque as the glint is bright, or null where it
-     * catches none. Worked out from the frame's own pixels the first time it is asked for; see [Gloss].
+     * How each frame of the art glints for each light direction: a picture the frame's size, white
+     * where it catches the light and as opaque as the glint is bright, or null where it catches
+     * none. Computed from the frame's pixels on first use; see [Gloss].
      */
     private var framePixels = IntArray(0)
     private val surfaces = FrameCache { pixmap, x, y, width, height, _ ->
@@ -210,21 +206,21 @@ class ComposeGraphics(
         isAntiAlias = false; blendMode = BlendMode.Plus; filterQuality = FilterQuality.None
     }
 
-    /** A light's color, as the filter its glints are tinted with, one for each color seen; see [tint]. */
+    /** The filter tinting glints in each light color seen so far; see [tint]. */
     private val tintColors = IntArray(MAX_TINTS)
     private val tintFilters = arrayOfNulls<ColorFilter>(MAX_TINTS)
     private var tintCount = 0
 
-    /** Which slot the next new tint takes once every one is in use: the oldest. */
+    /** The slot the next new tint replaces once all are in use: the oldest. */
     private var nextTint = 0
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat): Pixmap =
+    override fun newPixmap(filename: String): Pixmap =
         ImagePixmap(loadImage(filename))
 
     /**
      * Starts the recording over, since nothing recorded before a clear could show through it. Every
-     * screen clears before it draws, and that is what keeps the recording one frame long - and what
-     * starts a frame on the grid [gridScale] asks for.
+     * screen clears first, which keeps the recording one frame long and starts the frame on the
+     * grid [gridScale] asks for.
      */
     override fun clear(color: Int) {
         intCount = 0
@@ -279,8 +275,8 @@ class ComposeGraphics(
 
     /**
      * The `- 1` on the far edges is deliberate: a blit paints one column and one row short of what
-     * it is given, at both ends, which is how the art has been drawn from the start and why a
-     * background's tiles overlap by a column. A "fix" here would shift every sprite by a pixel.
+     * it is given, which is how the art has always been drawn and why background tiles overlap by a
+     * column. A "fix" here would shift every sprite by a pixel.
      */
     override fun drawPixmap(
         pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
@@ -333,8 +329,8 @@ class ComposeGraphics(
     }
 
     /**
-     * Rounded to the 256 steps a paint's alpha takes, as it always was, so a crossfade moves in the
-     * same steps it did when the frame was a bitmap.
+     * The alpha is rounded to a paint's 256 steps, so a crossfade moves in the same
+     * steps everywhere.
      */
     override fun drawPixmapFaded(
         pixmap: Pixmap,
@@ -362,8 +358,7 @@ class ComposeGraphics(
                 1
             )
         ) return
-        if (floatCount == floats.size) floats = floats.copyOf(floats.size * 2)
-        floats[floatCount++] = steps / 255f
+        addFloat(steps / 255f)
     }
 
     override fun drawPixmapSilhouette(
@@ -389,7 +384,7 @@ class ComposeGraphics(
         }
     }
 
-    /** The turned sprite's own turn, filled flat: the flash lands on exactly the pixels it does. */
+    /** The turned sprite's own picture, filled flat, so the flash covers exactly its pixels. */
     override fun drawPixmapSilhouette(
         pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
         dstWidth: Int, dstHeight: Int, color: Int, rotationDegrees: Float,
@@ -426,13 +421,13 @@ class ComposeGraphics(
     }
 
     /**
-     * Works the light out into a picture - unless it is the light already there - and records it to be
-     * laid over everything recorded so far, and the glints over that.
+     * Renders the light into a picture, unless it is unchanged, and records it to be laid over
+     * everything recorded so far, with the glints over that.
      *
-     * Drawn on the CPU, like a turned sprite, and for the same reason: each of its pixels is a whole
-     * cell of frame pixels, so it lands on the grid when the frame is scaled up. It costs a few native
-     * blits a light, and the frame takes the picture in one draw on the GPU, where lights layered up
-     * there would each be another pass over the screen - and their shadows, clips the GPU is slow at.
+     * Rendered on the CPU, like a turned sprite, so each of its pixels is a whole cell of frame
+     * pixels and lands on the grid when the frame is scaled up. It costs a few native blits per
+     * light, and the frame takes the result in one GPU draw; layered on the GPU, each light would
+     * be another pass over the screen, and its shadows clips, which the GPU is slow at.
      */
     override fun drawLighting(lighting: Lighting) {
         if (lighting !== litBy || lighting.version != litVersion) {
@@ -446,9 +441,9 @@ class ComposeGraphics(
         refs += image
         addFloat(lighting.glow)
 
-        // Over the light, each glint is its frame's mask for its light's direction, tinted the light's
-        // color and added to the sprite it belongs to, laid exactly where the sprite was blitted - the
-        // blit's own `- 1` and all, so a magnified sprite's glint is magnified with it.
+        // Over the light, each glint is its frame's mask for the light's direction, tinted the
+        // light's color and added exactly where the sprite was blitted, `- 1` included, so a
+        // magnified sprite's glint is magnified with it.
         for (g in 0 until lighting.glintCount) {
             val glint = lighting.glint(g)
             val mask =
@@ -484,22 +479,19 @@ class ComposeGraphics(
     ) =
         text(s, x, y, fontSize, color, outlineColor, outlined = true)
 
-    /**
-     * The width the string is laid out at, which is where its pen ends: rounded up, so text placed
-     * by it never runs past the edge it was placed against.
-     */
+    /** The laid-out width, rounded up, so text placed by it never runs past its alignment edge. */
     override fun measureString(s: String, fontSize: Int): Int = layout(s, fontSize).size.width
 
     /**
-     * Draws the recorded frame into [image], scaled to fill it, on the CPU: the frame as pixels, for
-     * the recorder and the tests. At the frame's own size it is what the window shows, but for the
-     * text, which the window draws at the screen's resolution.
+     * Draws the recorded frame into [image], scaled to fill it, on the CPU, for the recorder and
+     * the tests. At the frame's own size it matches the window except for text, which the window
+     * draws at the screen's resolution.
      */
     fun drawInto(image: ImageBitmap) = drawInto(Canvas(image), image.width, image.height)
 
     /**
-     * Draws the recorded frame into [canvas], scaled to [targetWidth] by [targetHeight], only where
-     * [clip] lets it: the ambient bars read the frame's edges, and draw nothing else.
+     * Draws the recorded frame into [canvas], scaled to [targetWidth] by [targetHeight] and limited
+     * to [clip], which the ambient bars use to draw only the frame's edges.
      */
     internal fun drawInto(canvas: Canvas, targetWidth: Int, targetHeight: Int, clip: Path? = null) {
         offscreen.draw(
@@ -520,8 +512,8 @@ class ComposeGraphics(
     }
 
     /**
-     * Draws the recorded frame into [scope] in frame pixels, a frame pixel to a unit: the caller
-     * scales it to its view and clips it to the frame, as [drawGameFrame] does.
+     * Draws the recorded frame into [scope], one unit per frame pixel; the caller scales it to its
+     * view and clips it to the frame, as [drawGameFrame] does.
      */
     internal fun draw(scope: DrawScope) {
         val canvas = scope.drawContext.canvas
@@ -564,8 +556,8 @@ class ComposeGraphics(
                     val rgb = color or OPAQUE
                     if (rgb != silhouetteRgb) {
                         silhouetteRgb = rgb
-                        // Keeps the picture's alpha and throws its colors away, so what lands is
-                        // its shape in the one color; the paint's alpha is how strongly.
+                        // Keeps the picture's alpha and replaces its colors, leaving its shape in
+                        // one color; the paint's alpha sets the strength.
                         silhouettePaint.colorFilter = ColorFilter.tint(Color(rgb), BlendMode.SrcIn)
                     }
                     silhouettePaint.alpha = (color ushr 24) / 255f
@@ -596,8 +588,8 @@ class ComposeGraphics(
     }
 
     /**
-     * [Raster.line]'s runs, in frame pixels whatever the grid: a line is a frame pixel wide, and
-     * [Raster] lays lines down one pixel wide on whatever grid it is given.
+     * [Raster.line]'s runs, in frame pixels on any grid: a line is a frame pixel wide, and [Raster]
+     * draws lines one pixel wide on whatever grid it is given.
      */
     private fun drawLine(canvas: Canvas, at: Int) {
         shapePaint.color = Color(ints[at + 5])
@@ -613,12 +605,12 @@ class ComposeGraphics(
     }
 
     /**
-     * An oval, or an outline, worked out on the grid and filled as one polygon: the outline as the
-     * oval and its inside traced together and filled even-odd, which leaves the ring between them.
+     * An oval or outline, computed on the grid and filled as one polygon. An outline is the oval
+     * and its inside traced together and filled even-odd, leaving the ring between them.
      *
-     * On the frame's own grid the inside is [Raster.ovalInterior], which leaves the oval's rim one
-     * pixel thick. On a finer grid it is the oval drawn a frame pixel in from every side, which
-     * keeps the rim a frame pixel thick and its steps a grid pixel fine.
+     * On the frame's own grid the inside is [Raster.ovalInterior], leaving a one-pixel rim. On a
+     * finer grid it is the oval inset a frame pixel on every side, keeping the rim a frame pixel
+     * thick with grid-pixel steps.
      */
     private fun drawOval(canvas: Canvas, at: Int) {
         val outline = ints[at] == OUTLINE
@@ -667,8 +659,8 @@ class ComposeGraphics(
     }
 
     /**
-     * Laid out where it was placed and drawn from its baseline, as the game places text; the glyphs
-     * themselves come out at whatever resolution [scope] is drawn at.
+     * Draws text from its baseline, as the game places it; the glyphs come out at whatever
+     * resolution [scope] is drawn at.
      */
     private fun drawText(scope: DrawScope, text: String, at: Int) {
         val layout = layout(text, ints[at + 3])
@@ -678,9 +670,8 @@ class ComposeGraphics(
         if (ints[at + 6] != 0 && outline ushr 24 != 0) {
             scope.drawText(layout, Color(outline), topLeft, drawStyle = OUTLINE_STROKE)
         }
-        // Fill said outright: on Android a layout's paint keeps the style it was last drawn with,
-        // so a fill drawn with no style after the outline came out stroked, in the fill's color,
-        // right over the outline.
+        // Fill is given explicitly: on Android a layout's paint keeps the style it was last drawn
+        // with, so a fill without a style after the outline came out stroked over the outline.
         if (color ushr 24 != 0) scope.drawText(layout, Color(color), topLeft, drawStyle = Fill)
     }
 
@@ -696,9 +687,8 @@ class ComposeGraphics(
         )
 
     /**
-     * The light laid over the frame: everything multiplied by it, and then as much of it as [glow]
-     * says added on top. Magnified nearest-neighbor, so each cell of frame pixels gets the one light
-     * its pixel of the picture was worked out to.
+     * The light laid over the frame: everything multiplied by it, then [glow] of it added on top.
+     * Magnified nearest-neighbor, so each cell of frame pixels gets its pixel of the light picture.
      */
     private fun drawLight(canvas: Canvas, image: ImageBitmap, glow: Float) {
         val cells = IntSize(image.width, image.height)
@@ -711,13 +701,14 @@ class ComposeGraphics(
     }
 
     /**
-     * Works [lighting] out into [lightImage]: the dark everywhere, and every light laid over it in turn.
+     * Renders [lighting] into [lightImage]: the dark everywhere, with every light
+     * laid over it in turn.
      *
-     * The first light is laid down whole instead, the dark round its rings and all ([layFirst]), and
-     * the dark filled in only around it. Nothing is under it yet but the dark, so the picture comes
-     * out the same pixel for pixel, for less than half the work: a copy is the cheapest blit there is,
-     * and its shadows are painted straight on in the dark's color rather than cut out of a copy of it
-     * first. It is the bat's light, the largest by far and the one that throws the most shadows.
+     * The first light is instead copied down whole, dark corners included ([layFirst]), with the
+     * dark filled in only around it. Nothing is under it but the dark, so the result is identical
+     * pixel for pixel at less than half the cost: a copy is the cheapest blit, and its shadows are
+     * painted on in the dark's color rather than cut from a copy first. It is the bat's light, by
+     * far the largest and the one casting the most shadows.
      */
     private fun renderLight(lighting: Lighting) {
         val cellsWide = (width + LIGHT_CELL - 1) / LIGHT_CELL
@@ -741,8 +732,8 @@ class ComposeGraphics(
         (light.radius + LIGHT_CELL / 2) / LIGHT_CELL
 
     /**
-     * Lays the first light down whole, onto nothing: its rings over the [ambient] dark, as one copy,
-     * its shadows painted on in the dark's color, and the dark filled in round its square.
+     * Lays the first light onto an empty picture: its rings over the [ambient] dark as one copy,
+     * its shadows painted on in the dark's color, and the dark filled in around its square.
      */
     private fun layFirst(
         canvas: Canvas,
@@ -769,7 +760,10 @@ class ComposeGraphics(
         fillDark(canvas, left + size, top, cellsWide, top + size, cellsWide, cellsHigh)
     }
 
-    /** The dark over the part of the cells from [left], [top] to [right], [bottom] that is in the picture. */
+    /**
+     * Fills the cells from [left], [top] to [right], [bottom] with the dark,
+     * clipped to the picture.
+     */
     private fun fillDark(
         canvas: Canvas,
         left: Int,
@@ -793,14 +787,14 @@ class ComposeGraphics(
     }
 
     /**
-     * Lays one light's rings over the light picture, at its intensity, its shadows cut out of them
-     * first: each pixel taken toward the light's color by as much as the light is there.
+     * Lays one light's rings, shadows cut out first, over the light picture at its intensity: each
+     * pixel moves toward the light's color by as much light as reaches it.
      *
-     * Laid over rather than added, because laying a picture over another is the blit Skia does fastest
-     * on the CPU, where adding one costs several times as much a pixel - and the light picture is a
-     * good part of the frame's pixels every tick. Light laid over light never comes out brighter than
-     * the brighter of the two, so it cannot blow out; and where a colored light falls in the bat's,
-     * it tints it rather than brightening it, which reads as the color of that light all the same.
+     * Laid over (SrcOver) rather than added, because that is the blit Skia does fastest on the CPU,
+     * where adding costs several times as much per pixel, and the light picture is a large share of
+     * the frame every tick. Light over light is never brighter than the brighter of the two, so it
+     * cannot blow out; a colored light inside the bat's tints it rather than brightening it, which
+     * still reads as that light's color.
      */
     private fun layLight(canvas: Canvas, light: Lighting.Light) {
         val radius = cellRadius(light)
@@ -824,9 +818,9 @@ class ComposeGraphics(
     }
 
     /**
-     * [rings] copied out with every shadow on [light] erased from them: what of the light gets past
-     * whatever stands in its way. One scratch picture serves every light, since each is laid over the
-     * light picture before the next is cut, and on the CPU the draws happen as they are made.
+     * [rings] copied with every shadow on [light] erased: the part of the light that gets past what
+     * stands in its way. One scratch picture serves every light, since each is laid over the light
+     * picture before the next is cut, and CPU draws execute immediately.
      */
     private fun shadowed(
         rings: ImageBitmap,
@@ -855,9 +849,8 @@ class ComposeGraphics(
     }
 
     /**
-     * Every shadow on [light] as one path, in cells of the light picture counted from [left], [top]. The
-     * shadows are all wound the same way round, so where two overlap the path fills the overlap once,
-     * as the union of the two.
+     * Every shadow on [light] as one path, in cells of the light picture relative to [left], [top].
+     * The shadows all wind the same way, so overlaps fill once, as their union.
      */
     private fun traceShadows(light: Lighting.Light, left: Int, top: Int) {
         shadowPath.rewind()
@@ -884,8 +877,8 @@ class ComposeGraphics(
     }
 
     /**
-     * [lightSprite] laid over the [ambient] dark once and kept, opaque: the first light of a frame as
-     * [layFirst] copies it down, the same pixels laying the light over the dark would leave.
+     * [lightSprite] composited over the [ambient] dark once and kept, opaque: a frame's first light
+     * as [layFirst] copies it down, with the same pixels laying it over the dark would produce.
      */
     private fun darkLightSprite(radius: Int, color: Int, ambient: Int): ImageBitmap {
         val rgb = color or OPAQUE
@@ -922,12 +915,11 @@ class ComposeGraphics(
     )
 
     /**
-     * A light of [radius] in [color], as a picture 2 * [radius] + 1 across: the color, as opaque at its
-     * heart as the light is strong and clear at its edge, in the rings [Lighting.rings] gives - each
-     * laid down as [Raster] fills an oval, so that it is the same pixels on every platform. Drawn the
-     * first time a light of that radius and color is, and kept: a run's lights come in a handful of
-     * radii and colors, and a light tinted as it is drawn would cost every pixel of it a filter, every
-     * frame.
+     * A light of [radius] in [color], as a picture 2 * [radius] + 1 across: the color, opaque at
+     * the center and clear at the edge, in the rings [Lighting.rings] gives, each filled as
+     * [Raster] fills an oval so the pixels match on every platform. Rendered on first use and kept:
+     * a run's lights come in a handful of radii and colors, and tinting while drawing would cost a
+     * filter on every pixel, every frame.
      */
     private fun lightSprite(radius: Int, color: Int): ImageBitmap {
         if (radius >= lightSprites.size) lightSprites =
@@ -969,10 +961,9 @@ class ComposeGraphics(
     private class TintedLight(val color: Int, val image: ImageBitmap)
 
     /**
-     * The pixels of a frame of [surface] that glint in a light from [direction], as a picture of the
-     * frame's size: white, and as opaque as each pixel's glint is bright. Null for a frame that catches
-     * none of it. Laid down a run of a row at a time, the way [Raster] shapes are, so it is the same
-     * pixels on every platform.
+     * The pixels of [surface] that glint in a light from [direction], as a picture of the frame's
+     * size: white, as opaque as each glint is bright; null if none glint. Filled run by run like
+     * [Raster] shapes, so the pixels match on every platform.
      */
     private fun glintMask(surface: Gloss.Surface, direction: Int): ImageBitmap? {
         val levels = surface.glints(direction)
@@ -997,9 +988,9 @@ class ComposeGraphics(
     }
 
     /**
-     * The filter that tints a glint's white mask its light's [color] as it is drawn on the GPU, where a
-     * filter costs next to nothing: kept for each color asked for, since a run's lights come in a
-     * handful of colors and a filter is an allocation. Past [MAX_TINTS] colors the oldest is let go.
+     * The filter that tints a glint's white mask in its light's [color] as it is drawn on the GPU,
+     * where a filter is nearly free. Cached per color, since a run's lights come in a handful of
+     * colors and each filter is an allocation; past [MAX_TINTS] colors the oldest is replaced.
      */
     private fun tint(color: Int): ColorFilter {
         val rgb = color or OPAQUE
@@ -1013,6 +1004,7 @@ class ComposeGraphics(
         return filter
     }
 
+    /** Records a shape command. */
     private fun shape(op: Int, a: Int, b: Int, c: Int, d: Int, color: Int) {
         // A clear color changes nothing, and the outer rings of a faint halo come out clear.
         if (color ushr 24 == 0) return
@@ -1026,9 +1018,9 @@ class ComposeGraphics(
     }
 
     /**
-     * Records a blit of [image], already in the exact rectangles it is drawn from and to, the
-     * destination in [unitsPerFramePixel] units to a frame pixel; false, and nothing recorded, when
-     * one of the rectangles is empty.
+     * Records a blit of [image] between the exact rectangles given, the destination in
+     * [unitsPerFramePixel] units per frame pixel. Returns false, recording nothing, when either
+     * rectangle is empty.
      */
     private fun image(
         op: Int, image: ImageBitmap,
@@ -1053,6 +1045,7 @@ class ComposeGraphics(
         return true
     }
 
+    /** Records a text command. */
     private fun text(
         s: String,
         x: Int,
@@ -1080,16 +1073,14 @@ class ComposeGraphics(
     private fun imageOf(pixmap: Pixmap): ImageBitmap = (pixmap as ImagePixmap).image
 
     /**
-     * The sprite turned on the grid, into a picture of its own: what a turned blit used to lay on
-     * the framebuffer, every pixel of it a whole grid pixel, ready to be drawn upright like any
-     * other. Null when there is nothing to draw.
+     * The sprite turned on the grid into a picture of its own, every pixel a whole grid pixel,
+     * ready to be drawn upright like any other. Null when there is nothing to draw.
      *
-     * Turned the way it always was - about the center of its box, which does not move or grow, with
-     * the blit's `- 1` edges - by the same Canvas calls, only into the picture rather than the frame,
-     * nearest-neighbor and on the CPU. The picture is the box the turned sprite covers, in whole grid
-     * pixels, and is drawn back at that box's place, so the sprite lands where it always did.
+     * Turned about the center of its box, which does not move or grow, with the blit's `- 1` edges,
+     * nearest-neighbor on the CPU. The picture covers the turned sprite's bounding box in whole
+     * grid pixels and is drawn back at that box's position.
      *
-     * A sprite's flash is drawn straight after the sprite with the same turn, and gets the sprite's
+     * A sprite's flash is drawn right after the sprite with the same turn, and reuses the sprite's
      * picture rather than turning it again.
      */
     private fun turn(
@@ -1124,8 +1115,8 @@ class ComposeGraphics(
         val pivotX = (x + dstWidth / 2f) * scale
         val pivotY = (y + dstHeight / 2f) * scale
 
-        // Its corners turned about the pivot the way Canvas.rotate turns them: clockwise, with y
-        // pointing down.
+        // Its corners turned about the pivot as Canvas.rotate turns them:
+        // clockwise, y pointing down.
         val radians = degrees * RADIANS_PER_DEGREE
         val cos = cos(radians)
         val sin = sin(radians)
@@ -1189,8 +1180,8 @@ class ComposeGraphics(
 
     /**
      * The next of this frame's turn pictures, at least [width] by [height]. Each frame reuses the
-     * last one's pictures in order, so a sprite that turns every frame does not allocate one every
-     * frame; a picture only grows, rounded up, so one that turns a little wider next frame still fits.
+     * previous frame's pictures in order, so a sprite turning every frame does not allocate;
+     * pictures only grow, rounded up, so a slightly wider turn next frame still fits.
      */
     private fun slot(width: Int, height: Int): Turn {
         val existing = turns.getOrNull(turnsUsed)
@@ -1224,11 +1215,11 @@ class ComposeGraphics(
     }
 
     /**
-     * Back up the right-hand ends of the runs traced down so far, closing the polygon.
+     * Traces back up the right-hand ends of the runs so far, closing the polygon.
      *
-     * An oval's runs come as one polygon rather than as rectangles because every draw call has a
-     * cost of its own, and the sixteen rings of a halo are a lot of rectangles. Every corner of the
-     * polygon is a pixel corner, so it covers exactly the rectangles' pixels at any scale.
+     * An oval is one polygon rather than many rectangles because every draw call has a cost, and a
+     * halo's sixteen rings are a lot of rectangles. Every corner is a pixel corner, so the polygon
+     * covers exactly the rectangles' pixels at any scale.
      */
     private fun closeStaircase() {
         for (i in steps - 1 downTo 0) {
@@ -1241,8 +1232,8 @@ class ComposeGraphics(
     }
 
     /**
-     * A picture a sprite is turned into, where its box lands in grid pixels, and which sprite at
-     * which turn on which grid it holds this frame.
+     * A picture a sprite is turned into, where its box lands in grid pixels, and which sprite,
+     * angle and grid it holds this frame.
      */
     private class Turn(val image: ImageBitmap, val canvas: Canvas) {
         var left = 0
@@ -1272,9 +1263,10 @@ class ComposeGraphics(
     }
 
     companion object {
-        /** The draw phase, as a trace names it: the recorded frame drawn into the window. */
+        /** The trace section for the draw phase: the recorded frame drawn into the window. */
         const val DRAW_SECTION = "Frame.draw"
 
+        // Recorded command opcodes.
         private const val RECT = 1
         private const val LINE = 2
         private const val OVAL = 3
@@ -1284,16 +1276,15 @@ class ComposeGraphics(
         private const val SILHOUETTE = 7
         private const val TEXT = 8
         private const val LIGHT = 9
+        private const val GLINT = 10
 
         /**
-         * Frame pixels to a pixel of the light picture, each way. The light is worked out at half the
-         * frame's resolution: a quarter of the pixels to fill, to light and to hand the GPU every tick,
-         * which is most of what the light costs. Light falls off smoothly and is read for where it
-         * falls, so its cells go unnoticed in the pools, and a shadow's edge steps two pixels at a time
-         * instead of one.
+         * Frame pixels per pixel of the light picture, each way. Half resolution
+         * means a quarter of the pixels to fill, light and upload every tick, which
+         * is most of the lighting's cost. Light falls off smoothly, so the cells go
+         * unnoticed; a shadow's edge steps two pixels at a time.
          */
         private const val LIGHT_CELL = 2
-        private const val GLINT = 10
 
         /** How many ints each kind of command takes, its opcode included. */
         private const val SHAPE_LENGTH = 6
@@ -1311,9 +1302,8 @@ class ComposeGraphics(
         private val FRAME_DENSITY = Density(1f)
 
         /**
-         * An outline a frame pixel thick: the stroke is centered on the glyphs' edges, and the fill
-         * drawn over it covers its inner half. Rounded at the corners, which a mitered stroke would
-         * spike out of.
+         * An outline a frame pixel thick: the stroke is centered on the glyphs' edges and the fill
+         * covers its inner half. Round joins, because mitered ones spike at sharp corners.
          */
         private val OUTLINE_STROKE = Stroke(width = 2f, join = StrokeJoin.Round)
 

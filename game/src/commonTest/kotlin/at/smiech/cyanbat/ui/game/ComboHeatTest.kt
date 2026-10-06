@@ -19,6 +19,7 @@ import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 
+/** The titles, colors and sizes [ComboHeat] climbs through. */
 class ComboHeatTest {
 
     @Test

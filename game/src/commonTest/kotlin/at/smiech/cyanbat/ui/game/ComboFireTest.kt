@@ -8,6 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** How [ComboFire] rises, cools and goes out. */
 class ComboFireTest {
 
     private fun fire() = ComboFire(WIDTH, HEIGHT, Random(7))
@@ -172,7 +173,7 @@ internal class RectRecordingGraphics : Graphics {
 
     override fun measureString(s: String, fontSize: Int) = s.length * 7
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+    override fun newPixmap(filename: String) =
         throw UnsupportedOperationException()
 
     override fun clear(color: Int) = Unit

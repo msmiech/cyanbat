@@ -1,10 +1,10 @@
 package at.smiech.cyanbat.ui.game
 
 /**
- * Greedy word wrap: [text] broken on its spaces into lines no wider than [width], as [measure]
- * gives a line's width. A word wider than [width] on its own still gets a line, and runs over it.
+ * Greedy word wrap: [text] broken at spaces into lines no wider than [width], as [measure] gives a
+ * line's width. A single word wider than [width] gets a line of its own and overruns it.
  *
- * All the power-up cards need, and shared with the test that holds every language's cards to them.
+ * Used by the power-up cards, and shared with the test that checks every language's cards fit.
  */
 internal fun wrapWords(text: String, width: Int, measure: (String) -> Int): List<String> {
     val lines = mutableListOf<String>()

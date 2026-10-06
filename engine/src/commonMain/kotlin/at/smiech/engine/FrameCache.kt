@@ -1,16 +1,15 @@
 package at.smiech.engine
 
 /**
- * Something worked out once for each frame of a sprite sheet - and for each of a few [variants] of
- * that frame, where there are several - and then kept: a frame's outline, or how it glints in a light
- * from one direction or another.
+ * A value computed once per frame of a sprite sheet, and per [variants] of that frame, then kept:
+ * a frame's outline, say, or its glint for a light from a given direction.
  *
- * Kept by sheet and frame size, a slot for each frame of the grid the sheet is cut into, which is how
- * every sprite in the game is addressed; so a look-up is two array reads and allocates nothing. A frame
- * off that grid is worked out afresh every time it is asked for, and nothing the game draws is one.
+ * Values are stored by sheet and frame size, one slot per cell of the grid the sheet is cut into,
+ * which is how every sprite is addressed, so a lookup is two array reads and allocates nothing. A
+ * frame off that grid is computed afresh on every call; nothing the game draws is one.
  *
- * @param make works a frame out: the [Pixmap], the frame's corner and size on it, and which variant.
- *   Null is an answer like any other, and is kept like one.
+ * @param make computes a frame's value from the [Pixmap], the frame's corner and size on it, and
+ *   the variant. Null is a valid result and is cached like any other.
  */
 internal class FrameCache<T : Any>(
     private val variants: Int = 1,
@@ -18,6 +17,9 @@ internal class FrameCache<T : Any>(
 ) {
     private val sheets = HashMap<Pixmap, MutableList<Sheet>>()
 
+    /**
+     * The value for the [width] by [height] frame at [x], [y] on [pixmap], computed on first use.
+     */
     operator fun get(
         pixmap: Pixmap,
         x: Int,

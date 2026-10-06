@@ -1,6 +1,5 @@
 import com.android.build.api.dsl.ApplicationExtension
 
-// Module-level build file with build configurations for the app module
 plugins {
     alias(libs.plugins.androidApplication)
     alias(libs.plugins.compose.compiler)
@@ -51,7 +50,7 @@ extensions.configure<ApplicationExtension> {
     namespace = "at.smiech.cyanbat"
 
     // Assets live at the repo root so the desktop module can use the same copy.
-    sourceSets["main"].assets.srcDir(rootProject.file("assets"))
+    sourceSets["main"].assets.directories += rootProject.file("assets").path
     compileSdk = libs.versions.android.compileSdk.get().toInt()
 
     defaultConfig {
@@ -61,8 +60,6 @@ extensions.configure<ApplicationExtension> {
         // Both derived from cyanbat.version; see the root build.gradle.kts.
         versionCode = rootProject.extra["cyanbatVersionCode"] as Int
         versionName = rootProject.extra["cyanbatVersionName"] as String
-
-        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     signingConfigs {
@@ -82,10 +79,6 @@ extensions.configure<ApplicationExtension> {
             // failing - the same behavior this module had before signing was wired up at all.
             signingConfig = signingConfigs.findByName("release")
             isMinifyEnabled = false
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
         }
     }
 
@@ -104,7 +97,6 @@ extensions.configure<ApplicationExtension> {
 dependencies {
     val composeBom = platform("androidx.compose:compose-bom:2026.09.00")
     implementation(composeBom)
-    androidTestImplementation(composeBom)
     testImplementation(libs.kotlin.test.junit)
 
     implementation(libs.androidx.activity.compose)
@@ -116,7 +108,6 @@ dependencies {
     implementation(libs.androidx.datastore)
     implementation(libs.androidx.datastore.preferences)
 
-    implementation(libs.androidx.compose.tooling.preview)
     debugImplementation(libs.androidx.compose.tooling)
 }
 

@@ -19,6 +19,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** How [ComboMeter] pops, flares and douses the readout. */
 class ComboMeterTest {
 
     private val meter = ComboMeter(Random(3))

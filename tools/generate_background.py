@@ -29,7 +29,7 @@ enough to read as distance.
 
 import pathlib
 import random
-from math import cos, pi, sin
+from math import pi, sin
 
 from PIL import Image
 

@@ -4,7 +4,7 @@ import at.smiech.engine.ecs.Component
 
 /** Where the shots of one volley go. */
 enum class ShotPattern {
-    /** Straight ahead, which for an enemy is to the left - what the cave's boss has always fired. */
+    /** Straight ahead, which for an enemy is to the left. */
     STRAIGHT,
 
     /** At the player, from wherever the shooter is. */
@@ -20,10 +20,10 @@ enum class ShotPattern {
 /**
  * One pull of an enemy's trigger.
  *
- * @param speed how fast the shots travel, in framebuffer pixels per tick. Enemy fire is kept well
- *   under the bat's own - a bolt the player cannot react to is not a threat, it is a coin toss.
- * @param damageFactor what each bolt deals, as a share of the shooter's own contact damage. A
- *   volley of many bolts needs each one to hurt less, or a single ring would be a death sentence.
+ * @param speed how fast the shots travel, in framebuffer pixels per tick. Kept well under the bat's
+ *   own, so the player can react.
+ * @param damageFactor what each bolt deals, as a share of the shooter's contact damage. A volley of
+ *   many bolts needs each to hurt less, or a single ring would be lethal.
  */
 data class Volley(
     val pattern: ShotPattern,
@@ -34,11 +34,9 @@ data class Volley(
 )
 
 /**
- * What an enemy's weapon fires, alongside the engine's `WeaponComponent` that decides when.
- *
- * The split is the engine's: `WeaponSystem` owns the cadence and hands every shot to the game,
- * and this is what the game reads to decide what that shot is. An enemy with a `WeaponComponent`
- * and no gun - the cave's boss - fires one straight bolt, as it always has.
+ * What an enemy's weapon fires, alongside the engine's `WeaponComponent` that decides when:
+ * `WeaponSystem` owns the cadence and hands every shot to the game, which reads this to decide what
+ * the shot is. An enemy with a `WeaponComponent` and no gun fires one straight bolt.
  *
  * @param volleys fired in turn, one per trigger pull, so a boss can alternate a fan with a ring.
  *   Mutable because a boss changes its whole repertoire when it changes phase.

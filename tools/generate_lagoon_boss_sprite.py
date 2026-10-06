@@ -32,7 +32,6 @@ is never hurt, and is drawn in the top row only.
 
 import pathlib
 import sys
-from math import cos, pi, sin
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 

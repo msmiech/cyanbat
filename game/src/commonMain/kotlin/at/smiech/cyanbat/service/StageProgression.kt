@@ -19,19 +19,20 @@ import kotlin.random.Random
 /**
  * One minute's worth of enemies: what spawns, how tough it is, and how fast it arrives.
  *
- * A wave is a snapshot rather than a schedule - [StageProgression] derives it from the time on the
- * clock, so nothing has to be stepped or kept in sync, and a wave can be asked for at any point in
- * a stage without having played up to it.
+ * A snapshot rather than a schedule: [StageProgression] derives it from the clock, so nothing needs
+ * stepping or syncing, and any point in a stage can be asked for without playing up to it.
  *
  * @param index full minutes into the stage, so wave 0 is the opening minute.
- * @param enemyTypes the species this wave draws from. Changing the mix every minute is what makes a
- *   new wave read as a new *group* of enemies rather than as more of the last one.
+ * @param enemyTypes the species this wave draws from. A new mix every minute makes a new wave read
+ *   as a new group of enemies rather than more of the last.
  * @param hitPoints what each of them can absorb.
  * @param damage what each of them takes off the bat on contact.
  * @param speedMultiplier applied to the type's own base speed.
  * @param spawnIntervalSeconds average gap between spawns, before jitter.
  * @param burstSize how many arrive together at each spawn.
- * @param shieldChance/gunChance/eliteChance see [WaveDesign].
+ * @param shieldChance see [WaveDesign.shieldChance].
+ * @param gunChance see [WaveDesign.gunChance].
+ * @param eliteChance see [WaveDesign.eliteChance].
  */
 data class EnemyWave(
     val index: Int,
@@ -49,22 +50,19 @@ data class EnemyWave(
 /**
  * How the pressure in one stage builds, from its opening seconds to its boss.
  *
- * Two things ramp, and they ramp differently on purpose. Density is *continuous*: the gap between
- * spawns shrinks a little with every second played, so the stage tightens under the player without
- * ever announcing it. Toughness is *stepped*: health, damage and the enemy mix change only on the
- * full minute, so a new wave lands as an event the player can feel and name. A stage that ramped
- * both continuously would just feel like one long slope with nothing in it.
+ * Density ramps continuously: the gap between spawns shrinks a little every second, so the stage
+ * tightens without announcing it. Toughness is stepped: health, damage and the enemy mix change
+ * only on the full minute, so a new wave lands as an event.
  *
- * Every value is a pure function of the seconds elapsed, which is what makes the whole curve
- * testable without running a game.
+ * Every value is a pure function of the seconds elapsed, so the curve is testable without a game.
  *
- * @param bossWave the wave the boss arrives on, and so the last wave of ordinary enemies. At the
- *   default minute-long waves, stage 1's boss is the five minute mark.
- * @param difficulty scales the whole stage against stage 1, so later stages open where earlier
- *   ones left off instead of starting from nothing again.
- * @param bossDifficulty scales the boss, and whatever it calls in, the same way. The stage's own
- *   difficulty unless its design keeps the boss harder; see [StageDesign.bossToughness].
  * @param design what the stage's waves and boss are; this class only decides how hard.
+ * @param bossWave the wave the boss arrives on, and so the end of the ordinary waves. With the
+ *   default minute-long waves, stage 1's boss arrives at five minutes.
+ * @param difficulty scales the whole stage against stage 1, so later stages open where earlier ones
+ *   left off.
+ * @param bossDifficulty scales the boss and its summons the same way: the stage's difficulty unless
+ *   its design keeps the boss harder; see [StageDesign.bossToughness].
  */
 data class StageProgression(
     val design: StageDesign = StageDesign.CAVE,
@@ -86,11 +84,9 @@ data class StageProgression(
     fun isBossDue(elapsedSeconds: Float): Boolean = elapsedSeconds >= bossTimeSeconds
 
     /**
-     * The gap between spawns, easing from [OPENING_SPAWN_INTERVAL_SECONDS] down to
-     * [MINIMUM_SPAWN_INTERVAL_SECONDS] across the run up to the boss.
-     *
-     * Clamped at both ends rather than decayed per spawn: a gap is a delay the game then waits
-     * out, so one that could reach zero would spawn enemies every single tick.
+     * The gap between spawns, falling linearly from [OPENING_SPAWN_INTERVAL_SECONDS] to
+     * [MINIMUM_SPAWN_INTERVAL_SECONDS] by the boss, scaled by difficulty and floored at half the
+     * minimum, so it can never reach zero and spawn every tick.
      */
     fun spawnIntervalAt(elapsedSeconds: Float): Float {
         val progress = (elapsedSeconds / bossTimeSeconds).coerceIn(0f, 1f)
@@ -110,8 +106,7 @@ data class StageProgression(
     fun waveAt(elapsedSeconds: Float): EnemyWave =
         waveFor(waveIndexAt(elapsedSeconds), elapsedSeconds)
 
-    // The last entry covers every wave past the table, so a longer stage degrades into its toughest
-    // mix instead of running off the end.
+    // The last entry covers every wave past the table, so a longer stage keeps its toughest mix.
     private fun designOf(index: Int): WaveDesign =
         design.waves[index.coerceAtMost(design.waves.lastIndex)]
 
@@ -122,8 +117,7 @@ data class StageProgression(
         damage = scaled(ENEMY_BASE_DAMAGE + index * ENEMY_DAMAGE_PER_WAVE),
         speedMultiplier = 1f + index * ENEMY_SPEED_PER_WAVE,
         spawnIntervalSeconds = spawnIntervalAt(elapsedSeconds),
-        // Kept to one arrival for the opening waves: two enemies at once is a shape to read, and
-        // the player should meet it once they have learned to read one.
+        // One arrival at a time in the opening waves, so the player learns single enemies first.
         burstSize = 1 + index / BURST_EVERY_WAVES,
         shieldChance = designOf(index).shieldChance,
         gunChance = designOf(index).gunChance,
@@ -131,11 +125,8 @@ data class StageProgression(
     )
 
     /**
-     * The boss of this stage, as a wave of exactly one.
-     *
-     * It borrows the shape of an ordinary wave so the generator has one kind of answer to read,
-     * not two. The pacing fields carry the stage's own end-state values rather than anything
-     * special: a wave of one arriving once has no cadence of its own to describe.
+     * The stage's boss, as a wave of exactly one, so the generator reads one kind of answer. The
+     * pacing fields carry the stage's end-state values, since a single arrival has no cadence.
      */
     fun bossWave(): EnemyWave = EnemyWave(
         index = bossWave,
@@ -148,16 +139,15 @@ data class StageProgression(
     )
 
     /**
-     * What a boss's summons arrive as: the wave that escorted it in, at the boss's own difficulty.
-     * They are part of its fight, so they are as hard as it is, whichever way the stage's waves
-     * were tuned around it.
+     * What a boss's summons arrive as: the wave that escorted it in, at the boss's difficulty,
+     * since they are part of its fight.
      */
     fun escortWave(): EnemyWave =
         copy(difficulty = bossDifficulty).waveAt(bossTimeSeconds - ESCORT_LEAD_SECONDS)
 
     /**
-     * How many of the player's shots the boss soaks up. The only honest way to read a boss health
-     * pool is as the length of the fight, and at a fixed fire rate that length is a shot count.
+     * How many base-damage shots the boss takes to kill: a boss's health read as the length of its
+     * fight, for balancing.
      */
     val bossShotsToKill: Int
         get() = (scaled(
@@ -169,6 +159,7 @@ data class StageProgression(
     private val bossHitPointsBeforeDifficulty: Int
         get() = (bossHitPoints * design.bossVitality).toInt()
 
+    /** [value] scaled by [by], and never below 1. */
     private fun scaled(value: Int, by: Float = difficulty): Int =
         (value * by).toInt().coerceAtLeast(1)
 
@@ -180,10 +171,8 @@ data class StageProgression(
         private const val ESCORT_LEAD_SECONDS = 1f
 
         /**
-         * The progression for the stage with this id, where stage 1 is the baseline and each one
-         * after it opens [STAGE_DIFFICULTY_STEP] harder, on top of whatever its own design adds.
-         *
-         * Stage ids are 1-based, matching [at.smiech.cyanbat.resource.Stage.id].
+         * The progression for the stage with this 1-based [id]: stage 1 is the baseline, and each
+         * one after it opens [STAGE_DIFFICULTY_STEP] harder, on top of what its design adds.
          */
         fun forStage(id: Int): StageProgression {
             val stepsAboveFirst = (id - 1).coerceAtLeast(0)
@@ -195,6 +184,5 @@ data class StageProgression(
                 bossDifficulty = difficulty * design.bossToughness,
             )
         }
-
     }
 }

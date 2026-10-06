@@ -35,6 +35,7 @@ OUTLINE = "o"
 
 
 def ellipse(cx, cy, rx, ry):
+    """An ellipse centered on ([cx], [cy]) with radii [rx] and [ry]."""
     return lambda x, y: ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1.0
 
 
@@ -53,6 +54,7 @@ def capsule(p, q, r_start, r_end):
 
 
 def polygon(points):
+    """The inside of the polygon through [points], by the even-odd rule."""
     def inside(x, y):
         hit = False
         j = len(points) - 1
@@ -67,18 +69,17 @@ def polygon(points):
 
 
 def union(*shapes):
+    """Everything inside any of [shapes]."""
     return lambda x, y: any(shape(x, y) for shape in shapes)
 
 
-def intersection(*shapes):
-    return lambda x, y: all(shape(x, y) for shape in shapes)
-
-
 def without(shape, hole):
+    """[shape] with [hole] cut out of it."""
     return lambda x, y: shape(x, y) and not hole(x, y)
 
 
 def offset(shape, dx, dy):
+    """[shape] moved by ([dx], [dy])."""
     return lambda x, y: shape(x - dx, y - dy)
 
 
@@ -98,6 +99,7 @@ def bezier(start, control, end, steps=8):
 
 
 def distance_to_segments(point, segments):
+    """How far [point] is from the nearest of [segments], each a pair of end points."""
     best = float("inf")
     x, y = point
     for (px, py), (qx, qy) in segments:
@@ -112,6 +114,7 @@ def distance_to_segments(point, segments):
 
 
 def blank(width, height):
+    """A [width] by [height] grid, all transparent."""
     return [[TRANSPARENT for _ in range(width)] for _ in range(height)]
 
 
@@ -134,6 +137,7 @@ def rasterize(shape, width, height):
 
 
 def neighbors(x, y):
+    """The eight pixels around ([x], [y])."""
     for dy in (-1, 0, 1):
         for dx in (-1, 0, 1):
             if dx or dy:

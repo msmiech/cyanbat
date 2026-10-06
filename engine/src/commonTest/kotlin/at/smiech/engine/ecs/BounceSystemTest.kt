@@ -9,6 +9,7 @@ import kotlin.test.assertTrue
 private const val WORLD_WIDTH = 480
 private const val WORLD_HEIGHT = 320
 
+/** How [BounceSystem] turns things back off the frame's edges. */
 class BounceSystemTest {
 
     private val world = World().apply {

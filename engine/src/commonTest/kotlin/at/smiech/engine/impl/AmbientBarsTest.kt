@@ -6,6 +6,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** How [AmbientBars] reads the frame's edges into bands of color. */
 class AmbientBarsTest {
 
     private val red = 0xFFFF0000.toInt()

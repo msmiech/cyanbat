@@ -18,17 +18,16 @@ import kotlin.math.sin
 import kotlin.random.Random
 
 /**
- * The combo readout: what the streak is called and what it multiplies by, set alight once there is
- * a streak and burning hotter the longer it runs. [ComboHeat] says how hot; this makes it move.
+ * The combo readout: the streak's title and multiplier, set alight once there is a
+ * streak and burning hotter the longer it runs. [ComboHeat] says how hot; this
+ * animates it, so a number worth something looks it.
  *
- * Borrowed from Balatro, where a number worth something looks it. Each step the count pops -
- * swelling, shaking and flaring the fire on it - and settles back a size bigger than before, and a
- * new rung pops its title too. Every kill in between fans the flames a little. As long as the
- * letters burn they bob and flicker, one after the other. A hit douses the lot: the readout drops
- * back to a cold "Combo: x1" and the fire gutters out over a few ticks.
+ * Each step the count pops (swelling, shaking and flaring its fire) and settles a size bigger, and
+ * a new rung pops its title too. Every kill in between fans the flames a little. While the letters
+ * burn they bob and flicker in a wave. A hit douses it all: the readout drops back to a cold
+ * "Combo: x1" and the fire gutters out over a few ticks.
  *
- * Everything here moves on the game's fixed tick, fed to [update], so a paused run holds its flames
- * still like everything else in it.
+ * Everything moves on the game's fixed tick, fed to [update], so pausing freezes the flames.
  */
 internal class ComboMeter(private val random: Random = Random.Default) {
 
@@ -37,15 +36,12 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     /** The meter's own clock, which the bobbing, the flicker, the flames and the colors run on. */
     private var seconds = 0f
 
-    /** The streak and multiplier as of the last tick, to tell a kill, a step and a hit apart. */
+    /** The multiplier and streak as of the last tick, to tell a kill, a step and a hit apart. */
     var multiplier = 1
         private set
     private var streak = 0
 
-    /**
-     * The multiplier the fire was last fed at. A doused fire gutters out in the colors it burned in,
-     * rather than in the cold readout's cyan.
-     */
+    /** The multiplier the fire was last fed at, so a doused fire gutters out in its own colors. */
     private var fireMultiplier = 1
 
     /** What is left of the count's pop, and of the title's, in seconds. */
@@ -68,9 +64,9 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     private var glyphsFor = 0
 
     /**
-     * Where the letters were last drawn, in the fire's cells: the columns under the title and under
-     * the count, and the row each is stoked along. Kept from the draw because only the draw can
-     * measure text, and the fire is stoked on the tick.
+     * Where the letters were last drawn, in the fire's cells: the columns under the title and the
+     * count, and the row each is stoked along. Kept from the draw, since only the draw can measure
+     * text while the fire is stoked on the tick.
      */
     private var titleFrom = 0
     private var titleUntil = 0
@@ -85,7 +81,7 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     private var paletteColor = 0
     private var paletteCore = 0
 
-    /** The language the words above and below were last read in; another one reads them again. */
+    /** The text the readout's words were last read from; a new one means a new language. */
     private var readIn: GameText? = null
 
     /** The whole readout while it is cold, which it only ever is at x1. */
@@ -97,6 +93,7 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     /** Whether any flame is still standing, doused or not. */
     val fireLit: Boolean get() = fire.lit
 
+    /** Advances the readout by one tick, given the run's current [streak] and [multiplier]. */
     fun update(deltaTime: Float, streak: Int, multiplier: Int) {
         seconds += deltaTime
 
@@ -108,7 +105,7 @@ internal class ComboMeter(private val random: Random = Random.Default) {
                     titlePopTime = COMBO_POP_SECONDS
                 }
             }
-            // Doused: nothing left to celebrate, and a flare would keep the fire going through it.
+            // Doused: no pop, and no flare to keep the fire going.
             multiplier < this.multiplier -> {
                 popTime = 0f
                 titlePopTime = 0f
@@ -141,8 +138,8 @@ internal class ComboMeter(private val random: Random = Random.Default) {
 
     /**
      * Feeds the fire from column [from] up to [until] along [row], unevenly: two slow waves of heat
-     * run along the text in opposite directions, so tongues of flame rise and fall along it instead
-     * of a wall of fire standing on it, and the ends burn lower so the fire tapers off with the text.
+     * run along the text in opposite directions, so tongues of flame rise and fall rather than a
+     * wall of fire, and the ends burn lower so the fire tapers off with the text.
      */
     private fun stoke(from: Int, until: Int, row: Int, heat: Float) {
         // The taper is measured from the ends of the whole readout, title and count together.
@@ -159,9 +156,8 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     }
 
     /**
-     * Draws the readout with its left edge at [x] and its text standing on [baseline], its title
-     * in [text]'s words. The flames reach up from the tops of the letters, behind whatever of the
-     * HUD is above, which is drawn over them.
+     * Draws the readout with its left edge at [x] on [baseline], in [text]'s language. The flames
+     * rise from the tops of the letters, under whatever HUD is drawn above.
      */
     fun draw(g: Graphics, x: Int, baseline: Int, text: GameText) {
         if (text !== readIn) {
@@ -182,7 +178,7 @@ internal class ComboMeter(private val random: Random = Random.Default) {
         }
 
         if (!burning) {
-            // Cold, it is one more line of the HUD, and drawn like one.
+            // Cold, it is drawn as a plain HUD line.
             g.drawOutlinedString(coldText, x, baseline, COMBO_FONT_SIZE, EngineColors.CYAN)
             titleUntil = titleFrom
             countUntil = countFrom
@@ -198,8 +194,8 @@ internal class ComboMeter(private val random: Random = Random.Default) {
         val baseCount = ComboHeat.countSize(multiplier)
         val pop = popFraction()
         val countSize = (baseCount * (1f + COMBO_POP_GROWTH * pop * pop)).roundToInt()
-        // The pop swells about the middle of the count rather than up from its baseline, so it
-        // lands like a punch rather than a rising tide.
+        // The pop swells about the count's middle rather than up from its baseline,
+        // so it lands like a punch.
         val countBaseline = baseline + ((countSize - baseCount) * POP_DROP).roundToInt() + shakeY
         val titleBaseline = baseline + shakeY
 
@@ -227,8 +223,8 @@ internal class ComboMeter(private val random: Random = Random.Default) {
 
     /**
      * Draws [glyphs] one at a time from [x], each bobbing on its own beat and flickering toward
-     * white, and returns where the pen ends up. [first] is the glyph's place in the whole readout,
-     * so the wave runs on from the title into the count instead of starting again.
+     * white, and returns where the pen ends. [first] is the first glyph's index in the whole
+     * readout, so the wave runs on from the title into the count.
      */
     private fun drawGlyphs(
         g: Graphics,
@@ -252,6 +248,7 @@ internal class ComboMeter(private val random: Random = Random.Default) {
         return pen
     }
 
+    /** Splits the title and count into glyphs, when the multiplier has changed since last time. */
     private fun rebuildGlyphs(text: GameText) {
         if (glyphsFor == multiplier) return
         glyphsFor = multiplier
@@ -265,8 +262,8 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     }
 
     /**
-     * From the coolest tip at index 1 to the heart at the end: the embers, the faintest of them
-     * see-through, then the color itself, then on to the core.
+     * The fire's palette, from the coolest tip at index 1 to the heart at the end: embers (the
+     * faintest translucent), then the color itself, then the core.
      */
     private fun updatePalette(ember: Int, color: Int, core: Int) {
         if (ember == paletteEmber && color == paletteColor && core == paletteCore) return
@@ -290,37 +287,37 @@ internal class ComboMeter(private val random: Random = Random.Default) {
     /** How much of the pop is left, from 1 the tick it starts down to 0. */
     private fun popFraction(): Float = popTime / COMBO_POP_SECONDS
 
+    /** The fire column frame x [x] falls in. */
     private fun columnOf(x: Int, fireLeft: Int): Int =
         floor((x - fireLeft).toFloat() / CELL).toInt()
 
+    /** The fire row frame y [y] falls in. */
     private fun rowOf(y: Int, fireTop: Int): Int = floor((y - fireTop).toFloat() / CELL).toInt()
 
     /**
-     * Roughly how far the capitals stand above the baseline at [size]. The sans-serif faces the text
-     * comes out in, Roboto, Arial and DejaVu Sans, all put it at about seven tenths of the size, and
-     * the fire needs no finer a figure than that to catch the tops of the letters.
+     * How far above the baseline the fire is fed at [size]: just under the capitals, which in
+     * Roboto, Arial and DejaVu Sans stand at about seven tenths of the size.
      */
     private fun capHeight(size: Int): Int = (size * CAP_HEIGHT).roundToInt()
 
     private companion object {
         /**
-         * One cell of fire, in framebuffer pixels. Two rather than one: a pixel-fine fire this small
-         * is a speckle, and at twice the size its tongues read as flames, as chunky as the sprites.
+         * One cell of fire, in framebuffer pixels. Two, because a pixel-fine fire this small looks
+         * like speckle; at two its tongues read as flames, as chunky as the sprites.
          */
         const val CELL = 2
 
         /**
-         * The fire's grid, in cells. Wide enough for the widest title and a four digit count at the
-         * peak of a pop, with room for the flames to stream off to the left; tall enough for the
-         * hottest fire at the peak of a flare, standing on top of a popped count. The widest titles
-         * are the German and Polish ones, which run a good ten cells past the widest English.
+         * The fire's grid, in cells: wide enough for the widest title (German and Polish run about
+         * ten cells past the widest English) and a four-digit count at the peak of a pop, with room
+         * to stream left; tall enough for the hottest flare on top of a popped count.
          */
         const val FIRE_COLUMNS = 120
         const val FIRE_ROWS = 30
 
         /**
-         * How many rows deep the fire is fed, down from the tops of the letters. More than one, so the
-         * flames rise out of the letters rather than off a line drawn over them.
+         * How many rows deep the fire is fed below the tops of the letters, so the flames rise out
+         * of the letters rather than off a line over them.
          */
         const val BASE_ROWS = 2
 

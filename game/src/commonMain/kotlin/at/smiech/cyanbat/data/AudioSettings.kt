@@ -7,8 +7,8 @@ import kotlin.concurrent.Volatile
 /**
  * Whether the game may play music and sound effects.
  *
- * Separate from [SettingsRepository] because the game loop needs a plain synchronous read at the
- * moment a sound would start - it cannot suspend on a Flow mid-frame.
+ * Separate from [SettingsRepository] because the game loop needs a synchronous read when a sound
+ * starts; it cannot suspend on a Flow mid-frame.
  */
 interface AudioSettings {
     val musicEnabled: Boolean
@@ -26,12 +26,11 @@ interface AudioSettings {
 /**
  * [AudioSettings] kept current by collecting a [SettingsRepository].
  *
- * Collecting rather than reading once keeps the settings read off the caller's thread - on
- * Android the backing store is DataStore, and a blocking first read at activity start would be
- * disk I/O on the main thread.
+ * Collecting keeps the read off the caller's thread; on Android the store is DataStore, and a
+ * blocking first read at activity start would be disk I/O on the main thread.
  *
- * Both fields default to enabled until the first value arrives, matching the repository's own
- * defaults, so a run started before the store responds is not silently muted.
+ * Both default to enabled until the first value arrives, matching the repository's defaults, so a
+ * run started before the store responds is not muted.
  *
  * @param scope canceled by the host when the game goes away.
  */

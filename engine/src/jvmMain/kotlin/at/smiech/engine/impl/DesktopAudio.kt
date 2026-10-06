@@ -16,10 +16,9 @@ import kotlin.math.log10
 /**
  * Desktop [Audio] built on javax.sound.sampled.
  *
- * Sounds go through AudioSystem. The JDK only decodes WAV/AIFF/AU; the mp3spi + jlayer service
- * providers on the classpath add MP3, which is what the death sound is. Nothing here is
- * MP3-specific - the SPI does the work. Music is the exception: every piece of it is decoded by the
- * shared [StemMixer], not by AudioSystem; see [Audio.newMusic] and [Audio.newLayeredMusic].
+ * Sounds go through AudioSystem. The JDK only decodes WAV, AIFF and AU; the mp3spi and jlayer
+ * service providers on the classpath add MP3, which the death sound is. Music is decoded by the
+ * shared [StemMixer] instead; see [Audio.newMusic] and [Audio.newLayeredMusic].
  *
  * @param assetStream opens an asset by filename; each call must return a fresh stream, since
  *   decoding consumes it.
@@ -38,7 +37,7 @@ class DesktopAudio(private val assetStream: (String) -> InputStream) : Audio {
 
     override fun dispose() {
         sounds.forEach { it.dispose() }
-        // A copy, because each one takes itself off the list as it goes.
+        // Iterates a copy, because each instance removes itself from the list as it is disposed.
         layered.toList().forEach { it.dispose() }
         sounds.clear()
         layered.clear()
@@ -79,8 +78,8 @@ private fun pcmFormatFor(source: AudioFormat) = AudioFormat(
 /**
  * Applies a linear 0..1 volume to a line.
  *
- * MASTER_GAIN is a decibel scale, so the mapping is logarithmic. The clamp matters: the game
- * calls `play(100f)`, which Android's SoundPool silently clamps but a FloatControl would throw on.
+ * MASTER_GAIN is in decibels, so the mapping is logarithmic. The clamp matters: a FloatControl
+ * throws on a value out of its range, where Android's SoundPool clamps silently.
  */
 internal fun setLineVolume(control: FloatControl?, volume: Float) {
     val c = control ?: return
@@ -89,7 +88,7 @@ internal fun setLineVolume(control: FloatControl?, volume: Float) {
     c.value = db
 }
 
-/** Short effect, decoded up front and replayed from a [Clip]. */
+/** A short effect, decoded up front and replayed from a [Clip]. Silent if no line is available. */
 internal class DesktopSound(pcm: PcmBuffer) : Sound {
     private val clip: Clip? = runCatching {
         AudioSystem.getClip().apply { open(pcm.format, pcm.bytes, 0, pcm.bytes.size) }

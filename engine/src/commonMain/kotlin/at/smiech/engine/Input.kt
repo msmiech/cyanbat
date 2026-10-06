@@ -1,6 +1,11 @@
 package at.smiech.engine
 
+/**
+ * Pointer and controller input, as a host hands it to the game. Pointer positions
+ * are in frame pixels.
+ */
 interface Input {
+    /** One pointer event. Pooled and reused, so read it within the frame that delivers it. */
     class TouchEvent {
         var type = 0
         var x = 0
@@ -8,10 +13,9 @@ interface Input {
         var pointer = 0
 
         /**
-         * Set on a [TOUCH_UP] the system made rather than the finger: Android's back gesture, or
-         * the notification shade, taking over a touch that began on the game. The touch is over all
-         * the same, so whatever was following it lets go - but nobody lifted a finger on anything,
-         * so it is no tap.
+         * Set on a [TOUCH_UP] the system made rather than the finger, as when Android's back
+         * gesture or the notification shade takes over a touch that began on the game. Whatever
+         * followed the touch lets go, but the event is not a tap.
          */
         var canceled = false
 
@@ -25,15 +29,14 @@ interface Input {
     fun isTouchDown(pointer: Int): Boolean
     fun getTouchX(pointer: Int): Int
     fun getTouchY(pointer: Int): Int
-    val accelX: Float
-    val accelY: Float
-    val accelZ: Float
+
+    /** The pointer events since the last read; see [TouchHandler.touchEvents]. */
     val touchEvents: List<TouchEvent>?
     val pointerCount: Int
 
     /**
      * Keyboard and game controller state. Defaults to [Controls.None], so a host that offers
-     * neither - and a test that only drives touch - needs no boilerplate.
+     * neither, and a test that only drives touch, need not supply it.
      */
     val controls: Controls get() = Controls.None
 }

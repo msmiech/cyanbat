@@ -19,6 +19,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** What [DataStoreSettingsRepository] keeps, and its defaults for settings saved before them. */
 class DataStoreSettingsRepositoryTest {
 
     @get:Rule

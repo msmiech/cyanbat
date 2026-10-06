@@ -22,10 +22,11 @@ internal object WindowIcon {
     /** The icon at each of [SIZES], read on first use. */
     val images: List<BufferedImage> by lazy { SIZES.map(::load) }
 
+    /** Reads the [size] pixel icon off the classpath. */
     private fun load(size: Int): BufferedImage {
         val name = "/icons/cyanbat_$size.png"
         val stream = javaClass.getResourceAsStream(name)
-            ?: error("Icon <$name> not found on the classpath")
-        return stream.use { ImageIO.read(it) } ?: error("Icon <$name> did not decode as an image")
+            ?: error("Icon $name not found on the classpath")
+        return stream.use { ImageIO.read(it) } ?: error("Icon $name did not decode as an image")
     }
 }

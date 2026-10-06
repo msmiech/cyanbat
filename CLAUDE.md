@@ -320,7 +320,7 @@ swarm, or a formation's leader.
       either way, while the bat's weapons still land.
 
 **Layered music.** A stage's music is one piece cut into eight stems, one per `MusicLayer` (bed,
-pulse, drive, lead, boom, roll, chop, fury), mixed live the way Doom 2016 and SSX 3 score their
+pulse, drive, lead, boom, roll, chop, fury), mixed live so the music builds and strips back with the
 action. Past the tune the layers are a trap beat growing under the stage's own instruments: 808s
 (boom), rolling hi-hats (roll) and chopped voices (chop).
 

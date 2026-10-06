@@ -28,9 +28,10 @@ import at.smiech.engine.impl.onComposeKeyEvent
 import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
+/** Opens the game's one window, which shows the menu or a run. */
 fun main() = application {
-    // The handler is hoisted above the window because keys are delivered to the window, not to
-    // whatever the game happens to be showing - and because it has to outlive a single run.
+    // Hoisted above the window, because keys are delivered to the window rather than to whatever
+    // the game is showing, and because it has to outlive a single run.
     val controls = remember { ControlHandler() }
     // The stage being played, or null while the menu is up. Out here, because the window's keys
     // below go one way or the other by it.
@@ -45,8 +46,8 @@ fun main() = application {
         onKeyEvent = { playingStage != null && controls.onComposeKeyEvent(it) },
     ) {
         // Every size at once, rather than through Window's icon parameter; see WindowIcon. Set from
-        // inside the content, which only composes once the window has applied that parameter -
-        // null here, which empties the list - so nothing clears the icons after this.
+        // inside the content, which composes only after the window has applied that parameter
+        // (null here, which empties the list), so nothing clears the icons afterwards.
         LaunchedEffect(window) { window.setIconImages(WindowIcon.images) }
         CyanBatApp(controls, playingStage) { playingStage = it }
     }
@@ -75,7 +76,7 @@ private fun CyanBatApp(controls: ControlHandler, playingStage: Int?, play: (stag
     // The menu outlives any single game instance, so it owns its own Audio.
     val menuAudio = remember {
         DesktopAudio { name ->
-            object {}.javaClass.getResourceAsStream("/$name") ?: error("Asset <$name> not found")
+            object {}.javaClass.getResourceAsStream("/$name") ?: error("Asset $name not found on the classpath")
         }
     }
     // Out here rather than in the menu branch, which leaves composition for every run: a track

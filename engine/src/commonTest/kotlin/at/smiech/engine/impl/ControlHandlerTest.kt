@@ -8,6 +8,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** How [ControlHandler] turns keys, buttons and sticks into the game's controls. */
 class ControlHandlerTest {
 
     private fun assertClose(expected: Float, actual: Float, tolerance: Float = 0.001f) =

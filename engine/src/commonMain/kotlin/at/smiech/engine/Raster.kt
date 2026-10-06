@@ -4,31 +4,28 @@ import kotlin.math.abs
 import kotlin.math.sqrt
 
 /**
- * Which pixels the [Graphics] shapes cover, worked out once in common code and handed out as
- * rectangles, so that every backend lights exactly the same pixels.
+ * Which pixels the [Graphics] shapes cover, computed in common code and handed out as rectangles,
+ * so every backend fills exactly the same pixels.
  *
- * Neither platform can be asked to draw the shapes itself and come out the same as the other.
- * Android's `Paint()` antialiases by default since Android 12, and even with that turned off, Skia
- * and Java2D disagree about which pixels an aliased edge covers: each approximates the curve its
- * own way, Java2D nudges a path onto a grid of its own before filling it, which leaves a small oval
- * lopsided, and Skia stops a line a pixel short of its far end. Filled rectangles they agree on to
- * the pixel, which is why everything here comes out as runs of them.
+ * Platform shape primitives do not agree. Android's `Paint()` antialiases by default since Android
+ * 12, and even aliased, Skia and Java2D disagree on which pixels an edge covers: each approximates
+ * curves its own way, Java2D snaps paths to a grid of its own (leaving small ovals lopsided), and
+ * Skia ends a line a pixel short. Filled rectangles they agree on exactly, so everything here comes
+ * out as runs of them.
  *
- * Pixel art, so nothing is antialiased: a pixel is in a shape or it is not. And no pixel is handed
- * out twice for one shape, so a shape drawn in a translucent color is blended once all over.
+ * Nothing is antialiased: a pixel is in a shape or not. No pixel is handed out twice for one shape,
+ * so a translucent shape is blended evenly.
  */
 object Raster {
 
     /**
-     * The oval [Graphics.drawOval] fills: the one inscribed in the [width] by [height] box at [x],
-     * [y], covering every pixel whose center lies inside it or on its edge. Handed to [fill] top to
-     * bottom, one rectangle for each run of rows the same width.
+     * The oval [Graphics.drawOval] fills: inscribed in the [width] by [height] box
+     * at [x], [y], covering every pixel whose center lies inside it or on its edge.
+     * Handed to [fill] top to bottom, one rectangle per run of equal-width rows,
+     * since a backend pays more per rectangle than per pixel.
      *
-     * Rows of a width come together because a backend pays more for each rectangle than for its
-     * pixels, and toward the middle of an oval the rows come several at a time.
-     *
-     * Symmetric left to right and top to bottom whatever the box, which a pixel-art circle needs
-     * and neither platform's own oval quite managed.
+     * Symmetric left to right and top to bottom for any box, which a pixel-art circle needs and
+     * neither platform's own oval managed.
      */
     inline fun oval(
         x: Int,
@@ -39,12 +36,12 @@ object Raster {
     ) = rowRuns(x, y, width, height, { reach(width, height, it) }, fill)
 
     /**
-     * The inside of the oval [oval] fills: those of its pixels whose four neighbors are all its
-     * pixels too. Handed out the way [oval] is.
+     * The inside of the oval [oval] fills: its pixels whose four neighbors are all in the oval too.
+     * Handed out as [oval] does.
      *
-     * Every row of it is one unbroken run centered on the oval, so like the oval it can be traced
-     * as a single polygon, which is how a backend can fill [ovalOutline] in one draw call: the oval
-     * and its inside together, filled even-odd.
+     * Every row is one unbroken run centered on the oval, so it traces as a single
+     * polygon; a backend can fill [ovalOutline] in one draw call as the oval and
+     * its inside together, filled even-odd.
      */
     inline fun ovalInterior(
         x: Int,
@@ -55,12 +52,11 @@ object Raster {
     ) = rowRuns(x, y, width, height, { innerReach(width, height, it) }, fill)
 
     /**
-     * The outline of the oval [oval] fills, one pixel thick: its pixels less its [ovalInterior],
-     * which leaves those with a side not shared with another of its pixels. One or two runs a row,
-     * top to bottom.
+     * The one-pixel outline of the oval [oval] fills: its pixels minus its [ovalInterior]. One or
+     * two runs per row, top to bottom.
      *
-     * It is the oval's own rim rather than a stroke traced around it, so an outline drawn over the
-     * same oval filled lands exactly on the edge of the fill.
+     * The oval's own rim rather than a stroke around it, so an outline drawn over the same filled
+     * oval lands exactly on its edge.
      */
     inline fun ovalOutline(
         x: Int,
@@ -87,11 +83,11 @@ object Raster {
 
     /**
      * The line [Graphics.drawLine] draws, both ends included: in each column it crosses (each row,
-     * for a line steeper than it is wide), the pixel nearest the true line, a tie going to the end
-     * it is walked from. Handed to [fill] as horizontal runs, or vertical ones for a steep line.
+     * for a steep line), the pixel nearest the true line, ties going toward the starting end.
+     * Handed to [fill] as horizontal runs, or vertical ones for a steep line.
      *
-     * Walked from its left end (its top, for a steep line) whichever way round it was given, so a
-     * line lights the same pixels in both directions.
+     * Always walked from its left end (top, for a steep line), so a line covers the same pixels in
+     * either direction.
      */
     inline fun line(
         xFrom: Int,
@@ -108,8 +104,8 @@ object Raster {
             var y = if (forward) yFrom else yTo
             val step = if ((if (forward) yTo else yFrom) > y) 1 else -1
             var start = x0
-            // Bresenham's: how far past halfway to the next row the true line is at the next column,
-            // times 2 * dx so that it stays a whole number. Past halfway, that column steps over.
+            // Bresenham: how far past halfway to the next row the true line is at the next column,
+            // scaled by 2 * dx to stay integral. Past halfway, that column steps over.
             var error = 2 * dy - dx
             for (column in 1..dx) {
                 if (error > 0) {
@@ -142,8 +138,8 @@ object Raster {
     }
 
     /**
-     * One rectangle for each run of the box's rows that reach equally far either side of its
-     * center, [reachOf] saying how far each row does in the terms of [reach].
+     * One rectangle per run of the box's rows that reach equally far either side of its center;
+     * [reachOf] gives each row's reach, in the terms of [reach].
      */
     @PublishedApi
     internal inline fun rowRuns(
@@ -157,7 +153,7 @@ object Raster {
         if (width <= 0 || height <= 0) return
         var first = 0
         var current = reachOf(0)
-        // On to one past the last row, which reaches nowhere and so closes the last rectangle.
+        // Runs to one past the last row, which reaches nowhere and so closes the last rectangle.
         for (row in 1..height) {
             val next = if (row < height) reachOf(row) else -1
             if (next == current) continue
@@ -173,14 +169,13 @@ object Raster {
     }
 
     /**
-     * How far row [row] of a [width] by [height] oval reaches either side of the oval's center, as
-     * the distance to the center of its outermost pixel in half pixels; -1 for a row the oval misses
-     * altogether.
+     * How far row [row] of a [width] by [height] oval reaches either side of its center: the
+     * distance to its outermost pixel's center in half pixels, or -1 for a row the oval misses.
      *
-     * In half pixels because that keeps the test in whole numbers: a pixel's center is always a
-     * whole number of half pixels from the center of a box, whatever the box. With u and v those
-     * offsets for a pixel, it is inside when (u / width)² + (v / height)² <= 1, so the widest u a
-     * row allows is the largest whole one with u² <= width² (height² - v²) / height².
+     * Half pixels keep the test integral, since a pixel's center is always a whole number of half
+     * pixels from any box's center. With u and v those offsets, a pixel is inside when
+     * (u / width)² + (v / height)² <= 1, so a row's widest u is the largest integer with
+     * u² <= width² (height² - v²) / height².
      */
     @PublishedApi
     internal fun reach(width: Int, height: Int, row: Int): Int {
@@ -190,7 +185,7 @@ object Raster {
         val v = (2 * row + 1 - height).toLong()
         val bound = w * w * (h * h - v * v) / (h * h)
         var u = sqrt(bound.toDouble()).toInt()
-        // The square root of a double is only nearly exact; settle it on the whole number.
+        // A double's square root is only nearly exact; settle on the integer.
         while (u.toLong() * u > bound) u--
         while ((u + 1).toLong() * (u + 1) <= bound) u++
         // A pixel's offset is odd across an even width and even across an odd one.
@@ -199,8 +194,8 @@ object Raster {
     }
 
     /**
-     * How far row [row] of the oval's [ovalInterior] reaches, in the terms of [reach]: short of the
-     * row's own two ends, and no further than either neighboring row reaches.
+     * How far row [row] of the oval's [ovalInterior] reaches, in the terms of [reach]: inside the
+     * row's own two ends, and no further than either neighboring row.
      */
     @PublishedApi
     internal fun innerReach(width: Int, height: Int, row: Int): Int {

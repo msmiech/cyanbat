@@ -6,13 +6,11 @@ import kotlinx.coroutines.launch
 import kotlin.concurrent.Volatile
 
 /**
- * [Haptics] that pass a vibration on to [haptics] only while the player has vibration switched on,
- * kept current by collecting a [SettingsRepository] as [ObservedAudioSettings] does for sound.
+ * [Haptics] that pass vibrations on to [haptics] only while the player has vibration on, kept
+ * current by collecting a [SettingsRepository] as [ObservedAudioSettings] does for sound. The
+ * screens just call [vibrate] and need not know the setting exists.
  *
- * The switch lives here, in what the host hands the game, so the screens go on calling
- * [vibrate] and need not know a setting exists.
- *
- * On until the first value arrives, matching the repository's own default.
+ * On until the first value arrives, matching the repository's default.
  *
  * @param scope canceled by the host when the game goes away.
  */

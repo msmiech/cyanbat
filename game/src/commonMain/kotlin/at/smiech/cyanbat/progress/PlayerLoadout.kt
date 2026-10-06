@@ -33,13 +33,12 @@ import kotlin.math.roundToInt
 /**
  * Everything a power-up can change about the bat, in one place.
  *
- * The bat's own components stay the source of truth for what is happening *now* - how much health
- * is left, when the next shot is due - while this holds what the run has earned. The screen syncs
- * the two after every pick, which keeps a power-up a single value change here rather than a hunt
- * through the world for the entities it touches.
+ * The bat's components remain the source of truth for the present (health left, when the next shot
+ * is due), while this holds what the run has earned. The screen syncs the two after every pick, so
+ * a power-up is a single value change here.
  *
- * Every field is clamped at the point it is written, so a stacking power-up cannot run off the end
- * into a shot interval of zero or damage the bat cannot take.
+ * Every field is clamped when written, so a stacking power-up cannot reach a zero shot interval or
+ * immunity to damage.
  */
 class PlayerLoadout {
 
@@ -64,12 +63,10 @@ class PlayerLoadout {
         private set
 
     /**
-     * What one of the bat's *critical* shots takes off what it hits - a number of its own, read
-     * alongside [shotDamage] rather than folded into it.
+     * What one of the bat's critical shots takes off what it hits.
      *
-     * Derived rather than stored, so it cannot drift out of step with the shot damage a run has
-     * earned: Heavy Rounds raises [shotDamage], and a crit is the same gun landing well, so it has
-     * to follow. Rounded because damage is whole points everywhere else in the game.
+     * Derived from [shotDamage] rather than stored, so Heavy Rounds raises it too. Rounded, because
+     * damage is whole points everywhere in the game.
      */
     val criticalDamage: Int
         get() = (shotDamage * criticalMultiplier).roundToInt()
@@ -131,8 +128,8 @@ class PlayerLoadout {
         private set
 
     /**
-     * What an orb takes off whatever it hits: a share of [shotDamage], derived rather than stored
-     * for the reason [criticalDamage] is, and rounded up so it is never nothing.
+     * What an orb takes off whatever it hits: a share of [shotDamage], derived like
+     * [criticalDamage] and rounded up so it is never zero.
      */
     val orbDamage: Int
         get() = ceil(shotDamage * ORB_DAMAGE_FRACTION).toInt()
@@ -146,13 +143,16 @@ class PlayerLoadout {
         get() = WAKE_SECONDS[wakeLevel]
 
     /**
-     * Seconds between two frost beams, each pick after the first a [FROST_BEAM_INTERVAL_FACTOR] of
-     * the last. What the first pick fires at until it has been made, which is all it means then.
+     * Seconds between frost beams, each pick after the first multiplying it by
+     * [FROST_BEAM_INTERVAL_FACTOR]. Before any pick it is the first pick's interval.
      */
     val frostIntervalSeconds: Float
         get() = FROST_BEAM_INTERVAL_SECONDS * FROST_BEAM_INTERVAL_FACTOR.pow(frostPicksPast)
 
-    /** How long the frost beam keeps what it catches frozen; as [frostIntervalSeconds], before then. */
+    /**
+     * How long the frost beam keeps what it catches frozen; before any pick, the
+     * first pick's value.
+     */
     val frostSeconds: Float
         get() = FROST_SECONDS + frostPicksPast * FROST_SECONDS_PER_LEVEL
 
@@ -160,15 +160,18 @@ class PlayerLoadout {
     private val frostPicksPast: Int
         get() = (frostLevel - 1).coerceAtLeast(0)
 
+    /** Multiplies the shot interval by [factor], down to [MIN_SHOT_INTERVAL_SECONDS]. */
     fun quickenShots(factor: Float) {
         shotIntervalSeconds =
             (shotIntervalSeconds * factor).coerceAtLeast(MIN_SHOT_INTERVAL_SECONDS)
     }
 
+    /** Adds a shot to the fan, up to [MAX_EXTRA_SHOTS]. */
     fun addShot() {
         extraShots = (extraShots + 1).coerceAtMost(MAX_EXTRA_SHOTS)
     }
 
+    /** Raises shot damage by [amount], without limit. */
     fun addShotDamage(amount: Int) {
         shotDamage += amount
     }
@@ -179,70 +182,79 @@ class PlayerLoadout {
     }
 
     /**
-     * Widens the health bar and fills the new room with health.
-     *
-     * A bigger bar that arrived empty would be worth nothing at the moment it is picked, which is
-     * exactly the moment the player is deciding whether it is worth picking.
+     * Widens the health bar and fills the new room with health, so the pick is worth something the
+     * moment it is made.
      */
     fun gainMaxHealth(amount: Int) {
         maxHitPoints += amount
         pendingHeal += amount
     }
 
+    /**
+     * Lengthens the mercy invulnerability by [amount] seconds, up to [MAX_HIT_COOLDOWN_SECONDS].
+     */
     fun lengthenHitCooldown(amount: Float) {
         hitCooldownSeconds = (hitCooldownSeconds + amount).coerceAtMost(MAX_HIT_COOLDOWN_SECONDS)
     }
 
+    /** Multiplies incoming damage by [factor], down to [ARMOR_FLOOR]. */
     fun reduceDamageTaken(factor: Float) {
         damageTaken = (damageTaken * factor).coerceAtLeast(ARMOR_FLOOR)
     }
 
+    /** Adds [perSecond] of regeneration, up to [MAX_HEALTH_REGEN_PER_SECOND]. */
     fun addHealthRegen(perSecond: Float) {
         healthRegenPerSecond =
             (healthRegenPerSecond + perSecond).coerceAtMost(MAX_HEALTH_REGEN_PER_SECOND)
     }
 
+    /** Raises the experience multiplier by [fraction], without limit. */
     fun addExperienceBonus(fraction: Float) {
         experienceMultiplier += fraction
     }
 
+    /** Raises the score multiplier by [fraction], without limit. */
     fun addScoreBonus(fraction: Float) {
         scoreMultiplier += fraction
     }
 
+    /** Adds a revive, up to [MAX_REVIVES]. */
     fun addRevive() {
         revives = (revives + 1).coerceAtMost(MAX_REVIVES)
     }
 
     /**
-     * Trades a flat cut of incoming damage for a share more outgoing.
-     *
-     * One power-up rather than two, and stacked together, because the pair is the point: it is the
-     * pick for a player who means to stand and trade rather than dodge.
+     * A flat cut to incoming damage together with a share more outgoing: one pick for a player who
+     * means to stand and trade rather than dodge.
      */
     fun counterweight(damageReduction: Int, extraDamageFraction: Float) {
         flatDamageReduction =
             (flatDamageReduction + damageReduction).coerceAtMost(MAX_FLAT_DAMAGE_REDUCTION)
-        // Rounded up, so the smallest raise is still worth a point of damage rather than nothing.
+        // Rounded up, so even the smallest raise is worth a point of damage.
         shotDamage += ceil(shotDamage * extraDamageFraction).toInt()
     }
 
+    /** Lets shots pierce one more enemy, up to [MAX_SHOT_PIERCE]. */
     fun addPierce() {
         shotPierce = (shotPierce + 1).coerceAtMost(MAX_SHOT_PIERCE)
     }
 
+    /** Lets shots bounce once more, up to [MAX_SHOT_BOUNCE]. */
     fun addBounce() {
         shotBounce = (shotBounce + 1).coerceAtMost(MAX_SHOT_BOUNCE)
     }
 
+    /** Adds an orb, up to [MAX_ORBS]. */
     fun addOrb() {
         orbs = (orbs + 1).coerceAtMost(MAX_ORBS)
     }
 
+    /** Charges the wake a level further, up to [MAX_WAKE_LEVEL]. */
     fun chargeWake() {
         wakeLevel = (wakeLevel + 1).coerceAtMost(MAX_WAKE_LEVEL)
     }
 
+    /** Builds the frost beam a level further, up to [MAX_FROST_LEVEL]. */
     fun buildFrostBeam() {
         frostLevel = (frostLevel + 1).coerceAtMost(MAX_FROST_LEVEL)
     }
@@ -257,7 +269,7 @@ class PlayerLoadout {
     /** Consumed by the screen once the healing has been applied to the bat. */
     fun takePendingHeal(): Int = pendingHeal.also { pendingHeal = 0 }
 
-    // --- what is still worth offering ---------------------------------------------------------
+    // What is still worth offering: whether each capped power-up is below its cap.
 
     val canQuickenShots: Boolean get() = shotIntervalSeconds > MIN_SHOT_INTERVAL_SECONDS
     val canAddShot: Boolean get() = extraShots < MAX_EXTRA_SHOTS

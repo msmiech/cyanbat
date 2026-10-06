@@ -3,8 +3,8 @@ package at.smiech.cyanbat.ecs
 import at.smiech.engine.ecs.Component
 
 /**
- * The bat's weapons that hurt by touch and are never spent by it, for the run to know what each one
- * deals and how soon it may land on the same thing again.
+ * The bat's weapons that hurt by touch and are never spent, so the run knows what each deals and
+ * how soon it may hit the same target again.
  */
 enum class ContactWeapon {
     /** One of the orbs circling the bat; see [OrbitSystem]. */
@@ -23,18 +23,17 @@ class ContactWeaponComponent(val weapon: ContactWeapon) : Component
 /**
  * When each [ContactWeapon] may next land on whatever carries this, on the run's own clock.
  *
- * Kept on what is hit rather than on what hits it, for two reasons. It goes with the target, so it is
- * never read back through an id that has been recycled to something else since. And a weapon made of
- * many parts - a ring of orbs, a wake of dozens of segments - lands on a target as one weapon, rather
- * than once for every part of it the target happens to be touching.
+ * Kept on the target rather than the weapon, so it is never read through a recycled id, and so a
+ * weapon of many parts (a ring of orbs, a wake of dozens of segments) lands as one weapon rather
+ * than once per part touching the target.
  */
 class ContactCooldownComponent : Component {
     private val readyAt = FloatArray(ContactWeapon.entries.size)
 
     /**
-     * Whether [weapon] may land at [now] - and if it may, holds it off for [seconds] from there. One
-     * call, as [at.smiech.engine.ecs.PierceComponent.meet] is one call: a check that did not take the
-     * hit would let the next tick's overlap land it again.
+     * Whether [weapon] may land at [now], and if so, holds it off for [seconds]. One call, like
+     * [at.smiech.engine.ecs.PierceComponent.meet]: a check that did not record the hit would let
+     * the next tick's overlap land it again.
      */
     fun take(weapon: ContactWeapon, now: Float, seconds: Float): Boolean {
         if (now < readyAt[weapon.ordinal]) return false

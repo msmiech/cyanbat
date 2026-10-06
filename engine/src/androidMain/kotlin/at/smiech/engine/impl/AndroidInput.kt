@@ -4,6 +4,10 @@ import at.smiech.engine.Controls
 import at.smiech.engine.Input
 import at.smiech.engine.Input.TouchEvent
 
+/**
+ * [Input] for Android. Pointer state comes from the shared [PointerTouchHandler], fed by the
+ * activity's Compose canvas; keys, game controllers and Back arrive through [controls].
+ */
 class AndroidInput(
     val touchHandler: PointerTouchHandler,
     override val controls: Controls = Controls.None,
@@ -20,13 +24,6 @@ class AndroidInput(
     override fun getTouchY(pointer: Int): Int {
         return touchHandler.getTouchY(pointer)
     }
-
-    // Nothing in the game reads the accelerometer, so it is not switched on. Its listener used to
-    // be registered here and never removed, which kept the sensor running - and the activity it
-    // was registered with alive - long after the game had closed. Zero, as on desktop.
-    override val accelX: Float get() = 0f
-    override val accelY: Float get() = 0f
-    override val accelZ: Float get() = 0f
 
     override val touchEvents: List<TouchEvent>
         get() = touchHandler.touchEvents

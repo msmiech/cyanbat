@@ -10,19 +10,19 @@ import javax.sound.sampled.SourceDataLine
 import kotlin.concurrent.withLock
 
 /**
- * [LayeredMusic] on a javax.sound line: a daemon thread pulls frames from the [StemMixer] and
- * writes them out, so it never holds the JVM open.
+ * [LayeredMusic] on a javax.sound line: a daemon thread, which never holds the JVM open, pulls
+ * frames from the [StemMixer] and writes them out.
  *
- * One thread for the life of the music, started by the first [play]. A pause fades the mixer out,
- * lets the line play what it has, and stops it; the thread then waits for the next [play] rather
- * than exiting, because a second thread started while the first was still blocked in a write would
- * put two copies of the music on the line.
+ * One thread serves the music's whole life, started by the first [play]. A pause fades the mixer
+ * out, drains the line and stops it; the thread then waits for the next [play] rather than exiting,
+ * because a second thread started while the first was still blocked in a write would put two copies
+ * of the music on the line.
  */
 class DesktopLayeredMusic(
     private val mixer: StemMixer,
     /**
-     * Told once, on [dispose], so whatever handed this out can let go of it: a run that flies on
-     * to the next stage opens that stage's music and disposes of this one, stems and all.
+     * Called once, on [dispose], so whatever created this can drop it: the next stage's run opens
+     * its own music and disposes of this one.
      */
     private val onDisposed: (LayeredMusic) -> Unit = {},
 ) : LayeredMusic {
@@ -139,16 +139,17 @@ class DesktopLayeredMusic(
     private companion object {
         const val BYTES_PER_FRAME = 4
 
-        /** Written at a time: about 23 ms at 22.05 kHz. */
+        /** Frames written at a time: about 23 ms at 22.05 kHz. */
         const val WRITE_FRAMES = 512
 
         /**
-         * The line's own buffer, about 90 ms. Short, because a muffle or a layer answering the
-         * player waits behind everything already in it; long enough that a busy frame on the game
-         * thread does not starve it.
+         * The line's buffer, about 90 ms. Short, because a muffle or a layer
+         * responding to the player waits behind everything already in it; long
+         * enough that a busy frame does not starve it.
          */
         const val BUFFER_FRAMES = 2048
 
+        /** How long a paused pump sleeps between checks, should a wake-up be missed. */
         const val IDLE_WAIT_MILLIS = 250L
     }
 }

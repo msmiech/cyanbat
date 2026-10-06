@@ -14,8 +14,10 @@ import java.util.prefs.Preferences
  * why the desktop shell creates it once and hands it to both.
  */
 class PreferencesStageUnlockStore : StageUnlockStore {
+    /** The game's own preferences node, shared with the highscores and the settings. */
     private val prefs: Preferences = Preferences.userRoot().node("at/smiech/cyanbat")
 
+    /** The highest stage open, mirrored from the store. */
     private val highest = MutableStateFlow(prefs.getInt(KEY, 1).coerceAtLeast(1))
 
     override val highestUnlocked: Flow<Int> = highest.asStateFlow()
@@ -27,6 +29,7 @@ class PreferencesStageUnlockStore : StageUnlockStore {
     }
 
     private companion object {
+        /** The highest stage open, under the name the Android store uses. */
         const val KEY = "highest_stage_unlocked"
     }
 }

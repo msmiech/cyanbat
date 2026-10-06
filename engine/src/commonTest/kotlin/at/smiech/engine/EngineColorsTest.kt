@@ -3,6 +3,7 @@ package at.smiech.engine
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+/** Blending colors with [EngineColors.lerp]. */
 class EngineColorsTest {
 
     @Test

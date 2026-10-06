@@ -6,14 +6,10 @@ import at.smiech.cyanbat.util.POINTS_PER_HIT
 import at.smiech.cyanbat.util.STAGE_COMPLETE_BONUS
 
 /**
- * Scoring for a single run.
+ * Scoring for a single run: points for every enemy destroyed, multiplied by the current kill
+ * streak, and a lump sum for clearing the stage. Being hit resets the streak.
  *
- * Two sources: a bonus for every enemy destroyed, and a lump sum for clearing the stage. The kill
- * bonus scales with an unbroken run of kills, so the reward for pressing forward is losing the
- * streak the moment the bat is hit.
- *
- * Kept apart from the game screen because it is the one part of scoring worth testing on its
- * own - the screen itself needs a live Game and asset set.
+ * Kept apart from the game screen so scoring can be tested without a live game and assets.
  */
 class ScoreTracker(
     private val pointsPerHit: Int = POINTS_PER_HIT,
@@ -29,34 +25,29 @@ class ScoreTracker(
         private set
 
     /**
-     * One step per [hitsPerMultiplierStep] unbroken kills, with no ceiling. A long streak is the
-     * hardest thing in the game to keep, and a number that stops climbing is a reason to stop
-     * caring about it.
+     * One step per [hitsPerMultiplierStep] unbroken kills, with no ceiling, so a long streak always
+     * stays worth keeping.
      */
     val multiplier: Int
         get() = 1 + hitStreak / hitsPerMultiplierStep
 
     /**
-     * Everything scored is multiplied by this, for the power-ups that pay in points. Set by the
-     * screen from the run's loadout; 1 is unmodified.
+     * Multiplies everything scored, for power-ups that pay in points. Set by the screen from the
+     * run's loadout; 1 is unmodified.
      */
     var bonusMultiplier: Float = 1f
 
     /**
-     * Points earned but too small to bank yet.
-     *
-     * A bonus of a few percent on a kill comes to a fraction of a point, and rounded away on every
-     * award it would add up to less than the power-up promised. Carrying the remainder is what
-     * makes it pay in full.
+     * Fractional points not yet banked. A bonus of a few percent on a kill is a fraction of a
+     * point; carrying the remainder makes it pay in full instead of being rounded away.
      */
     private var remainder: Float = 0f
 
     /**
-     * Extends the streak first, so a kill scores at the multiplier it just earned.
+     * Scores a kill. Extends the streak first, so the kill scores at the multiplier it just earned.
      *
-     * @param elite whether it was an elite, which pays [eliteFactor] kills' worth of points - and is
-     *   still one kill to the streak, which counts how long the bat has gone untouched rather than
-     *   what it earned in that time.
+     * @param elite whether it was an elite, which pays [eliteFactor] kills' worth of points but
+     *   still counts as one kill to the streak.
      */
     fun registerEnemyDestroyed(elite: Boolean = false) {
         hitStreak++
@@ -69,18 +60,18 @@ class ScoreTracker(
     }
 
     /**
-     * The stage's boss is down. Worth two hundred kills at the base rate on its own, so that pushing
-     * on to the boss beats farming the early waves.
+     * The stage's boss is down. Worth two hundred kills at the base rate, so pushing on to the boss
+     * beats farming the early waves.
      */
     fun awardStageCleared() {
         award(stageCompleteBonus)
     }
 
     /**
-     * Banks [points] at the run's [bonusMultiplier], keeping what is left over for next time.
+     * Banks [points] at the run's [bonusMultiplier], carrying the fraction over.
      *
-     * Held at the largest score there is rather than wrapping round to a negative one. No run comes
-     * near it, but with the multiplier uncapped nothing but the length of a streak says so.
+     * Saturates at Int.MAX_VALUE rather than wrapping negative; no run comes near it, but the
+     * multiplier is uncapped.
      */
     private fun award(points: Int) {
         val earned = points * bonusMultiplier + remainder
@@ -89,6 +80,7 @@ class ScoreTracker(
         remainder = earned - banked
     }
 
+    /** Clears the score and the streak, as at the start of a run. */
     fun reset() {
         score = 0
         hitStreak = 0

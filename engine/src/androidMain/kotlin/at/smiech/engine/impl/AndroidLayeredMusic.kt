@@ -15,15 +15,14 @@ import kotlin.concurrent.withLock
  * [LayeredMusic] on a streaming [AudioTrack]: a thread at audio priority pulls frames from the
  * [StemMixer] and writes them to the track.
  *
- * Structured like the desktop's `DesktopLayeredMusic`, for the same reasons: one thread for the
- * music's whole life, and a pause that fades out and lets the track play what it has before
- * stopping, rather than cutting a waveform off mid-cycle.
+ * Structured like the desktop's `DesktopLayeredMusic`: one thread for the music's whole life, and a
+ * pause that fades out and lets the track drain rather than cutting a waveform mid-cycle.
  */
 class AndroidLayeredMusic(
     private val mixer: StemMixer,
     /**
-     * Told once, on [dispose], so whatever handed this out can let go of it: a run that flies on
-     * to the next stage opens that stage's music and disposes of this one, stems and all.
+     * Called once, on [dispose], so whatever created this can drop it: the next stage's run opens
+     * its own music and disposes of this one.
      */
     private val onDisposed: (LayeredMusic) -> Unit = {},
 ) : LayeredMusic {
@@ -164,12 +163,16 @@ class AndroidLayeredMusic(
         const val TAG = "CyanBat"
         const val BYTES_PER_FRAME = 4
 
-        /** Written at a time: about 23 ms at 22.05 kHz. */
+        /** Frames written at a time: about 23 ms at 22.05 kHz. */
         const val WRITE_FRAMES = 512
 
-        /** See the desktop's; the same trade of latency against starving, about 90 ms. */
+        /**
+         * The track's buffer, about 90 ms: the same trade of latency against
+         * underruns as the desktop's.
+         */
         const val BUFFER_FRAMES = 2048
 
+        /** How long a paused pump sleeps between checks, should a wake-up be missed. */
         const val IDLE_WAIT_MILLIS = 250L
     }
 }

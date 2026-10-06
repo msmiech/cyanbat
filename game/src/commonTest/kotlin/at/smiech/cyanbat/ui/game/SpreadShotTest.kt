@@ -5,6 +5,7 @@ import at.smiech.cyanbat.util.SPREAD_ANGLE_DEGREES
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+/** The headings of a fan of shots; see [spreadAngles]. */
 class SpreadShotTest {
 
     @Test

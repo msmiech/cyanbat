@@ -15,21 +15,19 @@ import kotlin.math.tan
 import kotlin.math.tanh
 
 /**
- * The part of a [at.smiech.engine.LayeredMusic] that every platform shares: decoding the stems,
- * mixing them at their levels, and landing each change of level on the grid. A platform wraps it
- * in a thread that pulls frames out of [render] and writes them to a device.
+ * The platform-independent core of a [at.smiech.engine.LayeredMusic]: decoding the stems, mixing
+ * them at their levels, and landing each level change on the grid. A platform wraps it in a thread
+ * that pulls frames from [render] and writes them to a device.
  *
- * Two threads touch it. The game thread only ever calls the setters, which leave orders behind in
- * fields the audio thread reads once a chunk; everything else belongs to the audio thread. An
- * order is a whole immutable object swapped in at once, so the audio thread sees either all of it
- * or none of it and nothing needs a lock - which common code could not take anyway.
+ * Two threads touch it. The game thread only calls the setters, which publish orders the audio
+ * thread reads once per chunk; everything else belongs to the audio thread. Each order is an
+ * immutable object swapped in whole, so no lock is needed (and common code could not take one).
  *
- * Every stem is decoded on every chunk, heard or not, because a stem's place in the music is how
- * far it has been read: one skipped while it was silent would come back out of step.
+ * Every stem is decoded on every chunk, audible or not, because a stem's position is how far it has
+ * been read: one skipped while silent would come back out of step.
  *
- * Music loops unless it is told not to; see [isLooping]. A piece of one stem played once - the game
- * over's - goes through here too, so that every piece of music the game plays is decoded the same
- * way on every platform.
+ * Music loops unless told otherwise; see [isLooping]. Single tracks played once, like the game
+ * over's, go through here too, so all music is decoded the same way on every platform.
  */
 class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     init {
@@ -51,9 +49,8 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     private val length = stems.maxOf { it.frames }.toLong()
 
     /**
-     * Game thread. Whether the music goes round again at its end, as layered music always does, or
-     * stops there, as a track the game plays once does; see [hasEnded]. Turned off while the music
-     * is going round, it stops at the end of the time through that it is in.
+     * Game thread. Whether the music starts over at its end, as layered music always does, or stops
+     * there; see [hasEnded]. Turned off mid-loop, the music stops at the end of the current pass.
      */
     @Volatile
     var isLooping = true
@@ -94,7 +91,7 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     private val stem = FloatArray(CHUNK_FRAMES * 2)
 
     private val openHz = minOf(OPEN_HZ, OPEN_FRACTION_OF_RATE * sampleRate)
-    private val smoothing = 1f - exp(-CHUNK_FRAMES / (GLIDE_SECONDS * sampleRate)).toFloat()
+    private val smoothing = 1f - exp(-CHUNK_FRAMES / (GLIDE_SECONDS * sampleRate))
     private val transportStep = 1f / (sampleRate * DECLICK_SECONDS)
 
     /** Game thread. See [at.smiech.engine.LayeredMusic.setLayerLevel]. */
@@ -117,10 +114,10 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
 
     /**
      * Audio thread. Fades the output to silence, or back up from it, over a few milliseconds, so a
-     * pause does not cut a waveform off halfway and click. The music's own position runs on
-     * through the fade, and a platform pauses its device once [isSilenced] says it can.
+     * pause does not cut a waveform mid-cycle and click. The music's position keeps advancing
+     * during the fade; a platform pauses its device once [isSilenced] is true.
      *
-     * Music that has played to its end starts again from the top when it is faded back on.
+     * Music that has played to its end starts again from the top when faded back on.
      */
     fun fadeTransport(on: Boolean) {
         if (on && hasEnded) rewind()
@@ -143,8 +140,8 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     private fun renderChunk(out: ShortArray, offset: Int, count: Int) {
         takeOrders()
 
-        // Music that does not loop plays up to the end of the time through it is in; whatever is
-        // left of the chunk after that, and every chunk after it, is silence.
+        // Music that does not loop plays to the end of the current pass; the rest of the chunk, and
+        // every chunk after it, is silence.
         val audible = when {
             hasEnded -> 0
             isLooping -> count
@@ -169,8 +166,8 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
             layer.settle(position + audible)
         }
 
-        // Glided once a chunk and interpolated across it, so a caller setting these once a frame
-        // gets a smooth curve rather than a staircase of steps a chunk wide.
+        // Glided once per chunk and interpolated across it, so a caller setting these every frame
+        // gets a smooth curve rather than chunk-wide steps.
         val volumeFrom = volume
         volume += (volumeTarget - volume) * smoothing
         val wetFrom = wetFor(muffle)
@@ -226,8 +223,8 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     }
 
     /**
-     * Takes every stem back to its first frame, and the grid back with them. Each layer holds the
-     * level it had, and its latest order is put on the grid again, counted from the new top.
+     * Takes every stem, and the grid, back to the first frame. Each layer keeps its level, and its
+     * latest order is scheduled again from the new top.
      */
     private fun rewind() {
         for (index in layers.indices) {
@@ -243,9 +240,8 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     }
 
     /**
-     * Puts [order] on the grid. The latest order for a layer replaces one still waiting for its
-     * boundary: the layer carries on as it was until the new one lands, and the new one fades from
-     * wherever that leaves it.
+     * Schedules [order] on the grid. It replaces an order still waiting for its boundary: the layer
+     * carries on as it was until the new one lands, which then fades from wherever that leaves it.
      */
     private fun schedule(layer: Layer, order: Order) {
         val now = position
@@ -261,8 +257,8 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
                 start = now
                 end = now + fade
             }
-            // A layer coming in has to be all the way up on the beat, which is where its first
-            // note lands, so its fade runs in the moment before.
+            // A layer coming in must be fully up on the beat, where its first note lands, so it
+            // fades in just before.
             rising -> {
                 end = nextBoundary(now + fade, unit)
                 start = end - fade
@@ -286,12 +282,13 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     }
 
     /**
-     * The filter opens exponentially as the muffle lifts, which is how a sweep has to move to sound
-     * even. At no muffle it is out of the signal altogether, not merely wide open: the crossfade to
-     * it is done while its cutoff is still high enough that the switch cannot be heard.
+     * The filter opens exponentially as the muffle lifts, which is how a sweep sounds even. With no
+     * muffle it is out of the signal altogether rather than wide open; [wetFor] crossfades it in
+     * while its cutoff is still too high for the switch to be heard.
      */
     private fun cutoffFor(muffle: Float): Float = openHz * (FLOOR_HZ / openHz).pow(muffle)
 
+    /** How much of the filtered signal replaces the dry one at [muffle]. */
     private fun wetFor(muffle: Float): Float = (muffle * WET_PER_MUFFLE).coerceAtMost(1f)
 
     /** Very small floats are slow on some processors, and a filter in silence decays toward them. */
@@ -305,9 +302,9 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     private fun toPcm(sample: Float): Short = (softClip(sample) * 32767f).toInt().toShort()
 
     /**
-     * Straight through below [CLIP_KNEE], rounded off above it. The stems are mixed to leave
-     * headroom with every layer up, so this should only ever catch a rare coinciding peak - and a
-     * rounded peak is far kinder than a wrapped one.
+     * Linear below [CLIP_KNEE], rounded off above it. The stems leave headroom with every layer up,
+     * so this only catches a rare coinciding peak, and a rounded peak sounds far better than a
+     * wrapped one.
      */
     private fun softClip(x: Float): Float {
         val magnitude = abs(x)
@@ -329,12 +326,14 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
         }
     }
 
+    /** One stem's level over time, as the audio thread schedules it. */
     private class Layer {
         var current = Ramp(0L, 0L, 0f, 0f)
 
         /** A ramp waiting for its grid line, which takes over from [current] once reached. */
         var pending: Ramp? = null
 
+        /** The last order scheduled, so an unchanged one is not scheduled again. */
         var seen: Order? = null
 
         fun gainAt(frame: Long): Float {
@@ -359,8 +358,8 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
     }
 
     /**
-     * Coefficients of a two-pole state variable low-pass, in the topology-preserving form, which
-     * stays stable while its cutoff is being swept - the whole point of it here.
+     * Coefficients of a two-pole state variable low-pass in topology-preserving form, which stays
+     * stable while its cutoff is swept.
      */
     private class Svf(cutoffHz: Float, sampleRate: Int) {
         val a1: Float

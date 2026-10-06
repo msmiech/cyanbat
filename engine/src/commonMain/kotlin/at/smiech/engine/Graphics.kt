@@ -1,29 +1,27 @@
 package at.smiech.engine
 
 /**
- * What a screen draws its frame with: integer coordinates in frame pixels, the frame being the
- * game's 640x360.
+ * What a screen draws its frame with, in integer frame pixels; the frame is the game's 640x360.
  *
- * Everything but text is pixel art, and lands on the frame's pixel grid however large the frame is
- * shown; text is drawn smooth at the screen's resolution. `ComposeGraphics` is the one real
- * implementation, for every platform; the rest are test doubles.
+ * Everything but text is pixel art and lands on the frame's pixel grid at any display size; text is
+ * drawn smooth at the screen's resolution. `ComposeGraphics` is the one real implementation, for
+ * every platform; the others are test doubles.
  */
 interface Graphics {
-    enum class PixmapFormat {
-        ARGB8888, RGB565
-    }
+    /** Loads the image asset [filename]. */
+    fun newPixmap(filename: String): Pixmap
 
-    fun newPixmap(filename: String, format: PixmapFormat): Pixmap
+    /** Fills the whole frame with [color], starting a new frame. */
     fun clear(color: Int)
     fun drawPixel(x: Int, y: Int, color: Int)
 
     /**
-     * A line one pixel wide from one point to the other, both ends included; [Raster.line] says
-     * which pixels.
+     * A line one pixel wide between the two points, both ends included; [Raster.line] picks the
+     * pixels.
      *
-     * Laid down as runs through [drawRect], which is what makes it the same pixels on every
-     * backend. A backend must not draw it with a line of its own - Skia's and Java2D's end on
-     * different pixels - though a test double that records lines can override it.
+     * Laid down as runs through [drawRect], so it is the same pixels on every backend. A backend
+     * must not use a line primitive of its own, since Skia's and Java2D's end on different pixels,
+     * though a test double that records lines may override it.
      */
     fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int) =
         Raster.line(xFrom, yFrom, xTo, yTo) { left, top, w, h -> drawRect(left, top, w, h, color) }
@@ -31,19 +29,18 @@ interface Graphics {
     fun drawRect(x: Int, y: Int, width: Int, height: Int, color: Int)
 
     /**
-     * The oval inscribed in the [width] by [height] box at [x], [y], filled; [Raster.oval] says
-     * which pixels.
+     * The filled oval inscribed in the [width] by [height] box at [x], [y]; [Raster.oval] picks the
+     * pixels.
      *
-     * Laid down as runs of rows through [drawRect], for the reason [drawLine] is. A backend may fill
-     * the same pixels a faster way, as Android does, but never with an oval of its own.
+     * Laid down as rows through [drawRect], for the same reason as [drawLine]. A backend may fill
+     * the same pixels faster, but never with an oval primitive of its own.
      */
     fun drawOval(x: Int, y: Int, width: Int, height: Int, color: Int) =
         Raster.oval(x, y, width, height) { left, top, w, h -> drawRect(left, top, w, h, color) }
 
     /**
-     * The outline of the oval [drawOval] would fill, one pixel thick: the fill's own rim, so an
-     * outline drawn over the same oval filled lands exactly on its edge. [Raster.ovalOutline] says
-     * which pixels, and it is laid down like the fill.
+     * The one-pixel rim of the oval [drawOval] would fill, so an outline drawn over the same filled
+     * oval lands exactly on its edge. [Raster.ovalOutline] picks the pixels.
      */
     fun drawOvalOutline(x: Int, y: Int, width: Int, height: Int, color: Int) =
         Raster.ovalOutline(x, y, width, height) { left, top, w, h ->
@@ -56,6 +53,10 @@ interface Graphics {
             )
         }
 
+    /**
+     * Draws the [srcWidth] by [srcHeight] region at [srcX], [srcY] of [pixmap] with
+     * its corner at [x], [y].
+     */
     fun drawPixmap(
         pixmap: Pixmap,
         x: Int,
@@ -66,20 +67,18 @@ interface Graphics {
         srcHeight: Int
     )
 
+    /** Draws the whole of [pixmap] with its corner at [x], [y]. */
     fun drawPixmap(pixmap: Pixmap, x: Int, y: Int)
 
     /**
-     * The plain blit laid over whatever is already there at [alpha] of its opacity, where alpha runs
-     * 0..1, so what was drawn before still shows through.
+     * The plain blit drawn over what is already there at [alpha] opacity, 0..1.
      *
-     * What a crossfade is made of. One picture drawn, and then another of the same shape over it at
-     * [alpha], lands exactly that far between the two - which is how a desert strip drawn in the
-     * palettes of several times of day turns from one into the next without a palette ever being
-     * computed at run time.
+     * This is how crossfades work: one picture drawn, then another of the same shape over it at
+     * [alpha], lands exactly that far between the two. The desert's strips change time of day this
+     * way, with no palette computed at run time.
      *
-     * A default rather than an abstract method, so a test double does not have to learn it: this
-     * shows the picture outright once it is at least half faded in, which is right at both ends and
-     * wrong in between. Both real backends override it with a true blend.
+     * The default, for test doubles, shows the picture outright once it is at least half faded in.
+     * The real backend overrides it with a true blend.
      */
     fun drawPixmapFaded(
         pixmap: Pixmap,
@@ -95,11 +94,8 @@ interface Graphics {
     }
 
     /**
-     * The same blit stretched into a [dstWidth] by [dstHeight] box, nearest-neighbor on both
-     * platforms so a magnified sprite stays pixel art instead of turning to mush.
-     *
-     * Both backends already blit through a destination rectangle, so this costs a scaled sprite
-     * nothing over an unscaled one.
+     * The blit stretched into a [dstWidth] by [dstHeight] box, nearest-neighbor so a magnified
+     * sprite stays pixel art.
      */
     fun drawPixmap(
         pixmap: Pixmap,
@@ -114,13 +110,11 @@ interface Graphics {
     )
 
     /**
-     * The same blit again, turned [rotationDegrees] clockwise about the center of its destination
-     * box. The box itself does not move or grow: a rotated sprite occupies the same place on
-     * screen, pointing a different way.
+     * The scaled blit, turned [rotationDegrees] clockwise about the center of its destination box.
+     * The box itself does not move or grow.
      *
-     * Kept as its own method rather than a parameter on the others because the unrotated blit is
-     * every sprite in the game bar the projectiles, and both backends draw it without having to
-     * touch the canvas transform at all.
+     * A separate method rather than a parameter because nearly every sprite is drawn unrotated, and
+     * that path never touches the canvas transform.
      */
     fun drawPixmap(
         pixmap: Pixmap,
@@ -136,16 +130,14 @@ interface Graphics {
     )
 
     /**
-     * The sprite's own shape, filled flat with [color], drawn over whatever is already there.
+     * The sprite's shape filled flat with [color], drawn over what is already there.
      *
-     * The pixmap supplies the silhouette and nothing else: its alpha is the mask, and [color]'s
-     * alpha is how strongly the fill shows through. Painted over a normal blit of the same frame
-     * at the same place, this lights the sprite up without touching its outline - which is what a
-     * hit needs to read as the thing that was hit flashing, rather than as a rectangle over it.
+     * The pixmap's alpha is the mask, and [color]'s alpha is how strongly the fill shows. Drawn
+     * over a normal blit of the same frame, it lights the sprite up within its outline, which is
+     * how a hit flash reads as the sprite flashing rather than a rectangle over it.
      *
-     * Its own method rather than a tint parameter on the blits above, because every sprite in the
-     * game is drawn by those and none of them should pay a paint setup for something that happens
-     * to one enemy for a tenth of a second.
+     * A separate method rather than a tint parameter on the blits, so ordinary sprites pay no paint
+     * setup for an effect that lasts a tenth of a second.
      */
     fun drawPixmapSilhouette(
         pixmap: Pixmap,
@@ -161,11 +153,10 @@ interface Graphics {
     )
 
     /**
-     * [drawPixmapSilhouette] turned [rotationDegrees] clockwise about the center of its box, the way
-     * the rotated [drawPixmap] turns a sprite: a flash on a sprite that is itself drawn turned has
-     * to be turned with it, or it lights up a shape the sprite is not.
+     * [drawPixmapSilhouette] turned [rotationDegrees] clockwise about the center of its box, as the
+     * rotated [drawPixmap] turns a sprite, so a flash on a turned sprite matches its shape.
      *
-     * Defaults to the upright silhouette, which is all a test double needs. Both backends turn it.
+     * The default, for test doubles, draws the silhouette upright.
      */
     fun drawPixmapSilhouette(
         pixmap: Pixmap,
@@ -193,16 +184,16 @@ interface Graphics {
     )
 
     /**
-     * Lights everything drawn so far with [lighting]: each pixel of the frame multiplied by the light
-     * that reaches it - [Lighting.ambient], taken toward the color of every light whose disc it lies in
-     * and out of whose shadows it is - and then that light added over it at [Lighting.glow], and the
-     * glints added over the sprites they belong to. What is drawn after this is left as it is drawn,
-     * which is how something that is itself a light stays bright in the dark.
+     * Lights everything drawn so far with [lighting]. Each pixel is multiplied by the light
+     * reaching it ([Lighting.ambient], tinted toward every light whose disc it lies in and whose
+     * shadows it is outside of), that light is added back at [Lighting.glow], and the glints are
+     * added over their sprites. Anything drawn afterwards is left as drawn, which is how lights
+     * stay bright in the dark.
      *
-     * The light is worked out a cell of frame pixels at a time, so it lands on the frame's grid like
-     * everything else; the glints a frame pixel at a time, like the sprites they belong to.
+     * The light is computed per cell of frame pixels, so it lands on the frame's grid; the glints
+     * per frame pixel, like the sprites they belong to.
      *
-     * A default that lights nothing, so a test double does not have to learn it.
+     * The default, for test doubles, lights nothing.
      */
     fun drawLighting(lighting: Lighting) {}
 
@@ -210,14 +201,12 @@ interface Graphics {
     fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
 
     /**
-     * Draws [s] ringed by an outline a frame pixel thick in [outlineColor], so it stays readable over
-     * whatever the game happens to be drawing behind it.
+     * Draws [s] with a one-pixel outline in [outlineColor], so it stays readable
+     * over any background.
      *
-     * A default rather than an abstract method, so a test double does not have to learn it: this
-     * stamps the string at the eight pixels around it in the outline color and then draws the fill,
-     * eight rather than four because a four-way ring leaves the diagonals of a glyph bare. The real
-     * backend strokes the glyphs instead, which at the screen's resolution is a clean line where
-     * eight stamps would be eight copies.
+     * The default, for test doubles, stamps the string at the eight surrounding pixels in the
+     * outline color and then draws the fill; four would leave a glyph's diagonals bare. The real
+     * backend strokes the glyphs instead, which is a clean line at the screen's resolution.
      */
     fun drawOutlinedString(
         s: String,
@@ -242,16 +231,17 @@ interface Graphics {
     }
 
     /**
-     * The width [drawString] gives [s] at [fontSize], in frame pixels. Rounded up, so that text
-     * placed by it never runs past the edge it was placed against.
+     * The width [drawString] gives [s] at [fontSize], in frame pixels, rounded up so text placed by
+     * it never runs past the edge it is aligned to.
      *
-     * Text is the one thing that does not come out the same everywhere. It is drawn in each
-     * platform's own sans-serif face - Roboto on Android; on the desktop whatever face Compose finds
-     * for sans-serif, Arial on Windows - and the faces disagree on widths: the HUD's "Level: 17" is
-     * 58px wide in Arial and 67px in DejaVu Sans. So text that is aligned by its right edge,
-     * centered or wrapped has to be measured, never counted out in characters.
+     * Each platform draws its own sans-serif face (Roboto on Android, Arial on
+     * Windows, usually DejaVu Sans on Linux), and widths differ: the HUD's "Level:
+     * 17" is 58 px in Arial and 67 px in DejaVu Sans. Right-aligned, centered or
+     * wrapped text must be measured, never counted in characters.
      */
     fun measureString(s: String, fontSize: Int): Int
+
+    /** The frame's size in pixels. */
     val width: Int
     val height: Int
 }

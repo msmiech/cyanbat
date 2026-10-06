@@ -8,23 +8,23 @@ import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.sin
 
-/** The shadow a convex outline throws from a point light. */
+/** The shadow a convex outline casts from a point light. */
 internal object Shadow {
 
     /**
-     * Adds to [into] the shadow the convex outline in [points], from index [from] until [until], throws
-     * from a light at ([lightX], [lightY]) that reaches [reach] pixels; false, with nothing added, when
-     * the light is inside the outline or on its edge, where it has nothing to throw a shadow past.
+     * Adds to [into] the shadow that the convex outline in [points], from index [from] until
+     * [until], casts from a light at ([lightX], [lightY]) reaching [reach] pixels. Returns false,
+     * adding nothing, when the light is inside the outline or on its edge.
      *
-     * The outline is x, y pairs in frame pixels, wound with a positive signed area, as
-     * [ConvexHull] winds them. The edges facing away from the light run in one unbroken chain round its
-     * far side, from the point where the light's rays first graze it to where they last do, and the
-     * shadow is everything beyond that chain: out along the two grazing rays and closed off by an arc
-     * well past the light's reach. The outline itself is outside it, so whatever throws a shadow is lit
-     * on the side facing the light and is not darkened by its own shadow.
+     * The outline is x, y pairs in frame pixels, wound with a positive signed area as
+     * [ConvexHull] winds them. The edges facing away from the light form one chain
+     * round its far side, between the two points the light's rays graze; the shadow
+     * is everything beyond that chain, out along the two grazing rays and closed by
+     * an arc well past the light's reach. The outline itself is outside the shadow,
+     * so an occluder is lit on its near side and not darkened by its own shadow.
      *
-     * Every shadow is wound the same way round, the other way to its outline, so any number of them
-     * filled together as one path cover their union.
+     * Every shadow is wound the same way, opposite to its outline, so any number of them filled as
+     * one path cover their union.
      */
     fun cast(
         points: FloatArray,
@@ -38,8 +38,8 @@ internal object Shadow {
         val corners = (until - from) / 2
         if (corners < 3) return false
 
-        // The chain of edges facing away from the light starts at the corner after the last edge that
-        // faces it, and ends at the corner where the next edge facing it begins.
+        // The chain facing away from the light starts at the corner after the last edge facing it
+        // and ends where the next edge facing it begins.
         var first = -1
         var last = -1
         var previous = facesLight(points, from, corners, corners - 1, lightX, lightY)
@@ -59,9 +59,9 @@ internal object Shadow {
             corner = (corner + 1) % corners
         }
 
-        // Back from the end of the chain to its start, along an arc far enough out that no part of the
-        // light's square lies past it. Steps of at most an eighth of a turn keep each chord of the arc
-        // within a few percent of its radius, and twice the reach is well past the square's corners.
+        // Back from the end of the chain to its start along an arc beyond the light's square. Steps
+        // of at most an eighth of a turn keep each chord within a few percent of the radius, and
+        // twice the reach clears the square's corners.
         val firstAngle = angle(points, from, first, lightX, lightY)
         val lastAngle = angle(points, from, last, lightX, lightY)
         var sweep = firstAngle - lastAngle
@@ -78,9 +78,9 @@ internal object Shadow {
     }
 
     /**
-     * Whether the edge from corner [edge] to the next faces the light: an outline wound with a positive
-     * area has its inside on the positive side of each edge, so a light on the negative side is
-     * outside it, facing that edge.
+     * Whether the edge from corner [edge] to the next faces the light. An outline
+     * wound with a positive area has its inside on the positive side of each edge,
+     * so a light on the negative side faces it.
      */
     private fun facesLight(
         points: FloatArray,
@@ -98,6 +98,7 @@ internal object Shadow {
         return (bx - ax) * (lightY - ay) - (by - ay) * (lightX - ax) < 0f
     }
 
+    /** The angle from the light to corner [corner], in radians. */
     private fun angle(
         points: FloatArray,
         from: Int,

@@ -1,7 +1,6 @@
 package at.smiech.engine.impl
 
 import android.app.Activity
-import android.content.res.AssetManager
 import android.media.AudioAttributes
 import android.media.AudioManager
 import android.media.SoundPool
@@ -17,19 +16,31 @@ import java.io.IOException
  * [StemMixer], played on an `AudioTrack`; see [Audio.newMusic] and [Audio.newLayeredMusic].
  */
 class AndroidAudio(activity: Activity) : Audio {
-    private var assets: AssetManager
-    private var soundPool: SoundPool
+    private val assets = activity.assets
+    private val soundPool = SoundPool.Builder()
+        .setMaxStreams(20)
+        .setAudioAttributes(
+            AudioAttributes.Builder()
+                .setUsage(AudioAttributes.USAGE_GAME)
+                .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+                .build()
+        )
+        .build()
     private val layeredInstances = mutableListOf<LayeredMusic>()
+
+    init {
+        activity.volumeControlStream = AudioManager.STREAM_MUSIC
+    }
 
     override fun newMusic(filename: String): Music = TrackMusic.of(clip(filename), ::play)
 
     override fun newSound(filename: String): Sound {
         return try {
-            // SoundPool keeps its own duplicate of the descriptor, so this one can go at once.
-            val soundID = assets.openFd(filename).use { soundPool.load(it, 0) }
-            AndroidSound(soundID, soundPool)
+            // SoundPool duplicates the descriptor, so this one can be closed at once.
+            val soundId = assets.openFd(filename).use { soundPool.load(it, 0) }
+            AndroidSound(soundId, soundPool)
         } catch (exc: IOException) {
-            throw RuntimeException("Sound-file <$filename> not found! $exc")
+            throw IllegalStateException("Sound $filename could not be loaded", exc)
         }
     }
 
@@ -37,7 +48,7 @@ class AndroidAudio(activity: Activity) : Audio {
         play(StemMixer(stems.map(::clip), grid))
 
     override fun dispose() {
-        // A copy, because each one takes itself off the list as it goes.
+        // Iterates a copy, because each instance removes itself from the list as it is disposed.
         layeredInstances.toList().forEach { it.dispose() }
         layeredInstances.clear()
         soundPool.release()
@@ -47,23 +58,9 @@ class AndroidAudio(activity: Activity) : Audio {
         try {
             ImaAdpcmClip.parse(assets.open(name).use { it.readBytes() })
         } catch (exc: IOException) {
-            throw RuntimeException("Music <$name> not found! $exc")
+            throw IllegalStateException("Music $name could not be loaded", exc)
         }
 
     private fun play(mixer: StemMixer): LayeredMusic =
         AndroidLayeredMusic(mixer) { layeredInstances.remove(it) }.also { layeredInstances.add(it) }
-
-    init {
-        activity.volumeControlStream = AudioManager.STREAM_MUSIC
-        assets = activity.assets
-        SoundPool.Builder().apply {
-            setMaxStreams(20)
-            setAudioAttributes(
-                AudioAttributes.Builder()
-                    .setUsage(AudioAttributes.USAGE_GAME)
-                    .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
-                    .build()
-            )
-        }.build().also { this.soundPool = it }
-    }
 }

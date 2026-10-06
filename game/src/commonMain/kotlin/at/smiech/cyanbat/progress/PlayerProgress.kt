@@ -11,13 +11,11 @@ import at.smiech.cyanbat.util.XP_PER_KILL_PER_WAVE
 /**
  * The bat's experience over a single run, and the levels it buys.
  *
- * Not to be confused with the [at.smiech.cyanbat.resource.Stage] being flown through, or with the
- * waves inside it. This is the player getting stronger; that is the cave
- * getting harder. They are deliberately separate curves, because the whole point of the two is
- * that they race each other.
+ * Not to be confused with the [at.smiech.cyanbat.resource.Stage] being flown or its
+ * waves: this is the player getting stronger, that is the stage getting harder, and
+ * the two curves race each other.
  *
- * Experience is per-run and dies with the bat. Nothing here is persisted: a level bought with a
- * power-up would be worth nothing if the next run started with it already spent.
+ * Experience is per run and never persisted.
  *
  * @param firstLevelCost experience needed to go from level 1 to level 2.
  * @param levelStep how much more each level costs than the one before it.
@@ -47,33 +45,26 @@ class PlayerProgress(
         get() = (experience.toFloat() / experienceForNextLevel).coerceIn(0f, 1f)
 
     /**
-     * How hard the bat is glowing, as 0..1, for an `AuraComponent` to be set from.
-     *
-     * Nothing at level 1 and full at [AURA_FULL_INTENSITY_LEVEL], climbing evenly in between. It
-     * lives here rather than in the screen that draws it because it is a reading of the level and
-     * nothing else: the halo *is* how far the run has come, which is the same thing this class
-     * exists to count.
+     * How strongly the bat glows, 0..1, for its `AuraComponent`: nothing at level 1, full at
+     * [AURA_FULL_INTENSITY_LEVEL], rising evenly between. Derived from the level alone, so it lives
+     * here.
      */
     val auraIntensity: Float
         get() = ((level - 1f) / (AURA_FULL_INTENSITY_LEVEL - 1f)).coerceIn(0f, 1f)
 
     /**
-     * Which band of the aura the level has reached - the sparks and the lightning, which arrive a
-     * step at a time rather than growing.
+     * Which tier of the aura the level has reached: the sparks and lightning, which
+     * arrive in steps.
      *
-     * Zero until the first whole [AURA_LEVELS_PER_TIER] levels are in, so the opening of a run has
-     * a glow and nothing else. Uncapped: the effect's own ceilings are the system's business, not
-     * this one's, and a run that gets to level 60 has earned whatever it can be given.
+     * Zero until the first [AURA_LEVELS_PER_TIER] levels, so a run opens with only the glow.
+     * Uncapped; the aura system applies its own ceilings.
      */
     val auraTier: Int
         get() = level / AURA_LEVELS_PER_TIER
 
     /**
-     * Banks [amount] and reports how many levels it bought.
-     *
-     * The return is a count rather than a flag because a single kill late in a run can cross more
-     * than one threshold, and the player is owed a power-up for each. The remainder carries over,
-     * so nothing earned is ever rounded away.
+     * Banks [amount] and returns how many levels it bought: one kill late in a run can cross
+     * several thresholds, each owed a power-up. The remainder carries over.
      */
     fun award(amount: Int): Int {
         if (amount <= 0) return 0
@@ -89,6 +80,7 @@ class PlayerProgress(
         return levelsGained
     }
 
+    /** Back to level 1 with nothing earned. */
     fun reset() {
         level = 1
         experience = 0
@@ -100,11 +92,8 @@ class PlayerProgress(
 
     companion object {
         /**
-         * What killing an enemy from [waveIndex] is worth, and [ELITE_EXPERIENCE_FACTOR] times that
-         * for an [elite].
-         *
-         * Scaled by the wave so that pressing on pays better than farming the opening minute,
-         * which would otherwise be the safest way to level: early enemies die to one shot.
+         * What killing an enemy from [waveIndex] is worth, times [ELITE_EXPERIENCE_FACTOR] for an
+         * [elite]. Scaled by the wave so pressing on pays better than farming the opening minute.
          */
         fun experienceForKill(waveIndex: Int, elite: Boolean = false): Int =
             (XP_PER_KILL + waveIndex * XP_PER_KILL_PER_WAVE) * if (elite) ELITE_EXPERIENCE_FACTOR else 1

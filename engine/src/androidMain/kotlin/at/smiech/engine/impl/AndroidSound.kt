@@ -3,12 +3,13 @@ package at.smiech.engine.impl
 import android.media.SoundPool
 import at.smiech.engine.Sound
 
-class AndroidSound(var soundID: Int, var soundPool: SoundPool) : Sound {
+/** A [Sound] loaded into a [SoundPool] as [soundId]. */
+class AndroidSound(private val soundId: Int, private val soundPool: SoundPool) : Sound {
     override fun play(volume: Float) {
-        soundPool.play(soundID, volume, volume, 0, 0, 1f)
+        soundPool.play(soundId, volume, volume, 0, 0, 1f)
     }
 
     override fun dispose() {
-        soundPool.unload(soundID)
+        soundPool.unload(soundId)
     }
 }

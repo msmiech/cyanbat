@@ -37,9 +37,9 @@ The layers, bottom up:
 import numpy as np
 
 from musicsynth import (
-    AH, OH, OO, RENDER_RATE, Piece, bandpass, bell, chop, clap, cymbal, dark, echo, eight08, eq, held,
-    highpass, hz, jingles, kick, lowpass, mallet, membrane, notes, one_shot_filter, peak, pluck, reverb,
-    reverb_ir, saturate, saw, shaker, snare, swell, trap_hat, vowel, write_stems,
+    AH, OH, OO, Piece, bell, chop, clap, cymbal, dark, echo, eight08, eq, held, highpass, hz, jingles,
+    kick, lowpass, mallet, membrane, notes, peak, pluck, reverb, reverb_ir, saturate, saw, shaker,
+    snare, swell, trap_hat, vowel, write_stems,
 )
 
 PIECE = Piece("lagoon", bpm=135, beats_per_bar=4, seed=20261005)

@@ -4,6 +4,7 @@ import kotlin.test.Test
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** How [ContactCooldownComponent] spaces out a contact weapon's hits. */
 class ContactCooldownTest {
 
     private val cooldown = ContactCooldownComponent()

@@ -5,7 +5,7 @@ import at.smiech.engine.Input
 import kotlin.reflect.KClass
 
 /**
- * Marker interface for all components.
+ * Marker interface for all components: plain data an entity carries, read and written by systems.
  */
 interface Component
 
@@ -18,17 +18,18 @@ interface Component
  */
 typealias EntityId = Int
 
-/**
- * Base class for all systems that process entities.
- */
+/** Base class for all systems that process entities. */
 abstract class GameSystem {
     /**
      * Called once, when the system is handed to [World.addSystem]. Systems resolve their
-     * [ComponentMapper]s here so the per-frame work never has to look a component type up by class.
+     * [ComponentMapper]s here so per-frame work never looks a component type up by class.
      */
     open fun onAttach(world: World) {}
 
+    /** Advances the system by one tick of [deltaTime] seconds. */
     abstract fun update(world: World, deltaTime: Float, input: Input?)
+
+    /** Draws whatever the system renders, in system order. */
     open fun draw(world: World, graphics: Graphics) {}
 }
 
@@ -46,6 +47,7 @@ class ComponentMapper<T : Component> internal constructor(
     /** Bit this type occupies in an entity signature. Query masks are built from these. */
     internal val bit: Long = 1L shl typeId
 
+    /** The entity's component of this type, or null if it has none. */
     @Suppress("UNCHECKED_CAST")
     operator fun get(id: EntityId): T? = world.componentAt(typeId, id) as T?
 
@@ -53,16 +55,17 @@ class ComponentMapper<T : Component> internal constructor(
     @Suppress("UNCHECKED_CAST")
     fun require(id: EntityId): T = world.componentAt(typeId, id) as T
 
+    /** Whether the entity carries this type. */
     fun has(id: EntityId): Boolean = world.signatureOf(id) and bit != 0L
 }
 
 /**
- * The World manages entities, components, and systems.
+ * Owns the entities, their components and the systems that run over them.
  *
- * Storage is struct-of-arrays rather than nested maps: every array below is indexed by entity id,
- * so reading a component is one array load and a query is one bitmask test per live entity, with
- * no boxing of ids anywhere. Ids are dense and recycled precisely so those arrays stay the size of
- * the live population instead of growing with everything a run has ever spawned.
+ * Storage is struct-of-arrays rather than nested maps: every array is indexed by entity id, so
+ * reading a component is one array load and a query is one bitmask test per live entity, with no
+ * boxed ids. Ids are dense and recycled so the arrays stay the size of the live population rather
+ * than growing with everything a run has ever spawned.
  */
 class World {
     private val typeIds = HashMap<KClass<out Component>, Int>()
@@ -93,6 +96,7 @@ class World {
 
     // region entities
 
+    /** A new entity with no components, possibly reusing a removed entity's id. */
     fun createEntity(): EntityId {
         val id: EntityId
         if (freeCount > 0) {
@@ -111,8 +115,8 @@ class World {
     /**
      * Marks an entity for removal at the end of the current [update].
      *
-     * Removing something already gone, or already queued, is a no-op - a frame routinely lands two
-     * hits on the same entity.
+     * Removing something already gone or already queued is a no-op, since a frame routinely lands
+     * two hits on the same entity.
      */
     fun removeEntity(id: EntityId) {
         if (id < 0 || id >= capacity || !isAlive[id] || isPendingRemoval[id]) return
@@ -127,12 +131,16 @@ class World {
 
     // region components
 
+    /** Attaches [component] to the entity, replacing any component of the same type. */
     fun <T : Component> addComponent(id: EntityId, component: T) {
         val typeId = typeIdOf(component::class)
         stores[typeId]!![id] = component
         signatures[id] = signatures[id] or (1L shl typeId)
     }
 
+    /**
+     * The entity's component of [type], or null. Hashes the class; systems use a [mapper] instead.
+     */
     @Suppress("UNCHECKED_CAST")
     fun <T : Component> getComponent(id: EntityId, type: KClass<T>): T? {
         val typeId = typeIds[type] ?: return null
@@ -140,6 +148,7 @@ class World {
         return stores[typeId]!![id] as T?
     }
 
+    /** Whether the entity carries a component of [type]. */
     fun <T : Component> hasComponent(id: EntityId, type: KClass<T>): Boolean {
         val typeId = typeIds[type] ?: return false
         if (id < 0 || id >= capacity) return false
@@ -147,7 +156,7 @@ class World {
     }
 
     /**
-     * Resolves a lasting handle to one component type. Call it once - from [GameSystem.onAttach] -
+     * Resolves a lasting handle to one component type. Call it once, from [GameSystem.onAttach],
      * rather than per frame.
      */
     fun <T : Component> mapper(type: KClass<T>): ComponentMapper<T> =
@@ -165,11 +174,15 @@ class World {
 
     // region systems
 
+    /**
+     * Appends [system] to the run order; the order systems are added in is the order they run in.
+     */
     fun addSystem(system: GameSystem) {
         systems.add(system)
         system.onAttach(this)
     }
 
+    /** Runs every system's update in order, then finalizes the removals queued along the way. */
     fun update(deltaTime: Float, input: Input?) {
         for (i in systems.indices) {
             systems[i].update(this, deltaTime, input)
@@ -177,6 +190,7 @@ class World {
         finalizeRemovals()
     }
 
+    /** Runs every system's draw in order. */
     fun draw(graphics: Graphics) {
         for (i in systems.indices) {
             systems[i].draw(this, graphics)
@@ -195,8 +209,8 @@ class World {
     fun query(vararg types: KClass<out Component>): List<EntityId> {
         var mask = 0L
         for (type in types) {
-            // A type nothing has registered can never match, and registering it here would burn a
-            // signature bit on a component the world does not use.
+            // An unregistered type can never match, and registering it here would waste a signature
+            // bit on a component the world does not use.
             val typeId = typeIds[type] ?: return emptyList()
             mask = mask or (1L shl typeId)
         }
@@ -211,9 +225,9 @@ class World {
     /**
      * Runs [action] for every entity carrying all of the mapped components, in creation order.
      *
-     * The live set is sampled up front, so entities spawned from inside [action] wait for the next
-     * pass - the snapshot semantics [query] has always had. Entities removed from inside it are
-     * still visited, because removal only lands at the end of the update.
+     * The live set is sampled up front, so entities spawned inside [action] wait for the next pass,
+     * as with [query]. Entities removed inside it are still visited, because removal only lands at
+     * the end of the update.
      */
     fun forEach(a: ComponentMapper<*>, action: (EntityId) -> Unit) =
         forEachMatching(a.bit, action)
@@ -292,8 +306,8 @@ class World {
     /**
      * Drops everything queued by [removeEntity] and hands the ids back to the free list.
      *
-     * The live list is compacted rather than swap-removed, so creation order - which render
-     * ordering and the collision pair order both rest on - survives.
+     * The live list is compacted rather than swap-removed, so creation order survives: render order
+     * and collision pair order both rely on it.
      */
     private fun finalizeRemovals() {
         if (pendingCount == 0) return

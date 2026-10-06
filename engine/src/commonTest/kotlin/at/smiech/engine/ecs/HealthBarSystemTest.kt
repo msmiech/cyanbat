@@ -24,7 +24,7 @@ private class RectRecordingGraphics : Graphics {
         rects += DrawnRect(x, y, width, height, color)
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) =
+    override fun newPixmap(filename: String) =
         throw UnsupportedOperationException()
 
     override fun clear(color: Int) = Unit
@@ -64,6 +64,7 @@ private class RectRecordingGraphics : Graphics {
 private const val WORLD_WIDTH = 480
 private const val WORLD_HEIGHT = 320
 
+/** How [HealthBarSystem] draws a bar at each fill. */
 class HealthBarSystemTest {
 
     private val world = World().apply { addSystem(HealthBarSystem(WORLD_HEIGHT)) }

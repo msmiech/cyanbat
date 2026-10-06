@@ -3,16 +3,14 @@ package at.smiech.engine.impl
 /**
  * A WAV file of IMA ADPCM audio, held compressed and decoded a block at a time as it plays.
  *
- * IMA ADPCM stores each sample as a 4-bit step from the one before, so a stem costs a quarter of
- * its PCM size. That is as far as compression goes without a perceptual codec, and it is what the
- * 16-bit consoles did too: the SNES kept its instruments as a close cousin of this. What it buys
- * over MP3 is exactness. The file holds precisely the frames that were written, with no encoder
- * delay or padding at either end, so a stem loops without a gap and every stem of a piece starts on
- * the same sample. And the decoder is fifty lines of common code, where MP3 needs a platform codec.
+ * IMA ADPCM stores each sample as a 4-bit step from the previous one, a quarter of the PCM size.
+ * Unlike MP3 it is exact: the file holds precisely the frames that were written, with no encoder
+ * delay or padding, so a stem loops without a gap and every stem of a piece starts on the same
+ * sample. The decoder is a few dozen lines of common code, where MP3 needs a platform codec.
  *
  * This is Microsoft's layout (format tag 0x0011), which ordinary audio players also open: blocks of
- * [blockAlign] bytes, each starting with every channel's first sample and step index written out in
- * full, followed by the channels' nibbles interleaved four bytes at a time.
+ * [blockAlign] bytes, each starting with every channel's first sample and step index in full,
+ * followed by the channels' nibbles interleaved four bytes at a time.
  */
 class ImaAdpcmClip private constructor(
     val sampleRate: Int,
@@ -25,15 +23,15 @@ class ImaAdpcmClip private constructor(
     private val dataOffset: Int,
     private val dataLength: Int,
 ) {
-    /** A read position of its own into the clip. Cursors share the clip's bytes and nothing else. */
+    /** An independent read position into the clip. Cursors share only the clip's bytes. */
     fun cursor(): Cursor = Cursor()
 
     /**
-     * Reads the clip from the top, round and round: the frame after the last one is the first.
+     * Reads the clip from the top in a loop: the frame after the last is the first.
      *
-     * Decoding runs a block ahead of the reader into a buffer of its own, and a block always
-     * restarts from the sample and step written in its header. That is what makes the loop exact:
-     * going back to the top is starting the first block again, with nothing carried over.
+     * Each block is decoded into the cursor's own buffer and restarts from the sample and step in
+     * its header. That makes the loop exact: going back to the top is decoding the first block
+     * again, with nothing carried over.
      */
     inner class Cursor internal constructor() {
         private val block = ShortArray(framesPerBlock * channels)
@@ -42,7 +40,7 @@ class ImaAdpcmClip private constructor(
         private var frameInBlock = 0
 
         /**
-         * Writes the next [count] frames into [dst] as interleaved stereo in -1..1, and moves on
+         * Writes the next [count] frames into [dst] as interleaved stereo in -1..1 and advances
          * past them. A mono clip goes to both sides.
          *
          * @param offset the first frame of [dst] to write, in frames.
@@ -91,8 +89,8 @@ class ImaAdpcmClip private constructor(
             out[ch] = predictor[ch].toShort()
         }
 
-        // After the headers, each channel in turn gets four bytes - eight samples, low nibble
-        // first - and then the next channel does, until the block runs out.
+        // After the headers, the channels take turns at four bytes each (eight samples, low nibble
+        // first) until the block runs out.
         var p = start + 4 * channels
         var frame = 1
         while (p + 4 * channels <= end && frame < count) {
@@ -140,10 +138,10 @@ class ImaAdpcmClip private constructor(
         )
 
         /**
-         * Reads the RIFF chunks this needs - `fmt `, `fact` and `data` - and skips the rest.
+         * Reads the RIFF chunks this needs (`fmt `, `fact` and `data`) and skips the rest.
          *
-         * `fact` is required rather than guessed at: it is the only place the exact length is
-         * written down, and the last block is usually part empty.
+         * `fact` is required: it is the only record of the exact length, and the last block is
+         * usually partly empty.
          */
         fun parse(bytes: ByteArray): ImaAdpcmClip {
             require(bytes.size >= 12 && bytes.ascii(0) == "RIFF" && bytes.ascii(8) == "WAVE") {

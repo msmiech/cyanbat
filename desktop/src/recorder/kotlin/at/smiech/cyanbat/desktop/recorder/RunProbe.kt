@@ -25,7 +25,10 @@ class RunProbe(private val screen: GameScreen) {
     private val bannerTextField = field("bannerText")
     private val bannerTimeField = field("bannerTime")
 
+    /** The run's world. */
     val world: World get() = worldField.get(screen) as World
+
+    /** The bat's entity. */
     val batId: EntityId get() = batIdField.getInt(screen)
 
     /**
@@ -37,26 +40,33 @@ class RunProbe(private val screen: GameScreen) {
         get() = offerField.get(screen) as List<PowerUp>
         set(cards) = offerField.set(screen, cards)
 
+    /** Whether the boss is down and the stage won. */
     val stageComplete: Boolean get() = stageCompleteField.getBoolean(screen)
+
+    /** The bat's level. */
     val level: Int get() = (progressField.get(screen) as PlayerProgress).level
 
     /** Everything the run has earned toward its levels, from the start. */
     val experience: Int get() = (progressField.get(screen) as PlayerProgress).totalExperience
+
+    /** The run's score. */
     val score: Int get() = (scoringField.get(screen) as ScoreTracker).score
 
     /** The wave or boss announcement on screen, if one is. */
     val banner: String?
-        get() = if (bannerTimeField.getFloat(screen) > 0f) bannerTextField.get(
-            screen
-        ) as String? else null
+        get() {
+            if (bannerTimeField.getFloat(screen) <= 0f) return null
+            return bannerTextField.get(screen) as String?
+        }
 
+    /** [GameScreen]'s private field [name], opened for reading. */
     private fun field(name: String): Field =
         try {
             GameScreen::class.java.getDeclaredField(name).apply { isAccessible = true }
         } catch (e: NoSuchFieldException) {
             throw IllegalStateException(
                 "GameScreen has no field '$name' any more; update RunProbe to match",
-                e
+                e,
             )
         }
 }

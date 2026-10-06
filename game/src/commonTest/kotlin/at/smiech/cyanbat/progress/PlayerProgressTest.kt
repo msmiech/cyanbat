@@ -8,6 +8,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** How [PlayerProgress] banks experience and levels the bat up. */
 class PlayerProgressTest {
 
     private val progress = PlayerProgress()

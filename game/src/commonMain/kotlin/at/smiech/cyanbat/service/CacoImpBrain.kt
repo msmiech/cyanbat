@@ -46,27 +46,24 @@ import kotlin.random.Random
  * The Caco Imp's fight, in three phases marked by its health, played out in the light it gives off.
  *
  * 1. **Smouldering.** It weaves on station, alight, firing straight bolts and now and then a fan at
- *    the player. The fight the cave's boss has always been, but lit by itself.
- * 2. **Lights out.** At two thirds its light goes out, and it goes over and over the same round:
- *    it glides through the dark to a station of its own choosing and lurks there; then it flares
- *    up, which is the only warning of where it has got to, throws a ring and a fan from the flare,
- *    and burns there a moment before it puts its light out and moves again. It never fires in the
- *    dark: a bolt is a light, and would give away what the dark is hiding.
- * 3. **Ablaze.** At one third it lights up for good, hotter and wider than before and guttering
- *    like a fire, weaves faster, fires rings and wide fans, and calls in two of its own kind every
- *    few seconds.
+ *    the player.
+ * 2. **Lights out.** At two thirds its light goes out and it repeats a round: it glides through the
+ *    dark to a station of its choosing and lurks there, then flares up (the only warning of where
+ *    it is), fires a ring and a fan, and burns a moment before going dark and moving again. It
+ *    never fires in the dark, since a bolt is a light and would give it away.
+ * 3. **Ablaze.** At one third it lights up for good, brighter and guttering like a fire, weaves
+ *    faster, fires rings and wide fans, and calls in two of its kind every few seconds.
  *
- * The dark is the stage's own and is the same for the boss as for everything else: unlit, it is the
- * dim shape anything is that no light reaches. What finds it is light - the bat's own, which shows it
- * as it comes near and glints off its edge, the bat's shots, which light it as they fly past, and the
- * flash of one that hits it. So its health bar is pinned to the screen rather than hung under it.
+ * Unlit, it is as dim as anything else no light reaches. Light finds it: the bat's own as it comes
+ * near, the bat's shots flying past, and the flash of a hit. So its health bar is pinned to the
+ * screen rather than hung under it.
  *
- * Phases are read off its health, as the other bosses' are, and a hit that crosses both thresholds
- * plays both entrances in order. Everything it does is state on its own components - its light, its
- * gun, its weapon's cadence, its movement - and this only decides when it changes; in daylight, as
- * in a test, it has no light to change and fights the same fight.
+ * A hit that crosses both thresholds plays both entrances in order. Like every
+ * [BossBrain] this only changes state on its components; in daylight, as in a test,
+ * it has no light and fights the same fight.
  *
- * @param frameWidth/frameHeight the frame it prowls in.
+ * @param frameWidth the width of the frame it prowls in.
+ * @param frameHeight the height of the frame it prowls in.
  * @param random where it chooses to prowl to.
  * @param onSummon called when it calls in its kind; the generator is what knows how to spawn them.
  * @param onPhaseChanged called with the phase it has just entered, 2 or 3, for the screen to announce.
@@ -80,6 +77,7 @@ class CacoImpBrain(
     private val onSummon: () -> Unit = {},
     private val onPhaseChanged: (Int) -> Unit = {},
 ) : BossBrain {
+    /** The phase it is in, 1 to 3. */
     var phase = 1
         private set
 
@@ -97,9 +95,16 @@ class CacoImpBrain(
     var stationY = 0f
         private set
 
+    /** Seconds into the current [prowl] step. */
     private var prowlTime = 0f
+
+    /** Seconds of the fight, which its light breathes and gutters by. */
     private var clock = 0f
+
+    /** Seconds until the next summons, in the third phase. */
     private var summonTimer = 0f
+
+    /** Volleys of the current ambush still to fire, and the seconds until the next. */
     private var volleysLeft = 0
     private var untilVolley = 0f
 
@@ -126,6 +131,7 @@ class CacoImpBrain(
         fireVolleys(deltaTime)
     }
 
+    /** Plays the entrance of phase [next]: its gun, and its light and movement. */
     private fun enter(next: Int) {
         phase = next
         val gun = gunFor(next)
@@ -143,12 +149,10 @@ class CacoImpBrain(
             // It goes dark from where it is: the first douse is the change of phase.
             step(Prowl.DOUSE)
         } else if (next >= 3) {
-            // Wherever the dark left it, it takes up its station and weaves there, ablaze. A hit that
-            // ended the dark mid-glide stops the glide where it was.
+            // It takes up its station wherever the dark left it, stopping any glide where it was.
             val rect = rectOf() ?: return
             weaveAt(rect.left, rect.top, CACO_IMP_BLAZE_TEMPO)
-            // Its kind come a moment after it lights up rather than with it, so the two land as
-            // separate events the player can take in one at a time.
+            // Its summons come a moment after it lights up, so the two land as separate events.
             summonTimer = FIRST_SUMMON_DELAY
         }
         onPhaseChanged(next)
@@ -175,8 +179,8 @@ class CacoImpBrain(
             Prowl.PROWL -> {
                 shine(CACO_IMP_LIGHT_COLOR, CACO_IMP_LIGHT_RADIUS, 0f)
                 val rect = rectOf() ?: return
-                // Held to a time as well as to arriving, so a glide that something stopped short
-                // cannot leave it lurking in the dark for good.
+                // Also capped in time, so a glide stopped short cannot leave it in
+                // the dark for good.
                 val arrived = hypot(rect.left - stationX, rect.top - stationY) < ARRIVED
                 if (arrived || prowlTime >= LONGEST_PROWL_SECONDS) step(Prowl.LURK)
             }
@@ -187,7 +191,7 @@ class CacoImpBrain(
             }
 
             Prowl.FLARE -> {
-                // Up quickly and then easing in, so the flare is seen catching rather than fading up.
+                // Up quickly, then easing in, so the flare catches rather than fades up.
                 val t = (prowlTime / CACO_IMP_FLARE_SECONDS).coerceAtMost(1f)
                 val up = 1f - (1f - t) * (1f - t)
                 shine(CACO_IMP_LIGHT_COLOR, CACO_IMP_LIGHT_RADIUS, CACO_IMP_FLARE_INTENSITY * up)
@@ -203,7 +207,7 @@ class CacoImpBrain(
             }
 
             Prowl.BURN -> {
-                // Dying back from the flare to its smoulder, and breathing there until it goes out.
+                // Dying back from the flare to its smoulder until it goes out.
                 val t = (prowlTime / CACO_IMP_BURN_SECONDS).coerceAtMost(1f)
                 val intensity =
                     CACO_IMP_FLARE_INTENSITY + (smoulder() - CACO_IMP_FLARE_INTENSITY) * t
@@ -213,17 +217,17 @@ class CacoImpBrain(
         }
     }
 
+    /** Moves the round on to [next]. */
     private fun step(next: Prowl) {
         prowl = next
         prowlTime = 0f
     }
 
     /**
-     * Picks where to prowl to: somewhere in the right of the frame with room to weave, clear of the
-     * bat and a real move from where it is - the first of a handful of tries that is both, so where
-     * it goes is not the same corner every time. When none is, the furthest move that is still clear
-     * of the bat, and failing that the station furthest from it: keeping clear of the bat comes first,
-     * since the dark is where it hides, not where it hunts.
+     * Picks where to prowl to: the first of a handful of random stations in the right of the frame,
+     * with room to weave, that is both clear of the bat and a real move away. Failing that, the
+     * farthest move still clear of the bat, and failing that the station farthest from it: the dark
+     * is where it hides, not where it hunts.
      */
     private fun chooseStation() {
         val rect = rectOf() ?: return
@@ -260,6 +264,7 @@ class CacoImpBrain(
         stationY = bestY
     }
 
+    /** Starts a glide to the station whose corner is at [x], [y]. */
     private fun glideTo(x: Float, y: Float) {
         world.addComponent(
             bossId,
@@ -273,9 +278,9 @@ class CacoImpBrain(
     }
 
     /**
-     * Takes up a station where it is and weaves there, as it does on arriving, at [tempo]. Its lane is
-     * kept far enough from the top and the bottom for the whole weave, so one taken up near an edge
-     * eases back into the frame.
+     * Takes up a station where it is and weaves there at [tempo]. Its lane is kept
+     * far enough from the top and bottom for the whole weave, so one taken up near
+     * an edge eases back into the frame.
      */
     private fun weaveAt(x: Float, y: Float, tempo: Float) {
         val height = rectOf()?.height ?: 0f
@@ -293,8 +298,8 @@ class CacoImpBrain(
     }
 
     /**
-     * Pulls the trigger on each of an ambush's volleys in turn, through the same weapon every enemy
-     * fires by; see [TRIGGERED_INTERVAL].
+     * Fires each of an ambush's volleys in turn through its ordinary weapon; see
+     * [TRIGGERED_INTERVAL].
      */
     private fun fireVolleys(deltaTime: Float) {
         if (volleysLeft <= 0) return
@@ -320,13 +325,14 @@ class CacoImpBrain(
 
     /**
      * Its blaze, guttering like a fire: two flickers at unrelated rates, so it never settles into a
-     * beat, taking it down by up to [CACO_IMP_FLICKER] and never lifting it past its strength.
+     * beat, dimming it by up to [CACO_IMP_FLICKER].
      */
     private fun blaze(): Float {
         val gutter = 0.5f + 0.3f * sin(clock * FLICKER_FAST) + 0.2f * sin(clock * FLICKER_SLOW + 1f)
         return CACO_IMP_BLAZE_INTENSITY * (1f - CACO_IMP_FLICKER * gutter)
     }
 
+    /** The living bat's center, or null. */
     private fun batCenter(): Pair<Float, Float>? {
         for (id in world.query(PlayerControlComponent::class, TransformComponent::class)) {
             if (world.getComponent(id, HealthComponent::class)?.alive == false) continue
@@ -336,15 +342,17 @@ class CacoImpBrain(
         return null
     }
 
+    /** Its own box, or null once it is gone. */
     private fun rectOf(): Rect? = world.getComponent(bossId, TransformComponent::class)?.rect
 
     /**
-     * The round it goes through in the dark, again and again: [DOUSE] its light, [PROWL] to a new
-     * station unlit, [LURK] there, [FLARE] up - the warning - and fire, and [BURN] there lit.
+     * The round it repeats in the dark: [DOUSE] its light, [PROWL] to a new station unlit, [LURK]
+     * there, [FLARE] up as a warning and fire, and [BURN] there lit.
      */
     enum class Prowl { DOUSE, PROWL, LURK, FLARE, BURN }
 
     companion object {
+        /** Seconds from lighting up for good to the first summons. */
         private const val FIRST_SUMMON_DELAY = 2.5f
 
         /** Seconds between the volleys of one ambush. */
@@ -357,8 +365,8 @@ class CacoImpBrain(
         private const val LONGEST_PROWL_SECONDS = 6f
 
         /**
-         * How far from the top and bottom edges a station's lane is kept: the weave's own reach, and
-         * a little more, so the whole weave stays in the frame.
+         * How far from the top and bottom edges a station's lane is kept: a little more than the
+         * weave's reach, so the whole weave stays in the frame.
          */
         private const val WEAVE_ROOM = 68f
 
@@ -368,17 +376,17 @@ class CacoImpBrain(
         /** How many stations it weighs up before it prowls, at most. */
         private const val STATION_TRIES = 24
 
-        /** A score only a station clear of the bat can reach, so any of them beats any that is not. */
+        /** A score only stations clear of the bat reach, so any of them beats any that is not. */
         private const val CLEAR = 10_000f
 
         private const val FLICKER_FAST = 13f
         private const val FLICKER_SLOW = 7.3f
         private const val TWO_PI = (2.0 * PI).toFloat()
 
-        /** Far longer than any fight: in the dark, the brain pulls the trigger, never the cadence. */
+        /** Longer than any fight: in the dark the brain fires the gun, never its cadence. */
         const val TRIGGERED_INTERVAL = 1_000_000f
 
-        /** What it opens with: straight bolts, as it always fired, and a fan between them. */
+        /** What it opens with: straight bolts, and a fan between them. */
         val SMOULDERING_GUN = EnemyGun(
             1.6f,
             listOf(
@@ -392,8 +400,8 @@ class CacoImpBrain(
         )
 
         /**
-         * Its ambush, fired from each flare: a ring, which lights the dark around it as it spreads,
-         * and a fan at the player so threading the ring in place is not enough.
+         * Its ambush, fired from each flare: a ring, which lights the dark as it spreads, and a fan
+         * at the player so threading the ring in place is not enough.
          */
         private val AMBUSH_GUN = EnemyGun(
             TRIGGERED_INTERVAL,
@@ -428,6 +436,7 @@ class CacoImpBrain(
             ),
         )
 
+        /** Its gun in [phase]. */
         fun gunFor(phase: Int): EnemyGun = when {
             phase >= 3 -> BLAZING_GUN
             phase == 2 -> AMBUSH_GUN

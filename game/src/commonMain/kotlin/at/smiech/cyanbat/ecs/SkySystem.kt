@@ -20,22 +20,18 @@ import kotlin.math.sqrt
 import kotlin.random.Random
 
 /**
- * Draws a [Backdrop.Sky]: a sky that changes with the time of day across the stage - the desert's
- * from noon into night, the lagoon's from night to noon - and the ground scrolling past underneath it
- * at its depths; and keeps everything else in the stage that is drawn by daylight, its obstacles, in
- * the same light.
+ * Draws a [Backdrop.Sky]: a sky that changes with the time of day across the stage (the desert's
+ * from noon into night, the lagoon's from night to noon) over parallax ground scrolling beneath it,
+ * and puts the stage's daylit obstacles in the same light.
  *
- * Add it first. Its [draw] is the back of the picture, and everything the world draws after it -
- * the sprites, the effects, the bars - has to land on top.
+ * Add it first: its [draw] is the back of the picture.
  *
- * How far through the day the stage is comes from [dayPosition], read once a tick, so the sun moves
- * on the stage clock and holds still whenever the stage does. Everything else it draws - the scroll,
- * the twinkle, the meteors, the glints on the water - is advanced by the same fixed tick for the same
- * reason.
+ * The time of day comes from [dayPosition], read once a tick, so the sun moves on the stage clock
+ * and stops when the stage does. The scroll, twinkle, meteors and water glints advance on the same
+ * tick.
  *
- * Nothing it draws is an entity. A sky is a handful of colored bands, a hundred-odd stars and a few
- * circles, and as entities they would have been a hundred-odd things to sort into the draw order
- * behind everything else every frame, only to draw them first anyway.
+ * Nothing it draws is an entity: a hundred-odd stars and a few bands and circles would only be
+ * entities to sort to the back of the draw order every frame.
  */
 class SkySystem(
     private val backdrop: Backdrop.Sky,
@@ -54,7 +50,7 @@ class SkySystem(
     /** Where through its day the stage is, as of the last tick; see [Day.position]. */
     private var position = 0f
 
-    /** Seconds of play, which is what the stars twinkle, the meteors fall and the water glints by. */
+    /** Seconds of play, which drives the twinkle, the meteors and the water glints. */
     private var clock = 0f
 
     /** How far into its current stretch each layer has scrolled, wrapped to its width. */
@@ -64,28 +60,31 @@ class SkySystem(
     private val stretch = IntArray(backdrop.layers.size)
 
     /**
-     * The first stretch of each layer drawn from its [at.smiech.cyanbat.resource.ParallaxLayer.ahead]
-     * sheet, once the day has got that far; none until then. Settled on the first stretch still out
-     * of sight when it does, so the new scenery comes in from the right rather than appearing in view.
+     * The first stretch of each layer drawn from its
+     * [at.smiech.cyanbat.resource.ParallaxLayer.ahead] sheet once the day gets that far; none until
+     * then. Set to the first stretch still out of sight, so the new scenery scrolls in from the
+     * right rather than appearing in view.
      */
     private val aheadFrom = IntArray(backdrop.layers.size) { Int.MAX_VALUE }
 
     /**
-     * The sky, one color per band, repainted only when the day has moved on by [REPAINT_STEP].
-     * A sunset or a sunrise takes minutes; working out seventy-odd colors again every frame of it would
-     * be work nobody could see the result of.
+     * The sky, one color per band, recomputed only when the day has moved on by [REPAINT_STEP]: a
+     * sunset takes minutes, and recomputing every frame would change nothing visible.
      */
     private val bands = IntArray((horizonY + BAND_HEIGHT - 1) / BAND_HEIGHT)
     private var bandsPaintedAt = Float.NaN
 
-    // The stars, one entry per star across these arrays. Scattered once, from a fixed seed, so the
-    // sky is the same sky on every run - the constellations are part of the stage.
+    // The stars, one entry per star across these arrays. Scattered once from a fixed seed, so every
+    // run has the same sky.
     private val starX = FloatArray(STAR_COUNT)
     private val starY = IntArray(STAR_COUNT)
     private val starColor = IntArray(STAR_COUNT)
     private val starBrightness = FloatArray(STAR_COUNT)
 
-    /** How much of the night has to be up before this star is: the brightest come out first, and go last. */
+    /**
+     * How far night must have fallen before this star shows: the brightest come out
+     * first and go last.
+     */
     private val starThreshold = FloatArray(STAR_COUNT)
     private val starTwinkleRate = FloatArray(STAR_COUNT)
     private val starTwinklePhase = FloatArray(STAR_COUNT)
@@ -109,7 +108,7 @@ class SkySystem(
         }
         for (i in 0 until STAR_COUNT) {
             starX[i] = random.nextFloat() * frameWidth
-            // Thinner toward the horizon, where the glow of the sunset lingers longest anyway.
+            // Sparser toward the horizon, where the sunset's glow lingers longest.
             val height = random.nextFloat()
             starY[i] = (STAR_TOP + height * height * (starBottom - STAR_TOP)).toInt()
             val roll = random.nextFloat()
@@ -138,8 +137,8 @@ class SkySystem(
             val layer = backdrop.layers[i]
             val width = layer.sheet.width
             if (aheadFrom[i] == Int.MAX_VALUE && layer.ahead != null && position >= layer.aheadFrom) {
-                // The next stretch is already coming into view when there is less of this one left
-                // than the frame is wide; the new scenery waits for the one after it.
+                // With less of this stretch left than the frame is wide, the next is already coming
+                // into view, so the new scenery waits for the one after it.
                 val nextInView = width - scrolled[i] <= frameWidth
                 aheadFrom[i] = stretch[i] + if (nextInView) 2 else 1
             }
@@ -152,9 +151,8 @@ class SkySystem(
 
         if (bandsPaintedAt.isNaN() || abs(position - bandsPaintedAt) >= REPAINT_STEP) paintBands()
 
-        // The scenery standing in the stage is drawn in the same keyframes as the ground, so it is
-        // put in the same light on the same tick. Its sheet's rows are its own height, which the
-        // sprite already knows.
+        // The stage's obstacles are drawn in the same keyframes as the ground, so they are put in
+        // the same light on the same tick. Each sheet row is the sprite's own height.
         val below = day.keyframeBelow(position)
         val above = day.keyframeAbove(position)
         val blend = day.keyframeBlend(position)
@@ -187,9 +185,8 @@ class SkySystem(
     }
 
     /**
-     * Banded rather than smooth, like the shading on every sprite in the game: a gradient drawn a
-     * few pixels at a time is what a sky looks like in pixel art. Below the horizon the last band
-     * carries on down to the bottom of the frame, behind the ground.
+     * Banded rather than smooth, like the sprites' shading. Below the horizon the last band
+     * continues to the bottom of the frame, behind the ground.
      */
     private fun drawSky(graphics: Graphics) {
         for (band in bands.indices) {
@@ -202,12 +199,11 @@ class SkySystem(
     private fun drawStars(graphics: Graphics) {
         val night = day.starlight(position)
         if (night <= 0f) return
-        // The sky turns slowly overhead: slow enough to be felt rather than seen.
+        // The sky turns slowly overhead, felt more than seen.
         val drift = clock * STAR_DRIFT_PER_SECOND
         for (i in 0 until STAR_COUNT) {
-            // Each star fades in over its own slice of the night's arrival, from the moment the night
-            // passes its threshold, so they come out one by one rather than all at once - and go out
-            // the same way as it leaves.
+            // Each star fades in over its own slice of nightfall from its threshold, so they come
+            // out one by one, and go out the same way.
             val up = ((night - starThreshold[i]) / STAR_FADE_IN).coerceIn(0f, 1f)
             if (up <= 0f) continue
             val twinkle =
@@ -218,8 +214,8 @@ class SkySystem(
             val color = starColor[i]
             graphics.drawRect(x, y, 1, 1, EngineColors.withAlpha(color, alpha))
             if (starBrightness[i] >= 1f) {
-                // The brightest few get a cross of light, dimmer than the point, so they read as
-                // bigger stars rather than as bigger pixels.
+                // The brightest get a dimmer cross of light, so they read as bigger
+                // stars rather than bigger pixels.
                 val arm = EngineColors.withAlpha(color, alpha * 0.45f)
                 graphics.drawRect(x - 1, y, 1, 1, arm)
                 graphics.drawRect(x + 1, y, 1, 1, arm)
@@ -229,6 +225,7 @@ class SkySystem(
         }
     }
 
+    /** The moon, faded in and out with its light. */
     private fun drawMoon(graphics: Graphics) {
         val light = day.moonlight(position)
         if (light <= 0f) return
@@ -239,12 +236,11 @@ class SkySystem(
     }
 
     /**
-     * A disc with a brighter core, inside three rings of halo, faintest outermost. The halo is how a
-     * low sun sets the sky around it alight; the rings are hard-edged, so it is the same banded light
-     * as the sky rather than a blur.
+     * A disc with a brighter core inside three hard-edged halo rings, faintest outermost, so the
+     * glow is banded like the sky rather than blurred.
      *
-     * A sun seen through the haze over a sea is cut into bands across its lower half, and shades from
-     * its own color at the top to a deeper one at the bottom: it is drawn a row at a time then.
+     * Seen through haze over a sea, the sun is cut into bands across its lower half and shades to a
+     * deeper color at the bottom; it is then drawn a row at a time.
      */
     private fun drawSun(graphics: Graphics) {
         if (!day.sunUp(position)) return
@@ -280,9 +276,9 @@ class SkySystem(
     }
 
     /**
-     * The sun a row at a time, from [top] at its crown to [bottom] at its foot, with the rows that fall
-     * in the haze's bands left out so the sky behind shows through. The bands start at its middle and
-     * thicken toward its foot, more of them the more [bands] there is.
+     * The sun row by row, shading from [top] at its crown to [bottom] at its foot, skipping the
+     * rows in the haze's bands so the sky shows through. The bands start at its middle and thicken
+     * toward its foot, more so the higher [bands] is.
      */
     private fun drawBandedSun(
         graphics: Graphics,
@@ -324,8 +320,8 @@ class SkySystem(
 
     /**
      * Whether a row [down] of the way from the sun's middle to its foot falls in one of the haze's
-     * bands: [SUN_BAND_COUNT] of them across the lower half, each a slice of its own period that grows
-     * toward the foot - from nothing at the top to most of the period at the bottom, at full [bands].
+     * [SUN_BAND_COUNT] bands, each a slice of its period that grows toward the foot, up to most of
+     * the period at full [bands].
      */
     private fun inBand(down: Float, bands: Float): Boolean {
         val period = (down * SUN_BAND_COUNT) % 1f
@@ -344,7 +340,7 @@ class SkySystem(
             if (meteorAge >= meteorLife) meteorAge = -1f
             return
         }
-        // Only while the night is well up: a meteor in daylight is a meteor nobody would see.
+        // Only once night has well fallen.
         if (day.starlight(position) < METEOR_NIGHT) return
         untilMeteor -= deltaTime
         if (untilMeteor > 0f) return
@@ -354,7 +350,7 @@ class SkySystem(
         meteorLife = 0.55f + meteors.nextFloat() * 0.35f
         meteorX = frameWidth * (0.3f + meteors.nextFloat() * 0.65f)
         meteorY = STAR_TOP + meteors.nextFloat() * 70f
-        // Down and to the left, the way the scenery goes, at a shallow and varying slant.
+        // Down and to the left, the way the scenery goes, at a shallow, varying slant.
         val angle = (PI * (1.08 + meteors.nextFloat() * 0.14)).toFloat()
         meteorDx = cos(angle)
         meteorDy = -sin(angle)
@@ -381,14 +377,14 @@ class SkySystem(
     }
 
     /**
-     * Each layer, back to front: the keyframe the day is leaving, then the one it is going to faded
-     * in over it. The strip is blitted in as many spans as it takes to cross the frame, wrapping
-     * round to its own first column - and, on the way to the boss, on to the scenery ahead.
+     * Each layer, back to front: the keyframe the day is leaving, with the next one faded in over
+     * it. The strip is blitted in as many spans as it takes to cross the frame, wrapping to its
+     * first column, or on the way to the boss to the scenery ahead.
      *
-     * A blit paints one column and one row short of its source - the deliberate `- 1` in both
-     * backends - so each span asks for a column more than it has to cover, and the next one starts
-     * on the last column the previous one actually painted. At the wrap that skips the strip's own
-     * last column, which on a strip built to be periodic is invisible.
+     * A blit paints one column and one row short (the deliberate `- 1` in
+     * `ComposeGraphics.drawPixmap`), so each span asks for a column more than it covers, and the
+     * next starts on the last column actually painted. At the wrap that skips the strip's last
+     * column, which on a periodic strip is invisible.
      */
     private fun drawGround(graphics: Graphics) {
         val below = day.keyframeBelow(position)
@@ -433,17 +429,19 @@ class SkySystem(
         }
     }
 
-    /** The sheet a layer's [stretch] is drawn from: its own, or the scenery ahead once that has come. */
+    /**
+     * The sheet a layer's [stretch] is drawn from: its own, or the scenery ahead once it has begun.
+     */
     private fun sheetFor(layer: Int, stretch: Int): Pixmap {
         val ahead = backdrop.layers[layer].ahead
         return if (ahead != null && stretch >= aheadFrom[layer]) ahead else backdrop.layers[layer].sheet
     }
 
     /**
-     * The low sun's path across the water: short dashes of its color under it, row after row from the
-     * horizon down, widening and spreading out as they come nearer, each flickering on its own beat.
-     * Drawn over the band whose water it is, and so under every nearer band - an island in front of
-     * the path cuts it, as it would.
+     * The low sun's path across the water: short dashes of its color beneath it,
+     * row by row from the horizon down, widening and spreading as they come nearer,
+     * each flickering on its own beat. Drawn over its own band and so under every
+     * nearer one, so an island in front cuts the path.
      */
     private fun drawGlitter(graphics: Graphics, water: IntRange) {
         val strength = day.sunGlitter(position)
@@ -476,6 +474,7 @@ class SkySystem(
         }
     }
 
+    /** [x] wrapped into the frame's width. */
     private fun wrap(x: Float): Int {
         val wrapped = x % frameWidth
         return (if (wrapped < 0f) wrapped + frameWidth else wrapped).toInt()
@@ -492,13 +491,15 @@ class SkySystem(
 
         const val BAND_HEIGHT = 3
 
-        /** How far the day moves before the sky's colors are worked out again. */
+        /** How far the day moves before the sky's colors are recomputed. */
         const val REPAINT_STEP = 0.0015f
 
         const val STAR_COUNT = 130
         const val STAR_TOP = 4
 
-        /** How far above the horizon the lowest stars sit, where the glow along it hides them anyway. */
+        /**
+         * How far above the horizon the lowest stars sit; the horizon's glow would hide them lower.
+         */
         const val STAR_HORIZON_GAP = 24
         const val BRIGHT_SHARE = 0.06f
         const val MEDIUM_SHARE = 0.24f
@@ -510,7 +511,7 @@ class SkySystem(
         const val TWINKLE_DEPTH = 0.35f
         const val STAR_DRIFT_PER_SECOND = 1.1f
 
-        /** Mostly white, with a few blue, gold and rose among them, as a clear sky has. */
+        /** Mostly white, with a few blue, gold and rose stars, as in a clear sky. */
         val STAR_COLORS = intArrayOf(
             0xFFF4F4FF.toInt(), 0xFFF4F4FF.toInt(), 0xFFF4F4FF.toInt(),
             0xFFC8D8FF.toInt(), 0xFFFFECC8.toInt(), 0xFFFFD8E6.toInt(),
@@ -529,9 +530,9 @@ class SkySystem(
         const val SUN_BAND_MOST = 0.55f
 
         /**
-         * The sun's path on the water: a dash every other row, flickering at [GLITTER_RATE] a
-         * second and out of step with the rows either side, swaying up to [GLITTER_REACH] pixels
-         * from under the sun, and up to [GLITTER_DASH] pixels long near the shore.
+         * The sun's path on the water: a dash every other row, flickering at [GLITTER_RATE] per
+         * second out of step with its neighbors, swaying up to [GLITTER_REACH] pixels from under
+         * the sun, and up to [GLITTER_DASH] pixels long near the shore.
          */
         const val GLITTER_ROW_STEP = 2
         const val GLITTER_RATE = 5.5f

@@ -1,6 +1,5 @@
 package at.smiech.engine.ecs
 
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -9,7 +8,6 @@ import kotlin.test.assertEquals
 private class WoundedSheet : Pixmap {
     override val width = 45 * 6
     override val height = ROW * 3
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 

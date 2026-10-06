@@ -3,6 +3,7 @@ package at.smiech.cyanbat
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
+/** What [ScoreTracker] pays for kills and streaks, and how its multiplier climbs. */
 class ScoreTrackerTest {
 
     /** Small, round numbers so the arithmetic in each assertion is obvious. */

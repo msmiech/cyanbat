@@ -14,20 +14,18 @@ import kotlin.math.roundToInt
  * Where the framebuffer is drawn in a view of any shape, and how a pointer on that view maps back
  * into it.
  *
- * Two shapes of answer, for the three [DisplayMode]s. [fitted] scales by one factor both ways, as
- * large as fits, and centers the result - leaving bars down the sides of a view wider than the
- * game, and above and below one taller than it. [stretched] covers the whole view, each axis scaled
- * on its own, which is what the game did before there was a choice: on a 20:9 phone that draws
- * every pixel about half as wide again as it is tall.
+ * The three [DisplayMode]s need two layouts. [fitted] scales by one factor, as large as fits, and
+ * centers the result, leaving bars beside a wider view or above and below a taller one.
+ * [stretched] covers the whole view, scaling each axis separately; on a 20:9 phone that draws every
+ * pixel about half again as wide as it is tall.
  *
- * Bars rather than more of the world, when the game keeps its shape, because the playfield is
- * *designed* at the framebuffer's size: enemies spawn at its right edge, a boss holds station a
- * fraction of the way across it, and a wave is paced by how long its enemies take to cross it. A
- * wider window onto the stage would give wide screens more warning of everything coming at them,
- * and how hard the game is would depend on the phone it is played on.
+ * Bars rather than more of the world, because the playfield is designed at the framebuffer's size:
+ * enemies spawn at its right edge, bosses hold station a fraction of the way across it, and waves
+ * are paced by how long enemies take to cross it. A wider view would give wide screens more warning
+ * and make difficulty depend on the device.
  *
- * Kept in whole view pixels, because that is where the image is drawn, and pointers are mapped back
- * through the same rectangle - so a touch lands on the framebuffer pixel that is under the finger.
+ * Kept in whole view pixels, where the image is drawn, and pointers are mapped back through the
+ * same rectangle, so a touch lands on the framebuffer pixel under the finger.
  */
 data class FrameFit(
     val frameBufferWidth: Int,
@@ -43,9 +41,9 @@ data class FrameFit(
     /**
      * A horizontal view position, in framebuffer pixels.
      *
-     * Over a bar it comes back outside the framebuffer rather than clamped into it. Whatever reads
-     * it already keeps the bat on screen, and a drag that wanders onto a bar should still move by as
-     * much as the finger did - clamping would stall it at the edge until the finger came back.
+     * Over a bar the result lies outside the framebuffer rather than being clamped into it. Callers
+     * already keep the bat on screen, and a drag that wanders onto a bar should still move as far
+     * as the finger did; clamping would stall it at the edge.
      */
     fun toFrameBufferX(viewX: Float): Int = floor((viewX - left) * frameBufferWidth / width).toInt()
 
@@ -84,8 +82,8 @@ data class FrameFit(
                 viewWidth.toFloat() / frameBufferWidth,
                 viewHeight.toFloat() / frameBufferHeight,
             )
-            // At least a pixel each way, so a view that has not been measured yet cannot leave the
-            // pointer mapping dividing by zero.
+            // At least a pixel each way, so an unmeasured view cannot make the
+            // pointer mapping divide by zero.
             val width = (frameBufferWidth * scale).roundToInt().coerceAtLeast(1)
             val height = (frameBufferHeight * scale).roundToInt().coerceAtLeast(1)
             return FrameFit(
@@ -120,13 +118,12 @@ data class FrameFit(
 private val BAR_COLOR = Color.Black
 
 /**
- * Draws the frame [graphics] last recorded where [fit] puts it, with the bars around it - black, or
- * lit by [ambient] when there is one.
+ * Draws the frame [graphics] last recorded where [fit] puts it, with the bars around it: black, or
+ * lit by [ambient] when given.
  *
- * Scaled from frame pixels to the view in one transform, so that everything the frame holds lands
- * on its pixel grid at whatever size the view is; and clipped to the frame, so that a sprite half off
- * the playfield stops at its edge, as it did when the frame was a bitmap, rather than spilling onto
- * a bar.
+ * Scaled from frame pixels to the view in one transform, so everything lands on the frame's pixel
+ * grid at any view size, and clipped to the frame, so a sprite half off the playfield stops at its
+ * edge rather than spilling onto a bar.
  */
 fun DrawScope.drawGameFrame(
     graphics: ComposeGraphics,

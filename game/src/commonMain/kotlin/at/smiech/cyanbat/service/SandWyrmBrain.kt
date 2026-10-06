@@ -35,28 +35,25 @@ import kotlin.math.hypot
  * The Sand Wyrm's fight: breaches out of the dunes aimed at the player, diving back under between
  * them, in three phases marked by its health.
  *
- * 1. **Hunting.** While it is under, the sand boils where it is about to come up - the tell - and
- *    then it breaches in an arc that tops out at the player's height, spits a fan of three from
- *    the top of it, and goes back under. Its first breach is a warning, topping out well ahead
- *    of the player: the top of an arc is the highest the whole wyrm goes, so a player who has
- *    seen one arc go by knows that above it is out of reach.
+ * 1. **Hunting.** While it is under, the sand boils where it is about to come up (the tell); then
+ *    it breaches in an arc that tops out at the player's height, spits a fan of three from the top,
+ *    and goes back under. Its first breach is a warning, topping out well ahead of the player,
+ *    which shows that above an arc is out of reach.
  * 2. **The brood.** From two thirds it spits a ring and an aimed bolt at the top of every arc, and
- *    calls a wyrmling up out of the sand with every breach.
- * 3. **Enraged.** From one third it stays under for less time, crosses the frame faster, rings
- *    fourteen and fans five, and calls up two at a time.
+ *    calls up a wyrmling with every breach.
+ * 3. **Enraged.** From one third it stays under for less time, crosses faster, fires denser rings
+ *    and wider fans, and calls up two at a time.
  *
- * The arc is the engine's own [EnemyMovementType.LEAP], thrown once at the player's height and
- * gravity's after that, so the head flies exactly the way its brood do - and anything that
- * forecasts a leap forecasts the wyrm. What this adds is the body: every part is laid along the path
- * the head has flown, a fixed distance behind the one in front of it, so the whole wyrm pours out of
- * one hole in the sand, over the arc and down into the next. It always crosses right to left, like
- * every hostile, because its art faces that way and would fly upside down the other.
+ * The arc is the engine's own [EnemyMovementType.LEAP], aimed once and then left to gravity, so the
+ * head flies exactly as its brood do and anything that forecasts a leap forecasts the wyrm. This
+ * adds the body: each part is laid along the head's path a fixed distance behind the one in front,
+ * so the whole wyrm pours out of one hole, over the arc and into the next. It always crosses right
+ * to left, since its art faces that way.
  *
- * Phases are read off its health, as the Moth Queen's are, and a hit that crosses both thresholds
- * plays both entrances in order.
+ * A hit that crosses both thresholds plays both entrances in order.
  *
- * @param parts the body, from the neck back to the tail. They are the brain's to move: nothing else
- *   moves, culls or kills them, which is what makes it safe to hold their ids for the whole fight.
+ * @param parts the body, from the neck back to the tail. Only this brain moves them, and nothing
+ *   culls or kills them, so their ids are safe to hold for the whole fight.
  * @param onSummon called with how many wyrmlings to call up; the generator is what knows how.
  * @param onPhaseChanged called with the phase it has just entered, 2 or 3, for the screen to announce.
  */
@@ -71,6 +68,7 @@ class SandWyrmBrain(
     private val onSummon: (count: Int) -> Unit = {},
     private val onPhaseChanged: (Int) -> Unit = {},
 ) : BossBrain {
+    /** The phase it is in, 1 to 3. */
     var phase = 1
         private set
 
@@ -88,14 +86,19 @@ class SandWyrmBrain(
     /** How many times it has come up, so its first can be the warning. */
     private var breaches = 0
 
+    /** Seconds until the tell throws up its next spray. */
     private var untilPlume = 0f
+
+    /** Whether this breach has started climbing, and whether it has spat at its top yet. */
     private var sawRising = false
     private var spat = false
+
+    /** Volleys still to spit at this arc's top, and the seconds until the next. */
     private var volleysLeft = 0
     private var untilVolley = 0f
 
-    // The path the head has flown, newest last, as a ring of points at least a pixel apart. It is
-    // only ever as long as the body needs: the parts are laid back along it by distance.
+    // The path the head has flown, as a ring buffer of points at least a pixel apart, as long as
+    // the body needs: the parts are laid back along it by distance.
     private val pathX = FloatArray(PATH_POINTS)
     private val pathY = FloatArray(PATH_POINTS)
     private var newest = -1
@@ -119,10 +122,11 @@ class SandWyrmBrain(
         if (burrowed) waitUnder(deltaTime) else fly(deltaTime)
     }
 
+    /** A tick under the sand: the countdown, the tell, and the breach when it comes due. */
     private fun waitUnder(deltaTime: Float) {
         untilBreach -= deltaTime
-        // The tell starts here, which is also when it picks its spot: as late as it can, so the
-        // breach is aimed at where the player is rather than where they were a second ago.
+        // The spot is picked as the tell starts, as late as possible, so the breach aims at where
+        // the player is rather than where they were.
         if (breachX.isNaN() && untilBreach <= SAND_WYRM_TELL_SECONDS) {
             breachX = chooseBreach()
             bury(breachX)
@@ -138,14 +142,15 @@ class SandWyrmBrain(
         if (untilBreach <= 0f) breach()
     }
 
+    /** Comes up out of the sand where the tell was, calling up its brood from phase 2. */
     private fun breach() {
         breaches++
         burrowed = false
         sawRising = false
         spat = false
         val top = rectOf(headId)?.top ?: return
-        // A leap told to leap at once: its station is behind it before it starts, so on its next
-        // tick the movement throws it at the player's height and hands it to gravity.
+        // A leap whose station is already behind it, so next tick the movement throws it at the
+        // player's height and leaves it to gravity.
         world.addComponent(
             headId,
             EnemyBehaviorComponent(
@@ -160,6 +165,10 @@ class SandWyrmBrain(
         if (phase >= 2) onSummon(if (phase >= 3) 2 else 1)
     }
 
+    /**
+     * A tick in the air: spitting at the top of the arc, and burrowing once the
+     * whole body is under.
+     */
     private fun fly(deltaTime: Float) {
         val vy = world.getComponent(headId, VelocityComponent::class)?.velocity?.y ?: return
         if (vy < 0f) sawRising = true
@@ -188,15 +197,15 @@ class SandWyrmBrain(
     }
 
     /**
-     * Fires the head's gun on the next tick, through the same weapon every other enemy fires by.
-     * Its cadence is set so long that it never comes round on its own: this is the only thing that
-     * pulls the trigger, and it does so at the top of each arc.
+     * Fires the head's gun on the next tick through its ordinary weapon, whose cadence is set too
+     * long to come round on its own; see [TRIGGERED_INTERVAL].
      */
     private fun pullTrigger() {
         world.getComponent(headId, WeaponComponent::class)
             ?.let { it.timeSinceLastShot = it.interval }
     }
 
+    /** Plays the entrance of phase [next]: its gun. */
     private fun enter(next: Int) {
         phase = next
         val gun = gunFor(next)
@@ -207,13 +216,14 @@ class SandWyrmBrain(
         onPhaseChanged(next)
     }
 
+    /** How fast a breach crosses the frame in this phase. */
     private fun breachSpeed(): Float =
         if (phase >= 3) SAND_WYRM_ENRAGED_BREACH_SPEED else SAND_WYRM_BREACH_SPEED
 
     /**
-     * Where to come up so the top of the arc lands on the bat: ahead of it by as far as the head
-     * travels on the way up. The first time, further ahead than that, so the arc goes by in front
-     * of the bat rather than through it. Kept off the frame's edges, so the whole arc is seen.
+     * Where to come up so the arc's top lands on the bat: ahead of it by as far as the head travels
+     * climbing. The first time, further ahead, so the arc passes in front of the bat. Kept off the
+     * frame's edges, so the whole arc is seen.
      */
     private fun chooseBreach(): Float {
         val bat = batCenterX() ?: (frameWidth / 3f)
@@ -222,6 +232,7 @@ class SandWyrmBrain(
         return (bat + reach + warning).coerceIn(BREACH_MIN_X, frameWidth - BREACH_EDGE_MARGIN)
     }
 
+    /** The living bat's center x, or null. */
     private fun batCenterX(): Float? {
         for (id in world.query(PlayerControlComponent::class, TransformComponent::class)) {
             if (world.getComponent(id, HealthComponent::class)?.alive == false) continue
@@ -231,9 +242,9 @@ class SandWyrmBrain(
     }
 
     /**
-     * Puts the head under the sand at [x], still, with the body hanging straight down beneath it -
-     * so when it breaches, the body follows it up out of the same hole. Only ever done with the
-     * whole wyrm under, where the jump cannot be seen.
+     * Puts the head under the sand at [x], still, with the body hanging straight down beneath it,
+     * so a breach pulls the body up through the same hole. Only done with the whole wyrm under,
+     * where the jump cannot be seen.
      */
     private fun bury(x: Float) {
         val top = frameHeight + BURIED_DEPTH
@@ -264,6 +275,7 @@ class SandWyrmBrain(
         )
     }
 
+    /** Adds a point to the head's path, unless it is within a pixel of the last one. */
     private fun record(x: Float, y: Float, force: Boolean = false) {
         if (!force && points > 0 && hypot(x - pathX[newest], y - pathY[newest]) < 1f) return
         newest = (newest + 1) % PATH_POINTS
@@ -273,15 +285,13 @@ class SandWyrmBrain(
     }
 
     /**
-     * Lays each part along the head's path, [SAND_WYRM_SPACING] behind the one in front of it, and
-     * turns it to lie along the path there.
+     * Lays each part along the head's path, [SAND_WYRM_SPACING] behind the one in
+     * front, turned to lie along the path.
      *
-     * By distance along the path, not by how many ticks ago the head was there: the head slows over
-     * the top of every arc, and a body laid out by time would bunch up there and string out on the
-     * way down.
+     * By distance along the path rather than time: the head slows over the top of every arc, and a
+     * body laid out by time would bunch up there.
      *
-     * Each part is drawn from the head's row of the sheet as it goes. The plates have no health to
-     * be wounded by, and a battered head on a pristine body would read as two animals.
+     * Each part is drawn from the head's wound row, since the plates have no health of their own.
      */
     private fun layBody() {
         val head = rectOf(headId) ?: return
@@ -297,7 +307,7 @@ class SandWyrmBrain(
             var left = SAND_WYRM_SPACING
             while (left > 0f) {
                 if (remaining == 0) {
-                    // Off the end of the path: the rest of the body is still straight down in the sand.
+                    // Past the end of the path, the body still hangs straight down in the sand.
                     y += left
                     break
                 }
@@ -322,13 +332,14 @@ class SandWyrmBrain(
         }
     }
 
+    /** Centers part [id] on [x], [y], turned toward the part ahead at [aheadX], [aheadY]. */
     private fun place(id: EntityId, x: Float, y: Float, aheadX: Float, aheadY: Float) {
         val transform = world.getComponent(id, TransformComponent::class) ?: return
         val old = transform.rect
         val rect = Rect.fromLTWH(x - HALF, y - HALF, FRAME, FRAME)
         transform.rect = rect
-        // What it moved this tick, so anything reading velocities - a forecast - sees it going the
-        // way it is going. A jump under the sand is not movement and is left out.
+        // Its movement this tick, so anything reading velocities (a forecast) sees where it goes. A
+        // jump under the sand is not movement and is left out.
         val dx = rect.left - old.left
         val dy = rect.top - old.top
         world.getComponent(id, VelocityComponent::class)?.velocity =
@@ -342,6 +353,7 @@ class SandWyrmBrain(
         }
     }
 
+    /** [degrees] into -180..180. */
     private fun normalized(degrees: Float): Float {
         var turned = degrees % 360f
         if (turned > 180f) turned -= 360f
@@ -349,9 +361,11 @@ class SandWyrmBrain(
         return turned
     }
 
+    /** Whether part [id] is wholly under the sand. */
     private fun isUnder(id: EntityId): Boolean =
         (rectOf(id)?.top ?: Float.MAX_VALUE) > frameHeight + UNDER_MARGIN
 
+    /** Part [id]'s box, or null once it is gone. */
     private fun rectOf(id: EntityId): Rect? =
         world.getComponent(id, TransformComponent::class)?.rect
 
@@ -362,9 +376,13 @@ class SandWyrmBrain(
         /** How long it stays under when it first arrives, so the banner announcing it can be read. */
         private const val ENTRANCE_SECONDS = 2.4f
 
-        /** How far below the bottom edge the head waits, so not a pixel of it shows. */
+        /** How far below the bottom edge the head waits, so none of it shows. */
         private const val BURIED_DEPTH = 20f
+
+        /** The spacing of the path points laid straight down under a buried head. */
         private const val BURIED_STEP = 4f
+
+        /** How far below the bottom edge a part counts as under. */
         private const val UNDER_MARGIN = 2f
 
         /** Seconds between the sprays the tell throws up, and how much bigger the breach's own is. */
@@ -375,30 +393,27 @@ class SandWyrmBrain(
         private const val VOLLEY_GAP_SECONDS = 0.22f
 
         /**
-         * The leap's forward push and roughly how long a breach takes to reach its top, in ticks,
-         * from which how far ahead of the bat to come up. Rough on purpose: the apex is aimed
-         * exactly in height and only near the bat across, so the player is threatened rather than
-         * hit, and the answer is always to move.
+         * The leap's forward push and roughly how many ticks a breach takes to reach its top, which
+         * set how far ahead of the bat to come up. Rough on purpose: the apex is aimed exactly in
+         * height but only near the bat across, so the answer is always to move.
          */
         private const val LEAP_FORWARD = 1.25f
         private const val TICKS_TO_APEX = 62f
         private const val BREACH_MIN_X = 130f
 
         /**
-         * How much further ahead than an aimed breach the first one comes up. The arc is level
-         * with the bat only at its top, but it keeps coming on as it falls, so the top has to be
-         * far enough ahead that the way down is well below the bat by the time it gets there: at
-         * two thirds of this, it went by within a few pixels.
+         * How much further ahead than an aimed breach the first one comes up: far enough that the
+         * arc's way down is well below the bat by the time it gets there.
          */
         private const val WARNING_LEAD = 170f
         private const val BREACH_EDGE_MARGIN = 26f
 
-        /** Enough path for the body at its most strung out, a point at least a pixel apart. */
+        /** Enough path for the body at its most strung out, with points at least a pixel apart. */
         private const val PATH_POINTS = 512
 
         private const val DEGREES_PER_RADIAN = 57.29578f
 
-        /** Far longer than any fight: the brain pulls the trigger, never the cadence. */
+        /** Longer than any fight: the brain fires the gun, never its cadence. */
         const val TRIGGERED_INTERVAL = 1_000_000f
 
         /** What it hunts with: a fan of three from the top of each arc. */
@@ -443,6 +458,7 @@ class SandWyrmBrain(
             ),
         )
 
+        /** Its gun in [phase]. */
         fun gunFor(phase: Int): EnemyGun = when {
             phase >= 3 -> ENRAGED_GUN
             phase == 2 -> BROOD_GUN

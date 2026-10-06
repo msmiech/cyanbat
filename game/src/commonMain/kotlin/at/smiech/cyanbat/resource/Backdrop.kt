@@ -13,13 +13,12 @@ sealed interface Backdrop {
     class Strip(val pixmap: Pixmap) : Backdrop
 
     /**
-     * A sky that changes with the time of day across the stage, over bands of ground scrolling past
-     * at their own depths: the desert, flown from noon into night, and the lagoon, from night to
-     * noon. Drawn by `SkySystem`, off the stage clock.
+     * A sky that changes with the time of day across the stage, over bands of ground scrolling at
+     * their own depths: the desert, flown from noon into night, and the lagoon, from night to noon.
+     * Drawn by `SkySystem` from the stage clock.
      *
-     * The sky, the sun, the moon and the stars are drawn rather than loaded - they are colors and
-     * shapes that change continuously - while the ground is art, drawn once per keyframe of its
-     * [day] and crossfaded between them.
+     * The sky, sun and stars are drawn in code, since they change continuously; the ground is art,
+     * drawn once per keyframe of its [day] and crossfaded between them.
      *
      * @param day what the light does across the stage.
      * @param layers back to front.
@@ -43,15 +42,14 @@ sealed interface Backdrop {
  *
  * @param top where the strip's top row sits on the 640x360 frame. Everything above the ground in it
  *   is transparent, so the sky shows through.
- * @param speed in framebuffer pixels a tick, like every velocity in the game. The nearest band moves
- *   with the obstacles standing on it; the farther ones move slower, which is what reads as depth.
- * @param ahead what the band turns into on the way to the stage's boss: from [aheadFrom] of the way
- *   through the day, every stretch of the strip that has not yet come into view is drawn from this
- *   sheet instead, so the new scenery scrolls in from the right as if it were being flown toward. The
- *   same size as [sheet], and drawn to meet it: the two share their first and last columns, so either
- *   follows on from the other without a seam.
- * @param water the rows of the frame where this band is open water, which a low sun lays a path of
- *   glints across; null for a band with none showing.
+ * @param speed in framebuffer pixels per tick, like every velocity in the game. The nearest band
+ *   moves with the obstacles standing on it; farther ones move slower, which reads as depth.
+ * @param ahead what the band turns into on the way to the boss: from [aheadFrom] of the way through
+ *   the day, every stretch not yet in view is drawn from this sheet, so the new scenery scrolls in
+ *   from the right. The same size as [sheet], sharing its first and last columns so either follows
+ *   the other without a seam.
+ * @param water the frame rows where this band is open water, which a low sun lays a path of glints
+ *   across; null for none.
  */
 class ParallaxLayer(
     val sheet: Pixmap,

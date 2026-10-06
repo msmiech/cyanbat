@@ -1,8 +1,5 @@
 package at.smiech.cyanbat.music
 
-import at.smiech.cyanbat.music.MusicDirector.Companion.COMBO_RUNGS
-import at.smiech.cyanbat.music.MusicDirector.Companion.COMBO_STEP
-import at.smiech.cyanbat.music.MusicDirector.Companion.WAVE_RISE
 import at.smiech.cyanbat.ui.game.ComboHeat
 import at.smiech.engine.LayeredMusic
 import at.smiech.engine.MusicGrid
@@ -10,34 +7,29 @@ import at.smiech.engine.Quantum
 import kotlin.math.max
 
 /**
- * Decides, a frame at a time, how much of a stage's music is playing and how it sounds.
+ * Decides, frame by frame, how much of a stage's music is playing and how it sounds.
  *
- * Two dials set how many layers are up. How far into the stage the run is raises a floor: the
- * opening minute of the cave is its bed alone, and by the last wave the drums are in whatever the
- * player does. The combo builds on that floor, and a hit takes it away again - the streak is the
- * thing the player is actually doing well or badly at, and they should be able to hear it. That is
- * the Doom 2016 and Eternal idea: the music is only as intense as the fighting.
+ * Two inputs set how many layers are up, so the music is only as intense as the fighting. Progress
+ * through the stage raises a floor: the cave's opening minute is its bed alone, and by the last
+ * wave the drums are in regardless. The combo builds on that floor, and a hit takes it away again,
+ * so the player hears how well they are doing.
  *
- * The combo is heard on the same ladder the HUD's readout burns up ([ComboHeat]): each rung it
- * names, from HOT to SUPERNOVA, is a step of the music, and the steps between rungs are not, so a
- * new title flaring on screen and a new layer arriving are one event. The steps come closer
- * together as the fire climbs: under the tune a layer takes two rungs, over it one, so the hottest
- * streaks get a trap beat's 808s, rolling hats and chopped voices a rung apart. SUPERNOVA calls in
- * the boss's own heavy layer on top. Past it the multiplier climbs on, but the music has nothing
- * left to add.
+ * The combo is heard on the HUD's heat ladder ([ComboHeat]): each rung it names,
+ * HOT to SUPERNOVA, is a step of the music, so a new title on screen and a new
+ * layer arrive together. Under the tune a layer takes two rungs, over it one, so
+ * the hottest streaks get the 808s, rolling hats and chopped voices a rung apart.
+ * SUPERNOVA adds the boss's heavy layer; past it the music has nothing left to add.
  *
- * Then there is what the music does at the edges of the action, which is SSX 3's idea: a hit is a
- * thud, the music ducking under a low-pass for a moment the way it does when a rider wipes out;
- * the level up dialog, which holds the run still, carries the music on under a muffle rather than
- * stopping it, and lifting the muffle as the pick is made is the run landing again.
+ * At the edges of the action, a hit is a thud, the music briefly ducking under a
+ * low-pass; the level-up dialog, which holds the run still, keeps the music going
+ * under a muffle that lifts as the pick is made.
  *
- * And the boss gets an entrance. The music drops to its bed for a bar and slams back in on a
- * downbeat with everything, the heavy [MusicLayer.FURY] stem included - and does the same each
- * time the boss changes phase. Its exit is not the director's to make: the screen stops the music
- * dead as the boss goes down, and hands over to the victory's fanfare.
+ * The boss gets an entrance: the music drops to its bed for a bar and slams back in on a downbeat
+ * with everything, [MusicLayer.FURY] included, and again at each of its phase changes. Its exit is
+ * the screen's: the music stops dead as the boss goes down, handing over to the victory fanfare.
  *
- * Every change of layer lands on the beat, or for a slam on the bar, because [LayeredMusic] puts
- * it there. This class only says what should be playing; it never has to know where the beat is.
+ * Every layer change lands on the beat, or for a slam on the bar, because [LayeredMusic] schedules
+ * it; this class only says what should be playing.
  *
  * @param bossWave the wave the boss arrives on; the floor rises across the waves before it.
  * @param difficulty the stage's own, where stage 1 is 1: a harder stage opens on a higher floor.
@@ -69,7 +61,7 @@ class MusicDirector(
 
     /**
      * Brings the music into line with the run. Called every frame, whatever the run is doing, so a
-     * muffle can open while the world stands still.
+     * muffle can lift while the world stands still.
      *
      * @param suspended the run is holding still for the player to choose something.
      */
@@ -101,8 +93,8 @@ class MusicDirector(
                 dropping -> DROP_FADE_BEATS
                 else -> FALL_FADE_BEATS
             }
-            // The heavy layer always comes in on a downbeat: whether it is the boss's slam or a
-            // streak going supernova, it is a moment the music should be seen to make.
+            // The heavy layer always comes in on a downbeat, for the boss's slam or
+            // a supernova streak alike.
             val quantum =
                 if (slamming || (wanted && layer == MusicLayer.FURY)) Quantum.BAR else Quantum.BEAT
             order(layer, if (wanted) 1f else 0f, quantum, fade)
@@ -124,10 +116,12 @@ class MusicDirector(
     /** The boss has changed phase, which gets the same entrance as the boss itself. */
     fun onBossPhaseChanged() = drop()
 
+    /** Starts a one-bar drop to the bed, which ends in a slam. */
     private fun drop() {
         dropSeconds = dropLengthSeconds
     }
 
+    /** Sets [layer] to [level], unless that is what it was last set to. */
     private fun order(layer: MusicLayer, level: Float, quantum: Quantum, fadeBeats: Float) {
         if (ordered[layer.ordinal] == level) return
         ordered[layer.ordinal] = level
@@ -139,15 +133,14 @@ class MusicDirector(
         private val LAYERED = MusicLayer.entries - MusicLayer.BED
 
         /**
-         * How much is going on, from about 0.1 for the opening seconds of stage 1 upward. Compared
-         * against each layer's [threshold]; nothing reads it as a volume.
+         * How much is going on, from about 0.1 in stage 1's opening seconds upward, compared
+         * against each layer's [threshold].
          *
-         * The floor rises evenly across the waves before the boss - [WAVE_RISE] over the whole
-         * stage - and sits higher on a harder stage, so stage 3 opens with its bass already moving.
-         * Each rung of the combo's heat ladder adds [COMBO_STEP] on top, all [COMBO_RUNGS] of them:
-         * HOT at a streak of 3, BLAZING at 9, SCORCHING at 15, INFERNO at 24, HELLFIRE at 36,
-         * BLUE FLAME at 51, WHITE HOT at 72 and SUPERNOVA at 102. Past that a longer streak is more
-         * points, and a faster fire on the HUD, but not more music.
+         * The floor rises evenly across the waves before the boss, by [WAVE_RISE]
+         * over the stage, and starts higher on a harder stage. Each rung of the
+         * combo's heat ladder adds [COMBO_STEP], up to [COMBO_RUNGS] rungs: HOT at
+         * a streak of 3, BLAZING at 9, SCORCHING at 15, INFERNO at 24, HELLFIRE at
+         * 36, BLUE FLAME at 51, WHITE HOT at 72 and SUPERNOVA at 102.
          */
         fun intensity(
             waveIndex: Int,
@@ -163,14 +156,14 @@ class MusicDirector(
         }
 
         /**
-         * Where each layer comes in. Tuned against stage 1, whose first wave is the bed alone: HOT
-         * brings the pulse in, and SCORCHING the drums, which by the last wave are in without any
-         * streak at all. The melody is the reward for a fire that keeps burning, and gets easier
-         * to earn as the stage goes on - HELLFIRE in the first wave, INFERNO in the second,
-         * SCORCHING in the third, BLAZING in the fourth, and any fire at all in the last.
+         * Where each layer comes in, tuned against stage 1, whose first wave is the
+         * bed alone: HOT brings in the pulse and SCORCHING the drums, which by the
+         * last wave are in without a streak. The melody rewards a sustained streak
+         * and gets easier to earn as the stage goes on: HELLFIRE in the first wave,
+         * then INFERNO, SCORCHING, BLAZING, and any fire in the last.
          *
-         * Over the melody the layers are a rung apart. In the first wave BLUE FLAME brings the
-         * 808s, WHITE HOT the rolling hats, and SUPERNOVA the chopped voices; in the last, BLAZING,
+         * Over the melody the layers are a rung apart: in the first wave BLUE FLAME brings the
+         * 808s, WHITE HOT the rolling hats and SUPERNOVA the chopped voices; in the last, BLAZING,
          * SCORCHING and INFERNO do. The boss brings everything.
          */
         fun threshold(layer: MusicLayer): Float = when (layer) {
@@ -196,7 +189,7 @@ class MusicDirector(
         /** Sums of tenths do not always land on a tenth in floating point. */
         private const val EPSILON = 1e-4f
 
-        /** A layer leaving because the streak broke goes over a quarter of a beat: a stumble. */
+        /** A layer leaving because the streak broke fades over a quarter of a beat. */
         private const val FALL_FADE_BEATS = 0.25f
 
         /** The drop is a cut, not a fade: the silence is what makes the slam land. */
@@ -206,8 +199,8 @@ class MusicDirector(
         private const val SLAM_FADE_BEATS = 0.03125f
 
         /**
-         * The level up dialog: muffled to the bass and the thump of the drums, and a little quieter,
-         * so the music is still there but not asking for attention while the player reads.
+         * The level-up dialog: muffled to the bass and kick and a little quieter, so the music
+         * stays without competing for attention while the player reads.
          */
         private const val SUSPENDED_MUFFLE = 0.8f
         private const val SUSPENDED_VOLUME = 0.75f

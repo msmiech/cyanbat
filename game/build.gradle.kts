@@ -27,10 +27,10 @@ kotlin {
                 // types (Pixmap, Haptics) and so need them on their own compile classpath.
                 api(project(":engine"))
                 implementation(libs.kotlinx.coroutines.core)
-                implementation(compose.runtime)
-                implementation(compose.foundation)
-                implementation(compose.material3)
-                implementation(compose.components.resources)
+                implementation(libs.jetbrains.compose.runtime)
+                implementation(libs.jetbrains.compose.foundation)
+                implementation(libs.jetbrains.compose.material3)
+                implementation(libs.jetbrains.compose.components.resources)
                 implementation(libs.jetbrains.lifecycle.viewmodel.compose)
             }
         }
@@ -50,7 +50,7 @@ kotlin {
             dependencies {
                 // The menu's own tests work it as a player would, through Compose's test harness,
                 // which draws with Skia's native library for the machine the tests run on.
-                implementation(compose.desktop.uiTestJUnit4)
+                implementation(libs.jetbrains.compose.ui.test.junit4)
                 implementation(compose.desktop.currentOs)
             }
         }

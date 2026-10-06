@@ -41,13 +41,12 @@ import kotlin.random.Random
 /**
  * Runs a stage's enemies against its clock.
  *
- * The generator owns nothing but the clock and the dice: what to spawn at a given second is
- * [StageProgression]'s answer, and this turns that answer into entities. Keeping the two apart is
- * what lets the whole difficulty curve be tested without a running game.
+ * The generator owns only the clock and the dice: what to spawn at a given second is
+ * [StageProgression]'s answer, which this turns into entities, so the difficulty curve can be
+ * tested without a running game.
  *
- * Time is accumulated from the caller's fixed tick rather than read off a wall clock, which is
- * what makes a paused game a paused stage - the old generator slept on a coroutine and went on
- * counting down while the player was away from the controls.
+ * Time accumulates from the caller's fixed tick rather than a wall clock, so a paused game is a
+ * paused stage.
  *
  * @param enemyPixmap the stage's enemy sheet, which every species of that stage is drawn from.
  * @param bossPixmap the sheet of a boss drawn at its own size, for the stages that have one.
@@ -61,7 +60,7 @@ class EnemyGenerator(
     private val worldHeight: Int,
     private val factory: EntityFactory,
     private val enemyPixmap: Pixmap,
-    private var progression: StageProgression,
+    private val progression: StageProgression,
     private val random: Random = Random.Default,
     private val onWaveChanged: (EnemyWave) -> Unit = {},
     private val onBossSpawned: (EntityId) -> Unit = {},
@@ -75,6 +74,7 @@ class EnemyGenerator(
     var elapsedSeconds = 0f
         private set
 
+    /** The wave in force, refreshed every tick until the boss is due. */
     var currentWave: EnemyWave = progression.waveAt(0f)
         private set
 
@@ -90,20 +90,20 @@ class EnemyGenerator(
     var bossBrain: BossBrain? = null
         private set
 
+    /** Seconds until the next spawn. */
     private var timeUntilNextSpawn = progression.nextSpawnDelay(0f, random)
 
     /**
      * Advances the stage clock by one tick and spawns whatever has come due.
      *
-     * Ordinary enemies stop the moment the boss is due: the boss is a duel, and a screen still
-     * filling with escorts turns it into an ambush the player cannot read. What a boss calls in
-     * itself is part of its fight, and comes through its brain.
+     * Ordinary enemies stop once the boss is due, so the boss fight stays readable; what a boss
+     * calls in comes through its brain.
      */
     fun update(deltaTime: Float) {
         elapsedSeconds += deltaTime
 
-        // Checked before the wave is advanced, so the minute the boss lands on announces the boss
-        // rather than a wave of enemies that will never arrive.
+        // Checked before the wave advances, so the boss's minute announces the boss rather than a
+        // wave that will never arrive.
         if (progression.isBossDue(elapsedSeconds)) {
             spawnBossOnce()
             bossBrain?.update(deltaTime)
@@ -115,8 +115,8 @@ class EnemyGenerator(
         timeUntilNextSpawn -= deltaTime
         if (timeUntilNextSpawn > 0f) return
 
-        // A group buys the player more time than a loner does, so the gap after it is stretched by
-        // its cost; see [Squad.cost]. A burst waits on its most expensive group.
+        // The gap after a group is stretched by its cost; see [Squad.cost]. A burst waits on its
+        // most expensive group.
         var cost = 0f
         repeat(currentWave.burstSize) { cost = maxOf(cost, spawnGroup(currentWave)) }
         timeUntilNextSpawn += progression.nextSpawnDelay(elapsedSeconds, random) * cost
@@ -128,17 +128,7 @@ class EnemyGenerator(
         bossBrain = null
     }
 
-    /** Restarts the clock on a new stage, so its first minute opens as gently as stage 1's did. */
-    fun startStage(progression: StageProgression) {
-        this.progression = progression
-        elapsedSeconds = 0f
-        currentWave = progression.waveAt(0f)
-        bossId = null
-        bossBrain = null
-        bossSpawned = false
-        timeUntilNextSpawn = progression.nextSpawnDelay(0f, random)
-    }
-
+    /** Moves to the wave in force now, announcing it if it is a new one. */
     private fun advanceWave() {
         val wave = progression.waveAt(elapsedSeconds)
         if (wave.index == currentWave.index) {
@@ -153,14 +143,14 @@ class EnemyGenerator(
     /**
      * Picks a species from [wave] and sends it in however it travels, returning the group's cost.
      *
-     * Whether the group brings an elite is rolled here, once for the whole group; see
-     * [WaveDesign.eliteChance]. It falls to the group's first member: one of a swarm, scattered like
-     * the rest of it, and the leader of a formation, at the point of the V.
+     * Whether the group brings an elite is rolled once for the whole group here (see
+     * [WaveDesign.eliteChance]); it falls to the group's first member, one of a swarm or a
+     * formation's leader.
      */
     private fun spawnGroup(wave: EnemyWave): Float {
         val species = wave.enemyTypes[random.nextInt(wave.enemyTypes.size)]
-        // Only rolled where the wave sends elites at all, so an opening minute draws the dice it
-        // always did.
+        // Only rolled where the wave sends elites, so waves without them draw the
+        // same dice as before.
         val elite = wave.eliteChance > 0f && random.nextFloat() < wave.eliteChance
         when (species.squad) {
             Squad.SOLO -> spawnSolo(species, wave, elite)
@@ -172,15 +162,17 @@ class EnemyGenerator(
         return species.squad.cost
     }
 
+    /** One enemy in from the right, in a random lane away from the top and bottom. */
     private fun spawnSolo(species: EnemySpecies, wave: EnemyWave, elite: Boolean) {
         val y = 100f + random.nextInt(worldHeight - 200)
         spawn(species, wave, x = xSpawnPosition.toFloat(), laneY = y, elite = elite)
     }
 
     /**
-     * A flock around a shared path: every member is spawned on this tick, so they share a clock
-     * and a sway, and each is scattered a little around the path and given its own buzz.
+     * A flock around a shared path: all members spawn on this tick, so they share a clock and a
+     * sway, each scattered a little round the path with its own buzz.
      *
+     * @param centerY the path's lane, or null for a random one.
      * @param elite whether one of them is an elite.
      */
     private fun spawnSwarm(
@@ -238,7 +230,7 @@ class EnemyGenerator(
     }
 
     /**
-     * In along the bottom edge from the left - behind the bat - with only its fin above the water, to
+     * In along the bottom edge from the left, behind the bat, with only its fin above the water, to
      * leap forward from its station; see [EnemySpecies.SHARK].
      */
     private fun spawnBehind(species: EnemySpecies, wave: EnemyWave, elite: Boolean) {
@@ -258,12 +250,12 @@ class EnemyGenerator(
     /**
      * One enemy of [species] at [wave]'s strength, with whatever shield and gun the dice give it.
      *
-     * Dice are only rolled for what a species can actually have, so a stage whose enemies never
-     * carry shields or guns - the cave - draws exactly the numbers it always did until an elite
+     * Dice are only rolled for what a species can have, so a stage whose enemies
+     * never carry shields or guns draws the same random sequence until an elite
      * turns up, and only an elite rolls for its colors.
      *
-     * @param elite whether it is one: tougher, quicker to fire, armed whatever its kind, and in
-     *   colors of its own; see [ElitePalette].
+     * @param elite whether it is an elite: tougher, quicker to fire, armed whatever its kind, and
+     *   in colors of its own; see [ElitePalette].
      */
     private fun spawn(
         species: EnemySpecies,
@@ -280,8 +272,8 @@ class EnemyGenerator(
             if (elite) (ordinaryHitPoints * ELITE_HIT_POINT_FACTOR).roundToInt() else ordinaryHitPoints
         val damage = (wave.damage * species.damageFactor).roundToInt().coerceAtLeast(1)
 
-        // Sized off an ordinary one of its kind: what makes an elite tougher is what is inside the
-        // shell, and an elite beetle behind two and a half shells' worth would be a wall.
+        // Sized from an ordinary one of its kind: an elite is tougher inside its
+        // shell, not behind a bigger one.
         val shieldPoints = when {
             species.innateShield > 0f -> (ordinaryHitPoints * species.innateShield).roundToInt()
             species.canBeShielded && wave.shieldChance > 0f && random.nextFloat() < wave.shieldChance ->
@@ -296,7 +288,7 @@ class EnemyGenerator(
         val palette =
             if (elite) ElitePalette.entries[random.nextInt(ElitePalette.entries.size)] else null
         val holdX = when {
-            // Behind the bat, for something coming from behind, so its leap tops out about where the bat is.
+            // Behind the bat for something coming from behind, so its leap tops out near the bat.
             species.squad == Squad.FROM_BEHIND ->
                 xSpawnPosition * (BEHIND_HOLD_X_MIN_FRACTION + random.nextFloat() * (BEHIND_HOLD_X_MAX_FRACTION - BEHIND_HOLD_X_MIN_FRACTION))
 
@@ -321,7 +313,7 @@ class EnemyGenerator(
             phase = phase,
             holdX = holdX,
             shieldPoints = shieldPoints,
-            // Only a shell of its own grows back. One a wave handed out is spent once it is spent.
+            // Only an innate shell grows back; a shield the wave handed out stays broken.
             shieldRegrowth = if (species.innateShield > 0f) species.shieldRegrowth else 0f,
             gun = gun,
             firstShotDelay = gun?.let { it.interval * FIRST_SHOT_JITTER * random.nextFloat() }
@@ -331,8 +323,8 @@ class EnemyGenerator(
     }
 
     /**
-     * What an elite fires: its kind's own gun, or the waves' issued one for a kind that carries none -
-     * an aimed one for a kind that comes from behind - on a shorter cadence either way; see
+     * What an elite fires: its kind's own gun, or the issued one for a kind that carries none
+     * (aimed, for a kind that comes from behind), on a shorter cadence either way; see
      * [ELITE_FIRE_INTERVAL_FACTOR].
      */
     private fun eliteGun(gun: EnemyGun?, species: EnemySpecies): EnemyGun {
@@ -341,6 +333,7 @@ class EnemyGenerator(
         return base.copy(interval = base.interval * ELITE_FIRE_INTERVAL_FACTOR)
     }
 
+    /** Spawns the stage's boss and its brain, the first time it is called. */
     private fun spawnBossOnce() {
         if (bossSpawned) return
         bossSpawned = true
@@ -453,8 +446,8 @@ class EnemyGenerator(
     }
 
     /**
-     * Where a boss's health bar is pinned, for the bosses that spend part of their fight out of
-     * sight: centered under the stage timer.
+     * Where a boss's health bar is pinned, for bosses that spend part of their fight out of sight:
+     * centered under the stage timer.
      */
     private fun pinnedBar(): Rect = Rect.fromLTWH(
         (xSpawnPosition - BOSS_BAR_WIDTH) / 2f,
@@ -464,13 +457,11 @@ class EnemyGenerator(
     )
 
     /**
-     * A swarm the boss has called in: the same wasps as the stage's own, at the strength of the
-     * wave that escorted her in - at her own difficulty, see [StageProgression.escortWave] -
-     * arriving from the edge in a lane away from the middle: she holds the middle, and a swarm
-     * spawned inside her would be a swarm the player never saw arrive.
+     * A wasp swarm the Moth Queen has called in, at her escort's strength (see
+     * [StageProgression.escortWave]), in a lane high or low, since she holds the middle and a swarm
+     * spawned inside her would arrive unseen.
      *
-     * Never with an elite in it, and nor is anything a boss calls up: the fight is the boss's, and
-     * a glow in the swarm would pull the player's fire off her.
+     * Nothing a boss calls up is ever elite: the fight is the boss's.
      */
     private fun summonSwarm() {
         val high = random.nextBoolean()
@@ -479,8 +470,8 @@ class EnemyGenerator(
     }
 
     /**
-     * Two of the Caco Imp's own kind, called in ablaze: strikers, whose crimson it wears, at the
-     * strength of the wave that escorted it in, one in a lane above it and one below.
+     * Two of the Caco Imp's own kind, strikers, at its escort's strength: one in a
+     * lane above it and one below.
      */
     private fun summonImps() {
         val escort = progression.escortWave()
@@ -495,9 +486,8 @@ class EnemyGenerator(
     }
 
     /**
-     * Wyrmlings the Sand Wyrm has called up: its own brood, at the strength of the wave that
-     * escorted it in, coming in under the sand like any other - spaced out, so each one's back is
-     * its own warning rather than two arriving as one.
+     * Wyrmlings the Sand Wyrm has called up, at its escort's strength, coming in under the sand
+     * spaced out so each one's back is its own warning.
      */
     private fun summonWyrmlings(count: Int) {
         val escort = progression.escortWave()
@@ -511,9 +501,8 @@ class EnemyGenerator(
     }
 
     /**
-     * The Naga's brood, called up out of the sea: [kraits] of its kraits in from the right in lanes a
-     * way apart, and with them - enraged - a school of piranhas low over the water, all at the strength
-     * of the wave that escorted it in.
+     * The Naga's brood, at its escort's strength: [kraits] kraits in from the right in spread
+     * lanes, and with [school] a school of piranhas low over the water.
      */
     private fun summonBrood(kraits: Int, school: Boolean) {
         val escort = progression.escortWave()
@@ -542,14 +531,13 @@ class EnemyGenerator(
         const val SUMMON_SPACING = 90f
 
         /**
-         * The enemy's collision box is a little narrower than its 32px frame, which is what the
-         * original game used and what keeps a near miss reading as a miss.
+         * An enemy's collision box, a little narrower than its 32px frame so a near miss is a miss.
          */
         const val ENEMY_COLLISION_WIDTH = 28f
 
         /**
-         * Where the boss holds station, as a fraction of the framebuffer width. Far enough in that
-         * the player has to come to it, far enough back that the bat still has room to dodge.
+         * Where the boss holds station, as a fraction of the framebuffer width: far enough in that
+         * the player must come to it, far enough back that the bat has room to dodge.
          */
         const val BOSS_HOLD_X_FRACTION = 0.62f
 

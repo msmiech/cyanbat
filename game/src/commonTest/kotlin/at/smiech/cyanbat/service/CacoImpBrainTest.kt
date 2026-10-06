@@ -16,7 +16,6 @@ import at.smiech.cyanbat.util.CACO_IMP_SUMMON_SECONDS
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.TICK_INITIAL
-import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.EnemyBehaviorComponent
 import at.smiech.engine.ecs.EnemyBehaviorSystem
@@ -39,7 +38,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 
 private class ImpSheet(override val width: Int = 384, override val height: Int = 29 * 3) : Pixmap {
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 

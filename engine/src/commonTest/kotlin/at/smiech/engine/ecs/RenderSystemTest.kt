@@ -12,7 +12,6 @@ import kotlin.test.assertTrue
 private class TaggedPixmap(val tag: String) : Pixmap {
     override val width = 10
     override val height = 10
-    override val format = Graphics.PixmapFormat.ARGB8888
     override fun dispose() = Unit
 }
 
@@ -97,7 +96,7 @@ private class RecordingGraphics : Graphics {
         sprites += DrawnSprite((pixmap as TaggedPixmap).tag, dstWidth, dstHeight, rotationDegrees)
     }
 
-    override fun newPixmap(filename: String, format: Graphics.PixmapFormat) = TaggedPixmap(filename)
+    override fun newPixmap(filename: String) = TaggedPixmap(filename)
     override fun clear(color: Int) = Unit
     override fun drawPixel(x: Int, y: Int, color: Int) = Unit
     override fun drawLine(xFrom: Int, yFrom: Int, xTo: Int, yTo: Int, color: Int) = Unit
@@ -110,6 +109,7 @@ private class RecordingGraphics : Graphics {
     override val height = 320
 }
 
+/** The order and the layers [RenderSystem] draws sprites in. */
 class RenderSystemTest {
 
     private val world = World().apply { addSystem(RenderSystem()) }

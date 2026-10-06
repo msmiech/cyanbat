@@ -3,31 +3,27 @@ package at.smiech.cyanbat.scenery
 import at.smiech.engine.EngineColors
 
 /**
- * The day a stage is flown through, under a sky the game draws: what the sky, the sun, the moon and
- * the stars look like at any point in it. Drawn by `SkySystem`; see
- * [at.smiech.cyanbat.resource.Backdrop.Sky].
+ * The day a stage is flown through under a drawn sky: how the sky, sun, moon and stars look at any
+ * point in it. Drawn by `SkySystem`; see [at.smiech.cyanbat.resource.Backdrop.Sky].
  *
- * Everything here is a pure function of one number, how far through its day the stage is - see
- * [position]. That is what lets a whole sunset or sunrise be tested without drawing a pixel of it,
- * and what ties it to the stage clock: a paused game is a paused sky, and a stage flown slowly gets
- * no darker or lighter for it than one flown fast.
+ * Everything is a pure function of how far through its day the stage is ([position]), so a sunset
+ * can be tested without drawing it, and the sky follows the stage clock: a paused game is a paused
+ * sky.
  *
- * Two are flown: the desert's, from noon to night ([Daylight]), and the lagoon's, from night to
- * noon ([Daybreak]).
+ * Two exist: the desert's, from noon to night ([Daylight]), and the lagoon's, from night to noon
+ * ([Daybreak]).
  */
 interface Day {
 
     // --- the ground ------------------------------------------------------------------------------
 
     /**
-     * Where each of the ground's palettes is at full strength, in the order they are drawn. Every
-     * piece of scenery flown past under this sky is drawn once in each, a row apiece down its sheet,
-     * in this order - the generators in `tools/` write them that way - and the hours between are
-     * crossfades of the two either side.
+     * Where each of the ground's palettes is at full strength, in drawing order. Every piece of
+     * scenery under this sky is drawn once per palette, a row apiece down its sheet in this order
+     * (as the generators in `tools/` write them), and the hours between are crossfades.
      *
-     * A few palettes rather than one computed per frame, because the art is pixel art: each was
-     * picked by eye, shadows and all, and the hours between them are crossfades of two pictures that
-     * already look right, where a computed ramp would be a guess at every pixel.
+     * A few hand-picked palettes rather than colors computed per frame, because crossfading two
+     * pictures that already look right beats guessing at every pixel.
      */
     val keyframes: FloatArray
 
@@ -66,28 +62,30 @@ interface Day {
     fun sunX(position: Float): Float
     fun sunY(position: Float): Float
 
+    /** The sun's radius, in frame pixels. */
     fun sunRadius(position: Float): Float
+
+    /** The sun's color, at its crown. */
     fun sunColor(position: Float): Int
 
     /** How strongly the sun's halo shows, as 0..1. */
     fun sunGlow(position: Float): Float
 
     /**
-     * How far the sun's lower half is cut into bands by the haze over the sea, as 0..1: the striped
-     * sun of a sunrise, its stripes thickening toward the horizon. Nothing for a sun that is never
-     * seen through such a haze, which is the default.
+     * How far the sun's lower half is cut into bands by the haze over the sea, 0..1: the striped
+     * sun of a sunrise, stripes thickening toward the horizon. None by default.
      */
     fun sunBands(position: Float): Float = 0f
 
     /**
-     * The color of the sun's foot, which it shades into from [sunColor] at its crown: a deeper one
-     * for a sun low over the sea. Its own color, a disc of one color, by default.
+     * The color of the sun's foot, which it shades into from [sunColor]: deeper for a sun low over
+     * the sea. By default the same color, for a plain disc.
      */
     fun sunLowColor(position: Float): Int = sunColor(position)
 
     /**
-     * How strongly the sun lays a path of glints across the water under it, as 0..1: strongest
-     * while it is low. Nothing for a day with no water to lay it on, which is the default.
+     * How strongly the sun lays a path of glints across the water beneath it, 0..1, strongest while
+     * it is low. None by default.
      */
     fun sunGlitter(position: Float): Float = 0f
 
@@ -106,16 +104,15 @@ interface Day {
     // --- the reel --------------------------------------------------------------------------------
 
     /**
-     * The hour the README's reel shows of this day, as a position: the picture of it, which the
-     * stage's opening and its boss would otherwise both miss - the desert's sun going down behind
-     * the dunes, the lagoon's coming up out of the sea.
+     * The hour of this day the README's reel shows, as a position: its most telling moment, which
+     * the stage's opening and boss would both miss (the desert's sunset, the lagoon's sunrise).
      */
     val showcase: Float
 
     companion object {
         /**
-         * How far through its day a stage is, as 0..1: its first second at 0, its boss's arrival at 1,
-         * and held there through the boss fight.
+         * How far through its day a stage is, 0..1: 0 at its start, 1 at its boss's arrival and
+         * through the fight.
          */
         fun position(elapsedSeconds: Float, bossTimeSeconds: Float): Float =
             if (bossTimeSeconds <= 0f) 1f else (elapsedSeconds / bossTimeSeconds).coerceIn(0f, 1f)
@@ -128,7 +125,7 @@ interface Day {
 internal fun fraction(value: Float, from: Float, to: Float): Float =
     if (to <= from) 1f else ((value - from) / (to - from)).coerceIn(0f, 1f)
 
-/** [fraction] eased in and out, so a change starts and finishes gently instead of on a corner. */
+/** [fraction] eased in and out, so a change starts and finishes gently. */
 internal fun smoothstep(from: Float, to: Float, value: Float): Float {
     val t = fraction(value, from, to)
     return t * t * (3f - 2f * t)

@@ -47,7 +47,7 @@ hostile.
 
 import pathlib
 import sys
-from math import cos, radians, sin
+from math import radians, sin
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 

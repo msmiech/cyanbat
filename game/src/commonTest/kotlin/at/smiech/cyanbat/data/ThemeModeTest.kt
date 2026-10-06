@@ -5,6 +5,7 @@ import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertTrue
 
+/** Which way each [ThemeMode] draws the menu, whatever the system is set to. */
 class ThemeModeTest {
 
     @Test

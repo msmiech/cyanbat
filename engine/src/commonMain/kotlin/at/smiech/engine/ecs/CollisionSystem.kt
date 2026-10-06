@@ -5,10 +5,9 @@ import at.smiech.engine.Input
 /**
  * Reports every overlapping pair of collidables to [onCollision], in creation order.
  *
- * The pair test is quadratic, so it is the one place where per-entity bookkeeping really costs.
- * Each pass therefore gathers the collidables once into primitive arrays - already shrunk by their
- * tolerance - and the inner loop then touches nothing but floats and ints: no component lookups,
- * no [at.smiech.engine.math.Rect] per pair, no allocation at all.
+ * The pair test is quadratic, so each pass first gathers the collidables into primitive arrays,
+ * already shrunk by their tolerance; the inner loop then touches only floats and ints, with no
+ * component lookups and no allocation.
  */
 class CollisionSystem(
     private val onCollision: (EntityId, EntityId) -> Unit
@@ -39,7 +38,7 @@ class CollisionSystem(
             val bottom1 = bottoms[i]
 
             for (j in i + 1 until count) {
-                // Don't collide objects in the same group or friendly groups if needed
+                // Same or friendly groups never collide; see SKIP.
                 if (SKIP[group1 * GROUP_COUNT + groups[j]]) continue
 
                 if (left1 < rights[j] && right1 > lefts[j] &&
@@ -52,10 +51,9 @@ class CollisionSystem(
     }
 
     /**
-     * Whether [a] and [b] overlap as a pass tests them: each box shrunk by its own tolerance, with the
-     * same arithmetic [update] does, so the answer is the pass's to the last bit. For a handler that
-     * has to know, partway through a pass, whether the pass meets a pair it has not handed over yet,
-     * or has already. Groups are not looked at: whether the two collide at all is the caller's to know.
+     * Whether [a] and [b] overlap as a pass tests them: each box shrunk by its tolerance, with the
+     * same arithmetic as [update], so the answer matches the pass exactly. For a handler that needs
+     * to know mid-pass whether the pass meets (or has met) another pair. Groups are not checked.
      */
     fun overlaps(a: EntityId, b: EntityId): Boolean {
         val rectA = transforms[a]?.rect ?: return false
@@ -104,8 +102,8 @@ class CollisionSystem(
         val GROUP_COUNT = CollisionGroup.entries.size
 
         /**
-         * Which ordered group pairs never collide, flattened to `g1 * GROUP_COUNT + g2`. Resolving
-         * this by table keeps the branchy rule set out of the quadratic loop.
+         * Which ordered group pairs never collide, flattened to `g1 * GROUP_COUNT + g2`, so the
+         * rules cost one lookup in the quadratic loop.
          */
         val SKIP = BooleanArray(GROUP_COUNT * GROUP_COUNT) { index ->
             val g1 = CollisionGroup.entries[index / GROUP_COUNT]

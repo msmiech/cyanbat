@@ -28,7 +28,7 @@ import kotlin.math.sign
 import kotlin.math.sin
 
 /**
- * Flies the bat for the recorder, as a virtual game pad on the run's [ControlHandler] - the seam a
+ * Flies the bat for the recorder, as a virtual game pad on the run's [ControlHandler]: the seam a
  * real controller backend would feed.
  *
  * Every tick it copies everything hostile into a scratch [World] and runs it forward through the
@@ -45,6 +45,7 @@ class Autopilot(
     private val frameWidth: Int,
     private val frameHeight: Int,
 ) {
+    /** Where the bat was last sent, which the plan prefers to keep to; NaN when nowhere. */
     private var targetX = Float.NaN
     private var targetY = Float.NaN
 
@@ -108,7 +109,10 @@ class Autopilot(
             PICK_ORDER.indexOf(offer[it]).let { rank -> if (rank < 0) PICK_ORDER.size else rank }
         }
 
-    /** Places the bat's center could head for: a coarse grid over the left of the frame, and the ground close by. */
+    /**
+     * Places the bat's center could head for: a coarse grid over the left of the
+     * frame, and rings of places close by.
+     */
     private inline fun forEachCandidate(bat: Rect, action: (Float, Float) -> Unit) {
         val minX = bat.width / 2f
         val maxX = frameWidth * MAX_X_FRACTION
@@ -151,6 +155,7 @@ class Autopilot(
         controls.onAxis(rawAxis(moveX), rawAxis(moveY))
     }
 
+    /** The raw stick reading that the handler's dead zone turns into [value]. */
     private fun rawAxis(value: Float): Float {
         if (abs(value) < MIN_DEFLECTION) return 0f
         val deadZone = ControlHandler.AXIS_DEAD_ZONE
@@ -162,14 +167,18 @@ class Autopilot(
      * collision boxes the game tests, already shrunk by their tolerance.
      */
     private class Forecast(
+        /** How many things are forecast. */
         val count: Int,
         /** Which of them are enemies, the things worth shooting; the rest are shots and scenery. */
         val isEnemy: BooleanArray,
+        /** Which of them are bosses, worth the most to line up on. */
         val isBoss: BooleanArray,
+        /** Each thing's box on each tick, four edges apiece. */
         private val boxes: FloatArray,
         /** Each thing's box over the whole horizon, for a quick "can it matter at all" test. */
         val sweep: FloatArray,
     ) {
+        /** Thing [k]'s left edge on [tick]; [top], [right] and [bottom] likewise. */
         fun left(tick: Int, k: Int) = boxes[(tick * count + k) * 4]
         fun top(tick: Int, k: Int) = boxes[(tick * count + k) * 4 + 1]
         fun right(tick: Int, k: Int) = boxes[(tick * count + k) * 4 + 2]
@@ -220,10 +229,8 @@ class Autopilot(
                     enemies += enemy
                     tolerances += collision.tolerance
                     // Only a boss is never culled for leaving the frame.
-                    bosses += enemy && world.getComponent(
-                        id,
-                        LifetimeComponent::class
-                    )?.removeIfOutOfBounds == false
+                    val lifetime = world.getComponent(id, LifetimeComponent::class)
+                    bosses += enemy && lifetime?.removeIfOutOfBounds == false
                 }
 
                 val count = copies.size
@@ -256,7 +263,7 @@ class Autopilot(
                     enemies.toBooleanArray(),
                     bosses.toBooleanArray(),
                     boxes,
-                    sweep
+                    sweep,
                 )
             }
         }
@@ -274,21 +281,22 @@ class Autopilot(
         private val frameHeight: Float,
         private val protectedTicks: Int,
     ) {
+        /** Scratch for [firstHit]: the things it tests tick by tick. */
         private val relevant = IntArray(forecast.count)
 
+        /**
+         * How good a place ([x], [y]) is to head for, given the last ([previousX], [previousY]).
+         */
         fun score(x: Float, y: Float, previousX: Float, previousY: Float): Float {
             val distance = hypot(x - startX, y - startY)
             val arrival = ceil(distance / SPEED_PER_TICK).toInt()
 
             val hardHit = firstHit(x, y, distance, arrival, HARD_MARGIN, ignoreProtected = true)
-            val softHit = if (hardHit > HORIZON) firstHit(
-                x,
-                y,
-                distance,
-                arrival,
-                SOFT_MARGIN,
-                ignoreProtected = false
-            ) else hardHit
+            val softHit = if (hardHit > HORIZON) {
+                firstHit(x, y, distance, arrival, SOFT_MARGIN, ignoreProtected = false)
+            } else {
+                hardHit
+            }
 
             var score = W_HARD * hardHit / (HORIZON + 1f) + W_SOFT * softHit / (HORIZON + 1f)
             score += W_AIM * aim(x, y, arrival)
@@ -300,17 +308,15 @@ class Autopilot(
             score -= W_HUD * hudCover(x, y)
             score -= W_MOVE * distance / 100f
             if (!previousX.isNaN()) {
-                score += W_KEEP * (1f - hypot(
-                    x - previousX,
-                    y - previousY
-                ) / KEEP_RADIUS).coerceAtLeast(0f)
+                val drift = hypot(x - previousX, y - previousY)
+                score += W_KEEP * (1f - drift / KEEP_RADIUS).coerceAtLeast(0f)
             }
             return score
         }
 
         /**
          * The first tick on which the bat, flying straight for ([x], [y]) at full speed and holding
-         * there, overlaps something hostile grown by [margin] - or [HORIZON] + 1 if it never does.
+         * there, overlaps something hostile grown by [margin]; [HORIZON] + 1 if it never does.
          */
         private fun firstHit(
             x: Float,
@@ -374,11 +380,9 @@ class Autopilot(
                     val shotLeft = muzzle + SHOT_SPEED * (tick - start)
                     if (shotLeft + SHOT_LENGTH < forecast.left(tick, k)) continue
                     if (shotLeft > forecast.right(tick, k)) break
-                    if (y + SHOT_HALF_HEIGHT > forecast.top(
-                            tick,
-                            k
-                        ) && y - SHOT_HALF_HEIGHT < forecast.bottom(tick, k)
-                    ) {
+                    val crosses = y + SHOT_HALF_HEIGHT > forecast.top(tick, k) &&
+                            y - SHOT_HALF_HEIGHT < forecast.bottom(tick, k)
+                    if (crosses) {
                         val nearness =
                             1f - ((forecast.left(start, k) - muzzle) / FAR_AWAY).coerceIn(0f, 1f)
                         total += (if (forecast.isBoss[k]) BOSS_WEIGHT else 1f) * (0.5f + nearness)
@@ -389,21 +393,24 @@ class Autopilot(
             return total
         }
 
-        /** How much of the HUD's left column a bat centered on ([x], [y]) would cover, as 0..1 of its own box. */
+        /**
+         * How much of the HUD's left column a bat centered on ([x], [y]) would
+         * cover, as 0..1 of its own box.
+         */
         private fun hudCover(x: Float, y: Float): Float {
             val overlapX =
                 (min(x + batHalfWidth, HUD_RIGHT) - maxOf(x - batHalfWidth, 0f)).coerceAtLeast(0f)
-            val overlapY = (min(y + batHalfHeight, HUD_BOTTOM) - maxOf(
-                y - batHalfHeight,
-                0f
-            )).coerceAtLeast(0f)
+            val overlapY =
+                (min(y + batHalfHeight, HUD_BOTTOM) - maxOf(y - batHalfHeight, 0f)).coerceAtLeast(0f)
             return overlapX * overlapY / (4f * batHalfWidth * batHalfHeight)
         }
 
+        /** [value] squared. */
         private fun square(value: Float) = value * value
     }
 
     private companion object {
+        /** The game's fixed tick, which the forecast steps by. */
         const val TICK = TICK_INITIAL
 
         /** How far the bat moves in a tick at full deflection. */
@@ -420,9 +427,14 @@ class Autopilot(
         val HOSTILE =
             setOf(CollisionGroup.ENEMY, CollisionGroup.ENEMY_PROJECTILE, CollisionGroup.OBSTACLE)
 
+        /** The spacing of the coarse grid of places across and down. */
         const val GRID_STEP_X = 20f
         const val GRID_STEP_Y = 12f
+
+        /** How far out the rings of places close to the bat are, for fine moves. */
         val NEAR_RINGS = floatArrayOf(6f, 14f, 26f)
+
+        /** Places on each of those rings. */
         const val NEAR_DIRECTIONS = 12
 
         /** The bat keeps to the left of this share of the frame, where it has room to react. */
@@ -434,13 +446,22 @@ class Autopilot(
         /** Clearance the bat would like to keep, as a lesser weight than a hit. */
         const val SOFT_MARGIN = 12f
 
-        /** The bat's shot: where it flies from the bat's center line, and its collision box. */
+        /**
+         * The bat's shot's box: half its height either side of the bat's center line, its length.
+         */
         const val SHOT_HALF_HEIGHT = 4f
         const val SHOT_LENGTH = 20f
+
+        /** How far ahead a target stops counting as near; the nearer, the more it is worth. */
         const val FAR_AWAY = 360f
+
+        /** What a boss in the line of fire is worth, against an ordinary enemy's one. */
         const val BOSS_WEIGHT = 3f
 
-        /** Where the bat idles when nothing else decides it: a third of the way in, as a player holds it. */
+        /**
+         * Where the bat idles when nothing else decides it: a third of the way in, as a player
+         * holds it. [PREFERRED_X_SPREAD] away, the pull back is the whole of [W_X].
+         */
         const val PREFERRED_X = 110f
         const val PREFERRED_X_SPREAD = 150f
 
@@ -474,8 +495,10 @@ class Autopilot(
         const val W_MOVE = 1.5f
         const val W_KEEP = 3f
 
+        /** A deflection too small to bother the stick with. */
         const val MIN_DEFLECTION = 0.01f
 
+        /** The power-ups in the order [choose] prefers them. */
         val PICK_ORDER = listOf(
             PowerUp.SPREAD_SHOT,
             PowerUp.RAPID_FIRE,

@@ -7,12 +7,12 @@ import kotlinx.coroutines.flow.asStateFlow
 import java.util.prefs.Preferences
 
 /**
- * [HighscoreStore] on top of the JDK preferences API, which resolves to the registry on Windows
- * and a dotfile on macOS/Linux - no path handling or directory creation of our own. One key per
- * stage, the same names the Android store uses.
+ * [HighscoreStore] on the JDK preferences API, which keeps them in the registry on Windows and in a
+ * dotfile on macOS and Linux, with no paths of our own to manage. One key per stage, under the
+ * names the Android store uses.
  *
- * Writes are synchronous but sub-millisecond, so unlike the Android store this needs no scope of
- * its own to outlive the screen being disposed. The flow is an in-memory mirror, as in
+ * Writes are synchronous but take well under a millisecond, so unlike the Android store this needs
+ * no scope of its own to outlive the screen. The flow is an in-memory mirror, as in
  * [PreferencesStageUnlockStore], so one instance has to be shared between the menu and the game.
  *
  * @param prefs where the scores live; the game's own node unless a test says otherwise.
@@ -28,6 +28,7 @@ class PreferencesHighscoreStore(
         migrateStageOrder()
     }
 
+    /** Every stage's score, mirrored from the store. */
     private val scores = MutableStateFlow(readAll())
 
     override val byStage: Flow<Map<Int, Int>> = scores.asStateFlow()
@@ -78,7 +79,10 @@ class PreferencesHighscoreStore(
     }
 
     private companion object {
+        /** A stage's score is kept under this and its id. */
         const val KEY_PREFIX = "highscore_stage_"
+
+        /** The single score kept before there was one per stage. */
         const val LEGACY_KEY = "highscore"
 
         /** Which order the stages' highscores are stored in, the same name the Android store uses. */
@@ -87,6 +91,7 @@ class PreferencesHighscoreStore(
         /** The order with the jungle first. Each later reordering would get its own number. */
         const val JUNGLE_FIRST = 1
 
+        /** The key [stageId]'s score is kept under. */
         fun keyFor(stageId: Int) = KEY_PREFIX + stageId
     }
 }

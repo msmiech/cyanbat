@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
+/** How [Palette] keeps a clip's colors, or cuts them down. */
 class PaletteTest {
 
     /** Pixel art mostly fits: a clip with few enough colors keeps every one of them exactly. */

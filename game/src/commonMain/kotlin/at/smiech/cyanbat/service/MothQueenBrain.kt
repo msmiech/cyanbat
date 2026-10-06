@@ -22,19 +22,17 @@ import kotlin.math.roundToInt
 /**
  * The Moth Queen's fight, in three phases marked by her health.
  *
- * 1. **Courting.** She traces her figure eight and fires fans of three at the player. Learnable.
- * 2. **The swarm.** At two thirds she throws up a shield, starts firing rings that fill the screen
- *    with lanes to thread, and calls in a wasp swarm every few seconds.
- * 3. **Enraged.** At one third the shield goes up again, she flies faster, and she alternates a
- *    wide five-way fan with a denser ring - with the swarms coming quicker.
+ * 1. **Courting.** She traces her figure eight and fires fans of three at the player.
+ * 2. **The swarm.** At two thirds she raises a shield, fires rings with lanes to thread, and calls
+ *    in a wasp swarm every few seconds.
+ * 3. **Enraged.** At one third the shield rises again, she flies faster, and alternates a wide
+ *    five-way fan with a denser ring, with the swarms coming quicker.
  *
- * Phases are read off her health rather than a clock, so a player who hits hard moves the fight on
- * and one who is busy dodging is not punished with the next phase for it. A single hit that drops
- * her past both thresholds plays both entrances in order, so no phase's shield is ever skipped.
+ * Phases follow her health rather than a clock, so hitting hard moves the fight on
+ * and dodging is not punished. A hit that drops her past both thresholds plays both
+ * entrances in order, so no shield is skipped.
  *
- * Everything here is state on her components - the gun's repertoire, the weapon's cadence, the
- * shield, the movement's tempo - so what she does is exactly what the systems already run. This
- * only decides when it changes.
+ * Like every [BossBrain], this only changes state on her components.
  *
  * @param onSummon called when she calls in a swarm; the generator is what knows how to spawn one.
  * @param onPhaseChanged called with the phase she has just entered, 2 or 3, for the screen to
@@ -46,9 +44,11 @@ class MothQueenBrain(
     private val onSummon: () -> Unit = {},
     private val onPhaseChanged: (Int) -> Unit = {},
 ) : BossBrain {
+    /** The phase she is in, 1 to 3. */
     var phase = 1
         private set
 
+    /** Seconds until the next swarm, from phase 2 on. */
     private var summonTimer = 0f
 
     override fun update(deltaTime: Float) {
@@ -66,6 +66,9 @@ class MothQueenBrain(
         }
     }
 
+    /**
+     * Plays the entrance of phase [next]: a fresh shield, the phase's gun and, enraged, more speed.
+     */
     private fun enter(next: Int, health: HealthComponent) {
         phase = next
 
@@ -86,8 +89,8 @@ class MothQueenBrain(
                 MOTH_QUEEN_ENRAGED_TEMPO
         }
 
-        // The first swarm of a phase comes a moment after its shield goes up rather than with it,
-        // so the two land as separate events the player can take in one at a time.
+        // The phase's first swarm comes a moment after its shield, so the two land as separate
+        // events.
         summonTimer = FIRST_SUMMON_DELAY
         onPhaseChanged(next)
     }
@@ -96,6 +99,7 @@ class MothQueenBrain(
         if (phase >= 3) MOTH_QUEEN_ENRAGED_SUMMON_SECONDS else MOTH_QUEEN_SUMMON_SECONDS
 
     companion object {
+        /** Seconds from a phase's shield to its first swarm. */
         private const val FIRST_SUMMON_DELAY = 2.5f
 
         /** What she opens the fight with: fans of three, at a pace the player can learn. */
@@ -140,6 +144,7 @@ class MothQueenBrain(
             ),
         )
 
+        /** Her gun in [phase]. */
         fun gunFor(phase: Int): EnemyGun = when {
             phase >= 3 -> ENRAGED_GUN
             phase == 2 -> SWARM_GUN
