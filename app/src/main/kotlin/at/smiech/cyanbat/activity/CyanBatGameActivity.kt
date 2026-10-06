@@ -2,9 +2,10 @@ package at.smiech.cyanbat.activity
 
 import android.content.Intent
 import android.content.res.Configuration
-import android.os.LocaleList
+import android.os.Bundle
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.MainActivity
+import at.smiech.cyanbat.data.AppLocale
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.data.DataStoreStageUnlockStore
@@ -25,6 +26,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.runBlocking
+import java.util.Locale
 
 /**
  * Android host for the game. Its whole job is to build a [CyanBatEnvironment] out of platform
@@ -38,8 +40,8 @@ class CyanBatGameActivity : AndroidGameActivity() {
     /** Lazily, for the same reason as [settings]; and kept, to swap a new language's text into. */
     private val environment by lazy { buildEnvironment() }
 
-    /** The languages the run's text was last read in; see [onConfigurationChanged]. */
-    private var textLocales: LocaleList? = null
+    /** The language the run's text was last read in; see [onConfigurationChanged]. */
+    private var textLocale: Locale? = null
 
     /** Feeds the live audio and vibration settings; canceled with the activity. */
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -73,20 +75,27 @@ class CyanBatGameActivity : AndroidGameActivity() {
     /**
      * The run takes a change of language in place, as the manifest says, so its text has to be read
      * again in the new one: the player who picked another language for the game has to see it in
-     * the run they come back to.
+     * the run they come back to. Any other change only puts the game's language back on.
      */
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        if (newConfig.locales != textLocales) environment.text = loadText()
+        AppLocale.reapply()
+        if (Locale.getDefault() != textLocale) environment.text = loadText()
     }
 
     /**
-     * The run's text in the app's language. Blocking, as Compose's own string lookups are on
+     * The run's text in the game's language. Blocking, as Compose's own string lookups are on
      * Android: there is no run to show without it, and it is one small file, read once a language.
      */
     private fun loadText(): GameText {
-        textLocales = resources.configuration.locales
+        textLocale = Locale.getDefault()
         return runBlocking { GameText.load() }
+    }
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        // Ahead of the run, which reads its text as the activity creates it.
+        AppLocale.start(this)
+        super.onCreate(savedInstanceState)
     }
 
     override fun onDestroy() {

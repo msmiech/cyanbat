@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.resource
 
+import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.pause_title
@@ -43,6 +44,15 @@ class TranslationsTest {
             assertEquals(emptySet(), english - keys, "$folder is missing these")
             assertEquals(emptySet(), keys - english, "$folder has these, which English does not")
         }
+    }
+
+    /** Settings offers every language there are strings for, and only those. */
+    @Test
+    fun `every language is one the player can choose`() {
+        assertEquals(
+            setOf("en") + TRANSLATIONS.map { it.removePrefix("values-") },
+            AppLanguage.entries.mapNotNull { it.tag }.toSet(),
+        )
     }
 
     @Test

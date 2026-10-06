@@ -10,10 +10,14 @@
         android:label="@string/app_name">
         <!-- uiMode: the menu follows the system into dark or light by recomposing in place. Being
              recreated instead put the player back on the main screen and the menu track back to
-             its start. -->
+             its start.
+             locale, layoutDirection, screenLayout: the same for the language, which the menu
+             redraws itself in (AppLocale); recreated, it put a player who had just picked one in
+             Settings back on the main screen. A new language comes with all three, screenLayout
+             because it holds the layout direction too. -->
         <activity
             android:name=".MainActivity"
-            android:configChanges="orientation|screenSize|keyboardHidden|uiMode"
+            android:configChanges="orientation|screenSize|keyboardHidden|uiMode|locale|layoutDirection|screenLayout"
             android:exported="true"
             android:screenOrientation="landscape"
             tools:ignore="DiscouragedApi">

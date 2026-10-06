@@ -49,6 +49,12 @@
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_dark">Dark</string>
     <string name="settings_theme_light">Light</string>
+    <string name="settings_language_title">Language</string>
+    <!-- Following the system's language. Every other language is named in its own words. -->
+    <string name="settings_language_system">System</string>
+    <string name="language_english" translatable="false">English</string>
+    <string name="language_german" translatable="false">Deutsch</string>
+    <string name="language_polish" translatable="false">Polski</string>
     <string name="settings_display_title">Display</string>
     <string name="settings_display_stretch">Stretch to fit screen</string>
     <string name="settings_display_stretch_hint">Fills the screen, but draws the game out of shape on screens that are not 16:9.</string>

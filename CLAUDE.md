@@ -121,8 +121,8 @@ playfield for wide screens; it would change difficulty by device.
   `GameOverScreen`, in the player's language (see Languages). The rows are hard-coded, but every
   centered or right-aligned line is placed by its measured width, so rewording one needs no new x.
 
-**Languages.** The game speaks English, German and Polish: on Android the system's language or the
-one picked for the app in Android 13's per-app setting, on the desktop the JVM's.
+**Languages.** The game speaks English, German and Polish: the one the player picks in Settings
+(`AppLanguage`), or until they pick one the system's.
 
 - Every word the game shows, the menu's and the run's, is a Compose resource:
   `values/strings.xml`, and `values-de` and `values-pl` beside it, under
@@ -135,8 +135,18 @@ one picked for the app in Android 13's per-app setting, on the desktop the JVM's
   its words by `StringResource` - `PowerUp.title`, `Stage.name`, `ComboHeat.title` - and never holds
   a string, so only the drawing knows the language. `GameText.format` fills `%1$d` and `%1$s` as
   Compose does, and a bare `%` is a percent sign.
-- The game activity takes a change of language in place, like any configuration change a run can
-  meet, and reads the run's text again in `onConfigurationChanged`.
+- Compose's resources read the language off the JVM's default locale, so picking one is setting
+  that. On the desktop `DesktopLocale` sets it. On Android 13+ the setting is the system's per-app
+  language (`AppLocale`, through `LocaleManager`), so Settings and the system's app languages are one
+  setting; before 13, `AppLocale` keeps the choice in DataStore and sets the default itself. Android
+  sets the default back to the system's at every configuration change, so both activities call
+  `AppLocale.reapply()` in `onConfigurationChanged`, before anything reads a string.
+- The menu redraws itself in a new language, under `key(language)` in `CyanBatMenu`: Compose's
+  resources pick the language when a string is first read, and nothing reads it again by itself.
+  A host puts a language into effect before `SettingsRepository.language` tells the menu of it.
+  `MainActivity` takes `locale`, `layoutDirection` and `screenLayout` in place for this, and the game
+  activity reads the run's text again in `onConfigurationChanged`; recreated, either lost where the
+  player was.
 - The run's lines have fixed sizes and fixed room, laid out for English. `GameTextLayoutTest`
   measures every language's against them in the platform's face. DejaVu Sans, on CI's Linux, is the
   widest, so a line that passes on Windows can still fail there.
@@ -150,9 +160,10 @@ one picked for the app in Android 13's per-app setting, on the desktop the JVM's
   it is text the screen draws (`game_over_hint`), on the baseline and at the width the artwork had
   it; `tools/generate_game_over.py` takes the artwork's own English line out of it.
 - A new language is a `values-xx/strings.xml` in composeResources, which the tests find by
-  themselves, and one in `app/src/main/res` for the game screen's label: AGP builds the app's
-  language list for the per-app setting from those (`generateLocaleConfig`) and does not see
-  composeResources.
+  themselves; an `AppLanguage` with its name in its own words for Settings, which `TranslationsTest`
+  holds to the folders; and a `values-xx` in `app/src/main/res` for the game screen's label: AGP
+  builds the app's language list for the per-app setting from those (`generateLocaleConfig`) and
+  does not see composeResources.
 
 **Stage content is split four ways.**
 

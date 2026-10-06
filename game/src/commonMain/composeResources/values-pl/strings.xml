@@ -43,6 +43,8 @@
     <string name="settings_theme_system">Systemowy</string>
     <string name="settings_theme_dark">Ciemny</string>
     <string name="settings_theme_light">Jasny</string>
+    <string name="settings_language_title">Język</string>
+    <string name="settings_language_system">Systemowy</string>
     <string name="settings_display_title">Wyświetlanie</string>
     <string name="settings_display_stretch">Rozciągnij na cały ekran</string>
     <string name="settings_display_stretch_hint">Wypełnia ekran, ale zniekształca grę na ekranach o proporcjach innych niż 16:9.</string>

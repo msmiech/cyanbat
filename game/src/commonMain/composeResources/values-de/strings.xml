@@ -41,6 +41,8 @@
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_dark">Dunkel</string>
     <string name="settings_theme_light">Hell</string>
+    <string name="settings_language_title">Sprache</string>
+    <string name="settings_language_system">System</string>
     <string name="settings_display_title">Anzeige</string>
     <string name="settings_display_stretch">Auf Bildschirm strecken</string>
     <string name="settings_display_stretch_hint">Füllt den Bildschirm, verzerrt das Spiel aber auf Bildschirmen, die nicht 16:9 sind.</string>

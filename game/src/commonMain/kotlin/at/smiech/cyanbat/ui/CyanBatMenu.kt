@@ -13,6 +13,7 @@ import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
@@ -21,6 +22,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.viewmodel.compose.viewModel
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
+import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.resources.Res
@@ -76,12 +78,19 @@ fun CyanBatMenu(
         val menuViewModel = viewModel {
             MainMenuViewModel(host.settings, host.menuMusic, host.stageUnlocks, host.highscores)
         }
-        // Keeps what a screen remembers while the player is in another one, so the main screen's
-        // cursor is still on Settings when they come back out of it.
-        val screens = rememberSaveableStateHolder()
-        MenuKeys(onBack = backStack::back) {
-            screens.SaveableStateProvider(backStack.current.name) {
-                Destination(backStack, host, menuViewModel)
+        // Every string is read again when the language changes, which nothing else would make a
+        // string read again: Compose's resources pick the language when a string is first read.
+        // The host has put it into effect by the time it tells the menu of it, and the back stack
+        // is out here, so the player is still in Settings, where they chose it.
+        val language by host.settings.language.collectAsState(AppLanguage.DEFAULT)
+        key(language) {
+            // Keeps what a screen remembers while the player is in another one, so the main
+            // screen's cursor is still on Settings when they come back out of it.
+            val screens = rememberSaveableStateHolder()
+            MenuKeys(onBack = backStack::back) {
+                screens.SaveableStateProvider(backStack.current.name) {
+                    Destination(backStack, host, menuViewModel)
+                }
             }
         }
     }
