@@ -37,8 +37,10 @@ import at.smiech.cyanbat.util.FROST_SECONDS
 import at.smiech.cyanbat.util.IMPACT_FRAME
 import at.smiech.cyanbat.util.IMPACT_FRAME_COUNT
 import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
+import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.NAGA_PLATE_SHARE
 import at.smiech.cyanbat.util.ORB_RADIUS
+import at.smiech.cyanbat.util.POWER_UP_GRACE_SECONDS
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
@@ -54,12 +56,14 @@ import at.smiech.engine.Sound
 import at.smiech.engine.ecs.AuraComponent
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
+import at.smiech.engine.ecs.DitherComponent
 import at.smiech.engine.ecs.EntityId
 import at.smiech.engine.ecs.HealthComponent
 import at.smiech.engine.ecs.LightComponent
 import at.smiech.engine.ecs.OccluderComponent
 import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.PierceComponent
+import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TintComponent
 import at.smiech.engine.ecs.TransformComponent
@@ -1186,6 +1190,7 @@ class GameScreenTest {
     fun `the orbs go out with the bat`() = flight(CAVE) {
         repeat(2) { pick(PowerUp.GUARDIAN_ORB) }
         holdFire()
+        spendGrace()
         probe.world.getComponent(probe.batId, HealthComponent::class)!!.hitPoints = 1
         val bat = batRect()
         imp(x = bat.left, y = bat.top, elite = null)
@@ -1380,6 +1385,78 @@ class GameScreenTest {
         game.controlHandler.onButtonPress(GameButton.CONFIRM)
         screen.update(0f)
         assertTrue(probe.offer.isEmpty(), "the pick did not land")
+    }
+
+    /**
+     * A pick hands the run back where the dialog froze it, with whatever was bearing down on the bat
+     * still there. For a moment nothing can hurt the bat, and it shows: see-through from the frame
+     * the dialog closes, never whole while the grace lasts, and whole again once it can be hurt.
+     */
+    @Test
+    fun `a pick gives the bat a moment's grace and shows it`() = flight(CAVE) {
+        holdFire()
+        val world = probe.world
+        val bat = world.getComponent(probe.batId, HealthComponent::class)!!
+        val control = world.getComponent(probe.batId, PlayerControlComponent::class)!!
+        val dither = world.getComponent(probe.batId, DitherComponent::class)!!
+        assertEquals(1f, dither.coverage, "the bat was see-through with nothing keeping it safe")
+
+        pick(PowerUp.HEAVY_ROUNDS)
+        assertEquals(POWER_UP_GRACE_SECONDS, control.hitCooldown, "the pick gave no grace")
+        assertTrue(dither.coverage < 1f, "the bat came out of the dialog whole")
+
+        // Held on the bat for all but the grace's last few ticks.
+        val imp = imp(x = 0f, y = 0f, elite = null, hitPoints = 100_000)
+        repeat((POWER_UP_GRACE_SECONDS / TICK_INITIAL).toInt() - 3) {
+            assertTrue(dither.coverage < 1f, "the bat turned whole inside its grace")
+            clearStrays(keep = setOf(imp))
+            pinOn(imp, batRect())
+            screen.update(TICK_INITIAL)
+        }
+        assertEquals(bat.maxHitPoints, bat.hitPoints, "the bat was hurt inside its grace")
+
+        world.removeEntity(imp)
+        flyOutCooldown(control, dither)
+    }
+
+    /** The mercy after a hit shows the same way, for as long as it lasts. */
+    @Test
+    fun `the bat shows the mercy after a hit until it can be hurt again`() = flight(CAVE) {
+        holdFire()
+        sturdyBat()
+        val world = probe.world
+        val bat = world.getComponent(probe.batId, HealthComponent::class)!!
+        val control = world.getComponent(probe.batId, PlayerControlComponent::class)!!
+        val dither = world.getComponent(probe.batId, DitherComponent::class)!!
+        val imp = imp(x = 0f, y = 0f, elite = null, hitPoints = 100_000)
+
+        pinOn(imp, batRect())
+        screen.update(TICK_INITIAL * 1.5f)
+        assertTrue(bat.hitPoints < bat.maxHitPoints, "the imp did not hit the bat")
+        assertTrue(dither.coverage < 1f, "the hit left the bat whole")
+
+        world.removeEntity(imp)
+        flyOutCooldown(control, dither)
+    }
+
+    /**
+     * Flies the bat, with nothing in its way, to the end of whatever keeps it from harm now, holding
+     * it to see-through every tick of that and whole once it is over.
+     */
+    private fun Flight.flyOutCooldown(control: PlayerControlComponent, dither: DitherComponent) {
+        var ticks = (MAX_HIT_COOLDOWN_SECONDS / TICK_INITIAL).roundToInt() + 2
+        while (control.hitCooldown > 0f) {
+            assertTrue(ticks-- > 0, "the bat never came out of it")
+            assertTrue(dither.coverage < 1f, "the bat turned whole while it could not be hurt")
+            clearStrays(keep = emptySet())
+            screen.update(TICK_INITIAL)
+        }
+        assertEquals(1f, dither.coverage, "the bat stayed see-through once it could be hurt")
+    }
+
+    /** Ends the grace a pick gives the bat, so whatever a test puts on it can land at once. */
+    private fun Flight.spendGrace() {
+        probe.world.getComponent(probe.batId, PlayerControlComponent::class)!!.hitCooldown = 0f
     }
 
     /** Holds the bat's gun, which a pick rearms, so nothing but the weapon under test lands. */

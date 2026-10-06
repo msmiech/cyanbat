@@ -70,7 +70,8 @@ class Autopilot(
             batHalfWidth = bat.width / 2f,
             batHalfHeight = bat.height / 2f,
             frameHeight = frameHeight.toFloat(),
-            // Ticks inside the mercy window after a hit, when nothing can hurt the bat.
+            // Ticks left of the mercy after a hit, or the grace after a pick, when nothing can hurt
+            // the bat.
             protectedTicks = (cooldown / TICK).toInt(),
         )
 

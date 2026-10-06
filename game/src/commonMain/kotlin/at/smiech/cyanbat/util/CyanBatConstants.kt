@@ -444,6 +444,22 @@ const val SECOND_WIND_SECONDS = 0.3f
 const val MAX_HIT_COOLDOWN_SECONDS = 1.5f
 
 /**
+ * The grace after a level-up pick, when nothing can hurt the bat: the run comes back with whatever
+ * was bearing down on it still there, and the finger that tapped a card has to find the bat again.
+ */
+const val POWER_UP_GRACE_SECONDS = 1f
+
+/**
+ * How the bat shows it cannot be hurt: see-through, a dither pulsing between the faintest and the
+ * strongest share of its pixels once every [INVULNERABLE_PULSE_SECONDS]. Never whole while it lasts,
+ * so the bat coming back whole is the moment it can be hurt again; never fainter than six pixels in
+ * sixteen, below which it thins to a scatter of dots the player loses against the jungle.
+ */
+const val INVULNERABLE_PULSE_SECONDS = 0.3f
+const val INVULNERABLE_FAINTEST = 0.375f
+const val INVULNERABLE_STRONGEST = 0.75f
+
+/**
  * The level-up dialog's cards, against the 640x360 frame: three in a row with a gutter between
  * them, centered horizontally, just below the middle of the screen.
  */

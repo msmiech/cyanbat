@@ -599,6 +599,19 @@ data class HitFlashComponent(
 class TintComponent(var color: Int = 0) : Component
 
 /**
+ * Draws an entity's sprite see-through, with only [coverage] of its pixels, the rest left out in an
+ * even pattern ([at.smiech.engine.Dither]) so the art stays crisp. Drawn by [RenderSystem] in place
+ * of the plain sprite.
+ *
+ * Disarmed rather than removed, like a tint: at a [coverage] of 1 the sprite is drawn whole. Only for
+ * an upright sprite, as everything using it is; a turned one is drawn whole. A crossfade is not laid
+ * over it, and a tint or flash is laid over it whole.
+ *
+ * @param coverage how much of the sprite shows, 0..1.
+ */
+class DitherComponent(var coverage: Float = 1f) : Component
+
+/**
  * Shows how badly an entity is hurt by which row of its sheet it is drawn from, picked by
  * [WoundSystem] from its [HealthComponent].
  *

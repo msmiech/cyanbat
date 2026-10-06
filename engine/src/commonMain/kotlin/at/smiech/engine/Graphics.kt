@@ -130,6 +130,30 @@ interface Graphics {
     )
 
     /**
+     * The scaled blit with only [coverage] of its pixels drawn, 0..1, picked by [Dither] in the
+     * sprite's own pixels: see-through, the way pixel art is, rather than blended.
+     *
+     * The default, for test doubles, draws the whole sprite once at least half of it shows. The
+     * real backend overrides it with the dither.
+     */
+    fun drawPixmapDithered(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        srcX: Int,
+        srcY: Int,
+        srcWidth: Int,
+        srcHeight: Int,
+        dstWidth: Int,
+        dstHeight: Int,
+        coverage: Float,
+    ) {
+        if (coverage >= 0.5f) {
+            drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight)
+        }
+    }
+
+    /**
      * The sprite's shape filled flat with [color], drawn over what is already there.
      *
      * The pixmap's alpha is the mask, and [color]'s alpha is how strongly the fill shows. Drawn
