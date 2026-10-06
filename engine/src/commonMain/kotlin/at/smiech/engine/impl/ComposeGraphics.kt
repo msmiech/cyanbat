@@ -8,10 +8,13 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.ImageShader
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
+import androidx.compose.ui.graphics.Shader
 import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.TileMode
 import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Fill
@@ -26,6 +29,7 @@ import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
+import at.smiech.engine.Dither
 import at.smiech.engine.FrameCache
 import at.smiech.engine.Gloss
 import at.smiech.engine.Graphics
@@ -206,6 +210,22 @@ class ComposeGraphics(
         isAntiAlias = false; blendMode = BlendMode.Plus; filterQuality = FilterQuality.None
     }
 
+    /**
+     * Each frame of the art at each level of [Dither] it has been drawn at: the frame's own
+     * picture with the pixels that level leaves out cleared. Made on first use and kept, like the
+     * glints, so a sprite pulsing through the levels costs a plain blit a frame.
+     */
+    private val ditheredFrames =
+        FrameCache(Dither.LEVELS) { pixmap, x, y, width, height, level ->
+            dither(pixmap, x, y, width, height, level)
+        }
+
+    /** Each level's pattern as a tile repeated across whatever it is drawn over; see [ditherShader]. */
+    private val ditherShaders = arrayOfNulls<Shader>(Dither.LEVELS)
+    private val ditherPaint = Paint().apply {
+        isAntiAlias = false; blendMode = BlendMode.DstIn; filterQuality = FilterQuality.None
+    }
+
     /** The filter tinting glints in each light color seen so far; see [tint]. */
     private val tintColors = IntArray(MAX_TINTS)
     private val tintFilters = arrayOfNulls<ColorFilter>(MAX_TINTS)
@@ -359,6 +379,36 @@ class ComposeGraphics(
             )
         ) return
         addFloat(steps / 255f)
+    }
+
+    /**
+     * The frame's dithered picture (see [ditheredFrames]), blitted as the frame itself would be,
+     * `- 1` included. A level that keeps every pixel is the plain blit, and one that keeps none
+     * draws nothing.
+     */
+    override fun drawPixmapDithered(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
+        dstWidth: Int, dstHeight: Int, coverage: Float,
+    ) {
+        val level = Dither.level(coverage)
+        if (level <= 0) return
+        if (level >= Dither.LEVELS) {
+            return drawPixmap(pixmap, x, y, srcX, srcY, srcWidth, srcHeight, dstWidth, dstHeight)
+        }
+        val dithered = ditheredFrames[pixmap, srcX, srcY, srcWidth, srcHeight, level] ?: return
+        image(
+            IMAGE,
+            dithered,
+            0,
+            0,
+            srcWidth - 1,
+            srcHeight - 1,
+            x,
+            y,
+            dstWidth - 1,
+            dstHeight - 1,
+            1
+        )
     }
 
     override fun drawPixmapSilhouette(
@@ -985,6 +1035,55 @@ class ComposeGraphics(
             }
         }
         return image
+    }
+
+    /**
+     * The [width] by [height] frame at [x], [y] on [pixmap], with every pixel [Dither] leaves out
+     * at [level] cleared: copied down whole, then kept only where the level's pattern, tiled from
+     * the frame's corner, is opaque. On the CPU and once, like a glint's mask.
+     */
+    private fun dither(
+        pixmap: Pixmap,
+        x: Int,
+        y: Int,
+        width: Int,
+        height: Int,
+        level: Int
+    ): ImageBitmap {
+        val image = ImageBitmap(width, height)
+        val canvas = Canvas(image)
+        canvas.drawImageRect(
+            imageOf(pixmap),
+            IntOffset(x, y),
+            IntSize(width, height),
+            IntOffset.Zero,
+            IntSize(width, height),
+            copyPaint
+        )
+        ditherPaint.shader = ditherShader(level)
+        canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), ditherPaint)
+        return image
+    }
+
+    /**
+     * [level]'s pattern as a [Dither.TILE]-square tile, opaque where it keeps a pixel and clear
+     * where it leaves one out, repeated in both directions. Made once a level.
+     */
+    private fun ditherShader(level: Int): Shader = ditherShaders[level] ?: run {
+        val tile = ImageBitmap(Dither.TILE, Dither.TILE)
+        val canvas = Canvas(tile)
+        maskPaint.color = Color.White
+        for (row in 0 until Dither.TILE) for (column in 0 until Dither.TILE) {
+            if (!Dither.keeps(column, row, level)) continue
+            canvas.drawRect(
+                column.toFloat(),
+                row.toFloat(),
+                column + 1f,
+                row + 1f,
+                maskPaint
+            )
+        }
+        ImageShader(tile, TileMode.Repeated, TileMode.Repeated).also { ditherShaders[level] = it }
     }
 
     /**

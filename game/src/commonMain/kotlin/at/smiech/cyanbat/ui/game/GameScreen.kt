@@ -12,6 +12,7 @@ import at.smiech.cyanbat.ecs.EliteComponent
 import at.smiech.cyanbat.ecs.FrostBeamSystem
 import at.smiech.cyanbat.ecs.FrostSystem
 import at.smiech.cyanbat.ecs.GunComponent
+import at.smiech.cyanbat.ecs.InvulnerabilitySystem
 import at.smiech.cyanbat.ecs.OrbComponent
 import at.smiech.cyanbat.ecs.OrbitSystem
 import at.smiech.cyanbat.ecs.ShotPattern
@@ -99,6 +100,7 @@ import at.smiech.cyanbat.util.POWER_UP_CARD_HEIGHT
 import at.smiech.cyanbat.util.POWER_UP_CARD_PADDING
 import at.smiech.cyanbat.util.POWER_UP_CARD_TOP
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
+import at.smiech.cyanbat.util.POWER_UP_GRACE_SECONDS
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
@@ -433,6 +435,9 @@ class GameScreen(
         // lands and slows it from the next. The Sand Wyrm's brain reads the head's row later in the
         // tick, to draw the body from.
         world.addSystem(WoundSystem { id, row -> slowWounded(id, row) })
+        // After the collisions too, which start the bat's mercy on a hit, so the bat shows it
+        // cannot be hurt on the frame the hit lands.
+        world.addSystem(InvulnerabilitySystem())
         // With the height too: aimed and fanned enemy fire leaves through the top and bottom as
         // well as the sides.
         world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight))
@@ -1459,12 +1464,17 @@ class GameScreen(
         return (game.frameBufferWidth - rowWidth) / 2 + index * stride
     }
 
-    /** Takes the pick, makes the bat match, and hands the run back. */
+    /**
+     * Takes the pick, makes the bat match, and hands the run back, with a moment's grace before
+     * anything can hurt the bat: the run picks up where the dialog froze it, and the finger that
+     * tapped a card has let go of the bat.
+     */
     private fun choosePowerUp(powerUp: PowerUp) {
         powerUp.applyTo(loadout)
         applyLoadout()
         offer = emptyList()
         announce(text[powerUp.title])
+        InvulnerabilitySystem.grant(world, batId, POWER_UP_GRACE_SECONDS)
     }
 
     /**

@@ -690,8 +690,8 @@ class AnimationSystem : GameSystem() {
 }
 
 /**
- * Draws every entity with a [SpriteComponent], in [ZIndexComponent] order, with its crossfade, tint
- * and hit flash.
+ * Draws every entity with a [SpriteComponent], in [ZIndexComponent] order, dithered where it is
+ * see-through, with its crossfade, tint and hit flash.
  *
  * @param layers the z indices this pass draws, all by default. A world that draws something between
  *   layers adds one pass per range with that in between; two passes over adjoining ranges draw
@@ -704,6 +704,7 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
     private lateinit var flashes: ComponentMapper<HitFlashComponent>
     private lateinit var tints: ComponentMapper<TintComponent>
     private lateinit var crossfades: ComponentMapper<CrossfadeComponent>
+    private lateinit var dithers: ComponentMapper<DitherComponent>
 
     /**
      * Draw order, rebuilt every frame into the same buffer.
@@ -723,6 +724,7 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
         flashes = world.mapper(HitFlashComponent::class)
         tints = world.mapper(TintComponent::class)
         crossfades = world.mapper(CrossfadeComponent::class)
+        dithers = world.mapper(DitherComponent::class)
     }
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
@@ -755,14 +757,21 @@ class RenderSystem(private val layers: IntRange = Int.MIN_VALUE..Int.MAX_VALUE) 
             val top = transform.rect.top.toInt()
             val dstWidth = (sprite.srcWidth * sprite.scale).roundToInt()
             val dstHeight = (sprite.srcHeight * sprite.scale).roundToInt()
+            val coverage = dithers[id]?.coverage ?: 1f
 
-            // Three paths, narrowest first. Most sprites are drawn upright at their own size, and
+            // Four paths, narrowest first. Most sprites are drawn upright at their own size, and
             // that case must not pay for a transform it does not use.
             when {
                 sprite.rotationDegrees != 0f -> graphics.drawPixmap(
                     sprite.pixmap, left, top,
                     sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
                     dstWidth, dstHeight, sprite.rotationDegrees,
+                )
+
+                coverage < 1f -> graphics.drawPixmapDithered(
+                    sprite.pixmap, left, top,
+                    sprite.srcX, sprite.srcY, sprite.srcWidth, sprite.srcHeight,
+                    dstWidth, dstHeight, coverage,
                 )
 
                 sprite.scale != 1f -> graphics.drawPixmap(

@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.drawscope.CanvasDrawScope
 import androidx.compose.ui.text.font.createFontFamilyResolver
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.LayoutDirection
+import at.smiech.engine.Dither
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
 import at.smiech.engine.Lighting
@@ -165,6 +166,44 @@ class ComposeGraphicsTest {
             .filter { (x, y) -> frame[x, y] == EngineColors.WHITE }
             .toSet()
         assertEquals((2..4).flatMap { y -> (2..4).map { x -> x to y } }.toSet(), lit)
+    }
+
+    /**
+     * A see-through sprite is the sprite with holes in it: where [Dither] keeps a pixel, the
+     * sprite's own color, and everywhere else what was under it, untouched and unblended. The
+     * pattern is the sprite's own, so it moves with the sprite rather than crawling over it.
+     */
+    @Test
+    fun `a dithered sprite draws the pixels the dither keeps and leaves the rest as they were`() {
+        for (corner in listOf(4 to 6, 7 to 3)) {
+            val (left, top) = corner
+            val plain = graphics(16, 16).run {
+                clear(BACKGROUND)
+                drawPixmap(newPixmap("sprite"), left, top, 0, 0, 6, 5)
+                render(1f)
+            }
+            for (coverage in listOf(0.25f, 0.5f, 0.75f)) {
+                val dithered = graphics(16, 16).run {
+                    clear(BACKGROUND)
+                    drawPixmapDithered(newPixmap("sprite"), left, top, 0, 0, 6, 5, 6, 5, coverage)
+                    render(1f)
+                }
+                val level = Dither.level(coverage)
+                var shown = 0
+                for ((x, y) in dithered.pixels()) {
+                    val inSprite = x - left in 0 until 5 && y - top in 0 until 4
+                    val expected =
+                        if (inSprite && Dither.keeps(x - left, y - top, level)) plain[x, y] else BACKGROUND
+                    if (expected != BACKGROUND) shown++
+                    assertEquals(
+                        expected,
+                        dithered[x, y],
+                        "pixel ($x, $y) of the sprite at $corner, ${level}/${Dither.LEVELS} shown",
+                    )
+                }
+                assertTrue(shown > 0, "nothing of the sprite showed at $level/${Dither.LEVELS}")
+            }
+        }
     }
 
     /** A flash over a turned sprite lights exactly the turned sprite's pixels, and nothing else. */
@@ -408,7 +447,8 @@ class ComposeGraphicsTest {
     /**
      * Everything the grid tests draw, laid out apart so that nothing translucent overlaps anything
      * but the background: a sprite, a magnified one, a fade, a flash, a turned sprite with its flash,
-     * a translucent rectangle, a pixel, an oval, an outline and a line.
+     * a translucent rectangle, a pixel, an oval, an outline, a line, and a dithered sprite and a
+     * magnified one.
      */
     private fun ComposeGraphics.drawScene() {
         val sprite = newPixmap("sprite")
@@ -447,6 +487,8 @@ class ComposeGraphicsTest {
         drawOval(OVAL_X, OVAL_Y, OVAL_W, OVAL_H, EngineColors.withAlpha(EngineColors.WHITE, 0.5f))
         drawOvalOutline(24, 21, 13, 11, EngineColors.YELLOW)
         drawLine(40, 26, 61, 44, EngineColors.RED)
+        drawPixmapDithered(sprite, 4, 36, 0, 0, 6, 5, 6, 5, 0.5f)
+        drawPixmapDithered(sprite, 14, 34, 0, 0, 6, 5, 11, 9, 0.75f)
     }
 
     /** Every pixel [draw] changes on a black 64 by 48 frame, with the color it leaves there. */

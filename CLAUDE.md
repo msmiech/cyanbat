@@ -119,6 +119,14 @@ playfield for wide screens; it would change difficulty by device.
   `bossDeath.wav` and the delay to the fanfare's `LANDING_BEAT`; change each with its script.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
+- Every way the bat is kept from harm is its `hitCooldown`: the mercy after a hit, which Second
+  Wind lengthens and a Second Life starts over, and the grace after a level-up pick
+  (`POWER_UP_GRACE_SECONDS`). `InvulnerabilitySystem` reads it every tick and draws the bat
+  see-through while it runs, a dither pulsing between faint and strong that always ends on the
+  faint, so the bat coming back whole is the moment it can be hurt again. Something new that keeps
+  the bat safe should set the cooldown (`InvulnerabilitySystem.grant`), and it shows by itself. A
+  won stage leaves the bat untouchable by `stageComplete` instead, with nothing left to hurt it,
+  and does not show.
 - In-game text (HUD, banners, overlays) is drawn at frame coordinates in `GameScreen` and
   `GameOverScreen`, in the player's language (see Languages). The rows are hard-coded, but every
   centered or right-aligned line is placed by its measured width, so rewording one needs no new x.
@@ -432,6 +440,10 @@ for an app to come). There is no framebuffer bitmap.
   `Graphics.measureString`, never by a count of characters.
 - A translucent blend can round a step apart on the GPU, on the CPU and between scales; the tests
   allow a step a channel and no more.
+- A see-through sprite is dithered rather than blended (`DitherComponent`, `drawPixmapDithered`):
+  only the share of its pixels that `Dither`, a four by four ordered pattern in the sprite's own
+  pixels, keeps is drawn, so the art stays whole pixels on the grid. Each frame is dithered once per
+  level, on the CPU, and kept.
 - The desktop decodes assets with Skia and marks them immutable (`DesktopGame.loadImage`). Compose's
   desktop canvas wraps a bitmap in a new Skia image every time it draws it, and copies one that
   could still change: the desert's ground was a copy of its whole sheet for every strip.

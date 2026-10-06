@@ -32,10 +32,14 @@ private data class DrawnFlash(val tag: String, val color: Int, val rotationDegre
 /** One faded blit: whose, from which row of its sheet, and how far faded in. */
 private data class DrawnFade(val tag: String, val srcY: Int, val alpha: Float)
 
+/** One dithered blit: whose, and how much of it showed. */
+private data class DrawnDither(val tag: String, val coverage: Float)
+
 private class RecordingGraphics : Graphics {
     val sprites = mutableListOf<DrawnSprite>()
     val flashes = mutableListOf<DrawnFlash>()
     val fades = mutableListOf<DrawnFade>()
+    val dithers = mutableListOf<DrawnDither>()
     val drawn: List<String> get() = sprites.map { it.tag }
 
     /**
@@ -68,6 +72,15 @@ private class RecordingGraphics : Graphics {
         val tag = (pixmap as TaggedPixmap).tag
         fades += DrawnFade(tag, srcY, alpha)
         sprites += DrawnSprite("$tag:fade", srcWidth, srcHeight)
+    }
+
+    override fun drawPixmapDithered(
+        pixmap: Pixmap, x: Int, y: Int, srcX: Int, srcY: Int, srcWidth: Int, srcHeight: Int,
+        dstWidth: Int, dstHeight: Int, coverage: Float
+    ) {
+        val tag = (pixmap as TaggedPixmap).tag
+        dithers += DrawnDither(tag, coverage)
+        sprites += DrawnSprite("$tag:dithered", dstWidth, dstHeight)
     }
 
     override fun drawPixmap(
@@ -381,6 +394,48 @@ class RenderSystemTest {
         world.addComponent(rock, CrossfadeComponent(srcY = 30, alpha = 0f))
 
         assertContentEquals(listOf("rock"), drawnOrder())
+    }
+
+    // --- dither ----------------------------------------------------------------------
+
+    /** In place of the whole sprite, and in its place in the order. */
+    @Test
+    fun `a see-through sprite is drawn dithered instead of whole`() {
+        val bat = spawn("bat", zIndex = 20)
+        world.addComponent(bat, DitherComponent(coverage = 0.4f))
+        spawn("in front", zIndex = 30)
+
+        val graphics = RecordingGraphics().also { world.draw(it) }
+
+        assertContentEquals(listOf("bat:dithered", "in front"), graphics.drawn)
+        assertEquals(DrawnDither("bat", 0.4f), graphics.dithers.single())
+    }
+
+    /** Disarmed rather than removed: at full coverage it is the plain blit. */
+    @Test
+    fun `a sprite that shows whole is drawn whole`() {
+        val bat = spawn("bat")
+        world.addComponent(bat, DitherComponent(coverage = 1f))
+
+        assertContentEquals(listOf("bat"), drawnOrder())
+    }
+
+    @Test
+    fun `a magnified see-through sprite is dithered at its size`() {
+        val boss = spawn("boss")
+        world.getComponent(boss, SpriteComponent::class)!!.scale = 2f
+        world.addComponent(boss, DitherComponent(coverage = 0.5f))
+
+        assertContentEquals(listOf(DrawnSprite("boss:dithered", 20, 20)), drawnSprites())
+    }
+
+    @Test
+    fun `a turned sprite is drawn whole however see-through it is`() {
+        val falling = spawn("falling")
+        world.getComponent(falling, SpriteComponent::class)!!.rotationDegrees = 30f
+        world.addComponent(falling, DitherComponent(coverage = 0.4f))
+
+        assertContentEquals(listOf(DrawnSprite("falling", 10, 10, 30f)), drawnSprites())
     }
 
     private companion object {

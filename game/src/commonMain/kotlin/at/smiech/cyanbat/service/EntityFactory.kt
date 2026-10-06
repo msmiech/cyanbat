@@ -99,6 +99,7 @@ import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
 import at.smiech.engine.ecs.CrossfadeComponent
 import at.smiech.engine.ecs.DamageComponent
+import at.smiech.engine.ecs.DitherComponent
 import at.smiech.engine.ecs.EnemyBehaviorComponent
 import at.smiech.engine.ecs.EnemyMovementType
 import at.smiech.engine.ecs.EntityId
@@ -164,6 +165,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         // clutter the screen.
         world.addComponent(id, HealthBarComponent(HEALTH_BAR_HEIGHT, HEALTH_BAR_OFFSET_Y))
         world.addComponent(id, PlayerControlComponent())
+        // Whole until something keeps it from harm; see InvulnerabilitySystem.
+        world.addComponent(id, DitherComponent())
         world.addComponent(id, WeaponComponent(shotIntervalSeconds))
         world.addComponent(id, TrailEmitterComponent(TRAIL_INTERVAL_SECONDS))
         // Dormant at level 1, where every run starts; GameScreen.syncAura wakes it up.
