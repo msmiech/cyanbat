@@ -64,7 +64,7 @@ class LagoonGeneratorTest {
     private val bossSheet = LagoonSheet(NAGA_FRAME * 11, NAGA_FRAME * 3)
 
     private fun only(species: EnemySpecies) = StageProgression(
-        design = StageDesign(listOf(WaveDesign(listOf(species))), BossKind.NAGA, "TEST"),
+        design = StageDesign(listOf(WaveDesign(listOf(species))), BossKind.NAGA),
         difficulty = 2.05f,
     )
 

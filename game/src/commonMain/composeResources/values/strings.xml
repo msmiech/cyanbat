@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+    Every word the game shows, the menu's and the run's, in English. values-de and values-pl hold the
+    same keys in German and Polish, and GameTextTest holds each of them to this file.
+    Placeholders are %1$d and %1$s, numbered; nothing else is read as one, so a bare % is just a
+    percent sign.
+-->
 <resources>
     <string name="credits_headline">Credits</string>
     <string name="settings">Settings</string>
@@ -9,8 +15,13 @@
     <string name="button_exit">Exit</string>
     <string name="button_credits">Credits</string>
     <string name="button_back">Back</string>
+    <string name="button_ok">OK</string>
+
+    <!-- What the main screen's title art says, for a screen reader. -->
+    <string name="title_image_description" translatable="false">CyanBat</string>
 
     <string name="stage_select_title">Select Stage</string>
+    <!-- Each also heads its own run, on the frame, as the run opens and on the stage complete screen. -->
     <string name="stage_1_name">Stage 1: The Jungle</string>
     <string name="stage_1_description">Swarms, formations, shields and return fire among overgrown ruins. The Moth Queen waits at the end.</string>
     <string name="stage_2_name">Stage 2: The Cave</string>
@@ -20,13 +31,16 @@
     <string name="stage_4_name">Stage 4: The Lagoon</string>
     <string name="stage_4_description">Flown from night into noon across a bay of islands, with sharks coming from behind. The Naga rises from the temple's moat.</string>
     <string name="stage_locked">Clear the stage before it to unlock</string>
+    <!-- Across a locked stage's preview. -->
+    <string name="stage_locked_badge">LOCKED</string>
+    <!-- On the stage select, and under the score when a run ends. -->
     <string name="stage_highscore">Highscore: %1$d</string>
 
     <string name="dialog_help_title">Help</string>
     <!-- Controls differ per platform; Platform.kt picks the one to show above the rest. -->
     <string name="dialog_help_controls_touch">• Fly: drag CyanBat with your finger. A keyboard or controller works too.\n• Pause: swipe or press Back. Back again quits to the menu.</string>
     <string name="dialog_help_controls_desktop">• Fly: drag CyanBat with the mouse, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.</string>
-    <string name="dialog_help_text">• Shoot: CyanBat fires automatically. Shoot enemies and obstacles, and avoid touching them or their shots.\n• Health: every hit drains the bar under the bat. When it is empty, the run is over.\n• Score: points come from surviving and from kills. Kills in a row raise the multiplier (up to x8), and taking a hit resets it.\n• Level up: kills earn experience. Each new level lets you pick one of three power-ups.\n• Waves: a tougher wave arrives every minute. After five, the boss appears. Defeat it to clear the stage for a big bonus.\n• Stages: in the jungle, enemies swarm, fly in formation, shoot back and hide behind shields. The first shot at a shield pops it. Clearing the jungle opens the cave, flown in the dark by the bat's own light, where the boss hides in the dark between ambushes. Clearing the cave opens the desert, flown from noon into night, where things leap out of the sand and scarab shells grow back if they are left alone. Clearing the desert opens the lagoon, flown from night into noon, where sharks come from behind along the waterline and puffers throw rings of spines. Each stage starts fresh: score, level and power-ups begin again.</string>
+    <string name="dialog_help_text">• Shoot: CyanBat fires automatically. Shoot enemies and obstacles, and avoid touching them or their shots.\n• Health: every hit drains the bar under the bat. When it is empty, the run is over.\n• Score: points come from surviving and from kills. Kills in a row raise the multiplier, and taking a hit resets it.\n• Level up: kills earn experience. Each new level lets you pick one of three power-ups.\n• Waves: a tougher wave arrives every minute. After five, the boss appears. Defeat it to clear the stage for a big bonus.\n• Stages: in the jungle, enemies swarm, fly in formation, shoot back and hide behind shields. The first shot at a shield pops it. Clearing the jungle opens the cave, flown in the dark by the bat's own light, where the boss hides in the dark between ambushes. Clearing the cave opens the desert, flown from noon into night, where things leap out of the sand and scarab shells grow back if they are left alone. Clearing the desert opens the lagoon, flown from night into noon, where sharks come from behind along the waterline and puffers throw rings of spines. Each stage starts fresh: score, level and power-ups begin again.</string>
 
     <string name="settings_music_title">Music</string>
     <string name="settings_sound_title">Sounds</string>
@@ -51,4 +65,114 @@
     <string name="credit_game_development">This game has been developed by Martin Śmiech. It has originally been started as a school project and maintained as a side project since then.</string>
     <string name="credit_ai_disclosure_title">AI disclosure</string>
     <string name="credit_ai_disclosure_content">More recent releases have been developed using Google Gemini and Claude Opus code generation assistance.</string>
+
+    <!--
+        The run's own text, drawn on its 640x360 frame rather than composed; see GameText. Every line
+        has a fixed size and room, and GameTextLayoutTest measures each language's against it.
+    -->
+
+    <!-- The HUD. The score line also heads the stage complete and game over screens. -->
+    <string name="score">Score: %1$d</string>
+    <string name="hud_wave">Wave: %1$d/%2$d</string>
+    <string name="hud_boss">BOSS</string>
+    <string name="hud_level">Level: %1$d</string>
+
+    <!--
+        The combo readout's titles, coldest to hottest; the count follows each one. Only the first
+        is plain text; from the second up the letters burn, so they are capitals.
+    -->
+    <string name="combo_cold">Combo:</string>
+    <string name="combo_hot">HOT</string>
+    <string name="combo_blazing">BLAZING</string>
+    <string name="combo_scorching">SCORCHING</string>
+    <string name="combo_inferno">INFERNO</string>
+    <string name="combo_hellfire">HELLFIRE</string>
+    <string name="combo_blue_flame">BLUE FLAME</string>
+    <string name="combo_white_hot">WHITE HOT</string>
+    <string name="combo_supernova">SUPERNOVA</string>
+
+    <!-- Banners, across the run. -->
+    <string name="banner_wave">WAVE %1$d</string>
+    <string name="banner_second_life">SECOND LIFE</string>
+
+    <!-- Each boss's banners: as it arrives, at each new phase of its fight, and as it falls. -->
+    <string name="boss_moth_queen">THE MOTH QUEEN</string>
+    <string name="boss_moth_queen_swarm">SWARM CALLED</string>
+    <string name="boss_moth_queen_enraged">QUEEN ENRAGED</string>
+    <string name="boss_moth_queen_falls">THE MOTH QUEEN FALLS</string>
+    <string name="boss_caco_imp">THE CACO IMP</string>
+    <string name="boss_caco_imp_lights_out">LIGHTS OUT</string>
+    <string name="boss_caco_imp_blazes">THE IMP BLAZES</string>
+    <string name="boss_caco_imp_falls">THE CACO IMP FALLS</string>
+    <string name="boss_sand_wyrm">THE SAND WYRM</string>
+    <string name="boss_sand_wyrm_brood">THE BROOD RISES</string>
+    <string name="boss_sand_wyrm_enraged">WYRM ENRAGED</string>
+    <string name="boss_sand_wyrm_falls">THE SAND WYRM FALLS</string>
+    <string name="boss_naga">THE NAGA</string>
+    <string name="boss_naga_strikes">THE NAGA STRIKES</string>
+    <string name="boss_naga_brood">THE BROOD AWAKES</string>
+    <string name="boss_naga_tide">THE TIDE TURNS</string>
+    <string name="boss_naga_enraged">NAGA ENRAGED</string>
+    <string name="boss_naga_falls">THE NAGA FALLS</string>
+
+    <!-- The pause screen. Back is Android's, Q the desktop's. -->
+    <string name="pause_title">PAUSED</string>
+    <string name="pause_resume">Tap or click to resume</string>
+    <string name="pause_quit">Back or Q to quit</string>
+
+    <!-- The stage complete screen; the stage's name and the score lines come between the title and the rest. -->
+    <string name="stage_complete_title">STAGE COMPLETE</string>
+    <string name="stage_complete_next">Tap or press Enter for stage %1$d</string>
+    <string name="stage_complete_menu">Back or Q for the menu</string>
+    <string name="stage_complete_fresh_start">Score, level and power-ups start over</string>
+    <string name="stage_complete_continue">Tap or press Enter to continue</string>
+
+    <!-- The game over screen, under GAME OVER, which is drawn into gameover.png and stays English. -->
+    <string name="game_over_hint">Touch the screen for main menu</string>
+
+    <!-- The level up dialog, over three power-up cards. -->
+    <string name="level_up_title">LEVEL %1$d</string>
+    <string name="level_up_choose">Choose an upgrade</string>
+
+    <!--
+        The power-up cards. A title has one line of a card, and a description three, wrapped on
+        spaces. A _held description replaces the plain one once the bat already has the power-up.
+    -->
+    <string name="power_up_rapid_fire">Rapid Fire</string>
+    <string name="power_up_rapid_fire_description">Shots come faster</string>
+    <string name="power_up_spread_shot">Spread Shot</string>
+    <string name="power_up_spread_shot_description">Fire one more, fanned out</string>
+    <string name="power_up_vitality">Vitality</string>
+    <string name="power_up_vitality_description">+%1$d max health, healed</string>
+    <string name="power_up_heavy_rounds">Heavy Rounds</string>
+    <string name="power_up_heavy_rounds_description">+%1$d damage per shot</string>
+    <string name="power_up_sharpshooter">Sharpshooter</string>
+    <string name="power_up_sharpshooter_description">+%1$d% critical chance</string>
+    <string name="power_up_armor_plating">Armor Plating</string>
+    <string name="power_up_armor_plating_description">Take less damage</string>
+    <string name="power_up_second_wind">Second Wind</string>
+    <string name="power_up_second_wind_description">Longer mercy after a hit</string>
+    <string name="power_up_regeneration">Regeneration</string>
+    <string name="power_up_regeneration_description">Heal %1$d health a second</string>
+    <string name="power_up_fast_learner">Fast Learner</string>
+    <string name="power_up_fast_learner_description">+%1$d% experience earned</string>
+    <string name="power_up_bounty_hunter">Bounty Hunter</string>
+    <string name="power_up_bounty_hunter_description">+%1$d% score earned</string>
+    <string name="power_up_second_life">Second Life</string>
+    <string name="power_up_second_life_description">Cheat death once, at half health</string>
+    <string name="power_up_counterweight">Counterweight</string>
+    <string name="power_up_counterweight_description">-%1$d damage taken, +%2$d% dealt</string>
+    <string name="power_up_piercing_shot">Piercing Shot</string>
+    <string name="power_up_piercing_shot_description">Shots pass through one more</string>
+    <string name="power_up_ricochet">Ricochet</string>
+    <string name="power_up_ricochet_description">Shots bounce off one more edge</string>
+    <string name="power_up_guardian_orb">Guardian Orb</string>
+    <string name="power_up_guardian_orb_description">An orb circles you, striking enemies</string>
+    <string name="power_up_guardian_orb_held">One more orb joins the circle</string>
+    <string name="power_up_charged_trail">Charged Trail</string>
+    <string name="power_up_charged_trail_description">A longer trail that shocks enemies</string>
+    <string name="power_up_charged_trail_held">Longer trail, stronger shocks</string>
+    <string name="power_up_frost_beam">Frost Beam</string>
+    <string name="power_up_frost_beam_description">A beam freezes a line of enemies</string>
+    <string name="power_up_frost_beam_held">Fires more often, freezes for longer</string>
 </resources>

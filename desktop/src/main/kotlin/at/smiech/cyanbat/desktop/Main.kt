@@ -14,6 +14,7 @@ import androidx.compose.ui.window.application
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost
 import at.smiech.cyanbat.ui.game.GameScreen
@@ -24,6 +25,7 @@ import at.smiech.engine.Haptics
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopAudio
 import at.smiech.engine.impl.onComposeKeyEvent
+import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
 fun main() = application {
@@ -87,6 +89,9 @@ private fun CyanBatApp(controls: ControlHandler, playingStage: Int?, play: (stag
             DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, controls).also { game ->
                 val env = CyanBatEnvironment(
                     assets = GameAssets.load(game.graphics, game.audio),
+                    // Blocking, as Compose's own string lookups are on the desktop: there is no run
+                    // to show without its text, and it is one small file, read once.
+                    text = runBlocking { GameText.load() },
                     haptics = Haptics.None,
                     highscores = highscores,
                     stageUnlocks = stageUnlocks,

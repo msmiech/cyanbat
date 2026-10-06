@@ -1,5 +1,10 @@
 package at.smiech.cyanbat.resource
 
+import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.stage_1_name
+import at.smiech.cyanbat.resources.stage_2_name
+import at.smiech.cyanbat.resources.stage_3_name
+import at.smiech.cyanbat.resources.stage_4_name
 import at.smiech.cyanbat.scenery.Daybreak
 import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.util.CAVE_AMBIENT
@@ -84,7 +89,7 @@ data class GameAssets(
                 stages = listOf(
                     Stage(
                         id = 1,
-                        name = "Stage 1: The Jungle",
+                        name = Res.string.stage_1_name,
                         backdrop = Backdrop.Strip(pixmap("jungleBackground.png")),
                         topObstacles = arrayOf(
                             pixmap("jungleTopObstacle1.png"),
@@ -103,7 +108,7 @@ data class GameAssets(
                     ),
                     Stage(
                         id = 2,
-                        name = "Stage 2: The Cave",
+                        name = Res.string.stage_2_name,
                         backdrop = Backdrop.Strip(pixmap("background.png")),
                         topObstacles = arrayOf(
                             pixmap("topObstacle1.png"),
@@ -124,7 +129,7 @@ data class GameAssets(
                     ),
                     Stage(
                         id = 3,
-                        name = "Stage 3: The Desert",
+                        name = Res.string.stage_3_name,
                         backdrop = Backdrop.Sky(
                             day = Daylight,
                             // The far band barely moves and the near one moves with the rocks
@@ -156,7 +161,7 @@ data class GameAssets(
                     ),
                     Stage(
                         id = 4,
-                        name = "Stage 4: The Lagoon",
+                        name = Res.string.stage_4_name,
                         backdrop = Backdrop.Sky(
                             day = Daybreak,
                             // Clouds high up and barely moving; the open sea, from the horizon to the

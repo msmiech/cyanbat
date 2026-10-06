@@ -75,7 +75,7 @@ Studio trace shows what a slow frame spent its time on.
 `FRAME_BUFFER_HEIGHT` in `:game`, which both hosts and the recorder hand the engine - and spawn
 points, boss stations, the overlays' rows and the desert's sky are laid out against it. Speeds are
 in frame pixels, so a wider frame shows more of a stage at once rather than a faster one.
-`gameover.png`, hand-drawn for the 480x320 frame the game had before, is centered on it.
+`gameover.png`, from artwork hand-drawn for the 480x320 frame the game had before, is centered on it.
 `FrameFit` fits it to the screen according to the player's `DisplayMode` (stretch, black bars, or
 the default ambient bars) and maps touches back through the same rectangle. Do not widen the
 playfield for wide screens; it would change difficulty by device.
@@ -117,10 +117,42 @@ playfield for wide screens; it would change difficulty by device.
   `bossDeath.wav` and the delay to the fanfare's `LANDING_BEAT`; change each with its script.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
-- In-game text (HUD, banners, overlays) is literal strings drawn at frame coordinates in
-  `GameScreen` and `GameOverScreen`. The rows are hard-coded, but every centered or right-aligned
-  line is placed by its measured width, so rewording one needs no new x. Menu text is in
-  `composeResources/values/strings.xml`.
+- In-game text (HUD, banners, overlays) is drawn at frame coordinates in `GameScreen` and
+  `GameOverScreen`, in the player's language (see Languages). The rows are hard-coded, but every
+  centered or right-aligned line is placed by its measured width, so rewording one needs no new x.
+
+**Languages.** The game speaks English, German and Polish: on Android the system's language or the
+one picked for the app in Android 13's per-app setting, on the desktop the JVM's.
+
+- Every word the game shows, the menu's and the run's, is a Compose resource:
+  `values/strings.xml`, and `values-de` and `values-pl` beside it, under
+  `game/src/commonMain/composeResources`. Compose falls back on English for a string a language
+  lacks, so nothing on screen shows a gap; `TranslationsTest` does, and holds every translation to
+  the English's `%1$d` blanks.
+- The menu reads them with `stringResource`. A run cannot, since it draws on the game loop: the host
+  reads every string once into a `GameText` (`GameText.load`, blocking, as Compose's own lookups are
+  on Android and the desktop) and hands it over in the `CyanBatEnvironment`. The game's logic names
+  its words by `StringResource` - `PowerUp.title`, `Stage.name`, `ComboHeat.title` - and never holds
+  a string, so only the drawing knows the language. `GameText.format` fills `%1$d` and `%1$s` as
+  Compose does, and a bare `%` is a percent sign.
+- The game activity takes a change of language in place, like any configuration change a run can
+  meet, and reads the run's text again in `onConfigurationChanged`.
+- The run's lines have fixed sizes and fixed room, laid out for English. `GameTextLayoutTest`
+  measures every language's against them in the platform's face. DejaVu Sans, on CI's Linux, is the
+  widest, so a line that passes on Windows can still fail there.
+- A boss's banners are whole lines rather than its name with a word put after it, because in Polish
+  the word agrees with the name.
+- A stage is an *Abschnitt* and an *etap*, the bat's level a *Stufe* and a *poziom*, which keeps the
+  two apart as they are in English.
+- Tests run in English, because the root build pins their JVMs' locale; so does the recorder, whose
+  reel is the README's and whose `Montage` finds a wave's banner by its English word.
+- GAME OVER is drawn into the game over artwork and stays English in every language. The line under
+  it is text the screen draws (`game_over_hint`), on the baseline and at the width the artwork had
+  it; `tools/generate_game_over.py` takes the artwork's own English line out of it.
+- A new language is a `values-xx/strings.xml` in composeResources, which the tests find by
+  themselves, and one in `app/src/main/res` for the game screen's label: AGP builds the app's
+  language list for the per-app setting from those (`generateLocaleConfig`) and does not see
+  composeResources.
 
 **Stage content is split four ways.**
 
@@ -397,8 +429,8 @@ for an app to come). There is no framebuffer bitmap.
 
 - `assets/` at the root is packaged as Android assets by `:app` and as classpath resources by
   `:desktop`.
-- Menu strings and drawables are Compose resources in `game/src/commonMain/composeResources`, with
-  the `Res` class in `at.smiech.cyanbat.resources`.
+- Strings, the menu's and the run's, and the menu's drawables are Compose resources in
+  `game/src/commonMain/composeResources`, with the `Res` class in `at.smiech.cyanbat.resources`.
 - CMP 1.12 does not copy those resources into the APK. The `StageComposeResources` task in
   `app/build.gradle.kts` works around that; without it the app crashes on the first
   `painterResource`.
@@ -426,7 +458,9 @@ for an app to come). There is no framebuffer bitmap.
 **The art is generated.** `tools/generate_*.py`, built on `tools/pixelart.py`, produce every sprite
 sheet, background, obstacle, stage preview, the framed title, the app icons and the WAV effects;
 `tools/generate_*_music.py`, built on `tools/musicsynth.py`, produce all of the music. The death
-sound's MP3, `gameover.png` and `tools/title_lettering.png` are the exceptions.
+sound's MP3, `tools/title_lettering.png` and `tools/game_over_art.png` are the exceptions: the
+last two are hand-drawn sources, kept as they were drawn, which `generate_title.py` and
+`generate_game_over.py` make the title and `gameover.png` from.
 
 - To change art, change the script and re-run it; never edit its output, the icons' vector XML
   included.
@@ -472,8 +506,9 @@ sound's MP3, `gameover.png` and `tools/title_lettering.png` are the exceptions.
 
 - **"Stage" vs "level".** The jungle, the cave, the desert and the lagoon are *stages*. "Level" only
   ever means the bat's experience level, which buys power-ups. Keep the two apart in code, comments
-  and on-screen text. The jungle was the forest, and stage 2, until it moved to the front; persisted
-  highscores were moved with it (`StageOrderMigration`, and its desktop twin).
+  and on-screen text, in every language (see Languages). The jungle was the forest, and stage 2,
+  until it moved to the front; persisted highscores were moved with it (`StageOrderMigration`, and
+  its desktop twin).
 - **American English** everywhere, identifiers and player-facing text included: color, center,
   behavior, armor.
 - **Comments explain why, in plain sentences.** Types get KDoc saying what they are for. Non-obvious

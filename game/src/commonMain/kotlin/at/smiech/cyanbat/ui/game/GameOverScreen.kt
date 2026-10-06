@@ -1,6 +1,10 @@
 package at.smiech.cyanbat.ui.game
 
 import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.game_over_hint
+import at.smiech.cyanbat.resources.score
+import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.util.GAME_OVER_ARMING_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.engine.EngineColors
@@ -9,8 +13,8 @@ import at.smiech.engine.GameButton
 import at.smiech.engine.Screen
 
 /**
- * The run is lost: the artwork saying so, and under it what the run scored against the stage's
- * highscore.
+ * The run is lost: the artwork saying so, the way back to the menu, and under it what the run
+ * scored against the stage's highscore.
  *
  * @param score what the run that just ended scored.
  * @param highscore the stage's highscore with this run already counted in it, so a run that set
@@ -54,47 +58,50 @@ class GameOverScreen(
             graphics.clear(EngineColors.BLACK)
             // The artwork was drawn for the frame the game had before, 480x320, and is hand-drawn
             // rather than generated, so it is centered on this one rather than redrawn. Its ground
-            // is black, and so is the frame's, so it shows no edge.
+            // is black, and so is the frame's, so it shows no edge. Its GAME OVER is English in
+            // every language; the line under it is not, so it is drawn here rather than in it (see
+            // tools/generate_game_over.py).
             val artwork = env.assets.graphics.gameOver
             val artworkLeft = (game.frameBufferWidth - artwork.width) / 2
             val artworkTop = (game.frameBufferHeight - artwork.height) / 2
             graphics.drawPixmap(artwork, artworkLeft, artworkTop)
-            // In the dark band the artwork leaves under its own two lines. The two share a left
-            // edge, so they read as one block, and the block is centered by the wider of them on
-            // the column the artwork's lines are.
-            val scoreLine = "Score: $score"
-            val highscoreLine = "Highscore: $highscore"
-            val width = maxOf(
-                graphics.measureString(scoreLine, 20),
-                graphics.measureString(highscoreLine, 15),
+
+            // Every line under GAME OVER is centered on its column, each on its own measured width.
+            fun drawCentered(text: String, baseline: Int, size: Int, color: Int) = graphics.drawString(
+                text,
+                artworkLeft + ARTWORK_CENTER_X - graphics.measureString(text, size) / 2,
+                artworkTop + baseline,
+                size,
+                color,
             )
-            val left = artworkLeft + ARTWORK_CENTER_X - width / 2
-            graphics.drawString(
-                scoreLine,
-                left,
-                artworkTop + SCORE_BASELINE,
-                20,
-                EngineColors.WHITE
-            )
-            graphics.drawString(
-                highscoreLine,
-                left,
-                artworkTop + HIGHSCORE_BASELINE,
+            drawCentered(env.text[Res.string.game_over_hint], HINT_BASELINE, HINT_SIZE, EngineColors.WHITE)
+            drawCentered(env.text.format(Res.string.score, score), SCORE_BASELINE, 20, EngineColors.WHITE)
+            drawCentered(
+                env.text.format(Res.string.stage_highscore, highscore),
+                HIGHSCORE_BASELINE,
                 15,
-                EngineColors.CYAN
+                EngineColors.CYAN,
             )
         }
     }
 
-    private companion object {
+    internal companion object {
         /**
-         * The column gameover.png centers its own two lines on, 12px right of its own center, from
-         * its left edge. Read off the artwork. Centered on the artwork instead, the score would sit
-         * visibly left of the lines above it.
+         * The column gameover.png centers its GAME OVER on, 12px right of its own center, from its
+         * left edge, which its line under GAME OVER was centered on too. Read off the artwork.
+         * Centered on the artwork instead, the lines under it would sit visibly left of it.
          */
         const val ARTWORK_CENTER_X = 252
 
-        /** The two lines' baselines, from the artwork's top edge: in the dark band under its own. */
+        /**
+         * The line under GAME OVER: on the baseline the artwork had it on, from the artwork's top
+         * edge, and at the size that gives the English the width it had there. Larger than the
+         * score, as it was.
+         */
+        const val HINT_BASELINE = 234
+        const val HINT_SIZE = 24
+
+        /** The score's two lines' baselines, from the artwork's top edge: in the dark band under it. */
         const val SCORE_BASELINE = 270
         const val HIGHSCORE_BASELINE = 293
     }

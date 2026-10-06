@@ -1,5 +1,16 @@
 package at.smiech.cyanbat.ui.game
 
+import at.smiech.cyanbat.resource.GameText
+import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.combo_blazing
+import at.smiech.cyanbat.resources.combo_blue_flame
+import at.smiech.cyanbat.resources.combo_cold
+import at.smiech.cyanbat.resources.combo_hellfire
+import at.smiech.cyanbat.resources.combo_hot
+import at.smiech.cyanbat.resources.combo_inferno
+import at.smiech.cyanbat.resources.combo_scorching
+import at.smiech.cyanbat.resources.combo_supernova
+import at.smiech.cyanbat.resources.combo_white_hot
 import at.smiech.cyanbat.util.COMBO_KILL_FLARE
 import at.smiech.cyanbat.util.TICK_INITIAL
 import kotlin.random.Random
@@ -13,10 +24,25 @@ class ComboMeterTest {
     private val meter = ComboMeter(Random(3))
     private val g = RectRecordingGraphics()
 
+    /** The ladder's titles in English, which is all of the game's text the meter reads. */
+    private val text = GameText(
+        mapOf(
+            Res.string.combo_cold to "Combo:",
+            Res.string.combo_hot to "HOT",
+            Res.string.combo_blazing to "BLAZING",
+            Res.string.combo_scorching to "SCORCHING",
+            Res.string.combo_inferno to "INFERNO",
+            Res.string.combo_hellfire to "HELLFIRE",
+            Res.string.combo_blue_flame to "BLUE FLAME",
+            Res.string.combo_white_hot to "WHITE HOT",
+            Res.string.combo_supernova to "SUPERNOVA",
+        )
+    )
+
     /** One frame the way the screen runs it: a tick, then a draw. */
     private fun frame(streak: Int, multiplier: Int = 1 + streak / 3) {
         meter.update(TICK_INITIAL, streak, multiplier)
-        meter.draw(g, X, BASELINE)
+        meter.draw(g, X, BASELINE, text)
     }
 
     /** Kills three ticks apart, from the streak after [from] up to [to]. */

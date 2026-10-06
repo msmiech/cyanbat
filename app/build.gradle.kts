@@ -92,6 +92,13 @@ extensions.configure<ApplicationExtension> {
     buildFeatures {
         compose = true
     }
+
+    // Lists the app's languages for Android 13's per-app language setting, from the values-*
+    // folders under res. The game's own text is in the shared UI's Compose resources, which this
+    // does not see, so a language added there needs its values-* folder here as well.
+    androidResources {
+        generateLocaleConfig = true
+    }
 }
 
 dependencies {

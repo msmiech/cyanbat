@@ -2,6 +2,7 @@ package at.smiech.cyanbat
 
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.GameText
 import at.smiech.engine.Haptics
 
 /**
@@ -12,6 +13,11 @@ import at.smiech.engine.Haptics
  */
 class CyanBatEnvironment(
     val assets: GameAssets,
+    /**
+     * What the screens say, in the player's language. Read as they draw, so a host whose language
+     * can change under a run - Android, which keeps the run through it - swaps in the new one here.
+     */
+    var text: GameText,
     val haptics: Haptics,
     val highscores: HighscoreStore,
     /** Which stages are open; clearing one opens the next. */

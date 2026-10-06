@@ -1,12 +1,14 @@
 package at.smiech.cyanbat.resource
 
 import at.smiech.engine.Pixmap
+import org.jetbrains.compose.resources.StringResource
 
 /**
  * Everything a stage looks and sounds like. What it *plays* like - its waves and its boss - is
  * [at.smiech.cyanbat.service.StageDesign], looked up by the same [id].
  *
  * @param id 1-based, and the order stages unlock in.
+ * @param name what the stage is called, which the stage select calls it too.
  * @param topObstacles what hangs into the frame from above. Empty for a stage with an open sky,
  *   where only the ground has anything standing on it.
  * @param music what the stage plays, as layers the run turns up and down; see [StageMusic].
@@ -19,7 +21,7 @@ import at.smiech.engine.Pixmap
  */
 data class Stage(
     val id: Int,
-    val name: String,
+    val name: StringResource,
     val backdrop: Backdrop,
     val topObstacles: Array<Pixmap?>,
     val bottomObstacles: Array<Pixmap?>,

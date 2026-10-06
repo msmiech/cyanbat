@@ -1,5 +1,15 @@
 package at.smiech.cyanbat.ui.game
 
+import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.combo_blazing
+import at.smiech.cyanbat.resources.combo_blue_flame
+import at.smiech.cyanbat.resources.combo_cold
+import at.smiech.cyanbat.resources.combo_hellfire
+import at.smiech.cyanbat.resources.combo_hot
+import at.smiech.cyanbat.resources.combo_inferno
+import at.smiech.cyanbat.resources.combo_scorching
+import at.smiech.cyanbat.resources.combo_supernova
+import at.smiech.cyanbat.resources.combo_white_hot
 import at.smiech.cyanbat.util.COMBO_COUNT_MAX_SIZE
 import at.smiech.cyanbat.util.COMBO_FONT_SIZE
 import at.smiech.engine.EngineColors
@@ -14,7 +24,7 @@ class ComboHeatTest {
     @Test
     fun `without a streak it is a plain line of the HUD`() {
         assertFalse(ComboHeat.burning(1))
-        assertEquals("Combo:", ComboHeat.title(1))
+        assertEquals(Res.string.combo_cold, ComboHeat.title(1))
         assertEquals(EngineColors.CYAN, ComboHeat.color(1, 0f), "cyan like the rest of the HUD")
         assertEquals(0f, ComboHeat.flameStrength(1))
         assertEquals(COMBO_FONT_SIZE, ComboHeat.countSize(1))
@@ -23,7 +33,7 @@ class ComboHeatTest {
     @Test
     fun `the first step sets it alight`() {
         assertTrue(ComboHeat.burning(2))
-        assertEquals("HOT", ComboHeat.title(2))
+        assertEquals(Res.string.combo_hot, ComboHeat.title(2))
         assertTrue(ComboHeat.flameStrength(2) > 0f)
     }
 
@@ -32,8 +42,15 @@ class ComboHeatTest {
         val titles = (1..ComboHeat.SUPERNOVA).map(ComboHeat::title).distinct()
         assertEquals(
             listOf(
-                "Combo:", "HOT", "BLAZING", "SCORCHING", "INFERNO", "HELLFIRE", "BLUE FLAME",
-                "WHITE HOT", "SUPERNOVA",
+                Res.string.combo_cold,
+                Res.string.combo_hot,
+                Res.string.combo_blazing,
+                Res.string.combo_scorching,
+                Res.string.combo_inferno,
+                Res.string.combo_hellfire,
+                Res.string.combo_blue_flame,
+                Res.string.combo_white_hot,
+                Res.string.combo_supernova,
             ),
             titles,
         )
@@ -43,7 +60,7 @@ class ComboHeatTest {
     @Test
     fun `the top of the ladder holds however high the streak goes`() {
         for (multiplier in listOf(ComboHeat.SUPERNOVA, 100, 1_000, Int.MAX_VALUE)) {
-            assertEquals("SUPERNOVA", ComboHeat.title(multiplier))
+            assertEquals(Res.string.combo_supernova, ComboHeat.title(multiplier))
             assertEquals(1f, ComboHeat.flameStrength(multiplier))
             assertEquals(COMBO_COUNT_MAX_SIZE, ComboHeat.countSize(multiplier))
         }

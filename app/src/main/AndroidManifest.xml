@@ -24,9 +24,10 @@
         </activity>
         <!--
             The run lives in this activity and nowhere else, so recreating it starts the run over.
-            Nothing in it needs recreating for a new configuration: it has no theme, reads no
-            resources, lays its text out at density 1 and left to right, and fits its frame to the
-            window on every layout. So it takes in place every change a run can meet:
+            Nothing in it needs recreating for a new configuration: it has no theme, reads its text
+            again itself when the language changes, lays its text out at density 1 and left to
+            right, and fits its frame to the window on every layout. So it takes in place every
+            change a run can meet:
             - uiMode: dark theme, which can come on by itself mid-run, on a schedule or with battery
               saver.
             - orientation, screenSize, smallestScreenSize, screenLayout: a foldable folding or
@@ -35,8 +36,10 @@
               setting.
             - keyboard, keyboardHidden, navigation: a keyboard or game pad connecting or dropping
               out.
-            - fontScale, locale, layoutDirection: font size and language, which in-game text does
-              not follow.
+            - locale: the language, the system's or the one picked for the app, which the run's
+              text follows in onConfigurationChanged.
+            - fontScale, layoutDirection: font size and text direction, which in-game text does not
+              follow.
         -->
         <activity
             android:name=".activity.CyanBatGameActivity"

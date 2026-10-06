@@ -1,6 +1,8 @@
 package at.smiech.cyanbat.activity
 
 import android.content.Intent
+import android.content.res.Configuration
+import android.os.LocaleList
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
@@ -10,6 +12,7 @@ import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.data.ObservedHaptics
 import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
@@ -21,6 +24,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.runBlocking
 
 /**
  * Android host for the game. Its whole job is to build a [CyanBatEnvironment] out of platform
@@ -29,7 +33,13 @@ import kotlinx.coroutines.flow.Flow
  */
 class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen
-        get() = GameScreen(this, buildEnvironment(), intent.getIntExtra(EXTRA_STAGE_ID, 1))
+        get() = GameScreen(this, environment, intent.getIntExtra(EXTRA_STAGE_ID, 1))
+
+    /** Lazily, for the same reason as [settings]; and kept, to swap a new language's text into. */
+    private val environment by lazy { buildEnvironment() }
+
+    /** The languages the run's text was last read in; see [onConfigurationChanged]. */
+    private var textLocales: LocaleList? = null
 
     /** Feeds the live audio and vibration settings; canceled with the activity. */
     private val activityScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
@@ -44,6 +54,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
 
     private fun buildEnvironment(): CyanBatEnvironment = CyanBatEnvironment(
         assets = loadAssets(),
+        text = loadText(),
         haptics = ObservedHaptics(haptics, settings, activityScope),
         highscores = DataStoreHighscoreStore(dataStore),
         stageUnlocks = DataStoreStageUnlockStore(dataStore),
@@ -58,6 +69,25 @@ class CyanBatGameActivity : AndroidGameActivity() {
         },
         audioSettings = ObservedAudioSettings(settings, activityScope),
     )
+
+    /**
+     * The run takes a change of language in place, as the manifest says, so its text has to be read
+     * again in the new one: the player who picked another language for the game has to see it in
+     * the run they come back to.
+     */
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        if (newConfig.locales != textLocales) environment.text = loadText()
+    }
+
+    /**
+     * The run's text in the app's language. Blocking, as Compose's own string lookups are on
+     * Android: there is no run to show without it, and it is one small file, read once a language.
+     */
+    private fun loadText(): GameText {
+        textLocales = resources.configuration.locales
+        return runBlocking { GameText.load() }
+    }
 
     override fun onDestroy() {
         super.onDestroy()

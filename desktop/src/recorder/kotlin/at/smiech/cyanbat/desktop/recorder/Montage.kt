@@ -228,6 +228,7 @@ object Montage {
     /** The [length]-frame window of [span] with the most going on, and no dialog in it. */
     private fun busiest(moments: List<Moment>, span: IntRange, length: Int): IntRange? {
         if (span.count() < length) return null
+        // A wave's banner by its English word, which is the language the recorder runs in.
         fun weight(m: Moment): Float =
             if (m.offer) Float.NEGATIVE_INFINITY
             else m.enemies + BLAST_WEIGHT * m.blasts - (if (m.hit) HIT_WEIGHT else 0f) +

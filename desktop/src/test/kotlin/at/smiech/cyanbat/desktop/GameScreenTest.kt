@@ -14,6 +14,7 @@ import at.smiech.cyanbat.progress.PlayerLoadout
 import at.smiech.cyanbat.progress.PlayerProgress
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resource.GameAssets
+import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.resource.SoundEffect
 import at.smiech.cyanbat.service.CacoImpBrain
 import at.smiech.cyanbat.service.EnemyGun
@@ -69,6 +70,7 @@ import at.smiech.engine.math.Vector2
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.runBlocking
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -103,6 +105,7 @@ class GameScreenTest {
             game,
             CyanBatEnvironment(
                 assets = assets,
+                text = runBlocking { GameText.load() },
                 haptics = Haptics.None,
                 highscores = highscores,
                 stageUnlocks = StageUnlockStore.InMemory(),
@@ -1499,6 +1502,7 @@ class GameScreenTest {
             game,
             CyanBatEnvironment(
                 assets = assets,
+                text = runBlocking { GameText.load() },
                 haptics = Haptics.None,
                 highscores = RecordingHighscores(),
                 stageUnlocks = StageUnlockStore.InMemory(),

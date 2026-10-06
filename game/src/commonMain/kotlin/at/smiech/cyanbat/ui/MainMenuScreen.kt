@@ -47,11 +47,13 @@ import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.button_credits
 import at.smiech.cyanbat.resources.button_exit
 import at.smiech.cyanbat.resources.button_help
+import at.smiech.cyanbat.resources.button_ok
 import at.smiech.cyanbat.resources.button_settings
 import at.smiech.cyanbat.resources.button_start_game
 import at.smiech.cyanbat.resources.dialog_help_text
 import at.smiech.cyanbat.resources.dialog_help_title
 import at.smiech.cyanbat.resources.title
+import at.smiech.cyanbat.resources.title_image_description
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
@@ -163,7 +165,7 @@ private fun HelpDialog(dismiss: () -> Unit) {
                             .then(okCursor.modifier),
                         border = okCursor.border(),
                     ) {
-                        Text("OK")
+                        Text(stringResource(Res.string.button_ok))
                     }
                 }
             }
@@ -182,7 +184,7 @@ private fun MainMenuContent(home: MainChoice, onChoose: (MainChoice) -> Unit) {
             Image(
                 modifier = Modifier.align(Alignment.CenterHorizontally),
                 painter = painterResource(Res.drawable.title),
-                contentDescription = "Game title image"
+                contentDescription = stringResource(Res.string.title_image_description)
             )
             Spacer(Modifier.height(24.dp))
             Row(

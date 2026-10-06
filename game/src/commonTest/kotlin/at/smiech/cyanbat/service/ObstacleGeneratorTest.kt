@@ -5,6 +5,8 @@ import at.smiech.cyanbat.resource.Backdrop
 import at.smiech.cyanbat.resource.ParallaxLayer
 import at.smiech.cyanbat.resource.Stage
 import at.smiech.cyanbat.resource.StageMusic
+import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.stage_3_name
 import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
@@ -36,7 +38,7 @@ class ObstacleGeneratorTest {
     /** A stage like the desert: an open sky, and ground scenery drawn in every light of the day. */
     private val openSky = Stage(
         id = 3,
-        name = "TEST",
+        name = Res.string.stage_3_name,
         backdrop = Backdrop.Sky(
             Daylight,
             listOf(ParallaxLayer(Sheet(960, 400), top = 150, speed = 1f)),

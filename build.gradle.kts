@@ -42,3 +42,15 @@ extra["cyanbatVersionCode"] = major * 10000 + minor * 100 + patch
 // jpackage rejects a suffix, so `2.1-rc1` ships an installer versioned 2.1.0. The display name in
 // the release title and on the download page still carries the suffix.
 extra["cyanbatPackageVersion"] = "$major.$minor.$patch"
+
+/*
+ * Tests run in English, whatever language the machine is set to: the menu's tests find its buttons
+ * by their English labels, and the run's read its English banners. TranslationsTest and
+ * GameTextLayoutTest switch the language themselves, where they check the others.
+ */
+subprojects {
+    tasks.withType<Test>().configureEach {
+        systemProperty("user.language", "en")
+        systemProperty("user.country", "US")
+    }
+}

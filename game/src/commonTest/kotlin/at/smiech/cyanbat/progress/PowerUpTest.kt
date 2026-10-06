@@ -124,11 +124,12 @@ class PowerUpTest {
      */
     @Test
     fun `sharpshooter advertises the chance it actually adds`() {
-        val advertised = "${(CRITICAL_CHANCE_BONUS * 100).roundToInt()}%"
+        val added = (CRITICAL_CHANCE_BONUS * 100).roundToInt()
 
-        assertTrue(
-            PowerUp.SHARPSHOOTER.description.contains(advertised),
-            "the card reads '${PowerUp.SHARPSHOOTER.description}' but adds $advertised",
+        assertEquals(
+            listOf(added),
+            PowerUp.SHARPSHOOTER.numbers,
+            "the card quotes ${PowerUp.SHARPSHOOTER.numbers} but adds $added%",
         )
     }
 
@@ -394,29 +395,6 @@ class PowerUpTest {
             UNCAPPED.size >= POWER_UP_CHOICES,
             "only ${UNCAPPED.size} power-ups are uncapped, which cannot fill an offer of $POWER_UP_CHOICES"
         )
-    }
-
-    @Test
-    fun `every power-up says what it is in words that fit a card`() {
-        PowerUp.entries.forEach {
-            assertTrue(
-                it.title.length <= 16,
-                "${it.name} has a title too long for a card: ${it.title}"
-            )
-            assertTrue(
-                it.description.length <= 44,
-                "${it.name} has a description too long: ${it.description}"
-            )
-        }
-        // And what each says once it is held, for the cards that say something else by then.
-        maxOutEveryCappedPowerUp()
-        PowerUp.entries.forEach {
-            val later = it.describe(loadout)
-            assertTrue(
-                later.length <= 44,
-                "${it.name} has a description too long once held: $later"
-            )
-        }
     }
 
     // endregion

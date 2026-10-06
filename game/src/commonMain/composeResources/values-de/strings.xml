@@ -1,0 +1,150 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    German. The same keys as values/strings.xml, which explains each; see there.
+    A stage is an "Abschnitt" and the bat's level a "Stufe", so the two stay apart as they do in
+    English. A boss is "der" or "die" as its name goes, and its banners agree with it.
+-->
+<resources>
+    <string name="credits_headline">Mitwirkende</string>
+    <string name="settings">Einstellungen</string>
+
+    <string name="button_help">Hilfe</string>
+    <string name="button_settings">Einstellungen</string>
+    <string name="button_start_game">Spiel starten</string>
+    <string name="button_exit">Beenden</string>
+    <string name="button_credits">Mitwirkende</string>
+    <string name="button_back">Zurück</string>
+    <string name="button_ok">OK</string>
+
+    <string name="stage_select_title">Abschnitt wählen</string>
+    <string name="stage_1_name">Abschnitt 1: Dschungel</string>
+    <string name="stage_1_description">Schwärme, Formationen, Schilde und Gegenfeuer zwischen überwucherten Ruinen. Am Ende wartet die Mottenkönigin.</string>
+    <string name="stage_2_name">Abschnitt 2: Höhle</string>
+    <string name="stage_2_description">Fünf Wellen von Kobolden im Dunkeln, und der Kobold, der sie anführt – und sein eigenes Licht löschen kann.</string>
+    <string name="stage_3_name">Abschnitt 3: Wüste</string>
+    <string name="stage_3_description">Ein Flug vom Mittag in die Nacht, und aus dem Sand springt so einiges. Nach Einbruch der Dunkelheit erhebt sich der Sandwurm.</string>
+    <string name="stage_4_name">Abschnitt 4: Lagune</string>
+    <string name="stage_4_description">Ein Flug von der Nacht in den Mittag über eine Bucht voller Inseln, und Haie kommen von hinten. Die Naga steigt aus dem Graben des Tempels.</string>
+    <string name="stage_locked">Schließe den Abschnitt davor ab, um ihn freizuschalten</string>
+    <string name="stage_locked_badge">GESPERRT</string>
+    <string name="stage_highscore">Highscore: %1$d</string>
+
+    <string name="dialog_help_title">Hilfe</string>
+    <string name="dialog_help_controls_touch">• Fliegen: Ziehe CyanBat mit dem Finger. Tastatur oder Controller gehen auch.\n• Pause: Wische oder drücke Zurück. Noch einmal Zurück führt ins Menü.</string>
+    <string name="dialog_help_controls_desktop">• Fliegen: Ziehe CyanBat mit der Maus oder nimm die Pfeiltasten oder WASD.\n• Pause: Q. Noch einmal Q führt ins Menü.</string>
+    <string name="dialog_help_text">• Schießen: CyanBat feuert von selbst. Schieß auf Gegner und Hindernisse und berühre weder sie noch ihre Schüsse.\n• Gesundheit: Jeder Treffer leert den Balken unter der Fledermaus. Ist er leer, ist die Runde vorbei.\n• Punkte: Punkte gibt es fürs Überleben und für Abschüsse. Abschüsse in Folge erhöhen den Multiplikator, ein Treffer setzt ihn zurück.\n• Stufenaufstieg: Abschüsse bringen Erfahrung. Mit jeder neuen Stufe wählst du eins von drei Power-ups.\n• Wellen: Jede Minute kommt eine stärkere Welle. Nach der fünften erscheint der Boss. Besiege ihn, um den Abschnitt mit einem großen Bonus abzuschließen.\n• Abschnitte: Im Dschungel schwärmen Gegner aus, fliegen in Formation, schießen zurück und verstecken sich hinter Schilden. Der erste Schuss auf einen Schild bringt ihn zum Platzen. Der geschaffte Dschungel öffnet die Höhle, durch die du im Dunkeln nur im Licht der Fledermaus fliegst und wo sich der Boss zwischen seinen Hinterhalten im Dunkeln versteckt. Die geschaffte Höhle öffnet die Wüste, durch die du vom Mittag in die Nacht fliegst, wo Dinge aus dem Sand springen und Skarabäenpanzer nachwachsen, wenn man sie in Ruhe lässt. Die geschaffte Wüste öffnet die Lagune, durch die du von der Nacht in den Mittag fliegst, wo Haie von hinten an der Wasserlinie entlangkommen und Kugelfische Stachelringe werfen. Jeder Abschnitt beginnt von vorn: Punkte, Stufe und Power-ups fangen neu an.</string>
+
+    <string name="settings_music_title">Musik</string>
+    <string name="settings_sound_title">Soundeffekte</string>
+    <string name="settings_vibration_title">Vibration</string>
+    <string name="settings_theme_title">Design</string>
+    <string name="settings_theme_system">System</string>
+    <string name="settings_theme_dark">Dunkel</string>
+    <string name="settings_theme_light">Hell</string>
+    <string name="settings_display_title">Anzeige</string>
+    <string name="settings_display_stretch">Auf Bildschirm strecken</string>
+    <string name="settings_display_stretch_hint">Füllt den Bildschirm, verzerrt das Spiel aber auf Bildschirmen, die nicht 16:9 sind.</string>
+    <string name="settings_display_black_bars">Schwarze Balken</string>
+    <string name="settings_display_black_bars_hint">Behält das 16:9-Format des Spiels bei, mit schwarzen Balken, wo der Bildschirm ein anderes hat.</string>
+    <string name="settings_display_ambient">Leuchtende Balken</string>
+    <string name="settings_display_ambient_hint">Behält das Format des Spiels bei und färbt die Balken in den Farben seiner Ränder.</string>
+
+    <string name="credit_music_title">Musik</string>
+    <string name="credit_music_0">Originalmusik, für CyanBat im Code komponiert und synthetisiert</string>
+    <string name="credit_gameframework_title">Ursprüngliches Spiele-Framework</string>
+    <string name="credit_gameframework_0">Basierend auf „Beginning Android Games“ von Mario Zechner und Robert Green</string>
+    <string name="credit_gameframework_1">Ursprüngliche Umsetzung von Robert Grüneis</string>
+    <string name="credit_game_development">Dieses Spiel wurde von Martin Śmiech entwickelt. Es begann als Schulprojekt und wird seitdem als Nebenprojekt weitergeführt.</string>
+    <string name="credit_ai_disclosure_title">Hinweis zu KI</string>
+    <string name="credit_ai_disclosure_content">Neuere Versionen wurden mit Unterstützung der Codegenerierung von Google Gemini und Claude Opus entwickelt.</string>
+
+    <string name="score">Punkte: %1$d</string>
+    <string name="hud_wave">Welle: %1$d/%2$d</string>
+    <string name="hud_boss">BOSS</string>
+    <string name="hud_level">Stufe: %1$d</string>
+
+    <string name="combo_cold">Combo:</string>
+    <string name="combo_hot">HEISS</string>
+    <string name="combo_blazing">LODERND</string>
+    <string name="combo_scorching">SENGEND</string>
+    <string name="combo_inferno">INFERNO</string>
+    <string name="combo_hellfire">HÖLLENFEUER</string>
+    <string name="combo_blue_flame">BLAUE FLAMME</string>
+    <string name="combo_white_hot">WEISSGLUT</string>
+    <string name="combo_supernova">SUPERNOVA</string>
+
+    <string name="banner_wave">WELLE %1$d</string>
+    <string name="banner_second_life">ZWEITES LEBEN</string>
+
+    <string name="boss_moth_queen">DIE MOTTENKÖNIGIN</string>
+    <string name="boss_moth_queen_swarm">SIE RUFT DEN SCHWARM</string>
+    <string name="boss_moth_queen_enraged">DIE KÖNIGIN TOBT</string>
+    <string name="boss_moth_queen_falls">DIE MOTTENKÖNIGIN FÄLLT</string>
+    <string name="boss_caco_imp">DER CACO-KOBOLD</string>
+    <string name="boss_caco_imp_lights_out">LICHT AUS</string>
+    <string name="boss_caco_imp_blazes">DER KOBOLD LODERT</string>
+    <string name="boss_caco_imp_falls">DER CACO-KOBOLD FÄLLT</string>
+    <string name="boss_sand_wyrm">DER SANDWURM</string>
+    <string name="boss_sand_wyrm_brood">DIE BRUT ERHEBT SICH</string>
+    <string name="boss_sand_wyrm_enraged">DER WURM TOBT</string>
+    <string name="boss_sand_wyrm_falls">DER SANDWURM FÄLLT</string>
+    <string name="boss_naga">DIE NAGA</string>
+    <string name="boss_naga_strikes">DIE NAGA SCHLÄGT ZU</string>
+    <string name="boss_naga_brood">DIE BRUT ERWACHT</string>
+    <string name="boss_naga_tide">DIE GEZEITEN WENDEN SICH</string>
+    <string name="boss_naga_enraged">DIE NAGA TOBT</string>
+    <string name="boss_naga_falls">DIE NAGA FÄLLT</string>
+
+    <string name="pause_title">PAUSE</string>
+    <string name="pause_resume">Tippen oder klicken zum Fortsetzen</string>
+    <string name="pause_quit">Zurück oder Q zum Beenden</string>
+
+    <string name="stage_complete_title">ABSCHNITT GESCHAFFT</string>
+    <string name="stage_complete_next">Tippen oder Enter drücken für Abschnitt %1$d</string>
+    <string name="stage_complete_menu">Zurück oder Q für das Menü</string>
+    <string name="stage_complete_fresh_start">Punkte, Stufe und Power-ups beginnen von vorn</string>
+    <string name="stage_complete_continue">Tippen oder Enter drücken zum Fortfahren</string>
+
+    <string name="game_over_hint">Zum Hauptmenü den Bildschirm berühren</string>
+
+    <string name="level_up_title">STUFE %1$d</string>
+    <string name="level_up_choose">Wähle ein Power-up</string>
+
+    <string name="power_up_rapid_fire">Schnellfeuer</string>
+    <string name="power_up_rapid_fire_description">Schüsse folgen schneller</string>
+    <string name="power_up_spread_shot">Streuschuss</string>
+    <string name="power_up_spread_shot_description">Ein Schuss mehr, aufgefächert</string>
+    <string name="power_up_vitality">Vitalität</string>
+    <string name="power_up_vitality_description">+%1$d max. Lebenspunkte, geheilt</string>
+    <string name="power_up_heavy_rounds">Wuchtgeschosse</string>
+    <string name="power_up_heavy_rounds_description">+%1$d Schaden pro Schuss</string>
+    <string name="power_up_sharpshooter">Scharfschütze</string>
+    <string name="power_up_sharpshooter_description">+%1$d % Chance auf kritische Treffer</string>
+    <string name="power_up_armor_plating">Panzerung</string>
+    <string name="power_up_armor_plating_description">Weniger Schaden nehmen</string>
+    <string name="power_up_second_wind">Zweiter Atem</string>
+    <string name="power_up_second_wind_description">Längere Schonfrist nach einem Treffer</string>
+    <string name="power_up_regeneration">Regeneration</string>
+    <string name="power_up_regeneration_description">Heilt %1$d Lebenspunkte pro Sekunde</string>
+    <string name="power_up_fast_learner">Lerneifer</string>
+    <string name="power_up_fast_learner_description">+%1$d % Erfahrung</string>
+    <string name="power_up_bounty_hunter">Kopfgeldjäger</string>
+    <string name="power_up_bounty_hunter_description">+%1$d % Punkte</string>
+    <string name="power_up_second_life">Zweites Leben</string>
+    <string name="power_up_second_life_description">Entgehe einmal dem Tod, mit halber Gesundheit</string>
+    <string name="power_up_counterweight">Gegengewicht</string>
+    <string name="power_up_counterweight_description">-%1$d Schaden genommen, +%2$d % ausgeteilt</string>
+    <string name="power_up_piercing_shot">Durchschlag</string>
+    <string name="power_up_piercing_shot_description">Schüsse durchdringen einen Gegner mehr</string>
+    <string name="power_up_ricochet">Querschläger</string>
+    <string name="power_up_ricochet_description">Schüsse prallen an einem Rand mehr ab</string>
+    <string name="power_up_guardian_orb">Wächterkugel</string>
+    <string name="power_up_guardian_orb_description">Eine Kugel umkreist dich und trifft Gegner</string>
+    <string name="power_up_guardian_orb_held">Eine weitere Kugel kreist mit</string>
+    <string name="power_up_charged_trail">Geladene Spur</string>
+    <string name="power_up_charged_trail_description">Eine längere Spur, die Gegner schockt</string>
+    <string name="power_up_charged_trail_held">Längere Spur, stärkere Schocks</string>
+    <string name="power_up_frost_beam">Froststrahl</string>
+    <string name="power_up_frost_beam_description">Ein Strahl friert eine Reihe Gegner ein</string>
+    <string name="power_up_frost_beam_held">Feuert öfter, friert länger ein</string>
+</resources>
