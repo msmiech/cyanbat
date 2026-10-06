@@ -71,7 +71,8 @@ internal object AppLocale {
         }
         val store = context.dataStore.also { store = it }
         if (!read) {
-            current.value = runBlocking { AppLanguage.fromName(store.data.first()[PREFS_KEY_LANGUAGE]) }
+            current.value =
+                runBlocking { AppLanguage.fromName(store.data.first()[PREFS_KEY_LANGUAGE]) }
             read = true
         }
         putIntoEffect(current.value)

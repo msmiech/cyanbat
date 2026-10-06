@@ -30,13 +30,19 @@ class GameTextTest {
     @Test
     fun `placeholders are filled by their numbers in whatever order the words put them`() {
         assertEquals("Wave: 3/5", text.format(Res.string.hud_wave, 3, 5))
-        assertEquals("10% dealt, -1 taken", text.format(Res.string.power_up_counterweight_description, 1, 10))
+        assertEquals(
+            "10% dealt, -1 taken",
+            text.format(Res.string.power_up_counterweight_description, 1, 10)
+        )
     }
 
     /** As Compose reads its own strings, so a language can put a percent sign wherever it goes. */
     @Test
     fun `a percent sign on its own is a percent sign`() {
-        assertEquals("+4% critical chance", text.format(Res.string.power_up_sharpshooter_description, 4))
+        assertEquals(
+            "+4% critical chance",
+            text.format(Res.string.power_up_sharpshooter_description, 4)
+        )
     }
 
     @Test

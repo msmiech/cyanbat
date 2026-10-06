@@ -113,7 +113,10 @@ enum class PowerUp(
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canAddCriticalChance
     },
 
-    ARMOR_PLATING(Res.string.power_up_armor_plating, Res.string.power_up_armor_plating_description) {
+    ARMOR_PLATING(
+        Res.string.power_up_armor_plating,
+        Res.string.power_up_armor_plating_description
+    ) {
         override fun applyTo(loadout: PlayerLoadout) = loadout.reduceDamageTaken(ARMOR_FACTOR)
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canReduceDamageTaken
     },
@@ -168,7 +171,10 @@ enum class PowerUp(
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canCounterweight
     },
 
-    PIERCING_SHOT(Res.string.power_up_piercing_shot, Res.string.power_up_piercing_shot_description) {
+    PIERCING_SHOT(
+        Res.string.power_up_piercing_shot,
+        Res.string.power_up_piercing_shot_description
+    ) {
         override fun applyTo(loadout: PlayerLoadout) = loadout.addPierce()
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canAddPierce
     },
@@ -185,7 +191,10 @@ enum class PowerUp(
             if (loadout.orbs > 0) Res.string.power_up_guardian_orb_held else description
     },
 
-    CHARGED_TRAIL(Res.string.power_up_charged_trail, Res.string.power_up_charged_trail_description) {
+    CHARGED_TRAIL(
+        Res.string.power_up_charged_trail,
+        Res.string.power_up_charged_trail_description
+    ) {
         override fun applyTo(loadout: PlayerLoadout) = loadout.chargeWake()
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canChargeWake
         override fun describe(loadout: PlayerLoadout) =

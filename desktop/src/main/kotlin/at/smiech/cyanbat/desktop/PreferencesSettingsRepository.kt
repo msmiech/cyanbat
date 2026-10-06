@@ -29,7 +29,8 @@ class PreferencesSettingsRepository : SettingsRepository {
     private val vibration = MutableStateFlow(prefs.getBoolean(KEY_VIBRATION, true))
     private val display = MutableStateFlow(DisplayMode.fromName(prefs.get(KEY_DISPLAY_MODE, null)))
     private val theme = MutableStateFlow(ThemeMode.fromName(prefs.get(KEY_THEME_MODE, null)))
-    private val chosenLanguage = MutableStateFlow(AppLanguage.fromName(prefs.get(KEY_LANGUAGE, null)))
+    private val chosenLanguage =
+        MutableStateFlow(AppLanguage.fromName(prefs.get(KEY_LANGUAGE, null)))
 
     override val isMusicEnabled: Flow<Boolean> = music.asStateFlow()
     override val isSoundEnabled: Flow<Boolean> = sound.asStateFlow()

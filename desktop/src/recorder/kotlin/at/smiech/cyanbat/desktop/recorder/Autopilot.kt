@@ -402,7 +402,10 @@ class Autopilot(
             val overlapX =
                 (min(x + batHalfWidth, HUD_RIGHT) - maxOf(x - batHalfWidth, 0f)).coerceAtLeast(0f)
             val overlapY =
-                (min(y + batHalfHeight, HUD_BOTTOM) - maxOf(y - batHalfHeight, 0f)).coerceAtLeast(0f)
+                (min(y + batHalfHeight, HUD_BOTTOM) - maxOf(
+                    y - batHalfHeight,
+                    0f
+                )).coerceAtLeast(0f)
             return overlapX * overlapY / (4f * batHalfWidth * batHalfHeight)
         }
 

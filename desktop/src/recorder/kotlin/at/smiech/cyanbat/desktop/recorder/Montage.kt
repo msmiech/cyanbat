@@ -166,7 +166,13 @@ object Montage {
         }
 
         val clips = merge(
-            (listOfNotNull(opening, levelUp, action, arrival, finale) + views).sortedBy { it.first },
+            (listOfNotNull(
+                opening,
+                levelUp,
+                action,
+                arrival,
+                finale
+            ) + views).sortedBy { it.first },
             frames(MERGE_GAP_SECONDS),
         )
         // Dialogs are cut out of every clip but the level up's.

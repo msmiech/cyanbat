@@ -20,14 +20,16 @@ enum class AppLanguage(val tag: String?) {
         val DEFAULT = SYSTEM
 
         /** The language stored as [name], or [DEFAULT] for anything unrecognized - a newer build's, say. */
-        fun fromName(name: String?): AppLanguage = entries.firstOrNull { it.name == name } ?: DEFAULT
+        fun fromName(name: String?): AppLanguage =
+            entries.firstOrNull { it.name == name } ?: DEFAULT
 
         /**
          * The language a locale's [tag] picks, by its language alone, so Austrian German is German;
          * [SYSTEM] for none, or for one the game does not speak.
          */
         fun fromTag(tag: String?): AppLanguage {
-            val language = tag?.substringBefore('-')?.substringBefore('_')?.lowercase() ?: return SYSTEM
+            val language =
+                tag?.substringBefore('-')?.substringBefore('_')?.lowercase() ?: return SYSTEM
             return entries.firstOrNull { it.tag == language } ?: SYSTEM
         }
     }

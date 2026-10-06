@@ -151,8 +151,7 @@ class World {
     /** Whether the entity carries a component of [type]. */
     fun <T : Component> hasComponent(id: EntityId, type: KClass<T>): Boolean {
         val typeId = typeIds[type] ?: return false
-        if (id < 0 || id >= capacity) return false
-        return signatures[id] and (1L shl typeId) != 0L
+        return id in 0..<capacity && signatures[id] and (1L shl typeId) != 0L
     }
 
     /**

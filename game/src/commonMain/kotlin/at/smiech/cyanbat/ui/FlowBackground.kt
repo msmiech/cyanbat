@@ -71,6 +71,7 @@ private val SPARKLE_HALO = Brush.radialGradient(
 private val GLINT_ACROSS = Brush.horizontalGradient(
     listOf(Color.Transparent, Color.White, Color.Transparent), startX = -GLINT, endX = GLINT,
 )
+
 /** A glint's arm down, likewise. */
 private val GLINT_DOWN = Brush.verticalGradient(
     listOf(Color.Transparent, Color.White, Color.Transparent), startY = -GLINT, endY = GLINT,

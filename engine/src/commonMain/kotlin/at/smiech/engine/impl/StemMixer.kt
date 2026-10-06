@@ -352,8 +352,7 @@ class StemMixer(stems: List<ImaAdpcmClip>, grid: MusicGrid) {
 
         fun isSilentThrough(from: Long, until: Long): Boolean {
             val next = pending
-            if (next != null && next.start < until) return false
-            return current.to == 0f && current.end <= from
+            return !(next != null && next.start < until) && current.to == 0f && current.end <= from
         }
     }
 

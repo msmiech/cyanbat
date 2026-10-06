@@ -1802,7 +1802,12 @@ class GameScreen(
 
         val next = nextStageId
         if (next != null) {
-            drawCentered(text.format(Res.string.stage_complete_next, next), 247, 15, EngineColors.WHITE)
+            drawCentered(
+                text.format(Res.string.stage_complete_next, next),
+                247,
+                15,
+                EngineColors.WHITE
+            )
             drawCentered(text[Res.string.stage_complete_menu], 269, 15, EngineColors.WHITE)
             drawCentered(text[Res.string.stage_complete_fresh_start], 294, 13, EngineColors.CYAN)
         } else {
@@ -1817,7 +1822,12 @@ class GameScreen(
      */
     private fun drawPowerUpOffer() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
-        drawCentered(text.format(Res.string.level_up_title, progress.level), 90, 30, EngineColors.YELLOW)
+        drawCentered(
+            text.format(Res.string.level_up_title, progress.level),
+            90,
+            30,
+            EngineColors.YELLOW
+        )
         drawCentered(text[Res.string.level_up_choose], 120, 15, EngineColors.WHITE)
 
         offer.forEachIndexed { index, powerUp ->
@@ -1843,8 +1853,14 @@ class GameScreen(
             )
             // Wrapped by measured width, not character count: a count that fits in Arial runs off
             // the card in the wider DejaVu Sans.
-            val description = text.format(powerUp.describe(loadout), *powerUp.numbers.toTypedArray())
-            wrapWords(description, POWER_UP_CARD_WIDTH - 2 * POWER_UP_CARD_PADDING) { measureString(it, 11) }
+            val description =
+                text.format(powerUp.describe(loadout), *powerUp.numbers.toTypedArray())
+            wrapWords(description, POWER_UP_CARD_WIDTH - 2 * POWER_UP_CARD_PADDING) {
+                measureString(
+                    it,
+                    11
+                )
+            }
                 .forEachIndexed { line, words ->
                     drawString(
                         words,
@@ -1914,7 +1930,13 @@ class GameScreen(
         // count runs into nothing.
         comboMeter.draw(g, 5, COMBO_BASELINE, text)
         g.apply {
-            drawOutlinedString(text.format(Res.string.score, scoring.score), 5, 20, 15, EngineColors.CYAN)
+            drawOutlinedString(
+                text.format(Res.string.score, scoring.score),
+                5,
+                20,
+                15,
+                EngineColors.CYAN
+            )
             // How far into the stage the player is, and so how close the boss is.
             drawOutlinedString(waveLabel(), 5, 40, 15, EngineColors.CYAN)
             // The bat's level, top right where the experience bar fills toward, 5 px in like the

@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
     German. The same keys as values/strings.xml, which explains each; see there.
     A stage is an "Abschnitt" and the bat's level a "Stufe", so the two stay apart as they do in
     English. A boss is "der" or "die" as its name goes, and its banners agree with it.

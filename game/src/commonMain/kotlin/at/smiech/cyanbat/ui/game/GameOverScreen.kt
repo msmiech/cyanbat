@@ -64,15 +64,26 @@ class GameOverScreen(
             graphics.drawPixmap(artwork, artworkLeft, artworkTop)
 
             // Every line under GAME OVER is centered on its column by its measured width.
-            fun drawCentered(text: String, baseline: Int, size: Int, color: Int) = graphics.drawString(
-                text,
-                artworkLeft + ARTWORK_CENTER_X - graphics.measureString(text, size) / 2,
-                artworkTop + baseline,
-                size,
-                color,
+            fun drawCentered(text: String, baseline: Int, size: Int, color: Int) =
+                graphics.drawString(
+                    text,
+                    artworkLeft + ARTWORK_CENTER_X - graphics.measureString(text, size) / 2,
+                    artworkTop + baseline,
+                    size,
+                    color,
+                )
+            drawCentered(
+                env.text[Res.string.game_over_hint],
+                HINT_BASELINE,
+                HINT_SIZE,
+                EngineColors.WHITE
             )
-            drawCentered(env.text[Res.string.game_over_hint], HINT_BASELINE, HINT_SIZE, EngineColors.WHITE)
-            drawCentered(env.text.format(Res.string.score, score), SCORE_BASELINE, 20, EngineColors.WHITE)
+            drawCentered(
+                env.text.format(Res.string.score, score),
+                SCORE_BASELINE,
+                20,
+                EngineColors.WHITE
+            )
             drawCentered(
                 env.text.format(Res.string.stage_highscore, highscore),
                 HIGHSCORE_BASELINE,

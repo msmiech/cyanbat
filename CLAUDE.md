@@ -77,7 +77,8 @@ Studio trace shows what a slow frame spent its time on.
 `FRAME_BUFFER_HEIGHT` in `:game`, which both hosts and the recorder hand the engine - and spawn
 points, boss stations, the overlays' rows and the desert's sky are laid out against it. Speeds are
 in frame pixels, so a wider frame shows more of a stage at once rather than a faster one.
-`gameover.png`, from artwork hand-drawn for the 480x320 frame the game had before, is centered on it.
+`gameover.png`, from artwork hand-drawn for the 480x320 frame the game had before, is centered on
+it.
 `FrameFit` fits it to the screen according to the player's `DisplayMode` (stretch, black bars, or
 the default ambient bars) and maps touches back through the same rectangle. Do not widen the
 playfield for wide screens; it would change difficulty by device.
@@ -119,14 +120,14 @@ playfield for wide screens; it would change difficulty by device.
   `bossDeath.wav` and the delay to the fanfare's `LANDING_BEAT`; change each with its script.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
-- Every way the bat is kept from harm is its `hitCooldown`: the mercy after a hit, which Second
-  Wind lengthens and a Second Life starts over, and the grace after a level-up pick
+- Every way the bat is kept from harm is its `hitCooldown`: the mercy after a hit, which Second Wind
+  lengthens and a Second Life starts over, and the grace after a level-up pick
   (`POWER_UP_GRACE_SECONDS`). `InvulnerabilitySystem` reads it every tick and draws the bat
   see-through while it runs, a dither pulsing between faint and strong that always ends on the
   faint, so the bat coming back whole is the moment it can be hurt again. Something new that keeps
   the bat safe should set the cooldown (`InvulnerabilitySystem.grant`), and it shows by itself. A
-  won stage leaves the bat untouchable by `stageComplete` instead, with nothing left to hurt it,
-  and does not show.
+  won stage leaves the bat untouchable by `stageComplete` instead, with nothing left to hurt it, and
+  does not show.
 - In-game text (HUD, banners, overlays) is drawn at frame coordinates in `GameScreen` and
   `GameOverScreen`, in the player's language (see Languages). The rows are hard-coded, but every
   centered or right-aligned line is placed by its measured width, so rewording one needs no new x.
@@ -147,16 +148,17 @@ playfield for wide screens; it would change difficulty by device.
   Compose does, and a bare `%` is a percent sign.
 - Compose's resources read the language off the JVM's default locale, so picking one is setting
   that. On the desktop `DesktopLocale` sets it. On Android 13+ the setting is the system's per-app
-  language (`AppLocale`, through `LocaleManager`), so Settings and the system's app languages are one
-  setting; before 13, `AppLocale` keeps the choice in DataStore and sets the default itself. Android
-  sets the default back to the system's at every configuration change, so both activities call
+  language (`AppLocale`, through `LocaleManager`), so Settings and the system's app languages are
+  one setting; before 13, `AppLocale` keeps the choice in DataStore and sets the default itself.
+  Android sets the default back to the system's at every configuration change, so both activities
+  call
   `AppLocale.reapply()` in `onConfigurationChanged`, before anything reads a string.
 - The menu redraws itself in a new language, under `key(language)` in `CyanBatMenu`: Compose's
-  resources pick the language when a string is first read, and nothing reads it again by itself.
-  A host puts a language into effect before `SettingsRepository.language` tells the menu of it.
-  `MainActivity` takes `locale`, `layoutDirection` and `screenLayout` in place for this, and the game
-  activity reads the run's text again in `onConfigurationChanged`; recreated, either lost where the
-  player was.
+  resources pick the language when a string is first read, and nothing reads it again by itself. A
+  host puts a language into effect before `SettingsRepository.language` tells the menu of it.
+  `MainActivity` takes `locale`, `layoutDirection` and `screenLayout` in place for this, and the
+  game activity reads the run's text again in `onConfigurationChanged`; recreated, either lost where
+  the player was.
 - The run's lines have fixed sizes and fixed room, laid out for English. `GameTextLayoutTest`
   measures every language's against them in the platform's face. DejaVu Sans, on CI's Linux, is the
   widest, so a line that passes on Windows can still fail there.
@@ -483,8 +485,8 @@ for an app to come). There is no framebuffer bitmap.
 **The art is generated.** `tools/generate_*.py`, built on `tools/pixelart.py`, produce every sprite
 sheet, background, obstacle, stage preview, the framed title, the app icons and the WAV effects;
 `tools/generate_*_music.py`, built on `tools/musicsynth.py`, produce all of the music. The death
-sound's MP3, `tools/title_lettering.png` and `tools/game_over_art.png` are the exceptions: the
-last two are hand-drawn sources, kept as they were drawn, which `generate_title.py` and
+sound's MP3, `tools/title_lettering.png` and `tools/game_over_art.png` are the exceptions: the last
+two are hand-drawn sources, kept as they were drawn, which `generate_title.py` and
 `generate_game_over.py` make the title and `gameover.png` from.
 
 - To change art, change the script and re-run it; never edit its output, the icons' vector XML

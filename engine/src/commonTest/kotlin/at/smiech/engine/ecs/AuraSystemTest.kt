@@ -251,7 +251,7 @@ class AuraSystemTest {
     private fun farthestMove(before: List<Pair<Int, Int>>, after: List<Pair<Int, Int>>): Int {
         if (before.size != after.size) return Int.MAX_VALUE
         return before.zip(after).maxOf { (a, b) ->
-            maxOf(kotlin.math.abs(a.first - b.first), kotlin.math.abs(a.second - b.second))
+            maxOf(abs(a.first - b.first), abs(a.second - b.second))
         }
     }
 

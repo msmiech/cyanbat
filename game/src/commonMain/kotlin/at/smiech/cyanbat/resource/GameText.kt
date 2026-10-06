@@ -44,7 +44,12 @@ class GameText(private val strings: Map<StringResource, String>) {
          */
         suspend fun load(): GameText {
             val environment = getSystemResourceEnvironment()
-            return GameText(Res.allStringResources.values.associateWith { getString(environment, it) })
+            return GameText(Res.allStringResources.values.associateWith {
+                getString(
+                    environment,
+                    it
+                )
+            })
         }
     }
 }

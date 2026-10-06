@@ -341,6 +341,7 @@ private class Flight(
     val scenery: List<Float> = when (val backdrop = assets.stage(stageId).backdrop) {
         is Backdrop.Sky ->
             listOf(StageProgression.forStage(stageId).bossTimeSeconds * backdrop.day.showcase)
+
         is Backdrop.Strip -> emptyList()
     }
     private val autopilot = Autopilot(controls, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)

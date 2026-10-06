@@ -160,9 +160,9 @@ and there are no instrumentation tests. Verify those on the emulator.
   as `display_mode` in the DataStore). In the default, Ambient bars, and in Black bars, the frame is
   scaled evenly to the screen's full height and centered (`FrameFit`): on a 2400x1080 capture it
   spans x 240-2160 with the bars either side, and screen pixels map to it at (x - 240) / 3 and y /
-  3. A touch on a bar still steers, toward that edge. In Stretch to fit screen it fills the capture
-  instead, at x / 3.75 and y / 3, and `hud` crops the wrong corner. `pm clear` puts the default
-  back.
+    3. A touch on a bar still steers, toward that edge. In Stretch to fit screen it fills the
+       capture instead, at x / 3.75 and y / 3, and `hud` crops the wrong corner. `pm clear` puts the
+       default back.
 
 - **`play` finishes runs, it does not survive them.** Once the bat dies, the next swipe's `TOUCH_UP`
   dismisses `GameOverScreen` back to the menu. That is the way to exercise the highscore write path,

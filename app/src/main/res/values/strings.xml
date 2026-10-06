@@ -1,5 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!--
+<?xml version="1.0" encoding="utf-8"?><!--
     Only what Android itself shows: the launcher's name and the game screen's, which the recents
     screen shows while a run is up. Everything the game says is a Compose resource of the shared
     UI, in game/src/commonMain/composeResources.
