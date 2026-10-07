@@ -20,12 +20,12 @@ interface SettingsRepository {
     val displayMode: Flow<DisplayMode>
 
     /**
-     * Whether the game fills the screen rather than a window. Only a desktop has a window to leave,
-     * so only there does Settings offer it; a phone's game always fills its screen. The desktop
-     * keeps it in step with the window, which the player can also take in and out of full screen
-     * with a key or the system's own controls.
+     * Whether the game is in a window, in full screen or borderless; see [WindowMode]. Only a
+     * desktop has a window to leave, so only there does Settings offer it. The desktop keeps it in
+     * step with the window, which the player can also take in and out of full screen with a key or
+     * the system's own controls.
      */
-    val isFullscreen: Flow<Boolean>
+    val windowMode: Flow<WindowMode>
 
     /** Whether the menu is drawn light or dark; [ThemeMode.DEFAULT], following the system, until set. */
     val themeMode: Flow<ThemeMode>
@@ -41,7 +41,7 @@ interface SettingsRepository {
     suspend fun setSoundEnabled(enabled: Boolean)
     suspend fun setVibrationEnabled(enabled: Boolean)
     suspend fun setDisplayMode(mode: DisplayMode)
-    suspend fun setFullscreen(enabled: Boolean)
+    suspend fun setWindowMode(mode: WindowMode)
     suspend fun setThemeMode(mode: ThemeMode)
     suspend fun setLanguage(language: AppLanguage)
 }

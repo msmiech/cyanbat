@@ -45,7 +45,10 @@
     <string name="settings_language_title">Język</string>
     <string name="settings_language_system">Systemowy</string>
     <string name="settings_display_title">Wyświetlanie</string>
-    <string name="settings_fullscreen_title">Pełny ekran</string>
+    <string name="settings_window_mode_title">Ekran</string>
+    <string name="settings_window_mode_windowed">Okno</string>
+    <string name="settings_window_mode_fullscreen">Pełny ekran</string>
+    <string name="settings_window_mode_borderless">Bez ramek</string>
     <string name="settings_display_stretch">Rozciągnij na cały ekran</string>
     <string name="settings_display_stretch_hint">Wypełnia ekran, ale zniekształca grę na ekranach o proporcjach innych niż 16:9.</string>
     <string name="settings_display_black_bars">Czarne pasy</string>

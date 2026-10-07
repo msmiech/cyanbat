@@ -11,11 +11,10 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.window.Window
-import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
-import androidx.compose.ui.window.rememberWindowState
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.data.ObservedAudioSettings
+import at.smiech.cyanbat.data.WindowMode
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.ui.CyanBatMenu
@@ -40,28 +39,34 @@ fun main() = application {
     // The stage being played, or null while the menu is up. Out here, because the window's keys
     // below go one way or the other by it.
     var playingStage by remember { mutableStateOf<Int?>(null) }
-    // Out here too, because the window opens in full screen or not by it: straight into it, rather
-    // than as a window that then jumps to fill the screen.
+    // Out here too, because the window opens in its mode: straight into it, rather than as a
+    // window that then jumps to fill the screen.
     val settings = remember { PreferencesSettingsRepository() }
-    val windowState = rememberWindowState(
-        placement = if (settings.isFullscreen.value) {
-            WindowPlacement.Fullscreen
-        } else {
-            WindowPlacement.Floating
-        },
-    )
+    val opened = remember { settings.windowMode.value }
+    val windowState = rememberWindowStateIn(opened)
+    val windowMode by settings.windowMode.collectAsState()
     val scope = rememberCoroutineScope()
-    val fullscreenKeys = remember(windowState) {
+    val fullscreenKeys = remember {
         FullscreenKeys {
-            scope.launch {
-                settings.setFullscreen(windowState.placement != WindowPlacement.Fullscreen)
+            // Back and forth between a window and the full screen the player last chose.
+            val next = if (settings.windowMode.value == WindowMode.WINDOWED) {
+                settings.lastFullScreenMode
+            } else {
+                WindowMode.WINDOWED
             }
+            scope.launch { settings.setWindowMode(next) }
         }
     }
     Window(
         onCloseRequest = ::exitApplication,
         state = windowState,
         title = "CyanBat",
+        // Only as it opens: a frame comes and goes with the mode later through WindowModes, since
+        // Compose cannot change it on a window that is up.
+        undecorated = remember { opened.isFrameless() },
+        // A window without a frame has an edge Compose lets the mouse drag to resize it, which over
+        // the whole screen is where the mouse flies the bat to.
+        resizable = windowMode == WindowMode.WINDOWED,
         // Ahead of the menu and the game, so the keys work wherever the player is.
         onPreviewKeyEvent = fullscreenKeys::onKeyEvent,
         // A backstop for the game. The game surface claims focus and handles these itself; this
@@ -74,7 +79,7 @@ fun main() = application {
         // inside the content, which composes only after the window has applied that parameter
         // (null here, which empties the list), so nothing clears the icons afterwards.
         LaunchedEffect(window) { window.setIconImages(WindowIcon.images) }
-        FullscreenFollowsSettings(windowState, settings)
+        WindowFollowsSettings(windowState, settings, opened)
         // A shortcut's key let go of in another window never comes back up in this one.
         val windowFocused = LocalWindowInfo.current.isWindowFocused
         LaunchedEffect(windowFocused) {

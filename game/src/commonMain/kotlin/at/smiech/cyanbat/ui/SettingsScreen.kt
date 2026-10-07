@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.WindowMode
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.language_english
 import at.smiech.cyanbat.resources.language_german
@@ -49,7 +50,6 @@ import at.smiech.cyanbat.resources.settings_display_black_bars_hint
 import at.smiech.cyanbat.resources.settings_display_stretch
 import at.smiech.cyanbat.resources.settings_display_stretch_hint
 import at.smiech.cyanbat.resources.settings_display_title
-import at.smiech.cyanbat.resources.settings_fullscreen_title
 import at.smiech.cyanbat.resources.settings_language_system
 import at.smiech.cyanbat.resources.settings_language_title
 import at.smiech.cyanbat.resources.settings_music_title
@@ -59,6 +59,10 @@ import at.smiech.cyanbat.resources.settings_theme_light
 import at.smiech.cyanbat.resources.settings_theme_system
 import at.smiech.cyanbat.resources.settings_theme_title
 import at.smiech.cyanbat.resources.settings_vibration_title
+import at.smiech.cyanbat.resources.settings_window_mode_borderless
+import at.smiech.cyanbat.resources.settings_window_mode_fullscreen
+import at.smiech.cyanbat.resources.settings_window_mode_title
+import at.smiech.cyanbat.resources.settings_window_mode_windowed
 import at.smiech.engine.DisplayMode
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
@@ -69,7 +73,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val soundEnabled by viewModel.isSoundEnabled.collectAsState()
     val vibrationEnabled by viewModel.isVibrationEnabled.collectAsState()
     val displayMode by viewModel.displayMode.collectAsState()
-    val fullscreen by viewModel.isFullscreen.collectAsState()
+    val windowMode by viewModel.windowMode.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val language by viewModel.language.collectAsState()
     SettingsContent(
@@ -80,15 +84,14 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         themeMode = themeMode,
         language = language,
         displayMode = displayMode,
-        // Null hides the switch, on a platform whose game always fills the screen.
-        fullscreen = fullscreen.takeIf { canGoFullscreen },
+        windowMode = windowMode,
         onMusicEnabledChanged = viewModel::setMusicEnabled,
         onSoundEnabledChanged = viewModel::setSoundEnabled,
         onVibrationEnabledChanged = viewModel::setVibrationEnabled,
         onThemeModeChanged = viewModel::setThemeMode,
         onLanguageChanged = viewModel::setLanguage,
         onDisplayModeChanged = viewModel::setDisplayMode,
-        onFullscreenChanged = viewModel::setFullscreen,
+        onWindowModeChanged = viewModel::setWindowMode,
     )
 }
 
@@ -109,14 +112,14 @@ private fun SettingsContent(
     themeMode: ThemeMode,
     language: AppLanguage,
     displayMode: DisplayMode,
-    fullscreen: Boolean?,
+    windowMode: WindowMode,
     onMusicEnabledChanged: (Boolean) -> Unit,
     onSoundEnabledChanged: (Boolean) -> Unit,
     onVibrationEnabledChanged: (Boolean) -> Unit,
     onThemeModeChanged: (ThemeMode) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onDisplayModeChanged: (DisplayMode) -> Unit,
-    onFullscreenChanged: (Boolean) -> Unit,
+    onWindowModeChanged: (WindowMode) -> Unit,
 ) {
     val music = remember { FocusRequester() }
     HomeCursor(music)
@@ -176,12 +179,14 @@ private fun SettingsContent(
                 modifier = Modifier.padding(horizontal = ROW_INSET),
             )
             Spacer(modifier = Modifier.height(8.dp))
-            if (fullscreen != null) {
-                SettingRow(
-                    stringResource(Res.string.settings_fullscreen_title),
-                    fullscreen,
-                    onFullscreenChanged
-                )
+            // None on a platform whose game always fills the screen.
+            if (windowModes.isNotEmpty()) {
+                ChoiceRow(
+                    stringResource(Res.string.settings_window_mode_title),
+                    windowModes,
+                    windowMode,
+                    onWindowModeChanged,
+                ) { stringResource(it.label) }
                 Spacer(modifier = Modifier.height(8.dp))
             }
             Column(Modifier.selectableGroup()) {
@@ -232,10 +237,10 @@ private fun SettingRow(
 }
 
 /**
- * A choice of a few short words - the menu's theme, the game's language - as one row of segments
- * beside its label, in line with the switches: short words need no hints, and radio rows like the
- * display's would push those below the fold on a landscape phone. Each segment takes the cursor on
- * its own, and the arrows walk along them.
+ * A choice of a few short words - the menu's theme, the game's language, the desktop's window - as
+ * one row of segments beside its label, in line with the switches: short words need no hints, and
+ * radio rows like the display's would push those below the fold on a landscape phone. Each segment
+ * takes the cursor on its own, and the arrows walk along them.
  */
 @Composable
 private fun <T> ChoiceRow(
@@ -320,6 +325,13 @@ private val ThemeMode.label: StringResource
         ThemeMode.SYSTEM -> Res.string.settings_theme_system
         ThemeMode.DARK -> Res.string.settings_theme_dark
         ThemeMode.LIGHT -> Res.string.settings_theme_light
+    }
+
+private val WindowMode.label: StringResource
+    get() = when (this) {
+        WindowMode.WINDOWED -> Res.string.settings_window_mode_windowed
+        WindowMode.FULLSCREEN -> Res.string.settings_window_mode_fullscreen
+        WindowMode.BORDERLESS -> Res.string.settings_window_mode_borderless
     }
 
 /**

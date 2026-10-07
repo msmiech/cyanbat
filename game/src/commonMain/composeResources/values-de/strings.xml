@@ -43,7 +43,10 @@
     <string name="settings_language_title">Sprache</string>
     <string name="settings_language_system">System</string>
     <string name="settings_display_title">Anzeige</string>
-    <string name="settings_fullscreen_title">Vollbild</string>
+    <string name="settings_window_mode_title">Bildschirm</string>
+    <string name="settings_window_mode_windowed">Fenster</string>
+    <string name="settings_window_mode_fullscreen">Vollbild</string>
+    <string name="settings_window_mode_borderless">Rahmenlos</string>
     <string name="settings_display_stretch">Auf Bildschirm strecken</string>
     <string name="settings_display_stretch_hint">Füllt den Bildschirm, verzerrt das Spiel aber auf Bildschirmen, die nicht 16:9 sind.</string>
     <string name="settings_display_black_bars">Schwarze Balken</string>

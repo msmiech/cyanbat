@@ -35,6 +35,7 @@ import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.FakeSettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -181,12 +182,16 @@ class MenuKeysTest {
         press(Key.Spacebar)
         assertFalse(menu.settings.music.value, "Space did not turn the music off")
 
-        // Down past Sounds, the theme and the language to the display: Fullscreen, which only the
-        // desktop has, then the choices Stretch, Black bars, Ambient bars.
+        // Down past Sounds, the theme and the language to the display: the window's segments, which
+        // only the desktop has, then the choices Stretch, Black bars, Ambient bars.
         press(Key.DirectionDown, times = 4)
+        cursorOn("Window")
+        press(Key.DirectionRight)
         cursorOn("Fullscreen")
+        press(Key.DirectionRight)
+        cursorOn("Borderless")
         press(Key.Enter)
-        assertTrue(menu.settings.fullscreen.value, "Enter did not go full screen")
+        assertEquals(WindowMode.BORDERLESS, menu.settings.window.value)
         press(Key.DirectionDown)
         press(Key.Enter)
         assertEquals(DisplayMode.STRETCH, menu.settings.display.value)

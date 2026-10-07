@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.ui
 
 import androidx.compose.runtime.Composable
+import at.smiech.cyanbat.data.WindowMode
 import org.jetbrains.compose.resources.StringResource
 
 /**
@@ -22,10 +23,11 @@ internal expect val hasSystemBack: Boolean
 internal expect val canVibrate: Boolean
 
 /**
- * Whether the game is played in a window the player can have fill the screen, and so whether
- * Settings offers full screen. The desktop's is; a phone's game always fills its screen.
+ * The ways the game can take its screen that Settings offers, or none where it always fills it, as
+ * a phone's does. A desktop has a window to leave; a Mac's own full screen is already borderless,
+ * and a window without a frame would only sit under its menu bar and Dock.
  */
-internal expect val canGoFullscreen: Boolean
+internal expect val windowModes: List<WindowMode>
 
 /**
  * Sets the system's status and navigation bar icons to read against what the menu draws under them:

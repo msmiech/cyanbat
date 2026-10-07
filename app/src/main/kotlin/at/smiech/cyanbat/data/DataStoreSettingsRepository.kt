@@ -33,9 +33,9 @@ class DataStoreSettingsRepository(
     override val displayMode: Flow<DisplayMode> =
         dataStore.data.map { DisplayMode.fromName(it[PREFS_KEY_DISPLAY_MODE]) }
 
-    // The game fills a phone's screen whatever is set, so there is nothing to keep; Settings does not
-    // offer it here (canGoFullscreen).
-    override val isFullscreen: Flow<Boolean> = flowOf(true)
+    // The game fills a phone's screen whatever is set, so there is nothing to keep; Settings does
+    // not offer it here (windowModes).
+    override val windowMode: Flow<WindowMode> = flowOf(WindowMode.FULLSCREEN)
 
     override val themeMode: Flow<ThemeMode> =
         dataStore.data.map { ThemeMode.fromName(it[PREFS_KEY_THEME_MODE]) }
@@ -58,7 +58,7 @@ class DataStoreSettingsRepository(
         dataStore.edit { it[PREFS_KEY_DISPLAY_MODE] = mode.name }
     }
 
-    override suspend fun setFullscreen(enabled: Boolean) = Unit
+    override suspend fun setWindowMode(mode: WindowMode) = Unit
 
     override suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { it[PREFS_KEY_THEME_MODE] = mode.name }

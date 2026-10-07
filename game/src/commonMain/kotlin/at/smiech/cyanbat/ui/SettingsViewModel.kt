@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -29,8 +30,12 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
             DisplayMode.DEFAULT
         )
 
-    val isFullscreen: StateFlow<Boolean> = settings.isFullscreen
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
+    val windowMode: StateFlow<WindowMode> = settings.windowMode
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            WindowMode.DEFAULT
+        )
 
     val themeMode: StateFlow<ThemeMode> = settings.themeMode
         .stateIn(
@@ -62,8 +67,8 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
         settings.setDisplayMode(mode)
     }
 
-    fun setFullscreen(enabled: Boolean) = viewModelScope.launch {
-        settings.setFullscreen(enabled)
+    fun setWindowMode(mode: WindowMode) = viewModelScope.launch {
+        settings.setWindowMode(mode)
     }
 
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {

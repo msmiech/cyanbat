@@ -57,13 +57,23 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
 
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
-- Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`. It fills the
-  screen or not by the player's `isFullscreen` setting, which F11 and Alt+Enter (`FullscreenKeys`,
-  read ahead of the menu and the game) change as Settings does. `FullscreenFollowsSettings` keeps
-  the setting and the window's `WindowPlacement` in step both ways, so a Mac's green button counts
-  as a choice too. On a Steam Deck (`SteamDeck=1` in the environment Steam gives a game) it starts
-  in full screen until the player chooses; phones always fill the screen, and Settings offers the
-  switch only on the desktop (`canGoFullscreen`).
+- Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`. It takes the
+  screen by the player's `WindowMode`: a window, full screen, or borderless (not on a Mac, whose
+  full screen already is). Settings offers the modes only on the desktop (`windowModes`); phones
+  always fill the screen. On a Steam Deck (`SteamDeck=1` in the environment Steam gives a game) it
+  starts in full screen until the player chooses.
+    - F11 and Alt+Enter (`FullscreenKeys`, read ahead of the menu and the game) toggle between the
+      window and the full screen last chosen. `WindowFollowsSettings` keeps the setting and the
+      window in step both ways, so a Mac's green button counts as a choice too.
+    - `WindowModes` moves the window on the AWT window itself, and Compose's `WindowState` hears of
+      it from the window: through the state, Compose collapses a two-step change (out of full
+      screen, then maximized) into its second step.
+    - Either full screen has no frame off a Mac, because Windows' own full screen leaves a framed
+      window's title bar across the screen. Compose cannot change a frame on a window that is up,
+      so `WindowModes` lets the native window go and makes it again; Compose and skiko carry the
+      scene across, a run or a menu screen included. It does this on Swing's queue
+      (`Dispatchers.Main`), never in a coroutine on Compose's dispatcher, which runs inside a frame:
+      there it re-entered Compose and crashed skiko.
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.
