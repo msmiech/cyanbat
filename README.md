@@ -132,6 +132,10 @@ the game's entry in the system settings' app languages.
 Backgrounding the app — or, on desktop, the window losing focus — pauses the run, and it stays
 paused until you resume it rather than dropping you straight back into a dodge.
 
+On desktop, `F11` or `Alt+Enter` switches between a window and full screen, in the menus and in a
+run alike; so do `Ctrl+Cmd+F` on a Mac and Settings → Display → Fullscreen. The game opens the way
+you left it. On a Steam Deck it starts in full screen until you choose otherwise.
+
 The menus need no touch screen or mouse either. The arrow keys, `WASD`, a d-pad or a stick move a
 cursor between the buttons, `Enter`, `Space` or `A` takes the one it is on, and `Esc`, `Backspace`
 or `B` goes back a screen. The cursor starts on each screen's first choice, and comes back to the

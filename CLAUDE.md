@@ -57,7 +57,13 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
 
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
-- Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`.
+- Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`. It fills the
+  screen or not by the player's `isFullscreen` setting, which F11 and Alt+Enter (`FullscreenKeys`,
+  read ahead of the menu and the game) change as Settings does. `FullscreenFollowsSettings` keeps
+  the setting and the window's `WindowPlacement` in step both ways, so a Mac's green button counts
+  as a choice too. On a Steam Deck (`SteamDeck=1` in the environment Steam gives a game) it starts
+  in full screen until the player chooses; phones always fill the screen, and Settings offers the
+  switch only on the desktop (`canGoFullscreen`).
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.

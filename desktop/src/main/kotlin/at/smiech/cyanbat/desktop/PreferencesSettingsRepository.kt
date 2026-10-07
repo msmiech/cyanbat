@@ -6,6 +6,7 @@ import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.prefs.Preferences
 
@@ -20,14 +21,21 @@ import java.util.prefs.Preferences
  *
  * Making one puts the stored language into effect ([DesktopLocale]), and the desktop makes its one
  * before the menu reads a string.
+ *
+ * @param prefs where the settings live; the game's own node unless a test says otherwise.
+ * @param fullscreenUnlessSet whether the game fills the screen for a player who has not said: on a
+ *   Steam Deck it does ([isSteamDeck]), anywhere else it opens in a window.
  */
-class PreferencesSettingsRepository : SettingsRepository {
-    private val prefs: Preferences = Preferences.userRoot().node("at/smiech/cyanbat")
+class PreferencesSettingsRepository(
+    private val prefs: Preferences = Preferences.userRoot().node("at/smiech/cyanbat"),
+    fullscreenUnlessSet: Boolean = isSteamDeck(),
+) : SettingsRepository {
 
     private val music = MutableStateFlow(prefs.getBoolean(KEY_MUSIC, true))
     private val sound = MutableStateFlow(prefs.getBoolean(KEY_SOUND, true))
     private val vibration = MutableStateFlow(prefs.getBoolean(KEY_VIBRATION, true))
     private val display = MutableStateFlow(DisplayMode.fromName(prefs.get(KEY_DISPLAY_MODE, null)))
+    private val fullscreen = MutableStateFlow(prefs.getBoolean(KEY_FULLSCREEN, fullscreenUnlessSet))
     private val theme = MutableStateFlow(ThemeMode.fromName(prefs.get(KEY_THEME_MODE, null)))
     private val chosenLanguage =
         MutableStateFlow(AppLanguage.fromName(prefs.get(KEY_LANGUAGE, null)))
@@ -36,6 +44,9 @@ class PreferencesSettingsRepository : SettingsRepository {
     override val isSoundEnabled: Flow<Boolean> = sound.asStateFlow()
     override val isVibrationEnabled: Flow<Boolean> = vibration.asStateFlow()
     override val displayMode: Flow<DisplayMode> = display.asStateFlow()
+
+    /** A state, so the window can open the way it was left without waiting on the flow. */
+    override val isFullscreen: StateFlow<Boolean> = fullscreen.asStateFlow()
     override val themeMode: Flow<ThemeMode> = theme.asStateFlow()
     override val language: Flow<AppLanguage> = chosenLanguage.asStateFlow()
 
@@ -63,6 +74,11 @@ class PreferencesSettingsRepository : SettingsRepository {
         display.value = mode
     }
 
+    override suspend fun setFullscreen(enabled: Boolean) {
+        prefs.putBoolean(KEY_FULLSCREEN, enabled)
+        fullscreen.value = enabled
+    }
+
     override suspend fun setThemeMode(mode: ThemeMode) {
         prefs.put(KEY_THEME_MODE, mode.name)
         theme.value = mode
@@ -80,6 +96,7 @@ class PreferencesSettingsRepository : SettingsRepository {
         const val KEY_SOUND = "sound_enabled"
         const val KEY_VIBRATION = "vibration_enabled"
         const val KEY_DISPLAY_MODE = "display_mode"
+        const val KEY_FULLSCREEN = "fullscreen"
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_LANGUAGE = "language"
     }

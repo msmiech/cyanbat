@@ -38,7 +38,7 @@
     <string name="dialog_help_title">Help</string>
     <!-- Controls differ per platform; Platform.kt picks the one to show above the rest. -->
     <string name="dialog_help_controls_touch">• Fly: drag CyanBat with your finger. A keyboard or controller works too.\n• Pause: swipe or press Back. Back again quits to the menu.</string>
-    <string name="dialog_help_controls_desktop">• Fly: drag CyanBat with the mouse, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.</string>
+    <string name="dialog_help_controls_desktop">• Fly: drag CyanBat with the mouse, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.\n• Fullscreen: F11 or Alt+Enter.</string>
     <string name="dialog_help_text">• Shoot: CyanBat fires automatically. Shoot enemies and obstacles, and avoid touching them or their shots.\n• Health: every hit drains the bar under the bat. When it is empty, the run is over.\n• Score: points come from surviving and from kills. Kills in a row raise the multiplier, and taking a hit resets it.\n• Level up: kills earn experience. Each new level lets you pick one of three power-ups.\n• Waves: a tougher wave arrives every minute. After five, the boss appears. Defeat it to clear the stage for a big bonus.\n• Stages: in the jungle, enemies swarm, fly in formation, shoot back and hide behind shields. The first shot at a shield pops it. Clearing the jungle opens the cave, flown in the dark by the bat's own light, where the boss hides in the dark between ambushes. Clearing the cave opens the desert, flown from noon into night, where things leap out of the sand and scarab shells grow back if they are left alone. Clearing the desert opens the lagoon, flown from night into noon, where sharks come from behind along the waterline and puffers throw rings of spines. Each stage starts fresh: score, level and power-ups begin again.</string>
 
     <string name="settings_music_title">Music</string>
@@ -55,6 +55,7 @@
     <string name="language_german" translatable="false">Deutsch</string>
     <string name="language_polish" translatable="false">Polski</string>
     <string name="settings_display_title">Display</string>
+    <string name="settings_fullscreen_title">Fullscreen</string>
     <string name="settings_display_stretch">Stretch to fit screen</string>
     <string name="settings_display_stretch_hint">Fills the screen, but draws the game out of shape on screens that are not 16:9.</string>
     <string name="settings_display_black_bars">Black bars</string>

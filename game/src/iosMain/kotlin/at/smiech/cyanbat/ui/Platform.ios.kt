@@ -16,6 +16,9 @@ internal actual val hasSystemBack: Boolean = false
 // An iPhone vibrates; the app to come supplies the Haptics that do it.
 internal actual val canVibrate: Boolean = true
 
+// An iPhone's game fills its screen, as a phone's does on Android.
+internal actual val canGoFullscreen: Boolean = false
+
 // The status bar's style belongs to the app's view controller, which the app to come supplies.
 @Composable
 internal actual fun SystemBarIcons(overDark: Boolean) = Unit

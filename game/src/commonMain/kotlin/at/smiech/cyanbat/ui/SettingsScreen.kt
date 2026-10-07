@@ -49,6 +49,7 @@ import at.smiech.cyanbat.resources.settings_display_black_bars_hint
 import at.smiech.cyanbat.resources.settings_display_stretch
 import at.smiech.cyanbat.resources.settings_display_stretch_hint
 import at.smiech.cyanbat.resources.settings_display_title
+import at.smiech.cyanbat.resources.settings_fullscreen_title
 import at.smiech.cyanbat.resources.settings_language_system
 import at.smiech.cyanbat.resources.settings_language_title
 import at.smiech.cyanbat.resources.settings_music_title
@@ -68,6 +69,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val soundEnabled by viewModel.isSoundEnabled.collectAsState()
     val vibrationEnabled by viewModel.isVibrationEnabled.collectAsState()
     val displayMode by viewModel.displayMode.collectAsState()
+    val fullscreen by viewModel.isFullscreen.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val language by viewModel.language.collectAsState()
     SettingsContent(
@@ -78,12 +80,15 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         themeMode = themeMode,
         language = language,
         displayMode = displayMode,
+        // Null hides the switch, on a platform whose game always fills the screen.
+        fullscreen = fullscreen.takeIf { canGoFullscreen },
         onMusicEnabledChanged = viewModel::setMusicEnabled,
         onSoundEnabledChanged = viewModel::setSoundEnabled,
         onVibrationEnabledChanged = viewModel::setVibrationEnabled,
         onThemeModeChanged = viewModel::setThemeMode,
         onLanguageChanged = viewModel::setLanguage,
         onDisplayModeChanged = viewModel::setDisplayMode,
+        onFullscreenChanged = viewModel::setFullscreen,
     )
 }
 
@@ -104,12 +109,14 @@ private fun SettingsContent(
     themeMode: ThemeMode,
     language: AppLanguage,
     displayMode: DisplayMode,
+    fullscreen: Boolean?,
     onMusicEnabledChanged: (Boolean) -> Unit,
     onSoundEnabledChanged: (Boolean) -> Unit,
     onVibrationEnabledChanged: (Boolean) -> Unit,
     onThemeModeChanged: (ThemeMode) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onDisplayModeChanged: (DisplayMode) -> Unit,
+    onFullscreenChanged: (Boolean) -> Unit,
 ) {
     val music = remember { FocusRequester() }
     HomeCursor(music)
@@ -169,6 +176,14 @@ private fun SettingsContent(
                 modifier = Modifier.padding(horizontal = ROW_INSET),
             )
             Spacer(modifier = Modifier.height(8.dp))
+            if (fullscreen != null) {
+                SettingRow(
+                    stringResource(Res.string.settings_fullscreen_title),
+                    fullscreen,
+                    onFullscreenChanged
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
             Column(Modifier.selectableGroup()) {
                 for (mode in DisplayMode.entries) {
                     DisplayModeOption(

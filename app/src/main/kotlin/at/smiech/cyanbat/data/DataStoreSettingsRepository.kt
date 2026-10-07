@@ -10,6 +10,7 @@ import at.smiech.cyanbat.PREFS_KEY_THEME_MODE
 import at.smiech.cyanbat.PREFS_KEY_VIBRATION
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 /**
@@ -32,6 +33,10 @@ class DataStoreSettingsRepository(
     override val displayMode: Flow<DisplayMode> =
         dataStore.data.map { DisplayMode.fromName(it[PREFS_KEY_DISPLAY_MODE]) }
 
+    // The game fills a phone's screen whatever is set, so there is nothing to keep; Settings does not
+    // offer it here (canGoFullscreen).
+    override val isFullscreen: Flow<Boolean> = flowOf(true)
+
     override val themeMode: Flow<ThemeMode> =
         dataStore.data.map { ThemeMode.fromName(it[PREFS_KEY_THEME_MODE]) }
 
@@ -52,6 +57,8 @@ class DataStoreSettingsRepository(
     override suspend fun setDisplayMode(mode: DisplayMode) {
         dataStore.edit { it[PREFS_KEY_DISPLAY_MODE] = mode.name }
     }
+
+    override suspend fun setFullscreen(enabled: Boolean) = Unit
 
     override suspend fun setThemeMode(mode: ThemeMode) {
         dataStore.edit { it[PREFS_KEY_THEME_MODE] = mode.name }

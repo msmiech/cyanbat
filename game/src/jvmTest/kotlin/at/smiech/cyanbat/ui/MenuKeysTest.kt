@@ -181,9 +181,13 @@ class MenuKeysTest {
         press(Key.Spacebar)
         assertFalse(menu.settings.music.value, "Space did not turn the music off")
 
-        // Down past Sounds, the theme and the language to the display choices: Stretch, Black bars,
-        // Ambient bars.
+        // Down past Sounds, the theme and the language to the display: Fullscreen, which only the
+        // desktop has, then the choices Stretch, Black bars, Ambient bars.
         press(Key.DirectionDown, times = 4)
+        cursorOn("Fullscreen")
+        press(Key.Enter)
+        assertTrue(menu.settings.fullscreen.value, "Enter did not go full screen")
+        press(Key.DirectionDown)
         press(Key.Enter)
         assertEquals(DisplayMode.STRETCH, menu.settings.display.value)
     }
@@ -221,7 +225,7 @@ class MenuKeysTest {
         press(Key.Enter)
         assertEquals(AppLanguage.GERMAN, menu.settings.chosenLanguage.value)
         cursorOn("Music")
-        press(Key.DirectionDown, times = 4)
+        press(Key.DirectionDown, times = 5)
         cursorOn("Stretch to fit screen")
     }
 

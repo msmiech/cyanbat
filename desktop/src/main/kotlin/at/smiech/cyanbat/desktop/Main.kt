@@ -9,8 +9,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.window.Window
+import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.application
+import androidx.compose.ui.window.rememberWindowState
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.resource.GameAssets
@@ -25,6 +28,7 @@ import at.smiech.engine.Haptics
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopAudio
 import at.smiech.engine.impl.onComposeKeyEvent
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlin.system.exitProcess
 
@@ -36,9 +40,30 @@ fun main() = application {
     // The stage being played, or null while the menu is up. Out here, because the window's keys
     // below go one way or the other by it.
     var playingStage by remember { mutableStateOf<Int?>(null) }
+    // Out here too, because the window opens in full screen or not by it: straight into it, rather
+    // than as a window that then jumps to fill the screen.
+    val settings = remember { PreferencesSettingsRepository() }
+    val windowState = rememberWindowState(
+        placement = if (settings.isFullscreen.value) {
+            WindowPlacement.Fullscreen
+        } else {
+            WindowPlacement.Floating
+        },
+    )
+    val scope = rememberCoroutineScope()
+    val fullscreenKeys = remember(windowState) {
+        FullscreenKeys {
+            scope.launch {
+                settings.setFullscreen(windowState.placement != WindowPlacement.Fullscreen)
+            }
+        }
+    }
     Window(
         onCloseRequest = ::exitApplication,
+        state = windowState,
         title = "CyanBat",
+        // Ahead of the menu and the game, so the keys work wherever the player is.
+        onPreviewKeyEvent = fullscreenKeys::onKeyEvent,
         // A backstop for the game. The game surface claims focus and handles these itself; this
         // catches the moment between the surface appearing and its focus request landing. Not for
         // the menu, which reads its own keys, and to which the game's handler would only have
@@ -49,7 +74,13 @@ fun main() = application {
         // inside the content, which composes only after the window has applied that parameter
         // (null here, which empties the list), so nothing clears the icons afterwards.
         LaunchedEffect(window) { window.setIconImages(WindowIcon.images) }
-        CyanBatApp(controls, playingStage) { playingStage = it }
+        FullscreenFollowsSettings(windowState, settings)
+        // A shortcut's key let go of in another window never comes back up in this one.
+        val windowFocused = LocalWindowInfo.current.isWindowFocused
+        LaunchedEffect(windowFocused) {
+            if (!windowFocused) fullscreenKeys.releaseAll()
+        }
+        CyanBatApp(settings, controls, playingStage) { playingStage = it }
     }
 }
 
@@ -62,8 +93,12 @@ fun main() = application {
  * @param playingStage the stage being played, or null while the menu is up; [play] changes it.
  */
 @Composable
-private fun CyanBatApp(controls: ControlHandler, playingStage: Int?, play: (stage: Int?) -> Unit) {
-    val settings = remember { PreferencesSettingsRepository() }
+private fun CyanBatApp(
+    settings: PreferencesSettingsRepository,
+    controls: ControlHandler,
+    playingStage: Int?,
+    play: (stage: Int?) -> Unit,
+) {
     val displayMode by settings.displayMode.collectAsState(DisplayMode.DEFAULT)
     // One instance for the menu and every run, so the menu sees a stage unlock the moment the run
     // that earned it records it; see PreferencesStageUnlockStore.

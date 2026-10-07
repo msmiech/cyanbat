@@ -17,6 +17,8 @@ internal actual val hasSystemBack: Boolean = true
 
 internal actual val canVibrate: Boolean = true
 
+internal actual val canGoFullscreen: Boolean = false
+
 // The window's theme alone would leave the icons light on every screen, and so white on white over
 // the light theme's settings.
 @Composable

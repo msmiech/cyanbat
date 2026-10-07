@@ -22,6 +22,12 @@ internal expect val hasSystemBack: Boolean
 internal expect val canVibrate: Boolean
 
 /**
+ * Whether the game is played in a window the player can have fill the screen, and so whether
+ * Settings offers full screen. The desktop's is; a phone's game always fills its screen.
+ */
+internal expect val canGoFullscreen: Boolean
+
+/**
  * Sets the system's status and navigation bar icons to read against what the menu draws under them:
  * light over a dark screen, dark over a light one. Android draws the menu edge to edge, under its
  * bars; the desktop's window has none over it.

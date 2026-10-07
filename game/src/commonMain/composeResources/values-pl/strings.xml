@@ -32,7 +32,7 @@
 
     <string name="dialog_help_title">Pomoc</string>
     <string name="dialog_help_controls_touch">• Lot: przeciągaj CyanBata palcem. Działa też klawiatura lub kontroler.\n• Pauza: przesuń palcem od krawędzi lub naciśnij Wstecz. Ponowne Wstecz wraca do menu.</string>
-    <string name="dialog_help_controls_desktop">• Lot: przeciągaj CyanBata myszą albo użyj strzałek lub WASD.\n• Pauza: Q. Ponowne Q wraca do menu.</string>
+    <string name="dialog_help_controls_desktop">• Lot: przeciągaj CyanBata myszą albo użyj strzałek lub WASD.\n• Pauza: Q. Ponowne Q wraca do menu.\n• Pełny ekran: F11 lub Alt+Enter.</string>
     <string name="dialog_help_text">• Strzelanie: CyanBat strzela sam. Strzelaj do wrogów i przeszkód i nie dotykaj ani ich, ani ich pocisków.\n• Zdrowie: każde trafienie uszczupla pasek pod nietoperzem. Gdy się opróżni, gra się kończy.\n• Punkty: zdobywasz je za przetrwanie i za zestrzelenia. Zestrzelenia z rzędu podnoszą mnożnik, a każde trafienie go zeruje.\n• Awans: zestrzelenia dają doświadczenie. Każdy nowy poziom pozwala wybrać jedno z trzech ulepszeń.\n• Fale: co minutę nadciąga silniejsza fala. Po piątej pojawia się boss. Pokonaj go, aby ukończyć etap z dużą premią.\n• Etapy: w dżungli wrogowie nadlatują rojami, latają w formacjach, odpowiadają ogniem i chowają się za tarczami. Pierwszy strzał w tarczę ją rozbija. Ukończenie dżungli otwiera jaskinię, przez którą lecisz w ciemności przy własnym świetle nietoperza, a boss kryje się w mroku między zasadzkami. Ukończenie jaskini otwiera pustynię, przez którą lecisz od południa do nocy; z piasku wyskakują stwory, a pancerze skarabeuszy odrastają, jeśli zostawi się je w spokoju. Ukończenie pustyni otwiera lagunę, przez którą lecisz od nocy do południa; rekiny nadpływają od tyłu wzdłuż linii wody, a rozdymki miotają pierścienie kolców. Każdy etap zaczyna się od nowa: punkty, poziom i ulepszenia startują od zera.</string>
 
     <string name="settings_music_title">Muzyka</string>
@@ -45,6 +45,7 @@
     <string name="settings_language_title">Język</string>
     <string name="settings_language_system">Systemowy</string>
     <string name="settings_display_title">Wyświetlanie</string>
+    <string name="settings_fullscreen_title">Pełny ekran</string>
     <string name="settings_display_stretch">Rozciągnij na cały ekran</string>
     <string name="settings_display_stretch_hint">Wypełnia ekran, ale zniekształca grę na ekranach o proporcjach innych niż 16:9.</string>
     <string name="settings_display_black_bars">Czarne pasy</string>

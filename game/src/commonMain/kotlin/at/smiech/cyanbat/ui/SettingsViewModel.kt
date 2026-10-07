@@ -29,6 +29,9 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
             DisplayMode.DEFAULT
         )
 
+    val isFullscreen: StateFlow<Boolean> = settings.isFullscreen
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS), false)
+
     val themeMode: StateFlow<ThemeMode> = settings.themeMode
         .stateIn(
             viewModelScope,
@@ -57,6 +60,10 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
 
     fun setDisplayMode(mode: DisplayMode) = viewModelScope.launch {
         settings.setDisplayMode(mode)
+    }
+
+    fun setFullscreen(enabled: Boolean) = viewModelScope.launch {
+        settings.setFullscreen(enabled)
     }
 
     fun setThemeMode(mode: ThemeMode) = viewModelScope.launch {

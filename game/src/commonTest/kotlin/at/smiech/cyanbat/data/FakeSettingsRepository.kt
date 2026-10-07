@@ -15,6 +15,7 @@ internal class FakeSettingsRepository(
     val sound = MutableStateFlow(true)
     val vibration = MutableStateFlow(true)
     val display = MutableStateFlow(DisplayMode.DEFAULT)
+    val fullscreen = MutableStateFlow(false)
     val theme = MutableStateFlow(ThemeMode.DEFAULT)
     val chosenLanguage = MutableStateFlow(AppLanguage.DEFAULT)
 
@@ -22,6 +23,7 @@ internal class FakeSettingsRepository(
     override val isSoundEnabled = sound
     override val isVibrationEnabled = vibration
     override val displayMode = display
+    override val isFullscreen = fullscreen
     override val themeMode = theme
     override val language = chosenLanguage
 
@@ -39,6 +41,10 @@ internal class FakeSettingsRepository(
 
     override suspend fun setDisplayMode(mode: DisplayMode) {
         display.value = mode
+    }
+
+    override suspend fun setFullscreen(enabled: Boolean) {
+        fullscreen.value = enabled
     }
 
     override suspend fun setThemeMode(mode: ThemeMode) {

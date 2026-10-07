@@ -11,6 +11,8 @@ internal actual val hasSystemBack: Boolean = false
 
 internal actual val canVibrate: Boolean = false
 
+internal actual val canGoFullscreen: Boolean = true
+
 // The window's title bar is the OS's, and follows the OS's theme.
 @Composable
 internal actual fun SystemBarIcons(overDark: Boolean) = Unit
