@@ -238,5 +238,12 @@ enum class PowerUp(
             random: Random = Random.Default,
             count: Int = POWER_UP_CHOICES,
         ): List<PowerUp> = entries.filter { it.isAvailable(loadout) }.shuffled(random).take(count)
+
+        /**
+         * One power-up drawn at random from those [loadout] can still use, as an elite's drop
+         * gives. There is always one: the uncapped four never drop out.
+         */
+        fun roll(loadout: PlayerLoadout, random: Random = Random.Default): PowerUp =
+            offer(loadout, random, count = 1).first()
     }
 }

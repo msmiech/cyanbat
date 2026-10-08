@@ -399,4 +399,37 @@ class PowerUpTest {
     }
 
     // endregion
+
+    // region an elite's drop
+
+    /** A drop gives any power-up the run can still use, each of them in time. */
+    @Test
+    fun `a drop can give any power-up`() {
+        val random = Random(20261008)
+        val rolled = List(400) { PowerUp.roll(loadout, random) }.toSet()
+
+        assertEquals(PowerUp.entries.toSet(), rolled)
+    }
+
+    /** Never one at its clamp, which would be a prize that did nothing. */
+    @Test
+    fun `a drop never gives a power-up already at its clamp`() {
+        take(PowerUp.SPREAD_SHOT, times = MAX_EXTRA_SHOTS)
+        take(PowerUp.SECOND_LIFE, times = MAX_REVIVES)
+        val random = Random(7)
+
+        val rolled = List(400) { PowerUp.roll(loadout, random) }
+
+        assertTrue(rolled.none { it == PowerUp.SPREAD_SHOT || it == PowerUp.SECOND_LIFE })
+    }
+
+    /** However maxed out the run is, a drop still gives something. */
+    @Test
+    fun `a drop gives something however maxed out the run is`() {
+        maxOutEveryCappedPowerUp()
+
+        assertTrue(PowerUp.roll(loadout, Random(5)) in UNCAPPED)
+    }
+
+    // endregion
 }

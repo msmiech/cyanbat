@@ -889,6 +889,23 @@ const val ELITE_SCORE_FACTOR = 3
 const val ELITE_AURA_INTENSITY = 1f
 const val ELITE_AURA_TIER = 1
 
+/**
+ * What one leaves where it is shot down: a power-up, taken by flying into it, and drawn at random
+ * from those the run can still use as it is taken. Eight 19x19 frames of a silver plus spinning half
+ * a turn, from tools/generate_power_up_drop_sprite.py, at the orb's pace. It drifts with the
+ * scenery, as the blast it comes out of does, so one left alone goes off the left edge.
+ */
+const val POWER_UP_DROP_FRAME = 19
+const val POWER_UP_DROP_FRAME_COUNT = 8
+const val POWER_UP_DROP_FRAME_SECONDS = 0.08f
+
+/**
+ * In the dark it is a light, a cool white like its steel, so it is seen from across the cave and
+ * glints off the rock it passes. A little short of an elite's, since it is half the size.
+ */
+const val POWER_UP_DROP_LIGHT_COLOR = 0xFFE4ECFF.toInt()
+const val POWER_UP_DROP_LIGHT_RADIUS = 52
+
 
 // --- The Sand Wyrm -----------------------------------------------------------------------------
 //

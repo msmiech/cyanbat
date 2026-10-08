@@ -40,6 +40,7 @@ import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.NAGA_PLATE_SHARE
 import at.smiech.cyanbat.util.ORB_RADIUS
+import at.smiech.cyanbat.util.POWER_UP_DROP_LIGHT_COLOR
 import at.smiech.cyanbat.util.POWER_UP_GRACE_SECONDS
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
@@ -1506,6 +1507,151 @@ class GameScreenTest {
             }
         }
     }
+
+    // endregion
+
+    // region an elite's drop
+
+    /**
+     * An elite shot down leaves a power-up where it went down, and an ordinary imp shot down the
+     * same way leaves nothing.
+     */
+    @Test
+    fun `an elite shot down leaves a power-up, and an ordinary enemy nothing`() = flight(JUNGLE) {
+        holdFire()
+        shoot(imp(x = 300f, y = 60f, elite = null, hitPoints = 1))
+        assertTrue(drops().isEmpty(), "an ordinary imp left a drop")
+
+        val elite = imp(x = 300f, y = 60f, elite = ElitePalette.VENOM, hitPoints = 1)
+        val where = probe.world.getComponent(elite, TransformComponent::class)!!.rect
+        shoot(elite)
+
+        val drop = assertNotNull(drops().singleOrNull(), "the elite left no drop")
+        val at = probe.world.getComponent(drop, TransformComponent::class)!!.rect
+        assertEquals(where.centerX, at.centerX, 4f, "the drop is not where the elite went down")
+        assertEquals(where.centerY, at.centerY, 4f, "the drop is not where the elite went down")
+        assertNull(probe.world.getComponent(drop, LightComponent::class), "a light by day")
+    }
+
+    /** One shot down half past an edge still leaves its drop where the bat can fly to it. */
+    @Test
+    fun `a drop is left inside the frame`() = flight(JUNGLE) {
+        holdFire()
+        shoot(imp(x = 300f, y = FRAME_BUFFER_HEIGHT - 8f, elite = ElitePalette.EMBER, hitPoints = 1))
+
+        val drop = assertNotNull(drops().singleOrNull(), "the elite left no drop")
+        val at = probe.world.getComponent(drop, TransformComponent::class)!!.rect
+        assertTrue(at.bottom <= FRAME_BUFFER_HEIGHT, "the drop hangs off the bottom: $at")
+    }
+
+    /**
+     * Flying into a drop takes it, there and then: the drop goes, the bat has one power-up more -
+     * one, once - and the banner names it as picking it off the dialog would. No dialog asked the
+     * player for anything.
+     */
+    @Test
+    fun `flying into a drop takes a power-up, and the banner names it`() = flight(JUNGLE) {
+        holdFire()
+        val drop = EntityFactory(probe.world).createPowerUpDrop(0f, 0f, assets.graphics.powerUpDrop)
+        pinOn(drop, batRect())
+
+        screen.update(TICK_INITIAL * 1.5f)
+
+        assertTrue(drops().isEmpty(), "the drop is still there")
+        assertTrue(probe.offer.isEmpty(), "a drop put up a dialog")
+        val taken = PowerUp.entries.filter {
+            PlayerLoadout().apply { it.applyTo(this) }.stats() == probe.loadout.stats()
+        }
+        val powerUp = assertNotNull(taken.singleOrNull(), "the bat did not take one power-up")
+        val banner = assertNotNull(probe.banner, "the banner said nothing")
+
+        pick(powerUp)
+        assertEquals(probe.banner, banner, "the banner did not name $powerUp")
+    }
+
+    /** A drop taken is heard, once, though the bat lingers where it was. */
+    @Test
+    fun `a drop taken is heard`() {
+        val heard = mutableListOf<SoundEffect>()
+        val sounds = SoundEffect.entries.associateWith { effect ->
+            object : Sound {
+                override fun play(volume: Float) {
+                    heard += effect
+                }
+
+                override fun dispose() = Unit
+            }
+        }
+        flight(JUNGLE, sounds) {
+            holdFire()
+            val drop =
+                EntityFactory(probe.world).createPowerUpDrop(0f, 0f, assets.graphics.powerUpDrop)
+            pinOn(drop, batRect())
+            repeat(5) { screen.update(TICK_INITIAL) }
+
+            assertEquals(1, heard.count { it == SoundEffect.POWER_UP })
+        }
+    }
+
+    /** Once the stage is won there is nothing left to take a drop for, and it is not taken. */
+    @Test
+    fun `a drop is not taken once the stage is won`() = flight(CAVE) {
+        holdFire()
+        downBoss()
+        val drop = EntityFactory(probe.world).createPowerUpDrop(0f, 0f, assets.graphics.powerUpDrop)
+        val before = probe.loadout.stats()
+
+        repeat(3) { pinOn(drop, batRect()); screen.update(TICK_INITIAL) }
+
+        assertEquals(before, probe.loadout.stats(), "the bat took a power-up after the boss fell")
+    }
+
+    /**
+     * In the dark a drop is a light, and is seen by it: the rock beside one across the cave from
+     * the bat is lit, where the rock further on is not. Read off the frame once the elite's blast
+     * has burned out, with nothing else let into the cave to light it or stand in the way.
+     */
+    @Test
+    fun `a drop lights the dark around it`() = flight(CAVE) {
+        holdFire()
+        placeBat()
+        shoot(imp(x = 480f, y = ROCK_ROW - IMP_ROW / 2f, elite = ElitePalette.SCARLET, hitPoints = 1))
+        val drop = assertNotNull(drops().singleOrNull(), "the elite left no drop")
+        val light = assertNotNull(probe.world.getComponent(drop, LightComponent::class))
+        assertEquals(POWER_UP_DROP_LIGHT_COLOR, light.color)
+
+        repeat((0.6f / TICK_INITIAL).roundToInt()) {
+            clearStrays(keep = emptySet())
+            placeBat()
+            screen.update(TICK_INITIAL)
+        }
+        screen.present(0f)
+        val frame = game.capture()
+
+        val x = probe.world.getComponent(drop, TransformComponent::class)!!.rect.centerX.toInt()
+        val beside = frame[ROCK_ROW * FRAME_BUFFER_WIDTH + x + 20]
+        val further = frame[ROCK_ROW * FRAME_BUFFER_WIDTH + 630]
+        assertTrue(
+            brightness(beside) > brightness(further) + 30,
+            "beside the drop #%06X, further on #%06X".format(
+                beside and 0xFFFFFF,
+                further and 0xFFFFFF
+            ),
+        )
+    }
+
+    private fun Flight.drops(): List<EntityId> =
+        probe.world.query(CollisionComponent::class).filter {
+            probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.PICKUP
+        }
+
+    /** Everything a power-up can change about the bat, to tell two loadouts apart by. */
+    private fun PlayerLoadout.stats(): List<Any> = listOf(
+        shotIntervalSeconds, extraShots, shotDamage, criticalChance, maxHitPoints,
+        hitCooldownSeconds, damageTaken, healthRegenPerSecond, experienceMultiplier,
+        scoreMultiplier, revives, flatDamageReduction, shotPierce, shotBounce, orbs, wakeLevel,
+        frostLevel,
+    )
 
     // endregion
 

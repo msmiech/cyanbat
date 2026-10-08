@@ -85,6 +85,25 @@ class CollisionSystemTest {
         }
     }
 
+    /**
+     * Something the player collects is collected by the player alone: a shot flying through it, an
+     * enemy crossing it or a rock it drifts over is told nothing.
+     */
+    @Test
+    fun `a pickup meets the player and nothing else`() {
+        for (other in CollisionGroup.entries) {
+            for (pickupFirst in listOf(true, false)) {
+                val h = Harness()
+                if (pickupFirst) h.spawn(CollisionGroup.PICKUP, 0f)
+                h.spawn(other, 5f)
+                if (!pickupFirst) h.spawn(CollisionGroup.PICKUP, 0f)
+                h.step()
+                val expected = if (other == CollisionGroup.PLAYER) 1 else 0
+                assertEquals(expected, h.hits.size, "a pickup against $other")
+            }
+        }
+    }
+
     @Test
     fun `a projectile still hits the opposing side`() {
         val h = Harness()

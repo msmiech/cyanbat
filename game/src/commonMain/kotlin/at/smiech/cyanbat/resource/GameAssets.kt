@@ -46,6 +46,8 @@ data class GameAssets(
         val impact: Pixmap,
         /** The orb Guardian Orb sends round the bat: six frames of a glint going round it. */
         val orb: Pixmap,
+        /** The power-up an elite drops: eight frames of a silver plus spinning half a turn. */
+        val powerUpDrop: Pixmap,
     )
 
     /** The sounds and music shared by every stage. */
@@ -85,6 +87,7 @@ data class GameAssets(
                     shot = pixmap("shot.png"),
                     impact = pixmap("impact.png"),
                     orb = pixmap("orb.png"),
+                    powerUpDrop = pixmap("powerUpDrop.png"),
                 ),
                 audio = Audio(
                     // Generated like the stages' music, by tools/generate_game_over_music.py.

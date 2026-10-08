@@ -8,7 +8,7 @@
 
 The bat's gun and the aura's surge have scripts of their own; this one writes everything that
 answers them - every effect that says a shot landed, something died, or something fired back - and
-the frost beam:
+the frost beam and the drop an elite leaves:
 
 * enemyShot.wav    - an enemy's volley. Low and buzzy where the bat's gun is a bright blip falling
                      away, because the palette rule holds for sound too: the bat is cool, everything
@@ -27,6 +27,8 @@ the frost beam:
                      wreck up again. They are over before the victory's fanfare comes in.
 * frostBeam.wav    - the bat's frost beam going off: a zap falling into a glassy shimmer, and ice
                      crackling as it sets.
+* powerUp.wav      - an elite's drop taken: a breath drawn in, and a glass chime rising out of it
+                     into a wide, dark hall.
 
 They share a palette and a level. Each is written near full scale and played at the volume its
 `SoundEffect` gives it, which is where the balance between them and against the music is set.
@@ -44,7 +46,9 @@ import wave
 import numpy as np
 from scipy import signal
 
-from musicsynth import RENDER_RATE, bandpass, highpass, lowpass, one_shot_filter, reverb_ir, seconds_to_samples
+from musicsynth import (
+    RENDER_RATE, bandpass, highpass, hz, lowpass, note, one_shot_filter, reverb_ir, seconds_to_samples,
+)
 
 OUTPUT_RATE = 22050
 ASSETS = pathlib.Path(__file__).resolve().parent.parent / "assets"
@@ -57,6 +61,23 @@ PEAK = 0.9
 # wreck at the same moments (BOSS_AFTERSHOCK_SECONDS), so each of these blasts is seen as well as
 # heard; change them together.
 AFTERSHOCKS = (0.2, 0.42, 0.66)
+
+# The drop's chime: how long the breath before it takes, and the gap between its three notes - close
+# enough that they run together in the hall into one rising gesture.
+POWER_UP_BREATH = 0.1
+POWER_UP_STEP = 0.045
+
+# How narrow the breath's band is, as a state-variable filter's damping: low enough to whistle a
+# little as it rises, high enough to stay air.
+BREATH_DAMPING = 0.35
+
+# A glass note: how hard its overtones are driven in, at what inharmonic ratio to it, how fast they
+# melt away, how long it takes to bloom, and how far apart its two voices are tuned.
+GLASS_INDEX = 2.2
+GLASS_RATIO = 3.53
+GLASS_MELT = 0.05
+GLASS_BLOOM = 0.006
+GLASS_DETUNE_CENTS = 4
 
 
 # --- Pieces ------------------------------------------------------------------------------------
@@ -294,6 +315,77 @@ def frost_beam(rng) -> np.ndarray:
     return finish(out, release=0.06)
 
 
+def breath(rng, seconds: float, low_hz: float, high_hz: float) -> np.ndarray:
+    """Air drawn in: noise through a narrow band sweeping up from [low_hz] to [high_hz], swelling as
+    it rises. Swept a sample at a time, through a state-variable filter, since no fixed filter
+    moves."""
+    n = seconds_to_samples(seconds)
+    t = np.arange(n) / RENDER_RATE
+    cutoff = low_hz * (high_hz / low_hz) ** (t / seconds)
+    tuning = 2 * np.sin(np.pi * cutoff / RENDER_RATE)
+    noise = rng.standard_normal(n)
+    out = np.zeros(n)
+    low = band = 0.0
+    for i in range(n):
+        band += tuning[i] * (noise[i] - low - BREATH_DAMPING * band)
+        low += tuning[i] * band
+        out[i] = band
+    return normalized(out) * (t / seconds) ** 2
+
+
+def glass(f0: float, seconds: float, rng, fall: float) -> np.ndarray:
+    """One note of a glass chime: a sine with overtones at an inharmonic ratio to it, frequency
+    modulated in, that melt away in its first hundredths of a second and leave it pure. Doubled a
+    few cents either side, so the pair shimmers against itself as it rings."""
+    n = seconds_to_samples(seconds)
+    t = np.arange(n) / RENDER_RATE
+    out = np.zeros(n)
+    for cents in (-GLASS_DETUNE_CENTS, GLASS_DETUNE_CENTS):
+        f = f0 * 2 ** (cents / 1200)
+        overtones = GLASS_INDEX * np.exp(-t / GLASS_MELT) * np.sin(2 * np.pi * f * GLASS_RATIO * t + rng.random() * 6.28)
+        out += np.sin(2 * np.pi * f * t + overtones)
+    # It blooms rather than strikes: a few milliseconds up, where a struck bell has none.
+    return out * np.clip(t / GLASS_BLOOM, 0, 1) * decay(n, fall) / 2
+
+
+def power_up(rng) -> np.ndarray:
+    """An elite's drop taken: a breath of air drawn in, and a glass chime rising out of it into a
+    wide, dark hall.
+
+    Soft where everything else in the fight is hard - no crack and no thump, and notes that bloom
+    rather than strike - so it reads as something given rather than something hit. Cool and high,
+    as everything of the bat's is: three notes up an open fifth and an octave, which sits over any
+    stage's key, with a flutter of sparkle above them and a low warmth swelling under them. The hall
+    gives it all back for most of a second, which is where most of its air comes from.
+    """
+    seconds = 1.6
+    out = silence(seconds)
+    lay(out, breath(rng, POWER_UP_BREATH, 500, 5000), 0, 0.6)
+
+    root = hz(note("B5"))
+    for i, (ratio, level, fall) in enumerate(((1.0, 1.0, 0.45), (1.5, 0.75, 0.38), (2.0, 0.6, 0.32))):
+        lay(out, glass(root * ratio, 1.2, rng, fall), POWER_UP_BREATH + i * POWER_UP_STEP, level)
+
+    n = seconds_to_samples(0.7)
+    t = np.arange(n) / RENDER_RATE
+    sparkle = np.zeros(n)
+    for ratio in (4.0, 5.04, 6.0):
+        flutter = 0.5 * (1 + np.sin(2 * np.pi * rng.uniform(11, 15) * t + rng.random() * 6.28))
+        sparkle += np.sin(2 * np.pi * root * ratio * t) * flutter
+    sparkle *= np.clip(t / 0.03, 0, 1) * decay(n, 0.16)
+    lay(out, sparkle, POWER_UP_BREATH + 2 * POWER_UP_STEP, 0.12)
+
+    n = seconds_to_samples(0.8)
+    t = np.arange(n) / RENDER_RATE
+    warmth = np.sin(2 * np.pi * root / 4 * t) * np.clip(t / 0.03, 0, 1) * decay(n, 0.25)
+    lay(out, warmth, POWER_UP_BREATH, 0.3)
+
+    room = reverb_ir(1.9, rng, predelay=0.03, brightness=0.65, early=6, early_spread=0.05)[0]
+    wet = signal.fftconvolve(out, room)[:out.shape[0]]
+    out = out + 0.5 * normalized(wet) * np.max(np.abs(out))
+    return finish(out, release=0.3)
+
+
 def boss_death(rng) -> np.ndarray:
     """The boss going down: one enormous boom, a roar that rolls on and darkens under it, embers,
     and three more blasts at [AFTERSHOCKS] as the wreck goes up again - each smaller than the last -
@@ -341,6 +433,7 @@ EFFECTS = {
     "batHit.wav": (bat_hit, 6),
     "bossDeath.wav": (boss_death, 7),
     "frostBeam.wav": (frost_beam, 8),
+    "powerUp.wav": (power_up, 9),
 }
 
 SEED = 20261001

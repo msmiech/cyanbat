@@ -100,6 +100,7 @@ import at.smiech.cyanbat.util.POWER_UP_CARD_HEIGHT
 import at.smiech.cyanbat.util.POWER_UP_CARD_PADDING
 import at.smiech.cyanbat.util.POWER_UP_CARD_TOP
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
+import at.smiech.cyanbat.util.POWER_UP_DROP_FRAME
 import at.smiech.cyanbat.util.POWER_UP_GRACE_SECONDS
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
@@ -669,6 +670,9 @@ class GameScreen(
     private fun handleCollision(id1: EntityId, id2: EntityId) {
         val group1 = collisionGroupOf(id1)
         val group2 = collisionGroupOf(id2)
+        // An elite's drop only ever meets the bat (see CollisionGroup.PICKUP), which takes it.
+        if (group1 == CollisionGroup.PICKUP) return collectPowerUp(id1)
+        if (group2 == CollisionGroup.PICKUP) return collectPowerUp(id2)
         // Contact weapons only ever meet enemies (see CollisionGroup.PLAYER_CONTACT), and land by
         // rules of their own.
         if (group1 == CollisionGroup.PLAYER_CONTACT) return strike(id1, id2)
@@ -701,7 +705,7 @@ class GameScreen(
 
     /**
      * Scores [enemyId] going down to the bat's weapons: a kill to the streak, and its wave's worth
-     * of experience, an elite several times both.
+     * of experience, an elite several times both. An elite also leaves a power-up behind.
      *
      * @param bossId the boss as it was before the blow landed: killing it clears it from the
      *   generator, and this still has to know it was the boss.
@@ -714,6 +718,38 @@ class GameScreen(
         if (enemyId != bossId && !isBossPart(enemyId)) {
             awardExperience(PlayerProgress.experienceForKill(enmGen.currentWave.index, elite))
         }
+        if (elite) dropPowerUp(enemyId)
+    }
+
+    /**
+     * Leaves a power-up where [eliteId] went down, coming out of its blast; see [collectPowerUp].
+     * Kept inside the frame, so one shot down half past an edge, or half under the sand, is still in
+     * reach. Not once the stage is won: there is nothing left to take it for.
+     */
+    private fun dropPowerUp(eliteId: EntityId) {
+        if (stageComplete) return
+        val rect = world.getComponent(eliteId, TransformComponent::class)?.rect ?: return
+        val half = POWER_UP_DROP_FRAME / 2f
+        factory.createPowerUpDrop(
+            rect.centerX.coerceIn(half, game.frameBufferWidth - half),
+            rect.centerY.coerceIn(half, game.frameBufferHeight - half),
+            env.assets.graphics.powerUpDrop,
+        )
+    }
+
+    /**
+     * The bat flying into an elite's drop: it takes a power-up drawn at random from those it can
+     * still use, there and then, with a chime, and the banner says which. No dialog and no grace,
+     * as nothing was stopped for it. Drawn as it is taken rather than as it was dropped, so a
+     * level-up pick in between cannot leave it holding one the bat has no more use for.
+     */
+    private fun collectPowerUp(dropId: EntityId) {
+        // Not by a bat on its way down, nor once the stage is won, when the boss's fall holds the
+        // banner.
+        if (stageComplete || batRect() == null) return
+        world.removeEntity(dropId)
+        takePowerUp(PowerUp.roll(loadout, random))
+        sounds.play(SoundEffect.POWER_UP)
     }
 
     /**
@@ -1470,11 +1506,19 @@ class GameScreen(
      * tapped a card has let go of the bat.
      */
     private fun choosePowerUp(powerUp: PowerUp) {
+        takePowerUp(powerUp)
+        offer = emptyList()
+        InvulnerabilitySystem.grant(world, batId, POWER_UP_GRACE_SECONDS)
+    }
+
+    /**
+     * Makes [powerUp]'s change and the bat match it, and names it in the banner: a pick off the
+     * level-up dialog, or an elite's drop.
+     */
+    private fun takePowerUp(powerUp: PowerUp) {
         powerUp.applyTo(loadout)
         applyLoadout()
-        offer = emptyList()
         announce(text[powerUp.title])
-        InvulnerabilitySystem.grant(world, batId, POWER_UP_GRACE_SECONDS)
     }
 
     /**
@@ -2066,9 +2110,9 @@ class GameScreen(
         const val SPRITE_LAYERS_FROM = 0
 
         /**
-         * The lowest z index drawn over the dark, in a stage flown in it: the shots at 15, the bat at
-         * 20 and the blasts at 50. The obstacles, the creatures and the bosses, from 5 to 13, sit
-         * under it and are lit by whatever reaches them.
+         * The lowest z index drawn over the dark, in a stage flown in it: the shots at 15, an elite's
+         * drop at 16, the bat at 20 and the blasts at 50. The obstacles, the creatures and the
+         * bosses, from 5 to 13, sit under it and are lit by whatever reaches them.
          */
         const val LIGHTS_FROM = 15
 
