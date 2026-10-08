@@ -2,9 +2,13 @@ package at.smiech.cyanbat.desktop
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
-import androidx.compose.ui.awt.ComposeWindow
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.input.key.Key
 import androidx.compose.ui.input.key.KeyEvent
 import androidx.compose.ui.input.key.KeyEventType
@@ -15,17 +19,14 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.FrameWindowScope
+import androidx.compose.ui.unit.isSpecified
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.WindowState
 import androidx.compose.ui.window.rememberWindowState
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.WindowMode
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.awt.GraphicsEnvironment
 import java.awt.Rectangle
 
@@ -111,105 +112,86 @@ internal fun rememberWindowStateIn(mode: WindowMode): WindowState = when (mode) 
         rememberWindowState(placement = WindowPlacement.Fullscreen, size = WINDOWED_SIZE)
 
     WindowMode.BORDERLESS -> {
-        val screen = remember {
-            GraphicsEnvironment.getLocalGraphicsEnvironment()
-                .defaultScreenDevice.defaultConfiguration.bounds
-        }
-        rememberWindowState(
-            position = WindowPosition(screen.x.dp, screen.y.dp),
-            size = DpSize(screen.width.dp, screen.height.dp),
-        )
+        val screen = remember { defaultScreen() }
+        rememberWindowState(position = screen.position, size = screen.size)
     }
 }
 
 /**
- * Takes a window from one [WindowMode] to another, remembering where it was as a window to go back
- * to: a window maximized before comes back maximized.
+ * Takes the game's window from one [WindowMode] to another, remembering where it was as a window
+ * to go back to: a window maximized before comes back maximized.
  *
- * Works on the AWT window itself, there and then, and Compose's [WindowState] hears of it from the
- * window. Through the state, Compose takes a change up a frame later, and some of these are two
- * steps: Compose maximizes a window without taking it out of full screen, so it has to come out
- * floating first, and through the state the two steps collapsed into the second.
+ * Off a Mac, every mode is a window of its own ([windowKey]): the host makes a new window whenever
+ * the mode changes, from the [state] this has set for the mode, as the game's first window is made
+ * for the mode it opens in. Either full screen has no frame ([isFrameless]), because Windows' own
+ * full screen leaves a framed window's title bar across the top of the screen, and a frame cannot
+ * be changed on a window that is up: AWT refuses, and Compose stops drawing a window whose native
+ * window was let go of and made again. Whatever has to outlive a window - a run, the menu's place
+ * and its view models - is the host's, above it.
  *
- * Either full screen takes the window's frame away ([isFrameless]): Windows' own full screen leaves
- * a framed window's title bar across the top of the screen. AWT takes a frame away or gives it
- * back only while there is no native window behind it, so the native window is let go of and made
- * again. Compose and skiko carry the scene across, so a run or a menu screen goes on where it was.
+ * On a Mac the frame stays, the system's own full screen takes it away, and one window does for
+ * every mode: this only changes its placement, as the Mac's own green button does.
  *
- * @param applied the mode the window opened in.
+ * @param opened the mode the first window opened in.
  */
+@Stable
 internal class WindowModes(
-    private val window: ComposeWindow,
-    applied: WindowMode,
+    private val state: WindowState,
+    opened: WindowMode,
     private val isMac: Boolean = hostIsMac,
 ) {
     /** The mode the window is in. */
-    var applied: WindowMode = applied
+    var applied: WindowMode by mutableStateOf(opened)
         private set
 
+    /** What the host keys its window on: a new window when this changes. */
+    val windowKey: Any get() = if (isMac) Unit else applied
+
     /** Where the window last was as a floating window; null if it has never been one. */
-    private var windowedBounds: Rectangle? = null
+    private var windowed: Pair<WindowPosition, DpSize>? = null
     private var windowedMaximized = false
 
     /**
-     * The window moved or was resized, by the player or the system. Only a floating window's
-     * bounds are kept: a maximized one goes back to the bounds it had before it was maximized.
+     * The window moved, was resized or maximized, by the player or the system. Only a floating
+     * window's bounds are kept: a maximized one goes back to the bounds it had before.
      */
     fun onWindowChanged() {
-        if (applied == WindowMode.WINDOWED) rememberWindowed()
+        if (applied != WindowMode.WINDOWED) return
+        val position = state.position
+        if (state.placement == WindowPlacement.Floating && position is WindowPosition.Absolute) {
+            windowed = position to state.size
+        }
     }
 
     fun apply(mode: WindowMode) {
         if (mode == applied) return
         if (applied == WindowMode.WINDOWED) {
-            rememberWindowed()
-            windowedMaximized = window.placement == WindowPlacement.Maximized
+            onWindowChanged()
+            windowedMaximized = state.placement == WindowPlacement.Maximized
         }
-        // A Mac's green button or a window manager's key has already put it there.
-        val alreadyThere =
-            mode == WindowMode.FULLSCREEN && window.placement == WindowPlacement.Fullscreen
-        if (!alreadyThere) {
-            if (window.placement != WindowPlacement.Floating) {
-                window.placement = WindowPlacement.Floating
-            }
-            setFrameless(mode.isFrameless(isMac))
-            when (mode) {
-                WindowMode.WINDOWED -> {
-                    window.bounds = windowedBounds ?: centered(WINDOWED_SIZE)
-                    if (windowedMaximized) window.placement = WindowPlacement.Maximized
+        when (mode) {
+            WindowMode.WINDOWED -> {
+                // A Mac's window comes back from its full screen where it was by itself.
+                if (!isMac) {
+                    val (position, size) = windowed
+                        ?: (WindowPosition(Alignment.Center) to WINDOWED_SIZE)
+                    state.position = position
+                    state.size = size
                 }
+                state.placement =
+                    if (windowedMaximized && !isMac) WindowPlacement.Maximized
+                    else WindowPlacement.Floating
+            }
 
-                WindowMode.FULLSCREEN -> window.placement = WindowPlacement.Fullscreen
-                // The screen the window is on, which a window dragged to a second one has made
-                // that one.
-                WindowMode.BORDERLESS -> window.bounds = window.graphicsConfiguration.bounds
+            WindowMode.FULLSCREEN -> state.placement = WindowPlacement.Fullscreen
+            WindowMode.BORDERLESS -> {
+                val screen = screenUnder(state)
+                state.placement = WindowPlacement.Floating
+                state.position = screen.position
+                state.size = screen.size
             }
         }
         applied = mode
-    }
-
-    private fun rememberWindowed() {
-        if (window.placement == WindowPlacement.Floating) windowedBounds = Rectangle(window.bounds)
-    }
-
-    private fun setFrameless(frameless: Boolean) {
-        if (window.isUndecorated == frameless) return
-        window.isVisible = false
-        window.removeNotify()
-        window.isUndecorated = frameless
-        window.isVisible = true
-    }
-
-    private fun centered(size: DpSize): Rectangle {
-        val screen = window.graphicsConfiguration.bounds
-        val width = size.width.value.toInt()
-        val height = size.height.value.toInt()
-        return Rectangle(
-            screen.x + (screen.width - width) / 2,
-            screen.y + (screen.height - height) / 2,
-            width,
-            height,
-        )
     }
 }
 
@@ -218,35 +200,18 @@ internal class WindowModes(
  * or by [FullscreenKeys], puts the window in its mode; and the window taken in or out of full
  * screen some other way - a Mac's green button, a window manager's own key - changes the setting,
  * so Settings shows what the window is and the next start opens it the same way.
- *
- * @param opened the mode the window opened in.
  */
 @Composable
-internal fun FrameWindowScope.WindowFollowsSettings(
+internal fun WindowFollowsSettings(
+    modes: WindowModes,
     state: WindowState,
     settings: SettingsRepository,
-    opened: WindowMode,
 ) {
-    // On Swing's own event queue rather than Compose's dispatcher, which runs a coroutine in the
-    // middle of a frame: a native window let go of and made again there has Compose attach the
-    // scene and run a frame inside that frame, which it does not allow, and skiko crashed the JVM.
-    LaunchedEffect(window, state, settings) {
-        withContext(Dispatchers.Main) { follow(window, state, settings, opened) }
-    }
-}
-
-private suspend fun follow(
-    window: ComposeWindow,
-    state: WindowState,
-    settings: SettingsRepository,
-    opened: WindowMode,
-) {
-    coroutineScope {
-        val modes = WindowModes(window, opened)
+    LaunchedEffect(modes, state, settings) {
         launch {
             snapshotFlow { Triple(state.placement, state.position, state.size) }.collect {
                 modes.onWindowChanged()
-                val fullscreen = window.placement == WindowPlacement.Fullscreen
+                val fullscreen = state.placement == WindowPlacement.Fullscreen
                 when {
                     fullscreen && modes.applied != WindowMode.FULLSCREEN ->
                         settings.setWindowMode(WindowMode.FULLSCREEN)
@@ -258,6 +223,32 @@ private suspend fun follow(
         }
         settings.windowMode.collect(modes::apply)
     }
+}
+
+/** A screen's bounds as a window's position and size. */
+private class Screen(bounds: Rectangle) {
+    val position = WindowPosition(bounds.x.dp, bounds.y.dp)
+    val size = DpSize(bounds.width.dp, bounds.height.dp)
+}
+
+private fun defaultScreen() = Screen(
+    GraphicsEnvironment.getLocalGraphicsEnvironment()
+        .defaultScreenDevice.defaultConfiguration.bounds
+)
+
+/** The screen the middle of the window is on: the main one, or a second one it was dragged to. */
+private fun screenUnder(state: WindowState): Screen {
+    val position = state.position
+    val size = state.size
+    if (position is WindowPosition.Absolute && size.isSpecified) {
+        val x = (position.x + size.width / 2).value.toInt()
+        val y = (position.y + size.height / 2).value.toInt()
+        GraphicsEnvironment.getLocalGraphicsEnvironment().screenDevices
+            .map { it.defaultConfiguration.bounds }
+            .firstOrNull { it.contains(x, y) }
+            ?.let { return Screen(it) }
+    }
+    return defaultScreen()
 }
 
 /**

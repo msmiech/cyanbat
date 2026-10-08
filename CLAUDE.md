@@ -65,15 +65,20 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
     - F11 and Alt+Enter (`FullscreenKeys`, read ahead of the menu and the game) toggle between the
       window and the full screen last chosen. `WindowFollowsSettings` keeps the setting and the
       window in step both ways, so a Mac's green button counts as a choice too.
-    - `WindowModes` moves the window on the AWT window itself, and Compose's `WindowState` hears of
-      it from the window: through the state, Compose collapses a two-step change (out of full
-      screen, then maximized) into its second step.
     - Either full screen has no frame off a Mac, because Windows' own full screen leaves a framed
-      window's title bar across the screen. Compose cannot change a frame on a window that is up,
-      so `WindowModes` lets the native window go and makes it again; Compose and skiko carry the
-      scene across, a run or a menu screen included. It does this on Swing's queue
-      (`Dispatchers.Main`), never in a coroutine on Compose's dispatcher, which runs inside a frame:
-      there it re-entered Compose and crashed skiko.
+      window's title bar across the screen. A frame cannot be changed on a window that is up: AWT
+      refuses, and a native window let go of and made again (`removeNotify`, `addNotify`) leaves
+      Compose's `SurfaceSkiaLayerComponent` marked disposed, so it never asks for another frame -
+      the window froze while the music played on.
+    - So off a Mac every mode is a window of its own: `main` keys its `Window` on
+      `WindowModes.windowKey`, and `WindowModes` only sets the shared `WindowState` for the mode the
+      next window opens in, as the first one opens in the mode it was left in. Whatever has to
+      outlive a window lives in `main`, above it: the run (`rememberRun`), the menu's back stack
+      and view models (a window clears its own, and the main menu's disposes the menu's music), the
+      stores and the menu's music. A switch mid-run pauses it, since the new window starts without
+      focus.
+    - On a Mac one window does for every mode, and only its placement changes, as the green button
+      changes it.
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.
