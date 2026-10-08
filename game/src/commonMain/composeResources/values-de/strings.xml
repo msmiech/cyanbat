@@ -30,7 +30,7 @@
 
     <string name="dialog_help_title">Hilfe</string>
     <string name="dialog_help_controls_touch">• Fliegen: Ziehe CyanBat mit dem Finger. Tastatur oder Controller gehen auch.\n• Pause: Wische oder drücke Zurück. Noch einmal Zurück führt ins Menü.</string>
-    <string name="dialog_help_controls_desktop">• Fliegen: Ziehe CyanBat mit der Maus oder nimm die Pfeiltasten oder WASD.\n• Pause: Q. Noch einmal Q führt ins Menü.</string>
+    <string name="dialog_help_controls_desktop">• Fliegen: Ziehe CyanBat mit der Maus oder nimm die Pfeiltasten oder WASD.\n• Pause: Q. Noch einmal Q führt ins Menü.\n• Vollbild: F11 oder Alt+Enter.</string>
     <string name="dialog_help_text">• Schießen: CyanBat feuert von selbst. Schieß auf Gegner und Hindernisse und berühre weder sie noch ihre Schüsse.\n• Gesundheit: Jeder Treffer leert den Balken unter der Fledermaus. Ist er leer, ist die Runde vorbei.\n• Punkte: Punkte gibt es fürs Überleben und für Abschüsse. Abschüsse in Folge erhöhen den Multiplikator, ein Treffer setzt ihn zurück.\n• Stufenaufstieg: Abschüsse bringen Erfahrung. Mit jeder neuen Stufe wählst du eins von drei Power-ups.\n• Wellen: Jede Minute kommt eine stärkere Welle. Nach der fünften erscheint der Boss. Besiege ihn, um den Abschnitt mit einem großen Bonus abzuschließen.\n• Abschnitte: Im Dschungel schwärmen Gegner aus, fliegen in Formation, schießen zurück und verstecken sich hinter Schilden. Der erste Schuss auf einen Schild bringt ihn zum Platzen. Der geschaffte Dschungel öffnet die Höhle, durch die du im Dunkeln nur im Licht der Fledermaus fliegst und wo sich der Boss zwischen seinen Hinterhalten im Dunkeln versteckt. Die geschaffte Höhle öffnet die Wüste, durch die du vom Mittag in die Nacht fliegst, wo Dinge aus dem Sand springen und Skarabäenpanzer nachwachsen, wenn man sie in Ruhe lässt. Die geschaffte Wüste öffnet die Lagune, durch die du von der Nacht in den Mittag fliegst, wo Haie von hinten an der Wasserlinie entlangkommen und Kugelfische Stachelringe werfen. Jeder Abschnitt beginnt von vorn: Punkte, Stufe und Power-ups fangen neu an.</string>
 
     <string name="settings_music_title">Musik</string>
@@ -43,6 +43,10 @@
     <string name="settings_language_title">Sprache</string>
     <string name="settings_language_system">System</string>
     <string name="settings_display_title">Anzeige</string>
+    <string name="settings_window_mode_title">Bildschirm</string>
+    <string name="settings_window_mode_windowed">Fenster</string>
+    <string name="settings_window_mode_fullscreen">Vollbild</string>
+    <string name="settings_window_mode_borderless">Rahmenlos</string>
     <string name="settings_display_stretch">Auf Bildschirm strecken</string>
     <string name="settings_display_stretch_hint">Füllt den Bildschirm, verzerrt das Spiel aber auf Bildschirmen, die nicht 16:9 sind.</string>
     <string name="settings_display_black_bars">Schwarze Balken</string>

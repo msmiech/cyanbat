@@ -57,7 +57,28 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
 
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
-- Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`.
+- Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`. It takes the
+  screen by the player's `WindowMode`: a window, full screen, or borderless (not on a Mac, whose
+  full screen already is). Settings offers the modes only on the desktop (`windowModes`); phones
+  always fill the screen. On a Steam Deck (`SteamDeck=1` in the environment Steam gives a game) it
+  starts in full screen until the player chooses.
+    - F11 and Alt+Enter (`FullscreenKeys`, read ahead of the menu and the game) toggle between the
+      window and the full screen last chosen. `WindowFollowsSettings` keeps the setting and the
+      window in step both ways, so a Mac's green button counts as a choice too.
+    - Either full screen has no frame off a Mac, because Windows' own full screen leaves a framed
+      window's title bar across the screen. A frame cannot be changed on a window that is up: AWT
+      refuses, and a native window let go of and made again (`removeNotify`, `addNotify`) leaves
+      Compose's `SurfaceSkiaLayerComponent` marked disposed, so it never asks for another frame -
+      the window froze while the music played on.
+    - So off a Mac every mode is a window of its own: `main` keys its `Window` on
+      `WindowModes.windowKey`, and `WindowModes` only sets the shared `WindowState` for the mode the
+      next window opens in, as the first one opens in the mode it was left in. Whatever has to
+      outlive a window lives in `main`, above it: the run (`rememberRun`), the menu's back stack
+      and view models (a window clears its own, and the main menu's disposes the menu's music), the
+      stores and the menu's music. A switch mid-run pauses it, since the new window starts without
+      focus.
+    - On a Mac one window does for every mode, and only its placement changes, as the green button
+      changes it.
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.

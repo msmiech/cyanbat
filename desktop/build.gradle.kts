@@ -34,6 +34,9 @@ configurations["recorderRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get
 
 dependencies {
     implementation(project(":game"))
+    // The menu's view models outlive the window they are shown in, which is made again whenever
+    // its mode changes, so the desktop keeps them itself rather than leaving them to the window.
+    implementation(libs.jetbrains.lifecycle.viewmodel.compose)
     testImplementation(libs.kotlin.test.junit)
     implementation(compose.desktop.currentOs)
     implementation(libs.kotlinx.coroutines.core)

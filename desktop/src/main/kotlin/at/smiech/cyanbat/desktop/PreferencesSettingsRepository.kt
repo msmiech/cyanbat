@@ -3,9 +3,11 @@ package at.smiech.cyanbat.desktop
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import java.util.prefs.Preferences
 
@@ -20,14 +22,24 @@ import java.util.prefs.Preferences
  *
  * Making one puts the stored language into effect ([DesktopLocale]), and the desktop makes its one
  * before the menu reads a string.
+ *
+ * @param prefs where the settings live; the game's own node unless a test says otherwise.
+ * @param windowModeUnlessSet how the game takes its screen for a player who has not said: on a
+ *   Steam Deck in full screen ([isSteamDeck]), anywhere else in a window.
  */
-class PreferencesSettingsRepository : SettingsRepository {
-    private val prefs: Preferences = Preferences.userRoot().node("at/smiech/cyanbat")
+class PreferencesSettingsRepository(
+    private val prefs: Preferences = Preferences.userRoot().node("at/smiech/cyanbat"),
+    windowModeUnlessSet: WindowMode =
+        if (isSteamDeck()) WindowMode.FULLSCREEN else WindowMode.WINDOWED,
+) : SettingsRepository {
 
     private val music = MutableStateFlow(prefs.getBoolean(KEY_MUSIC, true))
     private val sound = MutableStateFlow(prefs.getBoolean(KEY_SOUND, true))
     private val vibration = MutableStateFlow(prefs.getBoolean(KEY_VIBRATION, true))
     private val display = MutableStateFlow(DisplayMode.fromName(prefs.get(KEY_DISPLAY_MODE, null)))
+    private val window = MutableStateFlow(
+        prefs.get(KEY_WINDOW_MODE, null)?.let(WindowMode::fromName) ?: windowModeUnlessSet
+    )
     private val theme = MutableStateFlow(ThemeMode.fromName(prefs.get(KEY_THEME_MODE, null)))
     private val chosenLanguage =
         MutableStateFlow(AppLanguage.fromName(prefs.get(KEY_LANGUAGE, null)))
@@ -36,6 +48,18 @@ class PreferencesSettingsRepository : SettingsRepository {
     override val isSoundEnabled: Flow<Boolean> = sound.asStateFlow()
     override val isVibrationEnabled: Flow<Boolean> = vibration.asStateFlow()
     override val displayMode: Flow<DisplayMode> = display.asStateFlow()
+
+    /** A state, so the window can open the way it was left without waiting on the flow. */
+    override val windowMode: StateFlow<WindowMode> = window.asStateFlow()
+
+    /**
+     * The full screen the player last chose, the system's or borderless, which the keys that toggle
+     * full screen go back to; the system's until they choose.
+     */
+    val lastFullScreenMode: WindowMode
+        get() = WindowMode.fromName(prefs.get(KEY_FULL_SCREEN_MODE, null))
+            .takeUnless { it == WindowMode.WINDOWED } ?: WindowMode.FULLSCREEN
+
     override val themeMode: Flow<ThemeMode> = theme.asStateFlow()
     override val language: Flow<AppLanguage> = chosenLanguage.asStateFlow()
 
@@ -63,6 +87,12 @@ class PreferencesSettingsRepository : SettingsRepository {
         display.value = mode
     }
 
+    override suspend fun setWindowMode(mode: WindowMode) {
+        prefs.put(KEY_WINDOW_MODE, mode.name)
+        if (mode != WindowMode.WINDOWED) prefs.put(KEY_FULL_SCREEN_MODE, mode.name)
+        window.value = mode
+    }
+
     override suspend fun setThemeMode(mode: ThemeMode) {
         prefs.put(KEY_THEME_MODE, mode.name)
         theme.value = mode
@@ -80,6 +110,8 @@ class PreferencesSettingsRepository : SettingsRepository {
         const val KEY_SOUND = "sound_enabled"
         const val KEY_VIBRATION = "vibration_enabled"
         const val KEY_DISPLAY_MODE = "display_mode"
+        const val KEY_WINDOW_MODE = "window_mode"
+        const val KEY_FULL_SCREEN_MODE = "full_screen_mode"
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_LANGUAGE = "language"
     }

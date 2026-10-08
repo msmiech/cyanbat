@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.ui
 
 import androidx.compose.runtime.Composable
+import at.smiech.cyanbat.data.WindowMode
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.dialog_help_controls_touch
 import org.jetbrains.compose.resources.StringResource
@@ -15,6 +16,9 @@ internal actual val hasSystemBack: Boolean = false
 
 // An iPhone vibrates; the app to come supplies the Haptics that do it.
 internal actual val canVibrate: Boolean = true
+
+// An iPhone's game fills its screen, as a phone's does on Android.
+internal actual val windowModes: List<WindowMode> = emptyList()
 
 // The status bar's style belongs to the app's view controller, which the app to come supplies.
 @Composable

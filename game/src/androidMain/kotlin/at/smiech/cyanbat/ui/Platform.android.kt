@@ -7,6 +7,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.platform.LocalView
 import androidx.core.view.WindowCompat
+import at.smiech.cyanbat.data.WindowMode
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.dialog_help_controls_touch
 import org.jetbrains.compose.resources.StringResource
@@ -16,6 +17,8 @@ internal actual val helpControls: StringResource = Res.string.dialog_help_contro
 internal actual val hasSystemBack: Boolean = true
 
 internal actual val canVibrate: Boolean = true
+
+internal actual val windowModes: List<WindowMode> = emptyList()
 
 // The window's theme alone would leave the icons light on every screen, and so white on white over
 // the light theme's settings.
