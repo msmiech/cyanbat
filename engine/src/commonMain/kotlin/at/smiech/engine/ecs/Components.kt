@@ -95,9 +95,12 @@ data class CollisionComponent(
  * [PLAYER_CONTACT] is the player's weapons that hurt enemies by touch and are not
  * spent doing so. It meets enemies and nothing else, so it never needs telling
  * apart from a shot once a pair is reported.
+ *
+ * [PICKUP] is something the player collects by flying into it. It meets the player and nothing
+ * else: no shot, enemy or rock can take it first, or knock it about.
  */
 enum class CollisionGroup {
-    PLAYER, ENEMY, PLAYER_PROJECTILE, ENEMY_PROJECTILE, OBSTACLE, OTHER, PLAYER_CONTACT
+    PLAYER, ENEMY, PLAYER_PROJECTILE, ENEMY_PROJECTILE, OBSTACLE, OTHER, PLAYER_CONTACT, PICKUP
 }
 
 /**

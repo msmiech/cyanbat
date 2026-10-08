@@ -62,6 +62,11 @@ import at.smiech.cyanbat.util.PLAYER_IMPACT_LIGHT_RADIUS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.PLAYER_SHOT_LIGHT_RADIUS
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
+import at.smiech.cyanbat.util.POWER_UP_DROP_FRAME
+import at.smiech.cyanbat.util.POWER_UP_DROP_FRAME_COUNT
+import at.smiech.cyanbat.util.POWER_UP_DROP_FRAME_SECONDS
+import at.smiech.cyanbat.util.POWER_UP_DROP_LIGHT_COLOR
+import at.smiech.cyanbat.util.POWER_UP_DROP_LIGHT_RADIUS
 import at.smiech.cyanbat.util.ROCK_SHINE
 import at.smiech.cyanbat.util.SAND_WYRM_FRAME
 import at.smiech.cyanbat.util.SAND_WYRM_HEAD_FRAMES
@@ -961,6 +966,50 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             CollisionComponent(ORB_COLLISION_TOLERANCE, CollisionGroup.PLAYER_CONTACT)
         )
         world.addComponent(id, ZIndexComponent(19))
+        return id
+    }
+
+    /**
+     * The power-up an elite leaves where it went down, centered on ([centerX], [centerY]): a silver
+     * plus spinning on the spot, drifting with the scenery until the bat flies into it or it leaves
+     * the frame.
+     *
+     * It holds no power-up of its own. Its collision group meets the bat and nothing else, and the
+     * run draws what it gives as the bat takes it, so a pick made meanwhile cannot leave it holding
+     * one the bat has no more use for. In the dark it is a light, and drawn over the dark as one.
+     */
+    fun createPowerUpDrop(centerX: Float, centerY: Float, pixmap: Pixmap): EntityId {
+        val size = POWER_UP_DROP_FRAME.toFloat()
+        val id = world.createEntity()
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(centerX - size / 2f, centerY - size / 2f, size, size))
+        )
+        world.addComponent(id, VelocityComponent(Vector2(BURST_DRIFT, 0f)))
+        world.addComponent(
+            id,
+            SpriteComponent(pixmap, srcWidth = POWER_UP_DROP_FRAME, srcHeight = POWER_UP_DROP_FRAME)
+        )
+        world.addComponent(
+            id,
+            AnimationComponent(
+                POWER_UP_DROP_FRAME,
+                POWER_UP_DROP_FRAME,
+                POWER_UP_DROP_FRAME_COUNT,
+                POWER_UP_DROP_FRAME_SECONDS
+            )
+        )
+        // The whole frame, glint and all: flying into a prize should not take a second try.
+        world.addComponent(id, CollisionComponent(0f, CollisionGroup.PICKUP))
+        if (lit) {
+            world.addComponent(
+                id,
+                LightComponent(POWER_UP_DROP_LIGHT_COLOR, POWER_UP_DROP_LIGHT_RADIUS)
+            )
+        }
+        world.addComponent(id, LifetimeComponent(true))
+        // Over the shots, under the orbs and the bat that comes to take it.
+        world.addComponent(id, ZIndexComponent(16))
         return id
     }
 

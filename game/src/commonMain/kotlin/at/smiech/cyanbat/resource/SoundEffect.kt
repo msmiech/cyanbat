@@ -65,4 +65,11 @@ enum class SoundEffect(val file: String, val volume: Float, val gapSeconds: Floa
      * phone's speaker.
      */
     FROST_BEAM("frostBeam.wav", 0.36f),
+
+    /**
+     * An elite's drop taken: a glass chime rising into a hall, a decibel or so under the music, and
+     * level with it through a phone's speaker, since it is nearly all treble. A reward, so it is
+     * heard over the fight, but soft: it blooms where the fight's sounds strike.
+     */
+    POWER_UP("powerUp.wav", 0.4f),
 }

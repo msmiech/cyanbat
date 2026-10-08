@@ -54,6 +54,50 @@ class SpriteSheetTest {
         assertNoBlankFrames("orb.png", frameWidth = 14, frames = 6)
     }
 
+    /**
+     * Eight 19x19 frames of an elite's drop spinning half a turn; see `POWER_UP_DROP_FRAME` and
+     * `POWER_UP_DROP_FRAME_COUNT`.
+     */
+    @Test
+    fun `the power-up drop sheet holds eight frames`() {
+        assertEquals(19 * 8 to 19, sizeOf("powerUpDrop.png"))
+        assertNoBlankFrames("powerUpDrop.png", frameWidth = 19, frames = 8)
+    }
+
+    /**
+     * It turns about its upright axis: square on in its first frame, as wide as it is tall, and side
+     * on halfway through the half turn, a sliver of its edge.
+     */
+    @Test
+    fun `the power-up drop narrows to its edge as it spins`() {
+        val image = javaClass.getResourceAsStream("/powerUpDrop.png")!!.use { ImageIO.read(it) }
+        fun width(frame: Int): Int {
+            val columns = (frame * 19 until (frame + 1) * 19).filter { x ->
+                (0 until 19).any { y -> (image.getRGB(x, y) ushr 24) != 0 }
+            }
+            return columns.size
+        }
+        val widths = (0 until 8).map(::width)
+
+        assertTrue(widths[4] < widths[0] / 2, "side on it is not a sliver: $widths")
+        assertEquals(widths.max(), widths[0], "square on is not its widest: $widths")
+    }
+
+    /** Silver: no color of it warmer than it is blue, as the bat's things are cool. */
+    @Test
+    fun `the power-up drop is a cool steel`() {
+        val image = javaClass.getResourceAsStream("/powerUpDrop.png")!!.use { ImageIO.read(it) }
+        for (y in 0 until image.height) {
+            for (x in 0 until image.width) {
+                val argb = image.getRGB(x, y)
+                if ((argb ushr 24) == 0) continue
+                val red = (argb shr 16) and 0xFF
+                val blue = argb and 0xFF
+                assertTrue(red <= blue, "(${x}, $y) is warm: ${argb.toUInt().toString(16)}")
+            }
+        }
+    }
+
     /** Seven 40x40 frames of rock breaking; see `EntityFactory.SHATTER_FRAME_*`. */
     @Test
     fun `the shatter sheet holds seven frames`() {
@@ -590,6 +634,7 @@ class SpriteSheetTest {
             "cyanBatDeath.png",
             "enemies.png",
             "orb.png",
+            "powerUpDrop.png",
             "background.png",
             "explosion.png",
             "shatter.png",

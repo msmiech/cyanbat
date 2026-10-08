@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.desktop.recorder
 
 import at.smiech.cyanbat.ScoreTracker
+import at.smiech.cyanbat.progress.PlayerLoadout
 import at.smiech.cyanbat.progress.PlayerProgress
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.ui.game.GameScreen
@@ -21,6 +22,7 @@ class RunProbe(private val screen: GameScreen) {
     private val offerField = field("offer")
     private val stageCompleteField = field("stageComplete")
     private val progressField = field("progress")
+    private val loadoutField = field("loadout")
     private val scoringField = field("scoring")
     private val bannerTextField = field("bannerText")
     private val bannerTimeField = field("bannerTime")
@@ -48,6 +50,9 @@ class RunProbe(private val screen: GameScreen) {
 
     /** Everything the run has earned toward its levels, from the start. */
     val experience: Int get() = (progressField.get(screen) as PlayerProgress).totalExperience
+
+    /** What the run's power-ups have made of the bat. */
+    val loadout: PlayerLoadout get() = loadoutField.get(screen) as PlayerLoadout
 
     /** The run's score. */
     val score: Int get() = (scoringField.get(screen) as ScoreTracker).score

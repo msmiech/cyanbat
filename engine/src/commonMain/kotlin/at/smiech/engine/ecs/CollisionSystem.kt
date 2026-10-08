@@ -112,6 +112,8 @@ class CollisionSystem(
                 g1 == g2 -> true
                 g1 == CollisionGroup.PLAYER_CONTACT -> g2 != CollisionGroup.ENEMY
                 g2 == CollisionGroup.PLAYER_CONTACT -> g1 != CollisionGroup.ENEMY
+                g1 == CollisionGroup.PICKUP -> g2 != CollisionGroup.PLAYER
+                g2 == CollisionGroup.PICKUP -> g1 != CollisionGroup.PLAYER
                 g1 == CollisionGroup.PLAYER && g2 == CollisionGroup.PLAYER_PROJECTILE -> true
                 g2 == CollisionGroup.PLAYER && g1 == CollisionGroup.PLAYER_PROJECTILE -> true
                 g1 == CollisionGroup.ENEMY && g2 == CollisionGroup.ENEMY_PROJECTILE -> true

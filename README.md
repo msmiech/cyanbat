@@ -102,8 +102,10 @@ worse it is hurt, falling behind its swarm. The bosses alone are never slowed by
 From a stage's second minute on, now and then an enemy arrives as an elite, wreathed in a glow of
 its own - scarlet, ember, venom green, ultraviolet or fuchsia. It takes two and a half times the
 punishment, fires faster and in the color of its glow - even if its kind never shoots at all - and
-pays out three times the points and experience. They are rare early on, and in the escort that
-brings in the boss there is one every six or seven seconds.
+pays out three times the points and experience. Shot down, it leaves a spinning silver plus where it
+fell, which shines in the dark of the cave: fly into it before it drifts away, and the bat takes a
+power-up at random, there and then. Elites are rare early on, and in the escort that brings in the
+boss there is one every six or seven seconds.
 
 Kills earn experience, and every level up offers three power-ups to pick from. Most sharpen the
 bat's gun or toughen its hide; three give it weapons of its own, each working while you dodge.

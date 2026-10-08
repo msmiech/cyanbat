@@ -336,6 +336,13 @@ swarm, or a formation's leader.
   `SpriteSheetTest` holds each colorway's body to its palette's rim.
 - `GameScreen` reads its `EliteComponent` as it dies, to pay `ELITE_SCORE_FACTOR` and
   `ELITE_EXPERIENCE_FACTOR` kills' worth; it is still one kill to the streak.
+- Shot down by the bat's weapons, it also drops a power-up (`GameScreen.dropPowerUp`): a silver
+  plus spinning on the spot, drifting with the scenery from inside the frame. It collides as
+  `CollisionGroup.PICKUP`, which meets the bat and nothing else, and holds nothing: flying into it
+  draws `PowerUp.roll` from what the run can still use, then and there, and takes it as a pick is
+  taken (`takePowerUp`), banner and all, with a chime of its own (`SoundEffect.POWER_UP`), but
+  with no dialog and so no grace. In the dark it is a light, at z 16 over the dark. Nothing drops
+  once the stage is won, and nothing is taken.
 - An aura's halo is drawn between two `RenderSystem` passes: the scenery strip (below z 0), then
   every other sprite. In one pass the strip covered every halo in the jungle and the cave.
 
@@ -545,8 +552,8 @@ two are hand-drawn sources, kept as they were drawn, which `generate_title.py` a
 - Runs are random, so unlike the art a re-recording is never byte for byte the same. Re-record after
   a visible change.
 - `RunProbe` reads a handful of `GameScreen`'s private fields by reflection (`world`, `batId`,
-  `offer`, `stageComplete`, `progress`, `scoring`, `bannerText`, `bannerTime`). Renaming one still
-  compiles; `RunProbeTest`, which flies a few seconds of the cave, is what fails.
+  `offer`, `stageComplete`, `progress`, `loadout`, `scoring`, `bannerText`, `bannerTime`).
+  Renaming one still compiles; `RunProbeTest`, which flies a few seconds of the cave, is what fails.
 - The same hosting tests `GameScreen` itself: `GameScreenTest` builds a run on a `DesktopGame`, sets
   up a moment through `RunProbe` and the public `enmGen`, and steps it with `update`.
 
