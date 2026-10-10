@@ -3,8 +3,8 @@
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this
 repository.
 
-CyanBat is a side-scrolling shooter that runs on Android and on the desktop from one Kotlin
-Multiplatform codebase. The README covers features, controls and the release secrets; this file
+CyanBat is a side-scrolling shooter that runs on Android, on the desktop and in the browser from one
+Kotlin Multiplatform codebase. The README covers features, controls and the release secrets; this file
 covers what you need to change the code.
 
 ## Commands
@@ -16,6 +16,8 @@ covers what you need to change the code.
 ./gradlew :engine:jvmTest --tests '*CollisionSystem*'    # wildcards work too
 ./gradlew :app:lint                                      # lint exists only in :app
 ./gradlew :desktop:run                                   # play on the desktop, no emulator
+./gradlew :web:wasmJsBrowserDevelopmentRun               # play in the browser, on localhost:8080
+./gradlew :web:wasmJsBrowserDistribution                 # the optimized site, in web/build/dist/wasmJs/productionExecutable
 ./gradlew :app:installDebug                              # install on a running emulator
 ./gradlew :engine:iosSimulatorArm64Test :game:iosSimulatorArm64Test   # the shared tests on the iOS simulator; Mac only
 ./gradlew :desktop:recordGameplay                        # re-record the README's GIF, docs/gameplay.gif
@@ -26,6 +28,14 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
   (`iosSimulatorArm64Test`, which needs Xcode; on a Mac `build` runs it too). No Android host tests
   or instrumentation tests are configured. `:app` has plain JVM unit tests of its own
   (`app/src/test`), for its DataStore code.
+- `commonTest` does not run in the browser: the `wasmJs` test tasks are off, because they would
+  need a browser installed (Chrome, by default) and Compose's Skia runtime bundled into each
+  library's tests. `build` still compiles the shared code for Kotlin/Wasm and builds the site.
+- The web build runs Node.js, Yarn and Binaryen, which Gradle downloads on first use from the
+  repositories `settings.gradle.kts` declares for them. The Kotlin plugin would add those
+  repositories to the projects itself, which `FAIL_ON_PROJECT_REPOS` refuses, so the root build
+  clears its download URLs. `kotlin-js-store/wasm/yarn.lock` pins the npm packages; after changing
+  the Kotlin or Compose version, refresh it with `./gradlew kotlinWasmUpgradeYarnLock`.
 - **Off a Mac, `build` skips the iOS targets** (`kotlin.native.enableKlibsCrossCompilation=false`
   in `gradle.properties`), so it needs no Kotlin/Native toolchain. It still compiles `commonMain`
   as common code, so a JVM-only API there fails the build anywhere. What only Kotlin/Native
@@ -44,9 +54,10 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
 
 ## Architecture
 
-`:engine` <- `:game` <- `:app` (Android) and `:desktop` (Compose Desktop). The engine and the whole
-game, menu UI included, are common code; the two platform modules only supply platform pieces. The
-few platform differences inside `:game` are `expect`/`actual` (`ui/Platform.kt`).
+`:engine` <- `:game` <- `:app` (Android), `:desktop` (Compose Desktop) and `:web` (Compose in the
+browser, on Kotlin/Wasm). The engine and the whole game, menu UI included, are common code; the
+three platform modules only supply platform pieces. The few platform differences inside `:game` are
+`expect`/`actual` (`ui/Platform.kt`).
 `:engine` and `:game` also have iOS targets (`iosArm64`, `iosSimulatorArm64`), but there is no iOS
 app yet: the targets are there so that the shared code stays portable to one.
 
@@ -57,6 +68,9 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
 
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
+- Desktop and the browser host a run the same way: a `ComposeGame`, drawn and driven by the
+  engine's `GameSurface`, which pauses the run when the player leaves the window. `DesktopGame` is
+  the desktop's, which loads its assets off the classpath and can `capture` a frame.
 - Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`. It takes the
   screen by the player's `WindowMode`: a window, full screen, or borderless (not on a Mac, whose
   full screen already is). Settings offers the modes only on the desktop (`windowModes`); phones
@@ -79,12 +93,29 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
       focus.
     - On a Mac one window does for every mode, and only its placement changes, as the green button
       changes it.
+- Browser: `:web`'s `main` puts the menu or a run in a `ComposeViewport` filling the page, as the
+  desktop's window does. The page fills the browser's window, so Settings offers no window modes,
+  and the main screen has no Exit, since a page cannot close its tab (`MenuHost.onExit` is null).
+    - A run's pictures and sounds are loaded synchronously on every platform, so the page fetches
+      them ahead (`WebAssets.preload`) from the index the build writes beside them
+      (`assets/index.txt`, by `stageWebAssets`), while the player is still in the menu; a run
+      started sooner waits for them. Music is fetched as each piece is made, being 21 of the 22 MB:
+      until its stems arrive, a piece is a `PendingLayeredMusic` or `PendingMusic`, which takes
+      whatever the game asks of it and hands on the latest once they do.
+    - `PageFocus` tells `GameSurface` whether the player is at the page, from the browser's own
+      `focus`, `blur` and `visibilitychange`, since Compose's window info could not be seen to
+      follow them. `WebAudioDevice` suspends the page's one `AudioContext` while it is hidden, and
+      starts it on the first key or click, which is when a browser lets a page make sound.
+    - Settings, highscores and unlocks are in the page's local storage (`WebStorage`), under the
+      desktop's key names; a browser that refuses storage leaves them in memory.
+    - `index.html` checks for WebAssembly's garbage collection before it loads the game, which
+      Kotlin/Wasm needs, and says so in a browser without it.
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.
 - Each host builds a `CyanBatEnvironment` (assets, haptics, highscore and stage unlock stores, audio
   settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in `:game`, backed
-  by DataStore in `:app` and `java.util.prefs` in `:desktop`.
+  by DataStore in `:app`, `java.util.prefs` in `:desktop` and the page's local storage in `:web`.
 
 **Timing.** The shared `GameLoop` clamps a frame's delta to 50 ms, so a resume cannot fast-forward
 the run. `GameScreen` steps `world.update` in fixed 19 ms ticks (`TICK_INITIAL`), and everything
@@ -174,6 +205,9 @@ playfield for wide screens; it would change difficulty by device.
   Android sets the default back to the system's at every configuration change, so both activities
   call
   `AppLocale.reapply()` in `onConfigurationChanged`, before anything reads a string.
+- In a browser Compose reads the language off `navigator.language` and `navigator.languages`,
+  which a page cannot set. `index.html` puts a getter in front of each that answers with
+  `window.cyanbatLanguage` when it is set, and `WebLocale` sets it.
 - The menu redraws itself in a new language, under `key(language)` in `CyanBatMenu`: Compose's
   resources pick the language when a string is first read, and nothing reads it again by itself. A
   host puts a language into effect before `SettingsRepository.language` tells the menu of it.
@@ -389,7 +423,9 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   music's grid (`MusicGrid`, `Quantum`): a layer coming in is all the way up on the beat, one going
   out plays out its beat first. It also runs the muffle, a swept low-pass.
   `DesktopLayeredMusic` and `AndroidLayeredMusic` are only threads pulling frames from it into a
-  `SourceDataLine` or an `AudioTrack`.
+  `SourceDataLine` or an `AudioTrack`. `WebLayeredMusic` is a timer on the page's one thread,
+  scheduling chunks on the `AudioContext`'s clock back to back, a little ahead of it. The context
+  runs at the assets' 22.05 kHz, so nothing is resampled at the chunks' joins.
 - The menu's, the game over's and the victory's music go through the same mixer: `Audio.newMusic`
   is one stem at full level (`TrackMusic`), looping or played once. A track that does not loop stops
   at its end (`StemMixer.isLooping`, `hasEnded`) and starts from the top when played again.
@@ -482,8 +518,8 @@ for an app to come). There is no framebuffer bitmap.
 
 **Assets.**
 
-- `assets/` at the root is packaged as Android assets by `:app` and as classpath resources by
-  `:desktop`.
+- `assets/` at the root is packaged as Android assets by `:app`, as classpath resources by
+  `:desktop`, and by `:web` as files served beside the page, under `assets/`.
 - Strings, the menu's and the run's, and the menu's drawables are Compose resources in
   `game/src/commonMain/composeResources`, with the `Res` class in `at.smiech.cyanbat.resources`.
 - CMP 1.12 does not copy those resources into the APK. The `StageComposeResources` task in

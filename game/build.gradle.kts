@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
@@ -19,6 +21,15 @@ kotlin {
     // iOS targets ahead of any iOS app, for the reason given in the engine's build file.
     iosArm64()
     iosSimulatorArm64()
+
+    // The browser, for the web app in :web, without its tests, for the reason the engine's build
+    // file gives.
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser {
+            testTask { enabled = false }
+        }
+    }
 
     sourceSets {
         commonMain {

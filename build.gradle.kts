@@ -1,3 +1,11 @@
+import org.jetbrains.kotlin.gradle.targets.wasm.binaryen.BinaryenEnvSpec
+import org.jetbrains.kotlin.gradle.targets.wasm.binaryen.BinaryenPlugin
+import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsEnvSpec
+import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsPlugin
+import org.jetbrains.kotlin.gradle.targets.wasm.nodejs.WasmNodeJsRootPlugin
+import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnPlugin
+import org.jetbrains.kotlin.gradle.targets.wasm.yarn.WasmYarnRootEnvSpec
+
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 plugins {
     alias(libs.plugins.androidApplication) apply false
@@ -56,5 +64,35 @@ subprojects {
         systemProperty("user.language", "en")
         systemProperty("user.country", "US")
         jvmArgs("--enable-native-access=ALL-UNNAMED")
+    }
+
+    // The shared tests do not run in the browser (see the engine's build file), so nothing is
+    // built for them there either. A disabled test task still runs what it depends on, and among
+    // that is Compose's check that the tests could load its runtime, which fails the build
+    // because a library's tests cannot.
+    tasks.named {
+        it == "compileTestKotlinWasmJs" ||
+            it == "compileTestDevelopmentExecutableKotlinWasmJs" ||
+            it == "checkComposeUiTestConfigurationForWasmJs"
+    }.configureEach { enabled = false }
+}
+
+/*
+ * The web build's tools - Node.js, Yarn and Binaryen - come from the repositories that
+ * settings.gradle.kts declares for them. Given a download URL, the Kotlin plugin would add a
+ * repository of its own to the root project instead, which the build's repository mode refuses.
+ */
+allprojects {
+    plugins.withType<WasmNodeJsRootPlugin> {
+        the<WasmNodeJsEnvSpec>().downloadBaseUrl.set(null as String?)
+    }
+    plugins.withType<WasmNodeJsPlugin> {
+        the<WasmNodeJsEnvSpec>().downloadBaseUrl.set(null as String?)
+    }
+    plugins.withType<WasmYarnPlugin> {
+        the<WasmYarnRootEnvSpec>().downloadBaseUrl.set(null as String?)
+    }
+    plugins.withType<BinaryenPlugin> {
+        the<BinaryenEnvSpec>().downloadBaseUrl.set(null as String?)
     }
 }

@@ -4,10 +4,11 @@ import at.smiech.engine.Controls
 import at.smiech.engine.Input
 
 /**
- * [Input] for the desktop. Pointer state comes from the shared [PointerTouchHandler]; keyboard
- * state arrives through [controls].
+ * [Input] for a host that hands the game Compose's pointer and key events: the desktop and the
+ * browser. Pointer state comes from the shared [PointerTouchHandler]; keyboard state arrives
+ * through [controls].
  */
-class DesktopInput(
+class ComposeInput(
     val touchHandler: PointerTouchHandler,
     override val controls: Controls = Controls.None,
 ) : Input {
