@@ -34,7 +34,8 @@ import org.jetbrains.compose.resources.stringResource
  * Everything the shared menu needs from its host.
  *
  * Android supplies a DataStore-backed [SettingsRepository] and starts an Activity; desktop
- * supplies a preferences-backed one and swaps the window content. Neither detail reaches the UI.
+ * supplies a preferences-backed one and swaps the window content; the browser keeps its settings in
+ * the page's storage. None of these details reaches the UI.
  */
 class MenuHost(
     val settings: SettingsRepository,
@@ -46,7 +47,11 @@ class MenuHost(
     val highscores: HighscoreStore,
     /** Start a run on the stage with this 1-based id. */
     val onStartGame: (stageId: Int) -> Unit,
-    val onExit: () -> Unit,
+    /**
+     * Quits the game, or null where the game cannot quit itself, and the main screen then has no
+     * Exit: a page cannot close its own browser tab.
+     */
+    val onExit: (() -> Unit)?,
 )
 
 private val LightColors = lightColorScheme()

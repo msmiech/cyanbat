@@ -1,4 +1,4 @@
-package at.smiech.cyanbat.desktop
+package at.smiech.engine.impl
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.focusable
@@ -19,26 +19,27 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalWindowInfo
 import at.smiech.engine.DisplayMode
 import at.smiech.engine.GameLoop
-import at.smiech.engine.impl.AmbientBars
-import at.smiech.engine.impl.FrameFit
-import at.smiech.engine.impl.drawGameFrame
-import at.smiech.engine.impl.onComposeKeyEvent
-import at.smiech.engine.impl.onComposePointerEvent
 
 /**
- * Draws the game's frame and drives it from Compose's frame callback: the desktop counterpart of
- * the Canvas in AndroidGameActivity.
+ * Draws the game's frame and drives it from Compose's frame callback: the desktop's and the
+ * browser's counterpart of the Canvas in AndroidGameActivity.
  *
  * @param displayMode how the frame is fitted to the window, as the player set it.
+ * @param windowFocused whether the player is at the window: Compose's own say, unless the host
+ *   knows better, as a page does of being hidden in a background tab.
  */
 @Composable
-fun GameSurface(game: DesktopGame, displayMode: DisplayMode) {
+fun GameSurface(
+    game: ComposeGame,
+    displayMode: DisplayMode,
+    windowFocused: Boolean = LocalWindowInfo.current.isWindowFocused,
+) {
     val loop = remember(game) { GameLoop(game) }
 
-    // Losing focus is the desktop's onPause: it pauses the run, as Android's does, since nobody is
-    // at the controls. It also drops anything held, because the key-up goes to whatever has focus
-    // now, and the bat would otherwise fly on a key nobody is pressing.
-    val windowFocused = LocalWindowInfo.current.isWindowFocused
+    // Losing focus - to another window, or in a browser to another tab - is these hosts' onPause:
+    // it pauses the run, as Android's does, since nobody is at the controls. It also drops anything
+    // held, because the key-up goes to whatever has focus now, and the bat would otherwise fly on a
+    // key nobody is pressing.
     LaunchedEffect(windowFocused) {
         if (!windowFocused) {
             game.controlHandler.releaseAll()

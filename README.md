@@ -1,8 +1,8 @@
 # CyanBat
 
 CyanBat is a side-scrolling 2D action game, inspired by retro classics like *Gradius*, modern arcade
-staples like *Flappy Bird*, and, of course, *NyanCat*. It runs on **Android** and on the **desktop**
-(Windows, macOS and Linux) from a single shared codebase.
+staples like *Flappy Bird*, and, of course, *NyanCat*. It runs on **Android**, on the **desktop**
+(Windows, macOS and Linux) and in the **browser** from a single shared codebase.
 
 <p align="center">
   <img src="docs/gameplay.gif" alt="Stage 1, the jungle, grown over pale ancient ruins: the bat fans its fire through wasp swarms, wisp formations and shielded beetles past hanging chains and fallen walls, picks Spread Shot at a level up and brings down the Moth Queen. Then glimpses of stage 2, the cave, flown in the dark by the bat's own light, up to the moment the Caco Imp arrives, of stage 3, the desert, at noon and as the sun goes down, and of stage 4, the lagoon, at night and as the sun comes up out of the sea between limestone islands">
@@ -16,10 +16,11 @@ staples like *Flappy Bird*, and, of course, *NyanCat*. It runs on **Android** an
 - **Kotlin Multiplatform**: the engine and the whole game — rules, screens, rendering and menu UI —
   are common code. The platform modules only supply platform pieces: asset decoding, input, audio,
   haptics and persistence.
-- **Compose Multiplatform**: one set of menu, settings and credits screens renders on both Android
-  and desktop, from shared string and drawable resources. The game itself is drawn through Compose's
-  Canvas too — on the GPU through HWUI on Android, through Skia on the desktop — as pixel art on a
-  640x360 grid at any screen size, with the HUD's text smooth over it.
+- **Compose Multiplatform**: one set of menu, settings and credits screens renders on Android, the
+  desktop and the web, from shared string and drawable resources. The game itself is drawn through
+  Compose's Canvas too — on the GPU through HWUI on Android, through Skia on the desktop and in the
+  browser, where Kotlin/Wasm runs it — as pixel art on a 640x360 grid at any screen size, with the
+  HUD's text smooth over it.
 - **Entity Component System**: `:engine`'s ECS decouples game logic from data, so behavior is
   composed from components rather than an inheritance hierarchy.
 - **2D lighting**: the cave is lit by point lights - the bat, its shots and the flare of every hit,
@@ -43,13 +44,14 @@ staples like *Flappy Bird*, and, of course, *NyanCat*. It runs on **Android** an
 
 | Module     | What it is                                                                                                                                                                                                                           |
 |------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `:engine`  | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), math (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain` and `jvmMain` hold the platform implementations. |
-| `:game`    | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI. Android + JVM, and iOS too, though no iOS app exists yet.                                                                                         |
-| `:app`     | Android application — activities, DataStore, and Android asset wiring.                                                                                                                                                               |
-| `:desktop` | Compose Desktop application — window, JVM asset wiring, and preferences-backed storage.                                                                                                                                              |
+| `:engine`  | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), math (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain`, `jvmMain` and `wasmJsMain` hold the platform implementations. |
+| `:game`    | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI. Android, JVM and the browser, and iOS too, though no iOS app exists yet.                                                                                        |
+| `:app`     | Android application — activities, DataStore, and Android asset wiring.                                                                                                                                                                             |
+| `:desktop` | Compose Desktop application — window, JVM asset wiring, and preferences-backed storage.                                                                                                                                                            |
+| `:web`     | The browser's page — Kotlin/Wasm and Compose, assets fetched beside the page, and storage in the browser's local storage.                                                                                                                         |
 
-Game assets live once at the repo root in `assets/`, packaged as Android assets by `:app` and as
-classpath resources by `:desktop`.
+Game assets live once at the repo root in `assets/`, packaged as Android assets by `:app`, as
+classpath resources by `:desktop`, and served beside the page by `:web`.
 
 ## ▶️ Running it
 
@@ -64,6 +66,17 @@ Android:
 ```bash
 ./gradlew :app:installDebug
 ```
+
+In the browser, served from Gradle on `localhost:8080`:
+
+```bash
+./gradlew :web:wasmJsBrowserDevelopmentRun
+```
+
+`./gradlew :web:wasmJsBrowserDistribution` builds the optimized site into
+`web/build/dist/wasmJs/productionExecutable`, which any static web server can host. It needs a
+browser with WebAssembly garbage collection: Chrome or Edge 119, Firefox 120, or Safari 18.2, or
+later.
 
 There is also a `/run-cyanbat` skill that drives the Android build end to end on an emulator —
 build, install, launch, screenshot, and check persistence. See
@@ -131,8 +144,15 @@ The game is in English, German and Polish. It follows the language the device or
 unless you pick one under Settings → Language. On Android 13 and later that is the same setting as
 the game's entry in the system settings' app languages.
 
-Backgrounding the app — or, on desktop, the window losing focus — pauses the run, and it stays
-paused until you resume it rather than dropping you straight back into a dodge.
+Backgrounding the app — or, on desktop, the window losing focus, or in a browser, switching to
+another tab or window — pauses the run, and it stays paused until you resume it rather than dropping
+you straight back into a dodge.
+
+In a browser the game fills the page, and the browser's own full screen (`F11`) takes it from there;
+Settings offers no window modes, and the main screen has no Exit, since a page cannot close its own
+tab. The page fetches the pictures and sounds a run is built from while you are in the menu, and
+each piece of music as it is first played. Settings, highscores and the stages you have opened are
+kept in the browser's storage for the site.
 
 On desktop, Settings → Display → Screen puts the game in a window, in full screen, or borderless:
 a window without a frame over the whole screen, which other windows can come over and which stays
@@ -148,8 +168,9 @@ or `B` goes back a screen. The cursor starts on each screen's first choice, and 
 button you left from.
 
 Controller support is real on Android, where the platform reports pads as key codes and joystick
-axes. On desktop the JDK has no gamepad API, so nothing feeds those events yet: the mapping seam is
-`ControlHandler.onAxis`/`onButton`, and a backend only has to call them.
+axes. On desktop the JDK has no gamepad API, and the browser build does not read the browser's yet,
+so nothing feeds those events there: the mapping seam is `ControlHandler.onAxis`/`onButton`, and a
+backend only has to call them.
 
 A hit buzzes whatever you are playing with. That is the controller, if it can rumble: a DualSense, a
 DualShock 4, or an Xbox One or Series pad over Bluetooth. Android's own kernels carry the drivers
@@ -167,6 +188,9 @@ it off; it is on by default.
 Assembles every module, runs lint, and runs the unit tests — ECS, math, spawn pacing, the music
 mixer's timing, a check that every stage's music stems fit the grid the game plays them on, and one
 that the MP3 service provider the desktop's death sound depends on is actually present.
+
+`build` also compiles the shared code for the browser and builds the web site. The tests are not
+run in a browser: they run on the JVM, and on iOS as below.
 
 `:engine` and `:game` also have iOS targets, groundwork for an iOS app that does not exist yet, so
 shared code cannot quietly come to depend on the JVM. Only a Mac builds them: there `build` also
@@ -261,11 +285,11 @@ Fixing that needs a paid code-signing certificate and an Apple developer account
 
 - **Language**: Kotlin 2.x, Kotlin Multiplatform
 - **UI**: Compose Multiplatform
-- **Persistence**: Jetpack DataStore (Android), `java.util.prefs` (desktop)
-- **Audio**: a shared stem mixer for all of the music, played through `AudioTrack` on Android and a
-  `javax.sound.sampled` line on the desktop; sound effects through `SoundPool` and
-  `javax.sound.sampled` clips; the mp3spi/jlayer service providers decode the desktop's MP3 death
-  sound
+- **Persistence**: Jetpack DataStore (Android), `java.util.prefs` (desktop), local storage (browser)
+- **Audio**: a shared stem mixer for all of the music, played through `AudioTrack` on Android, a
+  `javax.sound.sampled` line on the desktop and the Web Audio API in the browser; sound effects
+  through `SoundPool`, `javax.sound.sampled` clips and Web Audio; the mp3spi/jlayer service
+  providers decode the desktop's MP3 death sound
 - **CI/CD**: GitHub Actions
 
 ## 📜 History
@@ -274,7 +298,7 @@ This project originated as an academic project in 2012. The initial implementati
 principles from *Beginning Android Games* by Mario Zechner and Robert Green. The original
 implementation of the game framework was provided by DI Robert Grüneis. In 2026 it was rewritten
 from legacy OOP to a completely new data-driven ECS architecture, and then from an Android-only app
-to Kotlin Multiplatform with a desktop target.
+to Kotlin Multiplatform with a desktop target, and later a web target.
 
 ---
 *Developed with ❤️ using Kotlin.*

@@ -33,6 +33,7 @@ import at.smiech.engine.DisplayMode
 import at.smiech.engine.Haptics
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopAudio
+import at.smiech.engine.impl.GameSurface
 import at.smiech.engine.impl.onComposeKeyEvent
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking

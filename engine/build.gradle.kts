@@ -1,3 +1,5 @@
+import org.jetbrains.kotlin.gradle.ExperimentalWasmDsl
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidKotlinMultiplatformLibrary)
@@ -24,6 +26,20 @@ kotlin {
      */
     iosArm64()
     iosSimulatorArm64()
+
+    /*
+     * The browser, through Kotlin/Wasm, for the web app in :web. The shared tests are not run here:
+     * in a browser they would need one installed, Chrome by default, and Compose's Skia runtime
+     * bundled into them, and on Node.js that runtime does not load at all. The JVM and iOS already
+     * run them, and compiling for the browser already holds commonMain to what Kotlin/Wasm
+     * supports. The root build file turns off what they would be built with.
+     */
+    @OptIn(ExperimentalWasmDsl::class)
+    wasmJs {
+        browser {
+            testTask { enabled = false }
+        }
+    }
 
     sourceSets {
         commonMain {
@@ -54,6 +70,16 @@ kotlin {
                 // tests draw with. The engine itself needs only Compose's API; the desktop app
                 // brings the natives it runs with.
                 implementation(compose.desktop.currentOs)
+            }
+        }
+        wasmJsMain {
+            // Declaring the Web Audio API's types, and calling into JavaScript, is experimental in
+            // Kotlin/Wasm.
+            languageSettings.optIn("kotlin.js.ExperimentalWasmJsInterop")
+            dependencies {
+                // The page's fetch and Web Audio, and coroutines to wait on the promises they return.
+                implementation(libs.kotlinx.browser)
+                implementation(libs.kotlinx.coroutines.core)
             }
         }
         androidMain {

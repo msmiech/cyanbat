@@ -81,7 +81,8 @@ fun MainMenuScreen(
     onNavigateToCredits: () -> Unit,
     onNavigateToStageSelect: () -> Unit,
     onStartGame: (stageId: Int) -> Unit,
-    onExit: () -> Unit,
+    /** Quits the game; null where it cannot quit, and there is no Exit. */
+    onExit: (() -> Unit)?,
 ) {
     val isMusicEnabled by viewModel.isMusicEnabled.collectAsState()
     LaunchedEffect(isMusicEnabled) {
@@ -98,7 +99,7 @@ fun MainMenuScreen(
         HelpDialog { showHelpDialog = false }
     }
 
-    MainMenuContent(home = MainChoice.entries[cursor]) { choice ->
+    MainMenuContent(home = MainChoice.entries[cursor], canExit = onExit != null) { choice ->
         cursor = choice.ordinal
         when (choice) {
             // Straight into the jungle until there is a second stage to choose; see StageSelectScreen.
@@ -112,7 +113,7 @@ fun MainMenuScreen(
             MainChoice.SETTINGS -> onNavigateToSettings()
             MainChoice.HELP -> showHelpDialog = true
             MainChoice.CREDITS -> onNavigateToCredits()
-            MainChoice.EXIT -> {
+            MainChoice.EXIT -> if (onExit != null) {
                 viewModel.stopMusic()
                 onExit()
             }
@@ -175,9 +176,13 @@ private fun HelpDialog(dismiss: () -> Unit) {
     }
 }
 
-/** The title screen's layout, with the cursor starting on [home]. */
+/** The title screen's layout, with the cursor starting on [home], and Exit only if [canExit]. */
 @Composable
-private fun MainMenuContent(home: MainChoice, onChoose: (MainChoice) -> Unit) {
+private fun MainMenuContent(
+    home: MainChoice,
+    canExit: Boolean,
+    onChoose: (MainChoice) -> Unit,
+) {
     val cursor = remember { MainChoice.entries.associateWith { FocusRequester() } }
     HomeCursor(cursor.getValue(home))
 
@@ -209,11 +214,13 @@ private fun MainMenuContent(home: MainChoice, onChoose: (MainChoice) -> Unit) {
                         )
                     }
                 }
-                Column(
-                    modifier = Modifier.fillMaxHeight(),
-                    verticalArrangement = Arrangement.Bottom
-                ) {
-                    MenuButton(MainChoice.EXIT, cursor.getValue(MainChoice.EXIT), onChoose)
+                if (canExit) {
+                    Column(
+                        modifier = Modifier.fillMaxHeight(),
+                        verticalArrangement = Arrangement.Bottom
+                    ) {
+                        MenuButton(MainChoice.EXIT, cursor.getValue(MainChoice.EXIT), onChoose)
+                    }
                 }
             }
         }

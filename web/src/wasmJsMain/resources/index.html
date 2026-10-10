@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#000000">
+    <title>CyanBat</title>
+    <link rel="icon" type="image/png" sizes="16x16" href="icons/cyanbat_16.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="icons/cyanbat_32.png">
+    <link rel="apple-touch-icon" href="icons/cyanbat_256.png">
+    <style>
+        html, body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #000;
+        }
+
+        #loading {
+            position: fixed;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+            text-align: center;
+            color: #a6f6ff;
+            font: 18px sans-serif;
+        }
+    </style>
+    <script>
+        // The language the player chose in the game's Settings, put in front of the browser's own.
+        // Compose reads the page's language off navigator.language and navigator.languages, which a
+        // page cannot set, so the game sets window.cyanbatLanguage (WebLocale) and these read it.
+        (function () {
+            const own = {};
+            for (const name of ["language", "languages"]) {
+                const original = Object.getOwnPropertyDescriptor(Navigator.prototype, name);
+                own[name] = () => original.get.call(navigator);
+                Object.defineProperty(Navigator.prototype, name, {
+                    configurable: true,
+                    enumerable: original.enumerable,
+                    get() {
+                        const chosen = window.cyanbatLanguage;
+                        if (!chosen) return original.get.call(this);
+                        return name === "languages" ? [chosen] : chosen;
+                    },
+                });
+            }
+            window.cyanbatBrowserLanguage = own.language;
+        })();
+    </script>
+</head>
+<body>
+<div id="loading">Loading CyanBat…</div>
+<script>
+    // Kotlin/Wasm needs WebAssembly's garbage collection: Chrome and Edge 119, Firefox 120,
+    // Safari 18.2. The bytes are the smallest module that declares a struct type.
+    if (!WebAssembly.validate(new Uint8Array([0, 97, 115, 109, 1, 0, 0, 0, 1, 5, 1, 95, 1, 120, 0]))) {
+        document.getElementById("loading").textContent =
+            "CyanBat needs a newer browser: Chrome, Edge or Firefox from 2024 on, or Safari 18.2.";
+    } else {
+        const script = document.createElement("script");
+        script.src = "cyanbat.js";
+        document.body.appendChild(script);
+    }
+</script>
+</body>
+</html>
