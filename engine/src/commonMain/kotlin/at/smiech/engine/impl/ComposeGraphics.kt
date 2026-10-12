@@ -38,6 +38,7 @@ import at.smiech.engine.Pixmap
 import at.smiech.engine.Raster
 import at.smiech.engine.impl.ComposeGraphics.Companion.LIGHT_CELL
 import at.smiech.engine.impl.ComposeGraphics.Companion.MAX_TINTS
+import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.cos
 import kotlin.math.floor
@@ -121,6 +122,13 @@ class ComposeGraphics(
     private var floats = FloatArray(64)
     private var floatCount = 0
     private val refs = ArrayList<Any>(256)
+
+    /** Where the replay has got to in [floats] and [refs]; see [replay]. */
+    private var floatAt = 0
+    private var refAt = 0
+
+    /** Whether a warp's body is being recorded; see [drawWarped]. */
+    private var warping = false
 
     /** The turned sprites, one per turned blit in the frame; see [turn]. */
     private val turns = ArrayList<Turn>()
@@ -517,6 +525,44 @@ class ComposeGraphics(
         floats[floatCount++] = value
     }
 
+    /**
+     * Records what [draw] draws as the body of a warp: the rows of the frame grouped into runs that
+     * shift alike, each to be drawn from the same commands, clipped to its rows and moved sideways
+     * by its offset; see [drawWarpRun].
+     *
+     * Runs rather than rows, because every run is another pass over the body, and a gentle ripple
+     * moves dozens of rows by the same pixel. A frame that shifts nothing records no warp at all.
+     */
+    override fun drawWarped(offsets: IntArray, draw: () -> Unit) {
+        if (warping || offsets.none { it != 0 }) return draw()
+        reserve(WARP_HEADER + 3 * height)
+        val at = intCount
+        ints[intCount++] = WARP
+        ints[intCount++] = 0
+        ints[intCount++] = 0
+        var runs = 0
+        var top = 0
+        while (top < height) {
+            val offset = offsets.getOrElse(top) { 0 }
+            var bottom = top + 1
+            while (bottom < height && offsets.getOrElse(bottom) { 0 } == offset) bottom++
+            ints[intCount++] = top
+            ints[intCount++] = bottom
+            ints[intCount++] = offset
+            runs++
+            top = bottom
+        }
+        ints[at + 2] = runs
+        warping = true
+        try {
+            draw()
+        } finally {
+            warping = false
+        }
+        // Where the body ends, for the replay to come back out of it.
+        ints[at + 1] = intCount
+    }
+
     override fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int) {
         if (s != null) text(s, x, y, fontSize, col, outline = 0, outlined = false)
     }
@@ -568,75 +614,199 @@ class ComposeGraphics(
      * view and clips it to the frame, as [drawGameFrame] does.
      */
     internal fun draw(scope: DrawScope) {
+        floatAt = 0
+        refAt = 0
+        replay(scope, 0, intCount, Int.MIN_VALUE, Int.MIN_VALUE, Int.MAX_VALUE, Int.MAX_VALUE)
+    }
+
+    /**
+     * Draws the commands from [from] up to [to], only those whose pixels reach into the window from
+     * [left], [top] to [right], [bottom] in frame pixels; the rest are stepped over. A run of a warp
+     * draws only the window it shows, and most of the frame's commands lie outside it.
+     *
+     * Reads the floats and pictures from [floatAt] and [refAt] on, whether or not it draws, and
+     * leaves them past the last command.
+     */
+    private fun replay(
+        scope: DrawScope,
+        from: Int,
+        to: Int,
+        left: Int,
+        top: Int,
+        right: Int,
+        bottom: Int,
+    ) {
         val canvas = scope.drawContext.canvas
-        var i = 0
-        var f = 0
-        var r = 0
-        while (i < intCount) {
+        var i = from
+        while (i < to) {
             when (ints[i]) {
                 RECT -> {
-                    shapePaint.color = Color(ints[i + 5])
-                    val left = ints[i + 1].toFloat()
-                    val top = ints[i + 2].toFloat()
-                    canvas.drawRect(left, top, left + ints[i + 3], top + ints[i + 4], shapePaint)
+                    if (meets(ints[i + 1], ints[i + 2], ints[i + 3], ints[i + 4], left, top, right, bottom)) {
+                        shapePaint.color = Color(ints[i + 5])
+                        val x = ints[i + 1].toFloat()
+                        val y = ints[i + 2].toFloat()
+                        canvas.drawRect(x, y, x + ints[i + 3], y + ints[i + 4], shapePaint)
+                    }
                     i += SHAPE_LENGTH
                 }
 
                 LINE -> {
-                    drawLine(canvas, i)
+                    val x = minOf(ints[i + 1], ints[i + 3])
+                    val y = minOf(ints[i + 2], ints[i + 4])
+                    val w = maxOf(ints[i + 1], ints[i + 3]) - x + 1
+                    val h = maxOf(ints[i + 2], ints[i + 4]) - y + 1
+                    if (meets(x, y, w, h, left, top, right, bottom)) drawLine(canvas, i)
                     i += SHAPE_LENGTH
                 }
 
                 OVAL, OUTLINE -> {
-                    drawOval(canvas, i)
+                    if (meets(ints[i + 1], ints[i + 2], ints[i + 3], ints[i + 4], left, top, right, bottom)) {
+                        drawOval(canvas, i)
+                    }
                     i += SHAPE_LENGTH
                 }
 
                 IMAGE -> {
-                    drawImage(canvas, refs[r++] as ImageBitmap, i, imagePaint)
+                    val image = refs[refAt++] as ImageBitmap
+                    if (blitMeets(i, left, top, right, bottom)) drawImage(canvas, image, i, imagePaint)
                     i += IMAGE_LENGTH
                 }
 
                 FADED -> {
-                    fadePaint.alpha = floats[f++]
-                    drawImage(canvas, refs[r++] as ImageBitmap, i, fadePaint)
+                    val alpha = floats[floatAt++]
+                    val image = refs[refAt++] as ImageBitmap
+                    if (blitMeets(i, left, top, right, bottom)) {
+                        fadePaint.alpha = alpha
+                        drawImage(canvas, image, i, fadePaint)
+                    }
                     i += IMAGE_LENGTH
                 }
 
                 SILHOUETTE -> {
-                    val color = ints[i + IMAGE_LENGTH]
-                    val rgb = color or OPAQUE
-                    if (rgb != silhouetteRgb) {
-                        silhouetteRgb = rgb
-                        // Keeps the picture's alpha and replaces its colors, leaving its shape in
-                        // one color; the paint's alpha sets the strength.
-                        silhouettePaint.colorFilter = ColorFilter.tint(Color(rgb), BlendMode.SrcIn)
+                    val image = refs[refAt++] as ImageBitmap
+                    if (blitMeets(i, left, top, right, bottom)) {
+                        val color = ints[i + IMAGE_LENGTH]
+                        val rgb = color or OPAQUE
+                        if (rgb != silhouetteRgb) {
+                            silhouetteRgb = rgb
+                            // Keeps the picture's alpha and replaces its colors, leaving its shape in
+                            // one color; the paint's alpha sets the strength.
+                            silhouettePaint.colorFilter = ColorFilter.tint(Color(rgb), BlendMode.SrcIn)
+                        }
+                        silhouettePaint.alpha = (color ushr 24) / 255f
+                        drawImage(canvas, image, i, silhouettePaint)
                     }
-                    silhouettePaint.alpha = (color ushr 24) / 255f
-                    drawImage(canvas, refs[r++] as ImageBitmap, i, silhouettePaint)
                     i += IMAGE_LENGTH + 1
                 }
 
                 TEXT -> {
-                    drawText(scope, refs[r++] as String, i)
+                    val text = refs[refAt++] as String
+                    // Its width is only known once laid out, so it counts as reaching the far edge:
+                    // its rows, from above the tallest glyph to below the deepest, and its outline.
+                    val size = ints[i + 3]
+                    val y = ints[i + 2] - size - 2
+                    if (meets(ints[i + 1] - 2, y, Int.MAX_VALUE / 2, size * 3 / 2 + 4, left, top, right, bottom)) {
+                        drawText(scope, text, i)
+                    }
                     i += TEXT_LENGTH
                 }
 
                 LIGHT -> {
-                    drawLight(canvas, refs[r++] as ImageBitmap, floats[f++])
+                    // Over the whole frame, so in every window.
+                    drawLight(canvas, refs[refAt++] as ImageBitmap, floats[floatAt++])
                     i += LIGHT_LENGTH
                 }
 
                 GLINT -> {
-                    glintPaint.colorFilter = tint(ints[i + IMAGE_LENGTH])
-                    glintPaint.alpha = floats[f++]
-                    drawImage(canvas, refs[r++] as ImageBitmap, i, glintPaint)
+                    val strength = floats[floatAt++]
+                    val image = refs[refAt++] as ImageBitmap
+                    if (blitMeets(i, left, top, right, bottom)) {
+                        glintPaint.colorFilter = tint(ints[i + IMAGE_LENGTH])
+                        glintPaint.alpha = strength
+                        drawImage(canvas, image, i, glintPaint)
+                    }
                     i += IMAGE_LENGTH + 1
                 }
+
+                WARP -> i = drawWarp(scope, i)
 
                 else -> error("Unknown drawing command ${ints[i]} at $i")
             }
         }
+    }
+
+    /**
+     * Draws the warp recorded at [at] (see [drawWarped]) and returns where the commands after it
+     * start: its body once for every run of rows, clipped to those rows and moved by the run's
+     * offset, and again for the strip that offset leaves bare at one edge, drawn from the other
+     * edge, so what a run shifts out of one side comes in at the other.
+     */
+    private fun drawWarp(scope: DrawScope, at: Int): Int {
+        val end = ints[at + 1]
+        val runs = ints[at + 2]
+        val body = at + WARP_HEADER + 3 * runs
+        val bodyFloats = floatAt
+        val bodyRefs = refAt
+        for (run in 0 until runs) {
+            val top = ints[at + WARP_HEADER + 3 * run]
+            val bottom = ints[at + WARP_HEADER + 3 * run + 1]
+            val offset = ints[at + WARP_HEADER + 3 * run + 2]
+            floatAt = bodyFloats
+            refAt = bodyRefs
+            drawWarpRun(scope, body, end, top, bottom, 0, width, offset)
+            if (offset == 0) continue
+            floatAt = bodyFloats
+            refAt = bodyRefs
+            // Shifted right, the run leaves its first columns bare, and they show its last ones;
+            // shifted left, the other way about.
+            val shift = if (offset > 0) offset - width else offset + width
+            val bareLeft = if (offset > 0) 0 else width + offset
+            drawWarpRun(scope, body, end, top, bottom, bareLeft, bareLeft + abs(offset), shift)
+        }
+        // The cursors past the body, which every pass above stepped through whole.
+        return end
+    }
+
+    /**
+     * The warp's body from [from] to [to], drawn into the rows from [top] to [bottom] and the
+     * columns from [left] to [right] of the frame, moved [shift] frame pixels to the right.
+     */
+    private fun drawWarpRun(
+        scope: DrawScope,
+        from: Int,
+        to: Int,
+        top: Int,
+        bottom: Int,
+        left: Int,
+        right: Int,
+        shift: Int,
+    ) {
+        val canvas = scope.drawContext.canvas
+        canvas.save()
+        canvas.clipRect(left.toFloat(), top.toFloat(), right.toFloat(), bottom.toFloat())
+        canvas.translate(shift.toFloat(), 0f)
+        replay(scope, from, to, left - shift, top, right - shift, bottom)
+        canvas.restore()
+    }
+
+    /**
+     * Whether [width] by [height] frame pixels from [x], [y] reach into the window from [left], [top]
+     * to [right], [bottom].
+     */
+    private fun meets(
+        x: Int, y: Int, width: Int, height: Int,
+        left: Int, top: Int, right: Int, bottom: Int,
+    ): Boolean = x < right && y < bottom && x.toLong() + width > left && y.toLong() + height > top
+
+    /** [meets] for the blit at [at], whose destination is in grid pixels when it is turned. */
+    private fun blitMeets(at: Int, left: Int, top: Int, right: Int, bottom: Int): Boolean {
+        val units = ints[at + 9]
+        val x = ints[at + 5].floorDiv(units)
+        val y = ints[at + 6].floorDiv(units)
+        // The `- 1` the blit was recorded with, and a pixel either way for a turned blit's rounding.
+        val width = ints[at + 7] / units + 2
+        val height = ints[at + 8] / units + 2
+        return meets(x, y, width, height, left, top, right, bottom)
     }
 
     /**
@@ -1378,6 +1548,7 @@ class ComposeGraphics(
         private const val TEXT = 8
         private const val LIGHT = 9
         private const val GLINT = 10
+        private const val WARP = 11
 
         /**
          * Frame pixels per pixel of the light picture, each way. Half resolution
@@ -1392,6 +1563,9 @@ class ComposeGraphics(
         private const val IMAGE_LENGTH = 10
         private const val TEXT_LENGTH = 7
         private const val LIGHT_LENGTH = 1
+
+        /** A warp's opcode, where its body ends and how many runs it has, ahead of the runs. */
+        private const val WARP_HEADER = 3
 
         /** How many light colors [tint] keeps a filter for. */
         private const val MAX_TINTS = 32

@@ -8,6 +8,7 @@ import at.smiech.cyanbat.resource.LANGUAGES
 import at.smiech.cyanbat.resource.textIn
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.allStringResources
+import at.smiech.cyanbat.resources.banner_poisoned
 import at.smiech.cyanbat.resources.banner_second_life
 import at.smiech.cyanbat.resources.banner_wave
 import at.smiech.cyanbat.resources.game_over_hint
@@ -81,7 +82,8 @@ class GameTextLayoutTest {
         val bosses = Res.allStringResources.filterKeys { it.startsWith("boss_") }.values
         for ((language, text) in texts) {
             val lines = bosses.map { text[it] } + PowerUp.entries.map { text[it.title] } +
-                    text.format(Res.string.banner_wave, 5) + text[Res.string.banner_second_life]
+                    text.format(Res.string.banner_wave, 5) + text[Res.string.banner_second_life] +
+                    text[Res.string.banner_poisoned]
             for (line in lines) assertFits(language, line, BANNER_FONT_SIZE, room)
         }
     }

@@ -450,14 +450,49 @@ class ComposeGraphicsTest {
     }
 
     /**
+     * A warp moves each run of rows sideways by whole frame pixels, and brings what it pushes off one
+     * edge back in at the other: every row of the warped frame is that row of the plain frame turned
+     * round by its offset. Rows past the offsets given stay where they were. Magnified, it is still
+     * solid blocks, each the frame pixel it magnifies.
+     */
+    @Test
+    fun `a warp turns each row round by its offset, on the grid`() {
+        val offsets = IntArray(40) { y ->
+            when {
+                y < 6 -> 0
+                y < 15 -> 2
+                y < 27 -> -3
+                else -> 1
+            }
+        }
+        val plain = graphics(64, 48).apply { drawScene() }.render(1f)
+        val warped = graphics(64, 48).apply {
+            clear(BACKGROUND)
+            drawWarped(offsets) { drawScene(clear = false) }
+        }
+        val small = warped.render(1f)
+
+        for ((x, y) in small.pixels()) {
+            val offset = offsets.getOrElse(y) { 0 }
+            assertEquals(plain[(x - offset).mod(64), y], small[x, y], "pixel ($x, $y), shifted $offset")
+        }
+        val large = warped.render(3f)
+        for (y in 0 until large.height) for (x in 0 until large.width) {
+            val block = large[x - x % 3, y - y % 3]
+            assertEquals(block, large[x, y], "view pixel ($x, $y) is not its block's color")
+            assertTrue(near(block, small[x / 3, y / 3]), "view pixel ($x, $y) against its frame pixel")
+        }
+    }
+
+    /**
      * Everything the grid tests draw, laid out apart so that nothing translucent overlaps anything
      * but the background: a sprite, a magnified one, a fade, a flash, a turned sprite with its flash,
      * a translucent rectangle, a pixel, an oval, an outline, a line, and a dithered sprite and a
-     * magnified one.
+     * magnified one. [clear] starts the frame with the background, for a scene drawn on its own.
      */
-    private fun ComposeGraphics.drawScene() {
+    private fun ComposeGraphics.drawScene(clear: Boolean = true) {
         val sprite = newPixmap("sprite")
-        clear(BACKGROUND)
+        if (clear) clear(BACKGROUND)
         drawPixmap(sprite, SPRITE_X, SPRITE_Y, 0, 0, 6, 5)
         drawPixmap(sprite, 12, 2, 0, 0, 6, 5, 11, 9)
         drawPixmapFaded(sprite, 26, 3, 0, 0, 6, 5, 0.4f)

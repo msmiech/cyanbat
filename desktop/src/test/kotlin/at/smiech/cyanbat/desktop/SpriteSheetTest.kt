@@ -168,6 +168,16 @@ class SpriteSheetTest {
     }
 
     /**
+     * Every part of the Sky Viper, its four beats of the wings among them, and its venom, which is
+     * never hurt, so its four frames are only drawn in the top row.
+     */
+    @Test
+    fun `no frame of the Sky Viper is empty`() {
+        assertNoBlankFrames("lagoonViper.png", frameWidth = 80, frames = 15, rowHeight = 80)
+        assertNoBlankFrames("lagoonViper.png", frameWidth = 80, frames = 11, rows = WOUND_ROWS)
+    }
+
+    /**
      * A wound has to show. Every frame of every wounded row is checked against the same frame a row
      * up - the healthier picture - because a row that came out the same as it would be a mark the
      * player crosses without anything happening on screen.
@@ -183,6 +193,7 @@ class SpriteSheetTest {
             Triple("desertBoss.png", 48, 6),
             Triple("lagoonEnemies.png", 32, 4 * 5),
             Triple("lagoonBoss.png", 64, 7),
+            Triple("lagoonViper.png", 80, 11),
         )) {
             val image = javaClass.getResourceAsStream("/$name")!!.use { ImageIO.read(it) }
             val rowHeight = image.height / WOUND_ROWS
@@ -507,6 +518,15 @@ class SpriteSheetTest {
         assertEquals(64 * 11 to 64 * WOUND_ROWS, sizeOf("lagoonBoss.png"))
     }
 
+    /**
+     * The head twice, four beats of the wings, four sizes of body, the tail and four frames of
+     * venom; see `SKY_VIPER_FRAME`.
+     */
+    @Test
+    fun `the Sky Viper's sheet holds its parts and its venom`() {
+        assertEquals(80 * 15 to 80 * WOUND_ROWS, sizeOf("lagoonViper.png"))
+    }
+
     @Test
     fun `no keyframe of the lagoon's scenery is empty`() {
         for (name in LAGOON_KEYFRAMED) {
@@ -654,6 +674,7 @@ class SpriteSheetTest {
             "desertMoon.png",
             "lagoonEnemies.png",
             "lagoonBoss.png",
+            "lagoonViper.png",
             "lagoonMoon.png",
         )) {
             assertFlat(name, 0 until sizeOf(name).second)

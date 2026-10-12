@@ -1,11 +1,15 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.util.BATTERED_AT
 import at.smiech.cyanbat.util.BOSS_WAVE
 import at.smiech.cyanbat.util.NAGA_PHASE_2_AT
 import at.smiech.cyanbat.util.NAGA_PHASE_3_AT
 import at.smiech.cyanbat.util.NAGA_PHASE_4_AT
 import at.smiech.cyanbat.util.NAGA_PHASE_5_AT
+import at.smiech.cyanbat.util.SKY_VIPER_PHASE_2_AT
+import at.smiech.cyanbat.util.SKY_VIPER_PHASE_3_AT
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
+import at.smiech.cyanbat.util.WOUNDED_AT
 import at.smiech.engine.ecs.EnemyMovementType
 import kotlin.test.Test
 import kotlin.test.assertEquals
@@ -22,7 +26,10 @@ private val LAGOON_SPECIES = setOf(
     EnemySpecies.KRAIT,
 )
 
-/** Stage 4 as designed: what it sends, how hard, in what order, and the Naga at the end of it. */
+/**
+ * Stage 4 as designed: what it sends, how hard, in what order, the Naga at the end of it, and the
+ * Sky Viper after that.
+ */
 class LagoonStageTest {
 
     private val desert = StageProgression.forStage(3)
@@ -152,5 +159,36 @@ class LagoonStageTest {
         assertEquals(5, NagaBrain.phaseFor(NAGA_PHASE_5_AT))
         assertEquals(5, NagaBrain.phaseFor(0.01f))
         assertEquals(listOf(0, 1, 1, 2, 3), (1..5).map { NagaBrain.strikesFor(it) })
+    }
+
+    /** The Naga is not the end of the lagoon, and the lagoon is the only stage with a second boss. */
+    @Test
+    fun `the Sky Viper comes after the Naga and only in the lagoon`() {
+        assertEquals(BossKind.SKY_VIPER, lagoon.design.encore)
+        for (stage in 1..3) {
+            assertEquals(null, StageProgression.forStage(stage).design.encore, "stage $stage")
+        }
+    }
+
+    /**
+     * A sprint after the Naga's long fight: more health than a stage's boss is given, well short of
+     * the Naga's, and blows as hard as the Naga's.
+     */
+    @Test
+    fun `the Sky Viper hits as hard as the Naga for well under its length`() {
+        val viper = lagoon.encoreWave()
+        val naga = lagoon.bossWave()
+        assertTrue(viper.hitPoints < naga.hitPoints * 2 / 3, "the viper's ${viper.hitPoints} against the Naga's ${naga.hitPoints}")
+        assertTrue(viper.hitPoints > StageProgression.forStage(3).bossWave().hitPoints, "the viper is easier than the desert's boss")
+        assertEquals(naga.damage, viper.damage)
+    }
+
+    @Test
+    fun `the Sky Viper changes phase at its wounds' marks`() {
+        assertEquals(1, SkyViperBrain.phaseFor(1f))
+        assertEquals(2, SkyViperBrain.phaseFor(SKY_VIPER_PHASE_2_AT))
+        assertEquals(3, SkyViperBrain.phaseFor(SKY_VIPER_PHASE_3_AT))
+        assertEquals(WOUNDED_AT, SKY_VIPER_PHASE_2_AT)
+        assertEquals(BATTERED_AT, SKY_VIPER_PHASE_3_AT)
     }
 }

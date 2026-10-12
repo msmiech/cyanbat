@@ -15,6 +15,9 @@ enum class ShotPattern {
 
     /** [Volley.count] shots evenly round a full circle, turned a little further every volley. */
     RADIAL,
+
+    /** Straight down, falling from whatever passes overhead. */
+    DOWN,
 }
 
 /**

@@ -9,6 +9,8 @@ import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.NAGA_FRAME
 import at.smiech.cyanbat.util.NAGA_SPACING_MOST
 import at.smiech.cyanbat.util.NAGA_SPLASH_FRAME
+import at.smiech.cyanbat.util.SKY_VIPER_FRAME
+import at.smiech.cyanbat.util.SKY_VIPER_NECK_BACK
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.WAVE_DURATION_SECONDS
 import at.smiech.engine.Pixmap
@@ -28,6 +30,8 @@ import at.smiech.engine.ecs.VelocityComponent
 import at.smiech.engine.ecs.WeaponSystem
 import at.smiech.engine.ecs.World
 import at.smiech.engine.math.Rect
+import kotlin.math.abs
+import kotlin.math.atan2
 import kotlin.math.hypot
 import kotlin.random.Random
 import kotlin.test.Test
@@ -44,7 +48,8 @@ private const val WIDTH = FRAME_BUFFER_WIDTH
 private const val HEIGHT = FRAME_BUFFER_HEIGHT
 
 /**
- * How the generator turns the lagoon's designs into things in the water, and how the Naga fights.
+ * How the generator turns the lagoon's designs into things in the water, how the Naga fights, and how
+ * the Sky Viper comes after it and fights.
  * The world runs the engine's own movement, as the game's does, because a shark's leap is nothing
  * but movement.
  */
@@ -379,6 +384,208 @@ class LagoonGeneratorTest {
         generator.tick()
 
         assertEquals(listOf(2, 3, 4, 5), bossPhases)
+    }
+
+    // endregion
+
+    // region the Sky Viper
+
+    private var bites = 0
+    private var arrivals = 0
+
+    /** The lagoon at its boss, the Naga gone as the screen clears a fallen boss, and nothing else. */
+    private fun nagaDown(): EnemyGenerator {
+        val generator = EnemyGenerator(
+            xSpawnPosition = WIDTH,
+            worldHeight = HEIGHT,
+            factory = factory,
+            enemyPixmap = LagoonSheet(640, 87),
+            progression = StageProgression.forStage(4),
+            random = Random(20261012),
+            bossPixmap = bossSheet,
+            onBossPhaseChanged = { bossPhases += it },
+            encorePixmap = LagoonSheet(SKY_VIPER_FRAME * 15, SKY_VIPER_FRAME * 3),
+            onEncoreBite = { bites++ },
+            onEncoreArrived = { arrivals++ },
+        )
+        generator.run(5 * WAVE_DURATION_SECONDS + 0.1f)
+        enemies().forEach { world.removeEntity(it) }
+        world.query(BossPartComponent::class).forEach { world.removeEntity(it) }
+        generator.clearBoss()
+        world.update(TICK_INITIAL, null)
+        return generator
+    }
+
+    /** The Sky Viper come in the Naga's place, its entrance about to begin. */
+    private fun viperFight(): Pair<EnemyGenerator, EntityId> {
+        val generator = nagaDown()
+        generator.spawnEncore()
+        return generator to generator.bossId!!
+    }
+
+    private fun EnemyGenerator.viper() = bossBrain as SkyViperBrain
+
+    private fun EnemyGenerator.until(seconds: Float = 30f, done: () -> Boolean) {
+        var left = (seconds / TICK_INITIAL).toInt()
+        while (!done()) {
+            check(left-- > 0) { "it never came round" }
+            tick()
+        }
+    }
+
+    /** Its body and wings: every part of it but the head. */
+    private fun viperParts(head: EntityId): List<EntityId> =
+        world.query(BossPartComponent::class).filter { it != head }
+
+    private fun outOfSight(id: EntityId): Boolean {
+        val rect = rectOf(id)
+        return rect.right <= 0f || rect.left >= WIDTH || rect.bottom <= 0f || rect.top >= HEIGHT
+    }
+
+    private fun gapBetween(a: EntityId, b: EntityId): Float =
+        hypot(rectOf(a).centerX - rectOf(b).centerX, rectOf(a).centerY - rectOf(b).centerY)
+
+    @Test
+    fun `once the Naga falls the Sky Viper comes in its place out of sight above the frame`() {
+        val generator = nagaDown()
+        assertTrue(generator.encoreDue, "nothing is to come after the Naga")
+        assertEquals(BossKind.NAGA, generator.bossKind)
+
+        generator.spawnEncore()
+        val head = assertNotNull(generator.bossId, "the viper did not come")
+        world.update(TICK_INITIAL, null)
+
+        assertEquals(BossKind.SKY_VIPER, generator.bossKind)
+        assertTrue(!generator.encoreDue, "a third boss is still to come")
+        assertEquals(11, viperParts(head).size, "its wings and ten parts")
+        assertNotNull(world.getComponent(head, HealthBarComponent::class)?.pinnedTo, "its bar goes where it goes")
+        (viperParts(head) + head).forEach {
+            assertTrue(rectOf(it).bottom <= 0f, "a part of it showed before its dive: ${rectOf(it)}")
+        }
+    }
+
+    /**
+     * Its entrance is the interlude's cutscene: down out of the sky onto the bat, wherever the bat is,
+     * then away out of sight, and back in from above for its fight.
+     */
+    @Test
+    fun `it dives out of the sky to bite the bat and comes back for its fight`() {
+        val bat = bat(x = 130f, y = 180f)
+        val (generator, head) = viperFight()
+        var lowest = -Float.MAX_VALUE
+
+        generator.until(seconds = 5f) {
+            lowest = maxOf(lowest, rectOf(head).top)
+            bites > 0
+        }
+        assertTrue(gapBetween(head, bat) < 45f, "it bit the air ${gapBetween(head, bat)} from the bat")
+        assertEquals(0, arrivals, "its fight began before it bit")
+
+        var gone = false
+        generator.until(seconds = 6f) {
+            if ((viperParts(head) + head).all { outOfSight(it) }) gone = true
+            arrivals > 0
+        }
+        assertTrue(gone, "it never left the frame between the bite and its fight")
+        assertTrue(generator.viper().arrived)
+        assertEquals(1, bites)
+        assertTrue(rectOf(head).bottom <= 0f, "it came back from somewhere other than above")
+    }
+
+    /** Aimed once as its warning ends and never steered, so a swoop can always be dodged. */
+    @Test
+    fun `a swoop goes where the bat was and not where it went`() {
+        val bat = bat(x = 120f, y = 200f)
+        val (generator, head) = viperFight()
+        generator.until { generator.viper().act == SkyViperBrain.Act.SWOOP }
+        val fromX = rectOf(head).centerX
+        val fromY = rectOf(head).centerY
+        val batRect = rectOf(bat)
+        val aimX = batRect.centerX - fromX
+        val aimY = batRect.centerY - fromY
+        world.getComponent(bat, TransformComponent::class)!!.rect = batRect.offset(0f, -150f)
+
+        generator.run(0.3f)
+        val movedX = rectOf(head).centerX - fromX
+        val movedY = rectOf(head).centerY - fromY
+        val turned = abs(atan2(movedY, movedX) - atan2(aimY, aimX)) * 57.29578f
+        assertTrue(turned < 4f, "it turned $turned degrees after the bat")
+    }
+
+    /** Its art faces left, and it only ever flies leftward, so its head is never turned upside down. */
+    @Test
+    fun `it never turns its head upside down`() {
+        bat(x = 600f, y = 300f)
+        val (generator, head) = viperFight()
+        val health = world.getComponent(head, HealthComponent::class)!!
+        val sprite = world.getComponent(head, SpriteComponent::class)!!
+        repeat((60f / TICK_INITIAL).toInt()) { tick ->
+            if (tick == (20f / TICK_INITIAL).toInt()) health.hitPoints = (health.maxHitPoints * 0.5f).toInt()
+            if (tick == (40f / TICK_INITIAL).toInt()) health.hitPoints = (health.maxHitPoints * 0.2f).toInt()
+            generator.tick()
+            assertTrue(
+                abs(sprite.rotationDegrees) <= 81f,
+                "turned ${sprite.rotationDegrees} in ${generator.viper().act}"
+            )
+        }
+        assertEquals(listOf(2, 3), bossPhases)
+    }
+
+    @Test
+    fun `its body holds together along the path it flies`() {
+        bat()
+        val (generator, head) = viperFight()
+        generator.until { generator.viper().act == SkyViperBrain.Act.WEAVE }
+        generator.run(1.5f)
+
+        val chain = listOf(head) + world.query(BossPartComponent::class)
+            .filter { it != head && world.getComponent(it, SpriteComponent::class)!!.baseSrcX >= 6 * SKY_VIPER_FRAME }
+            .sortedBy { rectOf(it).centerX }
+        chain.zipWithNext { front, back ->
+            assertTrue(
+                gapBetween(front, back) <= SKY_VIPER_NECK_BACK + 1f,
+                "two parts came apart: ${gapBetween(front, back)}"
+            )
+        }
+    }
+
+    @Test
+    fun `from its first wound it rains venom down from along the top`() {
+        bat()
+        val (generator, head) = viperFight()
+        generator.until { generator.viper().arrived }
+        val health = world.getComponent(head, HealthComponent::class)!!
+        health.hitPoints = (health.maxHitPoints * 0.5f).toInt()
+        generator.until(seconds = 40f) { generator.viper().act == SkyViperBrain.Act.RAIN }
+
+        val patterns = mutableSetOf<ShotPattern>()
+        fired.clear()
+        repeat((3f / TICK_INITIAL).toInt()) {
+            generator.tick()
+            assertTrue(rectOf(head).centerY < HEIGHT / 4f, "it rained from low down")
+            world.getComponent(head, GunComponent::class)!!.volleys.forEach { patterns += it.pattern }
+        }
+        assertTrue(head in fired, "nothing fell")
+        assertTrue(ShotPattern.DOWN in patterns, "it dropped nothing straight down: $patterns")
+    }
+
+    @Test
+    fun `enraged it throws a ring where its swoop was aimed`() {
+        bat(x = 160f, y = 220f)
+        val (generator, head) = viperFight()
+        generator.until { generator.viper().arrived }
+        val health = world.getComponent(head, HealthComponent::class)!!
+        health.hitPoints = (health.maxHitPoints * 0.2f).toInt()
+        generator.until(seconds = 40f) { generator.viper().act == SkyViperBrain.Act.SWOOP }
+
+        val patterns = mutableSetOf<ShotPattern>()
+        generator.until(seconds = 5f) {
+            world.getComponent(head, GunComponent::class)!!.volleys.forEach { patterns += it.pattern }
+            generator.viper().act != SkyViperBrain.Act.SWOOP
+        }
+        generator.run(0.5f)
+        world.getComponent(head, GunComponent::class)!!.volleys.forEach { patterns += it.pattern }
+        assertTrue(ShotPattern.RADIAL in patterns, "it threw no ring: $patterns")
     }
 
     // endregion

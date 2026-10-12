@@ -221,6 +221,19 @@ interface Graphics {
      */
     fun drawLighting(lighting: Lighting) {}
 
+    /**
+     * Draws whatever [draw] draws with each row of the frame shifted sideways by its entry in
+     * [offsets], in whole frame pixels, positive to the right: a ripple through the picture that
+     * keeps every pixel of it on the grid. Rows past the end of [offsets] are not shifted. What a row
+     * shifts past one edge comes back in at the other, so the frame stays whole.
+     *
+     * [offsets] is read before this returns, so the caller may reuse it for the next frame. One warp
+     * at a time: inside [draw], another is drawn unshifted.
+     *
+     * The default, for test doubles, draws it unshifted.
+     */
+    fun drawWarped(offsets: IntArray, draw: () -> Unit) = draw()
+
     /** [s] in the platform's sans-serif face, [fontSize] frame pixels tall, from its baseline at [x], [y]. */
     fun drawString(s: String?, x: Int, y: Int, fontSize: Int, col: Int)
 

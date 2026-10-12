@@ -17,6 +17,7 @@ import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.resource.SoundEffect
+import at.smiech.cyanbat.service.BossKind
 import at.smiech.cyanbat.service.CacoImpBrain
 import at.smiech.cyanbat.service.EnemyGun
 import at.smiech.cyanbat.service.EnemySpecies
@@ -38,6 +39,8 @@ import at.smiech.cyanbat.util.FROST_SECONDS
 import at.smiech.cyanbat.util.IMPACT_FRAME
 import at.smiech.cyanbat.util.IMPACT_FRAME_COUNT
 import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
+import at.smiech.cyanbat.util.INTERLUDE_MARK_X
+import at.smiech.cyanbat.util.INTERLUDE_MARK_Y
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.NAGA_PLATE_SHARE
 import at.smiech.cyanbat.util.ORB_RADIUS
@@ -53,6 +56,7 @@ import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.WOUND_ROWS
+import at.smiech.engine.Direction
 import at.smiech.engine.GameButton
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Haptics
@@ -1574,6 +1578,146 @@ class GameScreenTest {
             ) {
                 world.removeEntity(id)
             }
+        }
+    }
+
+    // endregion
+
+    // region the lagoon's second boss
+
+    /**
+     * The lagoon does not end on the Naga: it goes up as any boss does, and the run plays its
+     * interlude, at the end of which the Sky Viper has bitten the bat and its fight begins. That
+     * fight is what wins the stage, and the poison lifts once it is won.
+     */
+    @Test
+    fun `the lagoon is won when the Sky Viper falls and not when the Naga does`() = flight(LAGOON) {
+        holdFire()
+        sturdyBat()
+        downNaga()
+        assertFalse(probe.stageComplete, "the Naga's fall won the stage")
+        assertTrue(probe.inInterlude, "nothing came after the Naga")
+        assertEquals("THE NAGA FALLS", probe.banner)
+
+        flyToViper()
+        assertEquals(BossKind.SKY_VIPER, screen.enmGen.bossKind)
+        assertTrue(probe.poison.poisoned, "the bat came out of the interlude unbitten")
+        assertEquals("THE SKY VIPER", probe.banner)
+
+        val viper = assertNotNull(screen.enmGen.bossId, "the viper's fight began without it")
+        val transform = probe.world.getComponent(viper, TransformComponent::class)!!
+        transform.rect = Rect.fromLTWH(300f, 100f, transform.rect.width, transform.rect.height)
+        probe.world.getComponent(viper, HealthComponent::class)!!.hitPoints = 1
+        shoot(viper)
+        assertTrue(probe.stageComplete, "the viper's fall did not win the stage")
+        assertEquals("THE SKY VIPER FALLS", probe.banner)
+        assertFalse(probe.poison.poisoned, "the bat is still poisoned")
+        fly(3f)
+        assertFalse(probe.poison.showing, "the poison never lifted")
+    }
+
+    /**
+     * The interlude is a cutscene: nothing in it lands on the bat, the bite included, though the
+     * viper flies right into it, and the bat fires nothing at a viper whose fight has not begun.
+     */
+    @Test
+    fun `nothing hurts the bat in the interlude and it fires nothing`() = flight(LAGOON) {
+        downNaga()
+        val health = probe.world.getComponent(probe.batId, HealthComponent::class)!!
+        val before = health.hitPoints
+        val ownShots = {
+            probe.world.query(CollisionComponent::class).count {
+                probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.PLAYER_PROJECTILE
+            }
+        }
+        probe.world.query(CollisionComponent::class)
+            .filter { probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.PLAYER_PROJECTILE }
+            .forEach { probe.world.removeEntity(it) }
+        var fired = 0
+        var left = (15f / FRAME_SECONDS).toInt()
+        while (probe.inInterlude) {
+            assertTrue(left-- > 0, "the Sky Viper's fight never began")
+            if (probe.offer.isNotEmpty()) game.controlHandler.onButtonPress(GameButton.CONFIRM)
+            screen.update(FRAME_SECONDS)
+            if (probe.inInterlude) fired = maxOf(fired, ownShots())
+        }
+
+        assertEquals(before, health.hitPoints, "the bat was hurt in the interlude")
+        assertEquals(0, fired, "the bat fired in the interlude")
+    }
+
+    /**
+     * Out of the player's hands for the bite: held to the right the whole time, the bat is still
+     * taken to its mark; given back for the fight, it flies where it is held to.
+     */
+    @Test
+    fun `the bat is taken to its mark for the bite and given back for the fight`() = flight(LAGOON) {
+        holdFire()
+        sturdyBat()
+        downNaga()
+        game.controlHandler.onDirection(Direction.RIGHT, pressed = true)
+        var left = (10f / FRAME_SECONDS).toInt()
+        while (!probe.poison.poisoned) {
+            assertTrue(left-- > 0, "the bite never landed")
+            if (probe.offer.isNotEmpty()) game.controlHandler.onButtonPress(GameButton.CONFIRM)
+            screen.update(FRAME_SECONDS)
+        }
+        assertEquals(INTERLUDE_MARK_X, batRect().centerX, 2f, "the bat was bitten away from its mark")
+        assertEquals(INTERLUDE_MARK_Y, batRect().centerY, 2f, "the bat was bitten away from its mark")
+
+        flyToViper()
+        val x = batRect().centerX
+        fly(0.3f)
+        assertTrue(batRect().centerX > x + 40f, "the bat did not take the player's steering back")
+    }
+
+    /** Poisoned, the run is washed green: the whole frame is greener than the same moment unpoisoned. */
+    @Test
+    fun `a poisoned run is drawn greener`() = flight(LAGOON) {
+        holdFire()
+        sturdyBat()
+        downNaga()
+        flyToViper()
+        fly(1f)
+        screen.present(0f)
+        // Copied, since the next capture reuses the array.
+        val poisoned = game.capture().copyOf()
+        // The same moment, the poison run out without the world moving on.
+        probe.poison.cure()
+        repeat((5f / TICK_INITIAL).roundToInt()) { probe.poison.update(TICK_INITIAL) }
+        screen.present(0f)
+        val clear = game.capture()
+
+        fun greenness(frame: IntArray): Double = frame.sumOf { argb ->
+            val red = (argb shr 16) and 0xFF
+            val green = (argb shr 8) and 0xFF
+            val blue = argb and 0xFF
+            green - (red + blue) / 2.0
+        } / frame.size
+        assertTrue(
+            greenness(poisoned) > greenness(clear) + 4.0,
+            "poisoned ${greenness(poisoned)} against ${greenness(clear)}"
+        )
+    }
+
+    /** Brings the lagoon's Naga in, its escort cleared away, and shoots it down, one hit from dead. */
+    private fun Flight.downNaga() {
+        screen.enmGen.update(StageProgression.forStage(LAGOON).bossTimeSeconds)
+        clearStrays(keep = emptySet())
+        val naga = assertNotNull(screen.enmGen.bossId, "the Naga should have arrived")
+        val transform = probe.world.getComponent(naga, TransformComponent::class)!!
+        transform.rect = Rect.fromLTWH(400f, 100f, transform.rect.width, transform.rect.height)
+        probe.world.getComponent(naga, HealthComponent::class)!!.hitPoints = 1
+        shoot(naga)
+    }
+
+    /** Flies the interlude through to the Sky Viper's fight, taking whatever is offered on the way. */
+    private fun Flight.flyToViper() {
+        var left = (15f / FRAME_SECONDS).toInt()
+        while (probe.inInterlude) {
+            assertTrue(left-- > 0, "the Sky Viper's fight never began")
+            if (probe.offer.isNotEmpty()) game.controlHandler.onButtonPress(GameButton.CONFIRM)
+            screen.update(FRAME_SECONDS)
         }
     }
 

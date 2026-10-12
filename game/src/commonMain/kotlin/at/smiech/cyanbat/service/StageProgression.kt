@@ -133,10 +133,19 @@ data class StageProgression(
      * The stage's boss, as a wave of exactly one, so the generator reads one kind of answer. The
      * pacing fields carry the stage's end-state values, since a single arrival has no cadence.
      */
-    fun bossWave(): EnemyWave = EnemyWave(
+    fun bossWave(): EnemyWave = bossWaveOf(bossHitPointsBeforeDifficulty)
+
+    /**
+     * The stage's second boss, for a stage with one ([StageDesign.encore]), as [bossWave] is its
+     * first: at the boss's difficulty, with a health of its own.
+     */
+    fun encoreWave(): EnemyWave =
+        bossWaveOf((bossHitPoints * design.encoreVitality).toInt())
+
+    private fun bossWaveOf(hitPointsBeforeDifficulty: Int) = EnemyWave(
         index = bossWave,
         enemyTypes = design.waves.last().species,
-        hitPoints = scaled(bossHitPointsBeforeDifficulty, bossDifficulty),
+        hitPoints = scaled(hitPointsBeforeDifficulty, bossDifficulty),
         damage = scaled(bossDamage, bossDifficulty),
         speedMultiplier = 1f,
         spawnIntervalSeconds = spawnIntervalAt(bossTimeSeconds),

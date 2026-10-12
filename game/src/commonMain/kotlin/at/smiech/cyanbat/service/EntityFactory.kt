@@ -77,6 +77,17 @@ import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAMES
 import at.smiech.cyanbat.util.SAND_WYRM_PLUME_FRAME_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHIELD_REGROWTH_DELAY_SECONDS
+import at.smiech.cyanbat.util.SKY_VIPER_FRAME
+import at.smiech.cyanbat.util.SKY_VIPER_HEAD_FRAMES
+import at.smiech.cyanbat.util.SKY_VIPER_HEAD_FRAME_SECONDS
+import at.smiech.cyanbat.util.SKY_VIPER_PLATE_SHARE
+import at.smiech.cyanbat.util.SKY_VIPER_SHOT_VARIANT
+import at.smiech.cyanbat.util.SKY_VIPER_VENOM_FRAME
+import at.smiech.cyanbat.util.SKY_VIPER_VENOM_FRAMES
+import at.smiech.cyanbat.util.SKY_VIPER_VENOM_FRAME_SECONDS
+import at.smiech.cyanbat.util.SKY_VIPER_WINGS_FRAME
+import at.smiech.cyanbat.util.SKY_VIPER_WING_FRAMES
+import at.smiech.cyanbat.util.SKY_VIPER_WING_FRAME_SECONDS
 import at.smiech.cyanbat.util.SHOT_BODY_COLORS
 import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
 import at.smiech.cyanbat.util.SHOT_FRAME_SECONDS
@@ -644,6 +655,142 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
                 NAGA_SPLASH_FRAMES,
                 NAGA_SPLASH_FRAME_SECONDS,
                 isLooping = false
+            ),
+        )
+        world.addComponent(id, LifetimeComponent(true))
+        world.addComponent(id, ZIndexComponent(50))
+        return id
+    }
+
+    /**
+     * The lagoon's second boss, the Sky Viper: a head, a pair of wings and ten body parts, each its
+     * own entity, built like the Naga and moved by its own brain.
+     *
+     * The head carries the health, the pinned health bar and the gun. A shot into the wings or the
+     * body lands on the head at [SKY_VIPER_PLATE_SHARE]. [SkyViperBrain] places every part every
+     * tick, so nothing else may move or remove them and none is culled for leaving the frame. Every
+     * part is a [BossPartComponent].
+     *
+     * The body is created tail first, so each part is drawn over the one behind it; the wings over
+     * the body, beating on their own clock; and the head over everything. Only the head carries a
+     * [WoundComponent]; the brain draws the rest from its row.
+     *
+     * @param bodyDamage what the wings or a part of the body deal on contact; less than the head's.
+     * @param bar where the health bar is pinned.
+     * @return the head, the wings, then the body from the neck back to the tail.
+     */
+    fun createSkyViper(
+        x: Float,
+        y: Float,
+        pixmap: Pixmap,
+        hitPoints: Int,
+        damage: Int,
+        bodyDamage: Int,
+        gun: EnemyGun,
+        bar: Rect,
+    ): List<EntityId> {
+        val frame = SKY_VIPER_FRAME.toFloat()
+
+        fun part(sheetFrame: Int, tolerance: Float, z: Int): EntityId {
+            val id = world.createEntity()
+            world.addComponent(id, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
+            world.addComponent(id, VelocityComponent(Vector2.Zero))
+            world.addComponent(
+                id,
+                SpriteComponent(
+                    pixmap,
+                    baseSrcX = sheetFrame * SKY_VIPER_FRAME,
+                    srcWidth = SKY_VIPER_FRAME,
+                    srcHeight = SKY_VIPER_FRAME,
+                ),
+            )
+            world.addComponent(id, CollisionComponent(tolerance, CollisionGroup.ENEMY))
+            world.addComponent(id, DamageComponent(bodyDamage))
+            world.addComponent(id, BossPartComponent(share = SKY_VIPER_PLATE_SHARE))
+            if (lit) world.addComponent(id, OccluderComponent(CREATURE_SHINE))
+            world.addComponent(id, LifetimeComponent(false))
+            world.addComponent(id, ZIndexComponent(z))
+            return id
+        }
+
+        val body = SKY_VIPER_BODY.reversed().map { (sheetFrame, tolerance) ->
+            part(sheetFrame, tolerance, z = 11)
+        }.reversed()
+        val wings = part(SKY_VIPER_WINGS_FRAME, SKY_VIPER_WINGS_TOLERANCE, z = 12)
+        world.addComponent(
+            wings,
+            AnimationComponent(
+                SKY_VIPER_FRAME,
+                SKY_VIPER_FRAME,
+                SKY_VIPER_WING_FRAMES,
+                SKY_VIPER_WING_FRAME_SECONDS
+            ),
+        )
+
+        val head = world.createEntity()
+        world.addComponent(head, TransformComponent(Rect.fromLTWH(x, y, frame, frame)))
+        world.addComponent(head, VelocityComponent(Vector2.Zero))
+        world.addComponent(
+            head,
+            SpriteComponent(pixmap, srcWidth = SKY_VIPER_FRAME, srcHeight = SKY_VIPER_FRAME)
+        )
+        world.addComponent(
+            head,
+            AnimationComponent(
+                SKY_VIPER_FRAME,
+                SKY_VIPER_FRAME,
+                SKY_VIPER_HEAD_FRAMES,
+                SKY_VIPER_HEAD_FRAME_SECONDS
+            ),
+        )
+        world.addComponent(head, WoundComponent(SKY_VIPER_FRAME, WOUND_MARKS))
+        world.addComponent(head, ProjectileStyleComponent(SKY_VIPER_SHOT_VARIANT))
+        world.addComponent(
+            head,
+            CollisionComponent(SKY_VIPER_HEAD_TOLERANCE, CollisionGroup.ENEMY)
+        )
+        world.addComponent(head, HealthComponent(hitPoints))
+        world.addComponent(head, DamageComponent(damage))
+        world.addComponent(head, HealthBarComponent(pinnedTo = bar))
+        world.addComponent(head, BossPartComponent())
+        world.addComponent(head, WeaponComponent(gun.interval))
+        world.addComponent(head, GunComponent(gun.volleys))
+        if (lit) world.addComponent(head, OccluderComponent(CREATURE_SHINE))
+        world.addComponent(head, LifetimeComponent(false))
+        world.addComponent(head, ZIndexComponent(13))
+        return listOf(head, wings) + body
+    }
+
+    /**
+     * Venom bursting out of the Sky Viper's bite, centered on ([centerX], [centerY]): played once
+     * where it struck, and staying there, on the bat it went into, rather than drifting off with the
+     * scenery as a blast does.
+     */
+    fun createVenomBurst(centerX: Float, centerY: Float, pixmap: Pixmap): EntityId {
+        val size = SKY_VIPER_FRAME.toFloat()
+        val id = world.createEntity()
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(centerX - size / 2f, centerY - size / 2f, size, size))
+        )
+        world.addComponent(id, VelocityComponent(Vector2.Zero))
+        world.addComponent(
+            id,
+            SpriteComponent(
+                pixmap,
+                baseSrcX = SKY_VIPER_VENOM_FRAME * SKY_VIPER_FRAME,
+                srcWidth = SKY_VIPER_FRAME,
+                srcHeight = SKY_VIPER_FRAME,
+            ),
+        )
+        world.addComponent(
+            id,
+            AnimationComponent(
+                SKY_VIPER_FRAME,
+                SKY_VIPER_FRAME,
+                SKY_VIPER_VENOM_FRAMES,
+                SKY_VIPER_VENOM_FRAME_SECONDS,
+                isLooping = false,
             ),
         )
         world.addComponent(id, LifetimeComponent(true))
@@ -1228,5 +1375,28 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
 
         /** Its hood is wide and its corners are air: the box sits well in from the frame. */
         const val NAGA_HEAD_TOLERANCE = 12f
+
+        /**
+         * The Sky Viper's body from the neck back, as the frame of its sheet each part is drawn
+         * from and how far inside that frame its hit box sits: two of its neck, three of its body,
+         * two lesser, two small, and the tail. Its parts are drawn the Naga's size in the bigger
+         * frame its wings need, so the boxes sit further in.
+         */
+        val SKY_VIPER_BODY = listOf(
+            6 to 28f, 6 to 28f,
+            7 to 29f, 7 to 29f, 7 to 29f,
+            8 to 31f, 8 to 31f,
+            9 to 32f, 9 to 32f,
+            10 to 31f,
+        )
+
+        /** Its head's box: the skull and its jaws, short of the frill and the snout's tip. */
+        const val SKY_VIPER_HEAD_TOLERANCE = 18f
+
+        /**
+         * Its wings' box: round the shoulder. A wing is membrane over air, and a box out to its tips
+         * would land shots that passed between them.
+         */
+        const val SKY_VIPER_WINGS_TOLERANCE = 26f
     }
 }

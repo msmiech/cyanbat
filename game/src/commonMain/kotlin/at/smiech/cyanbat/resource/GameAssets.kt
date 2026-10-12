@@ -218,7 +218,8 @@ data class GameAssets(
                             ),
                         ),
                         // The flight to the temple, then a faster piece of the
-                        // Naga's own, handed over to as it rises.
+                        // Naga's own, handed over to as it rises, and played again from
+                        // the top for the Sky Viper.
                         music = StageMusic(
                             "lagoon",
                             MusicGrid(beatsPerMinute = 135.0, beatsPerBar = 4),
@@ -229,6 +230,7 @@ data class GameAssets(
                         ),
                         enemySheet = pixmap("lagoonEnemies.png"),
                         bossSheet = pixmap("lagoonBoss.png"),
+                        encoreSheet = pixmap("lagoonViper.png"),
                     ),
                 ),
             )
