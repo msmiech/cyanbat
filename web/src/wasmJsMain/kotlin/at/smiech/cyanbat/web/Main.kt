@@ -48,7 +48,10 @@ import kotlinx.browser.document
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.MainScope
 import kotlinx.coroutines.async
+import org.jetbrains.skia.ColorAlphaType
+import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.Image
+import org.jetbrains.skia.ImageInfo
 
 /**
  * Opens the game in the page, which shows the menu or a run: the browser's counterpart of the
@@ -195,6 +198,7 @@ private fun rememberRun(
                 FRAME_BUFFER_HEIGHT,
                 { name -> loadImage(assets, name) },
                 fonts,
+                ::makeImage,
             ),
             WebAudio(sound, assets),
             controls,
@@ -229,3 +233,21 @@ private fun rememberRun(
 private fun loadImage(assets: WebAssets, name: String): ImageBitmap =
     Image.makeFromEncoded(assets.bytes(name)).toComposeImageBitmap()
         .also { it.asSkiaBitmap().setImmutable() }
+
+/**
+ * Pixels the game made, as an immutable Skia image like the assets, for the same reason. ARGB ints
+ * laid out little-endian are BGRA bytes.
+ */
+private fun makeImage(width: Int, height: Int, pixels: IntArray): ImageBitmap {
+    val bytes = ByteArray(width * height * 4)
+    for (i in 0 until width * height) {
+        val argb = pixels[i]
+        bytes[i * 4] = argb.toByte()
+        bytes[i * 4 + 1] = (argb shr 8).toByte()
+        bytes[i * 4 + 2] = (argb shr 16).toByte()
+        bytes[i * 4 + 3] = (argb ushr 24).toByte()
+    }
+    val info = ImageInfo(width, height, ColorType.BGRA_8888, ColorAlphaType.UNPREMUL)
+    return Image.makeRaster(info, bytes, width * 4).toComposeImageBitmap()
+        .also { it.asSkiaBitmap().setImmutable() }
+}

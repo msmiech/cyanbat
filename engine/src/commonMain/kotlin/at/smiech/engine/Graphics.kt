@@ -11,6 +11,17 @@ interface Graphics {
     /** Loads the image asset [filename]. */
     fun newPixmap(filename: String): Pixmap
 
+    /**
+     * A picture made from [pixels], ARGB row by row, [width] by [height]: art the game makes as it
+     * runs rather than loads, such as the endless stage's scenery. The pixels are copied, so the
+     * caller may reuse the array.
+     *
+     * The default, for test doubles, keeps the pixels in a [PixelPixmap], which reads them back but
+     * is not something a real backend draws.
+     */
+    fun newPixmap(width: Int, height: Int, pixels: IntArray): Pixmap =
+        PixelPixmap(width, height, pixels.copyOf(width * height))
+
     /** Fills the whole frame with [color], starting a new frame. */
     fun clear(color: Int)
     fun drawPixel(x: Int, y: Int, color: Int)

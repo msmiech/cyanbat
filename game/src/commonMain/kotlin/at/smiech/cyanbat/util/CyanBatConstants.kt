@@ -1326,3 +1326,36 @@ const val POISON_EDGE_BANDS = 3
 const val POISON_EDGE_BAND = 6
 const val POISON_BREATH = 0.15f
 const val POISON_BREATHS_PER_SECOND = 0.4f
+
+// --- The endless stage ---------------------------------------------------------------------------
+//
+// Opened by clearing the last stage: round after round of waves from every stage and a boss from
+// every stage's, until the bat goes down. See EndlessCourse for what a round is made of, and
+// EndlessScenery for the country it is flown over.
+
+/** The endless stage's id, after the last stage's. */
+const val ENDLESS_STAGE_ID = 5
+
+/** The waves of a round before its boss: shorter than a stage's five, so bosses come oftener. */
+const val ENDLESS_ROUND_WAVES = 3
+
+/** The first round's strength against stage 1's: the cave's. */
+const val ENDLESS_OPENING_DIFFICULTY = 1f + STAGE_DIFFICULTY_STEP
+
+/** What each round adds to the one before's strength, on top of its waves numbering on. */
+const val ENDLESS_DIFFICULTY_PER_ROUND = 0.15f
+
+/**
+ * The breather after a round's boss falls, before the next round's first wave: its wreck goes up,
+ * the fanfare plays, and the next round's music comes in at its end.
+ */
+const val ENDLESS_ROUND_BREAK_SECONDS = 7f
+
+/**
+ * The endless stage's night: the light where no other reaches at the dead of night, which the dusk
+ * brings down from daylight and the dawn lifts. Far brighter than the cave's, since the stars and
+ * the moon are out: the night is moonlit blue, and the bat's light, the shots and the blasts still
+ * stand out in it. The glow is the cave's, so a light reads the same in both.
+ */
+const val ENDLESS_NIGHT_AMBIENT = 0xFF7480A8.toInt()
+const val ENDLESS_NIGHT_GLOW = CAVE_GLOW

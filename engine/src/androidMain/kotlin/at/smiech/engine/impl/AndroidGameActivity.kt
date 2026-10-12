@@ -1,5 +1,6 @@
 package at.smiech.engine.impl
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
@@ -113,6 +114,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
             frameBufferHeight,
             ::loadImage,
             createFontFamilyResolver(this),
+            ::makeImage,
         )
         graphics = frame
 
@@ -196,6 +198,16 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
     private fun loadImage(filename: String): ImageBitmap {
         val bitmap = assets.open(filename).use { BitmapFactory.decodeStream(it) }
             ?: error("Could not decode the image asset $filename")
+        bitmap.prepareToDraw()
+        return bitmap.asImageBitmap()
+    }
+
+    /**
+     * Pixels the game made, wrapped in a bitmap of their own: immutable, as one made from an array
+     * is, and handed to HWUI early, as an asset is.
+     */
+    private fun makeImage(width: Int, height: Int, pixels: IntArray): ImageBitmap {
+        val bitmap = Bitmap.createBitmap(pixels, width, height, Bitmap.Config.ARGB_8888)
         bitmap.prepareToDraw()
         return bitmap.asImageBitmap()
     }

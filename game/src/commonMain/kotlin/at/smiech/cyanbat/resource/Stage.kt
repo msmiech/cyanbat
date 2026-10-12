@@ -21,6 +21,8 @@ import org.jetbrains.compose.resources.StringResource
  * @param lighting how dark the stage is flown, for one flown in the dark; null for daylight.
  * @param approach what the stage's obstacles turn into on the way to its boss; null for a stage whose
  *   scenery is the same from start to finish.
+ * @param playlist every piece the stage plays, [music] first: one for a stage, and for the endless
+ *   stage the pieces its rounds take turns with.
  */
 data class Stage(
     val id: Int,
@@ -34,7 +36,12 @@ data class Stage(
     val encoreSheet: Pixmap? = null,
     val lighting: StageLighting? = null,
     val approach: Approach? = null,
+    val playlist: List<StageMusic> = listOf(music),
 ) {
+    /** Whether this is the endless stage, flown round after round over country made up as it goes. */
+    val endless: Boolean
+        get() = backdrop is Backdrop.Endless
+
     /**
      * How many times of day each obstacle is drawn in, stacked on its sheet, so a stage whose light
      * changes can relight its scenery to match.

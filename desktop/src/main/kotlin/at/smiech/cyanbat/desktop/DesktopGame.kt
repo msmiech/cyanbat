@@ -8,7 +8,10 @@ import at.smiech.engine.impl.ComposeGame
 import at.smiech.engine.impl.ComposeGraphics
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopAudio
+import org.jetbrains.skia.ColorAlphaType
+import org.jetbrains.skia.ColorType
 import org.jetbrains.skia.Image
+import org.jetbrains.skia.ImageInfo
 import java.io.InputStream
 
 /**
@@ -27,6 +30,7 @@ class DesktopGame(
         frameBufferHeight,
         ::loadImage,
         createFontFamilyResolver(),
+        ::makeImage,
     ),
     DesktopAudio(::openAsset),
     controlHandler,
@@ -59,5 +63,23 @@ private fun openAsset(name: String): InputStream =
 private fun loadImage(name: String): ImageBitmap {
     val bytes = openAsset(name).use { it.readBytes() }
     return Image.makeFromEncoded(bytes).toComposeImageBitmap()
+        .also { it.asSkiaBitmap().setImmutable() }
+}
+
+/**
+ * Pixels the game made, as an immutable Skia image like the assets, for the same reason. ARGB ints
+ * laid out little-endian are BGRA bytes.
+ */
+internal fun makeImage(width: Int, height: Int, pixels: IntArray): ImageBitmap {
+    val bytes = ByteArray(width * height * 4)
+    for (i in 0 until width * height) {
+        val argb = pixels[i]
+        bytes[i * 4] = argb.toByte()
+        bytes[i * 4 + 1] = (argb shr 8).toByte()
+        bytes[i * 4 + 2] = (argb shr 16).toByte()
+        bytes[i * 4 + 3] = (argb ushr 24).toByte()
+    }
+    val info = ImageInfo(width, height, ColorType.BGRA_8888, ColorAlphaType.UNPREMUL)
+    return Image.makeRaster(info, bytes, width * 4).toComposeImageBitmap()
         .also { it.asSkiaBitmap().setImmutable() }
 }

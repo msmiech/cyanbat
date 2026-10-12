@@ -31,14 +31,25 @@ import kotlin.math.sqrt
  * or the second of two frames on a fast screen) reuses it, and [Graphics.drawLighting] recognizes
  * it by its version and does not render it again.
  *
+ * The dark can change as the run goes on, for a stage whose nights fall and lift: set [ambient] and
+ * [glow] between ticks. At [DAYLIGHT] there is no dark, and nothing is computed or drawn, so a stage
+ * flown partly by day pays for the light only while it is needed.
+ *
+ * @param ambient the light where no other reaches; see [Lighting.ambient].
  * @param glow see [Lighting.glow].
  */
 class LightingSystem(
     private val frameWidth: Int,
     private val frameHeight: Int,
-    private val ambient: Int,
-    private val glow: Float = 0f,
+    ambient: Int,
+    glow: Float = 0f,
 ) : GameSystem() {
+    /** The light where no other reaches, opaque; [DAYLIGHT] turns the dark off. */
+    var ambient: Int = ambient
+
+    /** How much of the light shows in the air; see [Lighting.glow]. */
+    var glow: Float = glow
+
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var lights: ComponentMapper<LightComponent>
     private lateinit var occluders: ComponentMapper<OccluderComponent>
@@ -75,6 +86,8 @@ class LightingSystem(
     }
 
     override fun draw(world: World, graphics: Graphics) {
+        // Full daylight: nothing is dark, so there is nothing to light.
+        if (ambient or OPAQUE == DAYLIGHT) return
         if (stale) {
             light(world)
             stale = false
@@ -285,21 +298,25 @@ class LightingSystem(
         }
     }
 
-    private companion object {
-        const val RADIANS_PER_DEGREE = 0.017453292f
-        const val DIRECTION_STEP = (2.0 * PI / Gloss.DIRECTIONS).toFloat()
+    companion object {
+        /** An [ambient] that leaves everything as drawn: no dark, and so no light to compute. */
+        const val DAYLIGHT = 0xFFFFFFFF.toInt()
+
+        private const val OPAQUE = 0xFF000000.toInt()
+        private const val RADIANS_PER_DEGREE = 0.017453292f
+        private const val DIRECTION_STEP = (2.0 * PI / Gloss.DIRECTIONS).toFloat()
 
         /** A glint fainter than this would not be seen, and is not drawn. */
-        const val FAINTEST_GLINT = 0.03f
+        private const val FAINTEST_GLINT = 0.03f
 
         /** What [Occluder.shadow] holds when the light is out of its reach, or inside its outline. */
-        const val OUT_OF_REACH = -3
-        const val LIGHT_INSIDE = -2
+        private const val OUT_OF_REACH = -3
+        private const val LIGHT_INSIDE = -2
 
         /**
          * What it holds when the light reaches it but it cast no shadow, which
          * should not happen for a convex outline.
          */
-        const val NO_SHADOW = -1
+        private const val NO_SHADOW = -1
     }
 }

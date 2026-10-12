@@ -5,10 +5,14 @@ import at.smiech.cyanbat.resources.stage_1_name
 import at.smiech.cyanbat.resources.stage_2_name
 import at.smiech.cyanbat.resources.stage_3_name
 import at.smiech.cyanbat.resources.stage_4_name
+import at.smiech.cyanbat.resources.stage_5_name
 import at.smiech.cyanbat.scenery.Daybreak
 import at.smiech.cyanbat.scenery.Daylight
 import at.smiech.cyanbat.util.CAVE_AMBIENT
 import at.smiech.cyanbat.util.CAVE_GLOW
+import at.smiech.cyanbat.util.ENDLESS_NIGHT_GLOW
+import at.smiech.cyanbat.util.ENDLESS_STAGE_ID
+import at.smiech.engine.ecs.LightingSystem
 import at.smiech.engine.Music
 import at.smiech.engine.MusicGrid
 import at.smiech.engine.Pixmap
@@ -76,6 +80,9 @@ data class GameAssets(
          */
         fun load(g: EngineGraphics, a: EngineAudio): GameAssets {
             fun pixmap(name: String) = g.newPixmap(name)
+            val jungleEnemies = pixmap("jungleEnemies.png")
+            val lagoonMoon = pixmap("lagoonMoon.png")
+            val endlessTheme = StageMusic("endless", MusicGrid(beatsPerMinute = 126.0, beatsPerBar = 4))
 
             return GameAssets(
                 graphics = Graphics(
@@ -111,7 +118,7 @@ data class GameAssets(
                             "jungle",
                             MusicGrid(beatsPerMinute = 98.0, beatsPerBar = 4)
                         ),
-                        enemySheet = pixmap("jungleEnemies.png"),
+                        enemySheet = jungleEnemies,
                         bossSheet = pixmap("jungleBoss.png"),
                     ),
                     Stage(
@@ -194,7 +201,7 @@ data class GameAssets(
                                     ahead = pixmap("lagoonNearTemple.png"), aheadFrom = 0.8f,
                                 ),
                             ),
-                            moon = pixmap("lagoonMoon.png"),
+                            moon = lagoonMoon,
                             // The sea's horizon, where the far islands stand.
                             horizonY = 232,
                         ),
@@ -231,6 +238,32 @@ data class GameAssets(
                         enemySheet = pixmap("lagoonEnemies.png"),
                         bossSheet = pixmap("lagoonBoss.png"),
                         encoreSheet = pixmap("lagoonViper.png"),
+                    ),
+                    Stage(
+                        id = ENDLESS_STAGE_ID,
+                        name = Res.string.stage_5_name,
+                        backdrop = Backdrop.Endless(moon = lagoonMoon),
+                        // The scenery makes its own obstacles, as it makes its own country.
+                        topObstacles = emptyArray(),
+                        bottomObstacles = emptyArray(),
+                        // Its own theme opens the run and comes back every third round; between
+                        // its returns the rounds take turns with faster, brighter remixes of every
+                        // stage's piece, from tools/generate_endless_remixes.py. A round's boss is
+                        // fought to the round's piece, every layer up.
+                        music = endlessTheme,
+                        playlist = listOf(
+                            endlessTheme,
+                            StageMusic("rush_jungle", MusicGrid(beatsPerMinute = 120.0, beatsPerBar = 4)),
+                            StageMusic("rush_cave", MusicGrid(beatsPerMinute = 75.0, beatsPerBar = 4)),
+                            StageMusic("rush_desert", MusicGrid(beatsPerMinute = 126.0, beatsPerBar = 4)),
+                            StageMusic("rush_lagoon", MusicGrid(beatsPerMinute = 150.0, beatsPerBar = 4)),
+                            StageMusic("rush_naga", MusicGrid(beatsPerMinute = 168.0, beatsPerBar = 4)),
+                        ),
+                        // Every species is drawn from its own stage's sheet; see EnemySpecies.home.
+                        enemySheet = jungleEnemies,
+                        // Flown in the dark only by night: the scenery sets the dark as the sky
+                        // turns, and in daylight there is none.
+                        lighting = StageLighting(ambient = LightingSystem.DAYLIGHT, glow = ENDLESS_NIGHT_GLOW),
                     ),
                 ),
             )
