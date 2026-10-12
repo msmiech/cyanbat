@@ -24,6 +24,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.resource.GameAssets
@@ -86,6 +87,8 @@ private fun CyanBatPage(
     val controls = remember { ControlHandler() }
     // The stage being played, or null while the menu is up.
     var playingStage by remember { mutableStateOf<Int?>(null) }
+    // How hard it is flown, which the player chose as it started.
+    var difficulty by remember { mutableStateOf(Difficulty.DEFAULT) }
     val storage = remember { WebStorage() }
     val settings = remember { WebSettingsRepository(storage) }
     // One of each for the menu and every run, so the menu sees what a run records the moment it
@@ -107,6 +110,7 @@ private fun CyanBatPage(
     val stage = playingStage
     val run = rememberRun(
         stage,
+        difficulty,
         assets,
         preloaded,
         sound,
@@ -137,8 +141,9 @@ private fun CyanBatPage(
                     highscores = highscores,
                     // Cleared on the way in as well as on the way out, so that nothing pressed
                     // before the run is waiting to act the moment it starts.
-                    onStartGame = { id ->
+                    onStartGame = { id, chosen ->
                         controls.releaseAll()
+                        difficulty = chosen
                         playingStage = id
                     },
                     // A page cannot close its own tab.
@@ -151,15 +156,16 @@ private fun CyanBatPage(
 }
 
 /**
- * The run of [stage], or null while the menu is up or the run is still being built: made once the
- * pictures and sounds are in, and the run's text read, and disposed when the player goes back to
- * the menu.
+ * The run of [stage] on [difficulty], or null while the menu is up or the run is still being built:
+ * made once the pictures and sounds are in, and the run's text read, and disposed when the player
+ * goes back to the menu.
  *
  * @param onExitToMenu takes the player back to the menu.
  */
 @Composable
 private fun rememberRun(
     stage: Int?,
+    difficulty: Difficulty,
     assets: WebAssets,
     preloaded: Deferred<Unit>,
     sound: WebAudioDevice,
@@ -170,7 +176,7 @@ private fun rememberRun(
     onExitToMenu: () -> Unit,
 ): ComposeGame? {
     val fonts = LocalFontFamilyResolver.current
-    val run by produceState<ComposeGame?>(null, stage) {
+    val run by produceState<ComposeGame?>(null, stage, difficulty) {
         value = null
         val id = stage ?: return@produceState
         try {
@@ -202,7 +208,7 @@ private fun rememberRun(
             onExitToMenu = onExitToMenu,
             audioSettings = audioSettings,
         )
-        game.setScreen(GameScreen(game, env, id))
+        game.setScreen(GameScreen(game, env, id, difficulty))
         value = game
         // A run owns its screen and its audio, and neither is needed once the player is back in
         // the menu.

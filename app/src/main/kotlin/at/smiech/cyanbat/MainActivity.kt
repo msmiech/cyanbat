@@ -14,6 +14,7 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.data.AppLocale
+import at.smiech.cyanbat.data.ClearsBeforeDifficultiesMigration
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.data.DataStoreStageUnlockStore
@@ -39,6 +40,9 @@ internal val PREFS_KEY_THEME_MODE = stringPreferencesKey("theme_mode")
 /** Stored by name too, and only before Android 13, which keeps an app's language itself; see [AppLocale]. */
 internal val PREFS_KEY_LANGUAGE = stringPreferencesKey("language")
 
+/** The difficulty last chosen, by name too, for the same reason as the display mode. */
+internal val PREFS_KEY_DIFFICULTY = stringPreferencesKey("difficulty")
+
 /** The single highscore kept before they were per stage; see [LegacyHighscoreMigration]. */
 internal val PREFS_KEY_LEGACY_HIGH_SCORE = intPreferencesKey("highscore")
 
@@ -49,13 +53,27 @@ internal fun prefsKeyStageHighScore(stageId: Int) =
 
 internal val PREFS_KEY_HIGHEST_STAGE = intPreferencesKey("highest_stage_unlocked")
 
+/**
+ * A stage's best clear is stored under this followed by its id: "cleared_stage_1". The value is its
+ * difficulty's stars, which rank the difficulties without depending on their names or order.
+ */
+internal const val PREFS_STAGE_CLEARED_PREFIX = "cleared_stage_"
+internal fun prefsKeyStageCleared(stageId: Int) =
+    intPreferencesKey(PREFS_STAGE_CLEARED_PREFIX + stageId)
+
+/** Whether the clears from before difficulties are in; see [ClearsBeforeDifficultiesMigration]. */
+internal val PREFS_KEY_CLEARS_KEPT = booleanPreferencesKey("stage_clears_kept")
+
 /** Which order the stages' highscores are stored in; see [StageOrderMigration]. */
 internal val PREFS_KEY_STAGE_ORDER = intPreferencesKey("stage_order")
 internal val Context.dataStore by preferencesDataStore(
     name = "cyanbat",
     // In the order they were needed: the single legacy score lands on stage 1, the cave it was earned
-    // in, and the cave's scores then move to where the cave went.
-    produceMigrations = { listOf(LegacyHighscoreMigration, StageOrderMigration) },
+    // in, and the cave's scores then move to where the cave went. The clears only read the unlocks,
+    // which neither of those moves.
+    produceMigrations = {
+        listOf(LegacyHighscoreMigration, StageOrderMigration, ClearsBeforeDifficultiesMigration)
+    },
 )
 
 /**
@@ -102,10 +120,11 @@ class MainActivity : ComponentActivity() {
                     menuMusic = menuMusic,
                     stageUnlocks = stageUnlocks,
                     highscores = highscores,
-                    onStartGame = { stageId ->
+                    onStartGame = { stageId, difficulty ->
                         startActivity(
                             Intent(this, CyanBatGameActivity::class.java)
                                 .putExtra(CyanBatGameActivity.EXTRA_STAGE_ID, stageId)
+                                .putExtra(CyanBatGameActivity.EXTRA_DIFFICULTY, difficulty.name)
                         )
                     },
                     onExit = { finishAffinity() },

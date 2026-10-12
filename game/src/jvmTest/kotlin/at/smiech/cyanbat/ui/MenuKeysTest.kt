@@ -17,7 +17,9 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onLast
 import androidx.compose.ui.test.onNodeWithText
@@ -30,6 +32,7 @@ import androidx.compose.ui.unit.Density
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AppLanguage
@@ -58,7 +61,11 @@ import kotlin.test.assertTrue
 @OptIn(ExperimentalTestApi::class, ExperimentalCoroutinesApi::class)
 class MenuKeysTest {
 
-    private class Menu(val settings: FakeSettingsRepository, val started: MutableList<Int>)
+    /** The menu under test, and the runs it has started: each stage's id, and how hard. */
+    private class Menu(
+        val settings: FakeSettingsRepository,
+        val started: MutableList<Pair<Int, Difficulty>>,
+    )
 
     private object NoHighscores : HighscoreStore {
         override val byStage = MutableStateFlow(emptyMap<Int, Int>())
@@ -71,7 +78,12 @@ class MenuKeysTest {
      * at its tightest. The view models run on a dispatcher of the test's own, so what they hold is
      * there the moment it is asked for.
      */
-    private fun menu(highestUnlocked: Int = 1, test: ComposeUiTest.(Menu) -> Unit) {
+    private fun menu(
+        highestUnlocked: Int = 1,
+        clears: Map<Int, Difficulty> = emptyMap(),
+        lastDifficulty: Difficulty = Difficulty.DEFAULT,
+        test: ComposeUiTest.(Menu) -> Unit,
+    ) {
         Dispatchers.setMain(UnconfinedTestDispatcher())
         try {
             runDesktopComposeUiTest(
@@ -81,6 +93,7 @@ class MenuKeysTest {
                 // The menu's sky moves for as long as it is up, so the clock never stops by itself.
                 mainClock.autoAdvance = false
                 val menu = Menu(FakeSettingsRepository(), mutableListOf())
+                menu.settings.lastDifficulty.value = lastDifficulty
                 val viewModels = object : ViewModelStoreOwner {
                     override val viewModelStore = ViewModelStore()
                 }
@@ -93,9 +106,11 @@ class MenuKeysTest {
                             MenuHost(
                                 settings = menu.settings,
                                 menuMusic = null,
-                                stageUnlocks = StageUnlockStore.InMemory(highestUnlocked),
+                                stageUnlocks = StageUnlockStore.InMemory(highestUnlocked, clears),
                                 highscores = NoHighscores,
-                                onStartGame = { menu.started += it },
+                                onStartGame = { stage, difficulty ->
+                                    menu.started += stage to difficulty
+                                },
                                 onExit = {},
                             )
                         )
@@ -311,7 +326,62 @@ class MenuKeysTest {
             cursorOn("Stage 3: The Desert")
             press(Key.DirectionLeft)
             press(Key.Enter)
-            assertEquals(listOf(2), menu.started)
+            // Nothing starts until the player has said how hard.
+            assertEquals(emptyList(), menu.started)
+            cursorOn("Normal")
+            press(Key.Enter)
+            assertEquals(listOf(2 to Difficulty.NORMAL), menu.started)
+        }
+
+    @Test
+    fun `Start Game asks how hard, and the arrows and Enter choose`() = menu { menu ->
+        press(Key.Enter)
+        onNodeWithText("Choose a difficulty").assertExists()
+        cursorOn("Normal")
+        press(Key.DirectionUp)
+        cursorOn("Easy")
+        press(Key.DirectionDown, times = 2)
+        cursorOn("Hard")
+        press(Key.Enter)
+        assertEquals(listOf(1 to Difficulty.HARD), menu.started)
+        onAllNodesWithText("Choose a difficulty").assertCountEquals(0)
+    }
+
+    @Test
+    fun `Escape closes the difficulty dialog and starts nothing`() = menu { menu ->
+        press(Key.Enter)
+        press(Key.Escape)
+        onAllNodesWithText("Choose a difficulty").assertCountEquals(0)
+        assertEquals(emptyList(), menu.started)
+        cursorOn("Start Game")
+    }
+
+    @Test
+    fun `the difficulty chosen is kept for the next time`() = menu { menu ->
+        press(Key.Enter)
+        press(Key.DirectionUp)
+        press(Key.Enter)
+        assertEquals(Difficulty.EASY, menu.settings.lastDifficulty.value)
+    }
+
+    /** Kept with the settings, since on Android the menu a run returns to is a new one. */
+    @Test
+    fun `the difficulty dialog starts on the one the player last chose`() =
+        menu(lastDifficulty = Difficulty.HARD) {
+            press(Key.Enter)
+            cursorOn("Hard")
+        }
+
+    @Test
+    fun `each open stage's stars say how hard it has been cleared`() =
+        menu(highestUnlocked = 3, clears = mapOf(1 to Difficulty.HARD, 2 to Difficulty.EASY)) {
+            press(Key.Enter)
+            onNodeWithContentDescription("Cleared on Hard", substring = true).assertExists()
+            onNodeWithContentDescription("Cleared on Easy", substring = true).assertExists()
+            onNodeWithContentDescription("Not cleared yet", substring = true).assertExists()
+            // The lagoon is locked, and shows no stars at all.
+            onAllNodesWithContentDescription("Not cleared yet", substring = true)
+                .assertCountEquals(1)
         }
 
     /**

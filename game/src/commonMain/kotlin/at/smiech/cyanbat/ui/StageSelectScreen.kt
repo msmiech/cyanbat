@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -31,6 +32,7 @@ import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.stage1_preview
 import at.smiech.cyanbat.resources.stage2_preview
@@ -47,6 +49,7 @@ import at.smiech.cyanbat.resources.stage_4_name
 import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.resources.stage_locked
 import at.smiech.cyanbat.resources.stage_locked_badge
+import at.smiech.cyanbat.resources.stage_not_cleared
 import at.smiech.cyanbat.resources.stage_select_title
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
@@ -92,9 +95,16 @@ private val STAGES = listOf(
     ),
 )
 
+/** The name of the stage with [id], as its card and its run head it; the first's for an unknown id. */
+internal fun stageNameOf(id: Int): StringResource =
+    (STAGES.firstOrNull { it.id == id } ?: STAGES.first()).name
+
 /**
  * The stage select, reached from Start Game once the player has cleared a stage. Until then there
  * is nothing to choose, so Start Game goes straight into stage 1.
+ *
+ * @param onStartStage starts the stage with this id, once the player has said how hard; see
+ *   [DifficultyDialog].
  */
 @Composable
 fun StageSelectScreen(
@@ -103,13 +113,12 @@ fun StageSelectScreen(
 ) {
     val highestUnlocked by viewModel.highestUnlocked.collectAsState()
     val highscores by viewModel.highscores.collectAsState()
+    val clears by viewModel.clears.collectAsState()
     StageSelectContent(
         highestUnlocked = highestUnlocked,
         highscores = highscores,
-        onStartStage = { id ->
-            viewModel.stopMusic()
-            onStartStage(id)
-        },
+        clears = clears,
+        onStartStage = onStartStage,
     )
 }
 
@@ -118,6 +127,7 @@ fun StageSelectScreen(
 private fun StageSelectContent(
     highestUnlocked: Int,
     highscores: Map<Int, Int>,
+    clears: Map<Int, Difficulty>,
     onStartStage: (Int) -> Unit,
 ) {
     val cursor = remember { STAGES.associate { it.id to FocusRequester() } }
@@ -146,6 +156,7 @@ private fun StageSelectContent(
                         stage = stage,
                         unlocked = stage.id <= highestUnlocked,
                         highscore = highscores[stage.id] ?: 0,
+                        cleared = clears[stage.id],
                         onClick = { onStartStage(stage.id) },
                         modifier = Modifier.weight(1f).focusRequester(cursor.getValue(stage.id)),
                     )
@@ -156,15 +167,19 @@ private fun StageSelectContent(
 }
 
 /**
- * One stage: its preview, its name and, once it is open, its highscore. The score sits straight
- * under the name rather than after the description, so it lines up across cards whose
+ * One stage: its preview, its name and, once it is open, its highscore and its stars. The score
+ * sits straight under the name rather than after the description, so it lines up across cards whose
  * descriptions run to different lengths.
+ *
+ * @param cleared the hardest difficulty the stage has been cleared on, which earns it as many stars
+ *   as it is worth; null for none yet.
  */
 @Composable
 private fun StageCard(
     stage: StageEntry,
     unlocked: Boolean,
     highscore: Int,
+    cleared: Difficulty?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -196,6 +211,24 @@ private fun StageCard(
                     color = Color.White,
                     modifier = Modifier.align(Alignment.Center),
                 )
+            } else {
+                // In a corner of the preview, on a dark backing that keeps them readable over any
+                // stage's art. Every open stage shows all three, the ones still to earn as
+                // outlines, so a stage never cleared says as much.
+                Surface(
+                    color = Color.Black.copy(alpha = 0.55f),
+                    shape = RoundedCornerShape(percent = 50),
+                    modifier = Modifier.align(Alignment.TopEnd).padding(6.dp),
+                ) {
+                    Stars(
+                        earned = cleared?.stars ?: 0,
+                        emptyColor = Color.White.copy(alpha = 0.7f),
+                        description = stringResource(
+                            cleared?.cleared ?: Res.string.stage_not_cleared
+                        ),
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                    )
+                }
             }
         }
         Column(Modifier.padding(12.dp)) {

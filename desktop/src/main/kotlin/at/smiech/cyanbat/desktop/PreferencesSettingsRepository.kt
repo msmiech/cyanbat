@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.desktop
 
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
@@ -43,6 +44,8 @@ class PreferencesSettingsRepository(
     private val theme = MutableStateFlow(ThemeMode.fromName(prefs.get(KEY_THEME_MODE, null)))
     private val chosenLanguage =
         MutableStateFlow(AppLanguage.fromName(prefs.get(KEY_LANGUAGE, null)))
+    private val lastDifficulty =
+        MutableStateFlow(Difficulty.fromName(prefs.get(KEY_DIFFICULTY, null)))
 
     override val isMusicEnabled: Flow<Boolean> = music.asStateFlow()
     override val isSoundEnabled: Flow<Boolean> = sound.asStateFlow()
@@ -62,6 +65,7 @@ class PreferencesSettingsRepository(
 
     override val themeMode: Flow<ThemeMode> = theme.asStateFlow()
     override val language: Flow<AppLanguage> = chosenLanguage.asStateFlow()
+    override val difficulty: Flow<Difficulty> = lastDifficulty.asStateFlow()
 
     init {
         DesktopLocale.apply(chosenLanguage.value)
@@ -105,6 +109,11 @@ class PreferencesSettingsRepository(
         chosenLanguage.value = language
     }
 
+    override suspend fun setDifficulty(difficulty: Difficulty) {
+        prefs.put(KEY_DIFFICULTY, difficulty.name)
+        lastDifficulty.value = difficulty
+    }
+
     private companion object {
         const val KEY_MUSIC = "music_enabled"
         const val KEY_SOUND = "sound_enabled"
@@ -114,5 +123,6 @@ class PreferencesSettingsRepository(
         const val KEY_FULL_SCREEN_MODE = "full_screen_mode"
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_LANGUAGE = "language"
+        const val KEY_DIFFICULTY = "difficulty"
     }
 }
