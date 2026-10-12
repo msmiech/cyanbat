@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.data
 
+import at.smiech.cyanbat.Difficulty
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
 
@@ -37,6 +38,13 @@ interface SettingsRepository {
      */
     val language: Flow<AppLanguage>
 
+    /**
+     * The difficulty the player last started a stage on, where the cursor starts the next time
+     * they are asked; [Difficulty.DEFAULT] until they have been. Not offered in Settings: the
+     * difficulty is chosen as each stage starts, and most players settle on one.
+     */
+    val difficulty: Flow<Difficulty>
+
     suspend fun setMusicEnabled(enabled: Boolean)
     suspend fun setSoundEnabled(enabled: Boolean)
     suspend fun setVibrationEnabled(enabled: Boolean)
@@ -44,4 +52,5 @@ interface SettingsRepository {
     suspend fun setWindowMode(mode: WindowMode)
     suspend fun setThemeMode(mode: ThemeMode)
     suspend fun setLanguage(language: AppLanguage)
+    suspend fun setDifficulty(difficulty: Difficulty)
 }

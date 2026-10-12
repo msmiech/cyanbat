@@ -1,6 +1,8 @@
 package at.smiech.cyanbat.desktop
 
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.WindowMode
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import java.util.UUID
 import java.util.prefs.Preferences
@@ -8,7 +10,10 @@ import kotlin.test.AfterTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 
-/** What [PreferencesSettingsRepository] keeps of the window, and what a new player starts in. */
+/**
+ * What [PreferencesSettingsRepository] keeps of the window and of the difficulty, and what a new
+ * player starts in.
+ */
 class PreferencesSettingsRepositoryTest {
 
     /** A node of the test's own, so it never reads or writes the game's real settings. */
@@ -52,5 +57,14 @@ class PreferencesSettingsRepositoryTest {
         settings().setWindowMode(WindowMode.WINDOWED)
 
         assertEquals(WindowMode.BORDERLESS, settings().lastFullScreenMode)
+    }
+
+    @Test
+    fun `the difficulty last chosen is kept from one start to the next`() = runBlocking {
+        assertEquals(Difficulty.NORMAL, settings().difficulty.first())
+
+        settings().setDifficulty(Difficulty.EASY)
+
+        assertEquals(Difficulty.EASY, settings().difficulty.first())
     }
 }

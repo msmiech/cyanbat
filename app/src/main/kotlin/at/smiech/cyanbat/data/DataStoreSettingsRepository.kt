@@ -3,6 +3,8 @@ package at.smiech.cyanbat.data
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.edit
+import at.smiech.cyanbat.Difficulty
+import at.smiech.cyanbat.PREFS_KEY_DIFFICULTY
 import at.smiech.cyanbat.PREFS_KEY_DISPLAY_MODE
 import at.smiech.cyanbat.PREFS_KEY_MUSIC
 import at.smiech.cyanbat.PREFS_KEY_SOUNDS
@@ -42,6 +44,9 @@ class DataStoreSettingsRepository(
 
     override val language: Flow<AppLanguage> = AppLocale.language
 
+    override val difficulty: Flow<Difficulty> =
+        dataStore.data.map { Difficulty.fromName(it[PREFS_KEY_DIFFICULTY]) }
+
     override suspend fun setMusicEnabled(enabled: Boolean) {
         dataStore.edit { it[PREFS_KEY_MUSIC] = enabled }
     }
@@ -65,4 +70,8 @@ class DataStoreSettingsRepository(
     }
 
     override suspend fun setLanguage(language: AppLanguage) = AppLocale.set(language)
+
+    override suspend fun setDifficulty(difficulty: Difficulty) {
+        dataStore.edit { it[PREFS_KEY_DIFFICULTY] = difficulty.name }
+    }
 }

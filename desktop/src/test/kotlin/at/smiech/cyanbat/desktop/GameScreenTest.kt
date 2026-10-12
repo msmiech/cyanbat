@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.desktop
 
 import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AudioSettings
@@ -40,6 +41,8 @@ import at.smiech.cyanbat.util.IMPACT_LIGHT_SECONDS
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.NAGA_PLATE_SHARE
 import at.smiech.cyanbat.util.ORB_RADIUS
+import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
+import at.smiech.cyanbat.util.REGEN_PER_SECOND
 import at.smiech.cyanbat.util.POWER_UP_DROP_LIGHT_COLOR
 import at.smiech.cyanbat.util.POWER_UP_GRACE_SECONDS
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
@@ -74,6 +77,7 @@ import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
 import kotlin.math.PI
@@ -655,6 +659,71 @@ class GameScreenTest {
         fly(0.1f)
 
         assertEquals(emptyList(), hostiles(), "left in the stage after its boss")
+    }
+
+    /** The stage select's stars come from here: the stage, and how hard it was won. */
+    @Test
+    fun `a stage won records its clear on the run's difficulty`() {
+        val unlocks = StageUnlockStore.InMemory(initial = CAVE)
+        flight(CAVE, difficulty = Difficulty.NORMAL, stageUnlocks = unlocks) {
+            downBoss()
+        }
+        runBlocking {
+            assertEquals(mapOf(CAVE to Difficulty.NORMAL), unlocks.clears.first())
+            assertEquals(DESERT, unlocks.highestUnlocked.first())
+        }
+    }
+
+    @Test
+    fun `an easier run starts the bat tougher and its shot harder`() =
+        flight(CAVE, difficulty = Difficulty.EASY) {
+            val health = probe.world.getComponent(probe.batId, HealthComponent::class)!!
+            val expected = (PLAYER_MAX_HIT_POINTS * Difficulty.EASY.healthFactor).roundToInt()
+            assertEquals(expected, health.maxHitPoints)
+            assertEquals(expected, health.hitPoints, "the bar starts full")
+            assertEquals(
+                (DAMAGE_PER_HIT * Difficulty.EASY.damageFactor).roundToInt(),
+                probe.loadout.shotDamage,
+            )
+        }
+
+    /** Easy's Second Life, held from the start, is spent on the bat's first fall as a picked one is. */
+    @Test
+    fun `on Easy the bat walks away from its first fall`() =
+        flight(CAVE, difficulty = Difficulty.EASY) {
+            holdFire()
+            val bat = probe.world.getComponent(probe.batId, HealthComponent::class)!!
+            bat.hitPoints = 1
+            pinOn(imp(x = 0f, y = 0f, elite = null, hitPoints = 100_000), batRect())
+
+            screen.update(TICK_INITIAL * 1.5f)
+
+            assertTrue(bat.alive, "the run ended on the first fall")
+            assertTrue(bat.hitPoints > 1, "the bat came back with nothing")
+            assertEquals(0, probe.loadout.revives, "the Second Life is still there")
+        }
+
+    @Test
+    fun `on Normal the bat heals by itself from the start`() =
+        flight(CAVE, difficulty = Difficulty.NORMAL) {
+            val bat = probe.world.getComponent(probe.batId, HealthComponent::class)!!
+            bat.hitPoints = bat.maxHitPoints / 2
+            val before = bat.hitPoints
+
+            repeat((2f / TICK_INITIAL).roundToInt()) {
+                clearStrays(keep = emptySet())
+                screen.update(TICK_INITIAL)
+            }
+
+            // Two seconds' worth, give or take the point still owed when the ticks run out.
+            val healed = bat.hitPoints - before
+            assertTrue(healed in 2 * REGEN_PER_SECOND - 1..2 * REGEN_PER_SECOND, "healed $healed")
+        }
+
+    @Test
+    fun `on Hard the bat neither heals nor walks away from a fall`() = flight(CAVE) {
+        assertEquals(0, probe.loadout.revives)
+        assertEquals(0f, probe.loadout.healthRegenPerSecond)
     }
 
     /** Should anything be left by the boss, a stage won is still won. */
@@ -1708,14 +1777,16 @@ class GameScreenTest {
     )
 
     /**
-     * A run of [stage] on the desktop's own host, disposed of when [test] is done with it: silent, or
-     * with its effects played through [sounds] for a test that listens to it. [onExit] is the way
-     * back to the menu.
+     * A run of [stage] on [difficulty] on the desktop's own host, disposed of when [test] is done
+     * with it: silent, or with its effects played through [sounds] for a test that listens to it.
+     * [onExit] is the way back to the menu, and [stageUnlocks] where its clear is recorded.
      */
     private fun flight(
         stage: Int,
         sounds: Map<SoundEffect, Sound>? = null,
         onExit: () -> Unit = {},
+        difficulty: Difficulty = Difficulty.HARD,
+        stageUnlocks: StageUnlockStore = StageUnlockStore.InMemory(),
         test: Flight.() -> Unit,
     ) {
         val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
@@ -1728,11 +1799,12 @@ class GameScreenTest {
                 text = runBlocking { GameText.load() },
                 haptics = Haptics.None,
                 highscores = RecordingHighscores(),
-                stageUnlocks = StageUnlockStore.InMemory(),
+                stageUnlocks = stageUnlocks,
                 onExitToMenu = onExit,
                 audioSettings = if (sounds != null) SoundsOnly else Silent,
             ),
             stage,
+            difficulty,
         )
         try {
             Flight(screen, RunProbe(screen), assets, game).test()

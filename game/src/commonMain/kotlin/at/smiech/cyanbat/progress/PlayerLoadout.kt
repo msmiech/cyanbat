@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.progress
 
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.util.ARMOR_FLOOR
 import at.smiech.cyanbat.util.CRITICAL_CHANCE
 import at.smiech.cyanbat.util.CRITICAL_DAMAGE_MULTIPLIER
@@ -39,8 +40,12 @@ import kotlin.math.roundToInt
  *
  * Every field is clamped when written, so a stacking power-up cannot reach a zero shot interval or
  * immunity to damage.
+ *
+ * @param difficulty what the run is flown on, which sets where the bat starts: its health, its shot,
+ *   the experience it earns and the power-ups it already holds. Picks build on that start as they
+ *   would on Hard's.
  */
-class PlayerLoadout {
+class PlayerLoadout(difficulty: Difficulty = Difficulty.HARD) {
 
     /** Seconds between shots. Lower is faster; floored so the bat cannot fire every tick. */
     var shotIntervalSeconds: Float = SHOT_INTERVAL_SECONDS
@@ -51,7 +56,7 @@ class PlayerLoadout {
         private set
 
     /** What one of the bat's shots takes off what it hits. */
-    var shotDamage: Int = DAMAGE_PER_HIT
+    var shotDamage: Int = (DAMAGE_PER_HIT * difficulty.damageFactor).roundToInt()
         private set
 
     /** How often one of the bat's shots leaves the gun critical, as 0..1. */
@@ -72,7 +77,7 @@ class PlayerLoadout {
         get() = (shotDamage * criticalMultiplier).roundToInt()
 
     /** The size of the bat's health bar. Raising it heals by the same amount; see [gainMaxHealth]. */
-    var maxHitPoints: Int = PLAYER_MAX_HIT_POINTS
+    var maxHitPoints: Int = (PLAYER_MAX_HIT_POINTS * difficulty.healthFactor).roundToInt()
         private set
 
     /** Mercy invulnerability after a hit, in seconds. */
@@ -92,7 +97,7 @@ class PlayerLoadout {
         private set
 
     /** Experience earned is multiplied by this. */
-    var experienceMultiplier: Float = 1f
+    var experienceMultiplier: Float = difficulty.experienceFactor
         private set
 
     /** Points scored are multiplied by this. */
@@ -159,6 +164,11 @@ class PlayerLoadout {
     /** Frost Beam picks after the one that made the beam. */
     private val frostPicksPast: Int
         get() = (frostLevel - 1).coerceAtLeast(0)
+
+    // After every field above has its starting value, which a pick builds on.
+    init {
+        difficulty.startingPowerUps.forEach { it.applyTo(this) }
+    }
 
     /** Multiplies the shot interval by [factor], down to [MIN_SHOT_INTERVAL_SECONDS]. */
     fun quickenShots(factor: Float) {
