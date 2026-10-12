@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.data
 
+import at.smiech.cyanbat.Difficulty
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.MutableStateFlow
 
@@ -18,6 +19,7 @@ internal class FakeSettingsRepository(
     val window = MutableStateFlow(WindowMode.DEFAULT)
     val theme = MutableStateFlow(ThemeMode.DEFAULT)
     val chosenLanguage = MutableStateFlow(AppLanguage.DEFAULT)
+    val lastDifficulty = MutableStateFlow(Difficulty.DEFAULT)
 
     override val isMusicEnabled = music
     override val isSoundEnabled = sound
@@ -26,6 +28,7 @@ internal class FakeSettingsRepository(
     override val windowMode = window
     override val themeMode = theme
     override val language = chosenLanguage
+    override val difficulty = lastDifficulty
 
     override suspend fun setMusicEnabled(enabled: Boolean) {
         music.value = enabled
@@ -54,5 +57,9 @@ internal class FakeSettingsRepository(
     override suspend fun setLanguage(language: AppLanguage) {
         putIntoEffect(language)
         chosenLanguage.value = language
+    }
+
+    override suspend fun setDifficulty(difficulty: Difficulty) {
+        lastDifficulty.value = difficulty
     }
 }

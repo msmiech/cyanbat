@@ -18,6 +18,7 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.data.WindowMode
@@ -56,6 +57,8 @@ fun main() = application {
     // The stage being played, or null while the menu is up. The window's keys go one way or the
     // other by it.
     var playingStage by remember { mutableStateOf<Int?>(null) }
+    // How hard it is flown, which the player chose as it started.
+    var difficulty by remember { mutableStateOf(Difficulty.DEFAULT) }
     val settings = remember { PreferencesSettingsRepository() }
     // One instance for the menu and every run, so the menu sees a stage unlock the moment the run
     // that earned it records it; see PreferencesStageUnlockStore.
@@ -84,7 +87,14 @@ fun main() = application {
         }
     }
     val backStack = rememberMenuBackStack()
-    val game = rememberRun(playingStage, controls, highscores, stageUnlocks, audioSettings) {
+    val game = rememberRun(
+        playingStage,
+        difficulty,
+        controls,
+        highscores,
+        stageUnlocks,
+        audioSettings,
+    ) {
         controls.releaseAll()
         playingStage = null
     }
@@ -147,8 +157,9 @@ fun main() = application {
                             highscores = highscores,
                             // Cleared on the way in as well as on the way out, so that nothing
                             // pressed before the run is waiting to act the moment it starts.
-                            onStartGame = { id ->
+                            onStartGame = { id, chosen ->
                                 controls.releaseAll()
+                                difficulty = chosen
                                 playingStage = id
                             },
                             onExit = { exitProcess(0) },
@@ -162,21 +173,22 @@ fun main() = application {
 }
 
 /**
- * The run of [stage], or null while the menu is up: made when a stage starts, and disposed when the
- * player goes back to the menu, not when the window it is shown in goes.
+ * The run of [stage] on [difficulty], or null while the menu is up: made when a stage starts, and
+ * disposed when the player goes back to the menu, not when the window it is shown in goes.
  *
  * @param onExitToMenu takes the player back to the menu.
  */
 @Composable
 private fun rememberRun(
     stage: Int?,
+    difficulty: Difficulty,
     controls: ControlHandler,
     highscores: PreferencesHighscoreStore,
     stageUnlocks: PreferencesStageUnlockStore,
     audioSettings: AudioSettings,
     onExitToMenu: () -> Unit,
 ): DesktopGame? {
-    val game = remember(stage) {
+    val game = remember(stage, difficulty) {
         stage?.let { id ->
             DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, controls).also { game ->
                 val env = CyanBatEnvironment(
@@ -190,7 +202,7 @@ private fun rememberRun(
                     onExitToMenu = onExitToMenu,
                     audioSettings = audioSettings,
                 )
-                game.setScreen(GameScreen(game, env, id))
+                game.setScreen(GameScreen(game, env, id, difficulty))
             }
         }
     }

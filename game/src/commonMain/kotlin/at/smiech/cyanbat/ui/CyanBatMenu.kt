@@ -14,12 +14,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.lifecycle.viewmodel.compose.viewModel
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AppLanguage
@@ -45,8 +49,8 @@ class MenuHost(
     val stageUnlocks: StageUnlockStore,
     /** Each stage's highscore, for the stage select. The same store the game saves them in. */
     val highscores: HighscoreStore,
-    /** Start a run on the stage with this 1-based id. */
-    val onStartGame: (stageId: Int) -> Unit,
+    /** Start a run on the stage with this 1-based id, on the difficulty the player chose for it. */
+    val onStartGame: (stageId: Int, difficulty: Difficulty) -> Unit,
     /**
      * Quits the game, or null where the game cannot quit itself, and the main screen then has no
      * Exit: a page cannot close its own browser tab.
@@ -88,24 +92,44 @@ fun CyanBatMenu(
         // The host has put it into effect by the time it tells the menu of it, and the back stack
         // is out here, so the player is still in Settings, where they chose it.
         val language by host.settings.language.collectAsState(AppLanguage.DEFAULT)
+        // The stage the player has picked, while they choose how hard to fly it; null otherwise.
+        // Every way into a stage asks, so it is asked here rather than by each screen.
+        var choosing by rememberSaveable { mutableStateOf<Int?>(null) }
         key(language) {
             // Keeps what a screen remembers while the player is in another one, so the main
             // screen's cursor is still on Settings when they come back out of it.
             val screens = rememberSaveableStateHolder()
             MenuKeys(onBack = backStack::back) {
                 screens.SaveableStateProvider(backStack.current.name) {
-                    Destination(backStack, host, menuViewModel)
+                    Destination(backStack, host, menuViewModel, onStartStage = { choosing = it })
                 }
+            }
+            val lastDifficulty by menuViewModel.lastDifficulty.collectAsState()
+            choosing?.let { stageId ->
+                DifficultyDialog(
+                    stage = stageNameOf(stageId),
+                    home = lastDifficulty,
+                    onChoose = { difficulty ->
+                        choosing = null
+                        menuViewModel.rememberDifficulty(difficulty)
+                        // Only now: the menu's music plays on while the player makes up their mind.
+                        menuViewModel.stopMusic()
+                        host.onStartGame(stageId, difficulty)
+                    },
+                    onDismiss = { choosing = null },
+                )
             }
         }
     }
 }
 
+/** The screen on top of [backStack]; [onStartStage] asks how hard to fly the stage it is given. */
 @Composable
 private fun Destination(
     backStack: MenuBackStack,
     host: MenuHost,
-    menuViewModel: MainMenuViewModel
+    menuViewModel: MainMenuViewModel,
+    onStartStage: (stageId: Int) -> Unit,
 ) {
     when (backStack.current) {
         MenuDestination.Main -> {
@@ -114,13 +138,13 @@ private fun Destination(
                 onNavigateToSettings = { backStack.navigateTo(MenuDestination.Settings) },
                 onNavigateToCredits = { backStack.navigateTo(MenuDestination.Credits) },
                 onNavigateToStageSelect = { backStack.navigateTo(MenuDestination.StageSelect) },
-                onStartGame = host.onStartGame,
+                onStartStage = onStartStage,
                 onExit = host.onExit,
             )
         }
 
         MenuDestination.StageSelect -> SubScreen(onBack = { backStack.back() }) {
-            StageSelectScreen(menuViewModel, onStartStage = host.onStartGame)
+            StageSelectScreen(menuViewModel, onStartStage = onStartStage)
         }
 
         MenuDestination.Settings -> SubScreen(onBack = { backStack.back() }) {

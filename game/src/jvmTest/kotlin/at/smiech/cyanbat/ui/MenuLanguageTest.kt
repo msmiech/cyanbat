@@ -64,7 +64,7 @@ class MenuLanguageTest {
                                 menuMusic = null,
                                 stageUnlocks = StageUnlockStore.InMemory(),
                                 highscores = NoHighscores,
-                                onStartGame = {},
+                                onStartGame = { _, _ -> },
                                 onExit = {},
                             )
                         )

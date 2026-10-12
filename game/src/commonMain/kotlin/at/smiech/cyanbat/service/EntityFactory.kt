@@ -154,13 +154,17 @@ import kotlin.math.sin
  */
 class EntityFactory(val world: World, private val lit: Boolean = false) {
 
-    /** The bat, at ([x], [y]), drawn from [pixmap]'s rows of unhurt and wounded wingbeats. */
+    /**
+     * The bat, at ([x], [y]), drawn from [pixmap]'s rows of unhurt and wounded wingbeats, with a full
+     * bar of [hitPoints].
+     */
     fun createBat(
         x: Float,
         y: Float,
         width: Float,
         pixmap: Pixmap,
         shotIntervalSeconds: Float,
+        hitPoints: Int = PLAYER_MAX_HIT_POINTS,
     ): EntityId {
         val height = pixmap.height / WOUND_ROWS
         val id = world.createEntity()
@@ -176,7 +180,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         )
         world.addComponent(id, WoundComponent(height, WOUND_MARKS))
         world.addComponent(id, CollisionComponent(5f, CollisionGroup.PLAYER))
-        world.addComponent(id, HealthComponent(PLAYER_MAX_HIT_POINTS))
+        world.addComponent(id, HealthComponent(hitPoints))
         // Only the bat and the boss carry health bars; a bar over every enemy would
         // clutter the screen.
         world.addComponent(id, HealthBarComponent(HEALTH_BAR_HEIGHT, HEALTH_BAR_OFFSET_Y))

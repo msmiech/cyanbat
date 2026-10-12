@@ -80,7 +80,8 @@ fun MainMenuScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCredits: () -> Unit,
     onNavigateToStageSelect: () -> Unit,
-    onStartGame: (stageId: Int) -> Unit,
+    /** Starts the stage with this id, once the player has said how hard; see [DifficultyDialog]. */
+    onStartStage: (stageId: Int) -> Unit,
     /** Quits the game; null where it cannot quit, and there is no Exit. */
     onExit: (() -> Unit)?,
 ) {
@@ -106,8 +107,7 @@ fun MainMenuScreen(
             MainChoice.START -> if (highestUnlocked > 1) {
                 onNavigateToStageSelect()
             } else {
-                viewModel.stopMusic()
-                onStartGame(1)
+                onStartStage(1)
             }
 
             MainChoice.SETTINGS -> onNavigateToSettings()

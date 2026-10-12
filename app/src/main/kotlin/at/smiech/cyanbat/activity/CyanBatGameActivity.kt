@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.MainActivity
 import at.smiech.cyanbat.data.AppLocale
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
@@ -35,7 +36,12 @@ import java.util.Locale
  */
 class CyanBatGameActivity : AndroidGameActivity() {
     override val startScreen: Screen
-        get() = GameScreen(this, environment, intent.getIntExtra(EXTRA_STAGE_ID, 1))
+        get() = GameScreen(
+            this,
+            environment,
+            intent.getIntExtra(EXTRA_STAGE_ID, 1),
+            Difficulty.fromName(intent.getStringExtra(EXTRA_DIFFICULTY)),
+        )
 
     /** Lazily, for the same reason as [settings]; and kept, to swap a new language's text into. */
     private val environment by lazy { buildEnvironment() }
@@ -111,5 +117,8 @@ class CyanBatGameActivity : AndroidGameActivity() {
     companion object {
         /** Which stage the run starts on, 1-based; see [GameScreen]. Stage 1 when absent. */
         const val EXTRA_STAGE_ID = "at.smiech.cyanbat.STAGE_ID"
+
+        /** How hard the run is, as a [Difficulty]'s name; [Difficulty.DEFAULT] when absent. */
+        const val EXTRA_DIFFICULTY = "at.smiech.cyanbat.DIFFICULTY"
     }
 }

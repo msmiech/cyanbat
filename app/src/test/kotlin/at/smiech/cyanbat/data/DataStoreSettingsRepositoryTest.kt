@@ -2,6 +2,7 @@ package at.smiech.cyanbat.data
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.PREFS_KEY_MUSIC
 import at.smiech.cyanbat.PREFS_KEY_SOUNDS
 import kotlinx.coroutines.CoroutineScope
@@ -74,5 +75,15 @@ class DataStoreSettingsRepositoryTest {
         settings.setThemeMode(ThemeMode.DARK)
 
         assertEquals(ThemeMode.DARK, settings.themeMode.first())
+    }
+
+    @Test
+    fun `the difficulty last chosen is kept and Normal until then`() = runBlocking {
+        val settings = DataStoreSettingsRepository(dataStore)
+        assertEquals(Difficulty.NORMAL, settings.difficulty.first())
+
+        settings.setDifficulty(Difficulty.HARD)
+
+        assertEquals(Difficulty.HARD, settings.difficulty.first())
     }
 }

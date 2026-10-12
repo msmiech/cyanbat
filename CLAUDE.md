@@ -158,7 +158,7 @@ playfield for wide screens; it would change difficulty by device.
 - Pause, the level-up offer and "stage complete" are state inside it rather than separate
   `Screen`s, because swapping screens disposes the run. `GameOverScreen` is its own screen.
 - Moving to the next stage builds a fresh `GameScreen`. That is what resets score, experience and
-  power-ups.
+  power-ups. It is handed the run's `Difficulty`, which carries on (see Difficulty).
 - On Android the run lives only in `CyanBatGameActivity`, and recreating it starts the run over. So
   it takes every configuration change a run can meet in place - dark mode coming on, a fold or a
   resize, another display's density, a pad dropping out - through its `configChanges`, each with its
@@ -409,6 +409,32 @@ swarm, or a formation's leader.
   once the stage is won, and nothing is taken.
 - An aura's halo is drawn between two `RenderSystem` passes: the scenery strip (below z 0), then
   every other sprite. In one pass the strip covered every halo in the jungle and the cave.
+
+**Difficulty.** Every run is flown on a `Difficulty` - Easy, Normal or Hard - which the menu asks
+for in a `DifficultyDialog` whenever a stage starts from it, by Start Game or a stage card. The
+dialog starts on the one last chosen, kept with the settings (`SettingsRepository.difficulty`)
+rather than in the menu's view model, which Android makes again for every return from a run.
+
+- Hard is the game as it is tuned, and every factor on it is 1: the stages, waves and bosses are
+  balanced against Hard alone, and the easier ones are discounts on it. Tests and the recorder fly
+  Hard, which is `GameScreen`'s default.
+- An easier difficulty touches two things and nothing else: `StageProgression.enemyDensity`, which
+  stretches the gap between spawns (the waves' species, health and damage are unchanged, and so is
+  every boss), and the bat's start, in `PlayerLoadout`: its `maxHitPoints`, `shotDamage` and
+  `experienceMultiplier`, and its `startingPowerUps` (Regeneration on Normal, Regeneration and
+  Second Life on Easy, none on Hard), each applied as a pick is. Picks build on that start as
+  they would on Hard's, so a power-up held from the start is still offered if it stacks.
+- A run keeps its difficulty: the stage complete overlay flies on to the next stage on the same, and
+  Android hands it to the game activity as the `at.smiech.cyanbat.DIFFICULTY` extra, by name.
+- A won stage records its clear on the run's difficulty (`StageUnlockStore.recordClearAsync`), next
+  to the unlock it earns; the store keeps the hardest. The stage select draws it as stars on the
+  stage's card, one per `Difficulty.stars`. Stars are drawn (`Stars`), not set as text, since not
+  every platform's font has one.
+- Clears are stored as stars under `cleared_stage_<id>`. A store kept before there were difficulties
+  has unlocks and no clears, so each store gives it once (`clearsBeforeDifficulties`, marked done by
+  `stage_clears_kept`) a Hard clear of every stage below its highest unlock: that is the only way
+  they could have been opened then. Run again, it would count a later Easy clear's unlock as Hard.
+- The highscore is one per stage, whatever the difficulty.
 
 **Player progression** is per run and never persisted:
 

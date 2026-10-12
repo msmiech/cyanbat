@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.ui.game
 
 import at.smiech.cyanbat.CyanBatEnvironment
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.ScoreTracker
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.ecs.BossPartComponent
@@ -196,14 +197,17 @@ import kotlin.random.Random
  *
  * Moving on to the next stage builds a fresh screen, which is what resets the score, the bat's
  * experience and its power-ups, so every stage is beaten from a standing start however it was
- * reached.
+ * reached. It is flown on the same [difficulty], which the player chose as the first one started.
  *
  * @param stageId which stage to fly, 1-based. An id with no stage behind it flies the first.
+ * @param difficulty how hard the run is. Hard by default: the game as it is tuned, which is what
+ *   the tests and the recorder fly.
  */
 class GameScreen(
     override val game: Game,
     private val env: CyanBatEnvironment,
     stageId: Int = 1,
+    val difficulty: Difficulty = Difficulty.HARD,
 ) : Screen {
     /** The stage being flown. */
     val currentStage = env.assets.stage(stageId)
@@ -246,7 +250,7 @@ class GameScreen(
     private var tickTime = 0f
 
     /** The difficulty curve of the stage being played; see [StageProgression]. */
-    private val progression = StageProgression.forStage(currentStage.id)
+    private val progression = StageProgression.forStage(currentStage.id, difficulty)
 
     /** Spawns the stage's waves and its boss, and keeps the stage clock. */
     val enmGen = EnemyGenerator(
@@ -358,7 +362,7 @@ class GameScreen(
     private val progress = PlayerProgress()
 
     /** What the run's power-ups have made of the bat; see [PlayerLoadout]. */
-    private val loadout = PlayerLoadout()
+    private val loadout = PlayerLoadout(difficulty)
 
     /** Rolls the bat's critical hits. Its own, so nothing else in the run shifts the sequence. */
     private val random = Random.Default
@@ -517,9 +521,10 @@ class GameScreen(
             y = (game.frameBufferHeight / 2).toFloat(),
             width = BAT_FRAME_WIDTH.toFloat(),
             pixmap = env.assets.graphics.bat,
-            // From the loadout rather than the constant, so the bat starts from the stats the
-            // power-ups change.
+            // From the loadout rather than the constants, so the bat starts from the stats the
+            // power-ups change, and from the health its difficulty gives it.
             shotIntervalSeconds = loadout.shotIntervalSeconds,
+            hitPoints = loadout.maxHitPoints,
         )
 
         startStageMusic()
@@ -1142,8 +1147,9 @@ class GameScreen(
         // that did not count.
         awardExperience(XP_PER_BOSS)
         // The highscore is banked by update once the tick is over, since the score can still move
-        // within it. The next stage unlocks now, not on tapping through: a player who quits from
-        // the overlay has still won.
+        // within it. The clear is recorded and the next stage unlocks now, not on tapping through:
+        // a player who quits from the overlay has still won.
+        env.stageUnlocks.recordClearAsync(currentStage.id, difficulty)
         nextStageId?.let { env.stageUnlocks.unlockAsync(it) }
         // With the Sky Viper down, its venom lifts, over the seconds the victory plays out.
         poison.cure()
@@ -1926,10 +1932,11 @@ class GameScreen(
 
     /**
      * Flies on to stage [id] on a fresh screen, which resets the score, the bat's level and its
-     * power-ups. The highscore was banked on the tick the boss went down.
+     * power-ups, but not the difficulty: the player chose it for the run, and is still on it. The
+     * highscore was banked on the tick the boss went down.
      */
     private fun startStage(id: Int) {
-        game.setScreen(GameScreen(game, env, id))
+        game.setScreen(GameScreen(game, env, id, difficulty))
     }
 
     /**

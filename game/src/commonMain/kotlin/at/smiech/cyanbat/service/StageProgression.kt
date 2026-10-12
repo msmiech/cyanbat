@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.service
 
+import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.util.BOSS_DAMAGE_PER_STAGE
 import at.smiech.cyanbat.util.BOSS_HIT_POINTS_PER_STAGE
 import at.smiech.cyanbat.util.BOSS_WAVE
@@ -63,6 +64,9 @@ data class EnemyWave(
  *   left off.
  * @param bossDifficulty scales the boss and its summons the same way: the stage's difficulty unless
  *   its design keeps the boss harder; see [StageDesign.bossToughness].
+ * @param enemyDensity how many of the waves' enemies arrive, from the player's [Difficulty]: the gap
+ *   between spawns is stretched by its inverse. Unlike [difficulty] it leaves the enemies as tough
+ *   as they were, and the boss alone.
  */
 data class StageProgression(
     val design: StageDesign = StageDesign.CAVE,
@@ -72,6 +76,7 @@ data class StageProgression(
     val bossDifficulty: Float = difficulty,
     val bossHitPoints: Int = BOSS_HIT_POINTS_PER_STAGE,
     val bossDamage: Int = BOSS_DAMAGE_PER_STAGE,
+    val enemyDensity: Float = 1f,
 ) {
     /** When the boss arrives, in seconds from the start of the stage. */
     val bossTimeSeconds: Float = bossWave * waveDurationSeconds
@@ -85,13 +90,13 @@ data class StageProgression(
 
     /**
      * The gap between spawns, falling linearly from [OPENING_SPAWN_INTERVAL_SECONDS] to
-     * [MINIMUM_SPAWN_INTERVAL_SECONDS] by the boss, scaled by difficulty and floored at half the
-     * minimum, so it can never reach zero and spawn every tick.
+     * [MINIMUM_SPAWN_INTERVAL_SECONDS] by the boss, scaled by difficulty and density, and floored at
+     * half the minimum, so it can never reach zero and spawn every tick.
      */
     fun spawnIntervalAt(elapsedSeconds: Float): Float {
         val progress = (elapsedSeconds / bossTimeSeconds).coerceIn(0f, 1f)
-        val opening = OPENING_SPAWN_INTERVAL_SECONDS / difficulty
-        val floor = MINIMUM_SPAWN_INTERVAL_SECONDS / difficulty
+        val opening = OPENING_SPAWN_INTERVAL_SECONDS / (difficulty * enemyDensity)
+        val floor = MINIMUM_SPAWN_INTERVAL_SECONDS / (difficulty * enemyDensity)
         return (opening + (floor - opening) * progress).coerceAtLeast(MINIMUM_SPAWN_INTERVAL_SECONDS / 2f)
     }
 
@@ -181,9 +186,10 @@ data class StageProgression(
 
         /**
          * The progression for the stage with this 1-based [id]: stage 1 is the baseline, and each
-         * one after it opens [STAGE_DIFFICULTY_STEP] harder, on top of what its design adds.
+         * one after it opens [STAGE_DIFFICULTY_STEP] harder, on top of what its design adds. Flown
+         * on [playerDifficulty], whose density thins out every stage's waves alike.
          */
-        fun forStage(id: Int): StageProgression {
+        fun forStage(id: Int, playerDifficulty: Difficulty = Difficulty.HARD): StageProgression {
             val stepsAboveFirst = (id - 1).coerceAtLeast(0)
             val design = StageDesign.forStage(id)
             val difficulty = 1f + stepsAboveFirst * STAGE_DIFFICULTY_STEP
@@ -191,6 +197,7 @@ data class StageProgression(
                 design = design,
                 difficulty = difficulty,
                 bossDifficulty = difficulty * design.bossToughness,
+                enemyDensity = playerDifficulty.enemyDensity,
             )
         }
     }
