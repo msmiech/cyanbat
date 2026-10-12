@@ -6,6 +6,7 @@ import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.MOTH_QUEEN_SHOT_VARIANT
 import at.smiech.cyanbat.util.NAGA_SHOT_VARIANT
+import at.smiech.cyanbat.util.SKY_VIPER_SHOT_VARIANT
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
@@ -149,6 +150,7 @@ class ShotColorwayTest {
         }
         assertTrue(MOTH_QUEEN_SHOT_VARIANT in 0 until COLORWAYS)
         assertTrue(NAGA_SHOT_VARIANT in 0 until COLORWAYS)
+        assertTrue(SKY_VIPER_SHOT_VARIANT in 0 until COLORWAYS)
     }
 
     /** The case the feature was asked for: the cave's boss's bolts come out crimson, like the rest of it. */

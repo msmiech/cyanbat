@@ -72,4 +72,17 @@ enum class SoundEffect(val file: String, val volume: Float, val gapSeconds: Floa
      * heard over the fight, but soft: it blooms where the fight's sounds strike.
      */
     POWER_UP("powerUp.wav", 0.4f),
+
+    /**
+     * The Sky Viper coming, heard before it is seen. It plays in the silence the Naga's fall leaves,
+     * so it is set against the boss's death rather than the music: about a decibel under it, between
+     * a full-range speaker and a phone's, where it loses nothing, being all rasp and no thump.
+     */
+    VIPER_SCREECH("viperScreech.wav", 0.6f),
+
+    /**
+     * The viper's bite, poisoning the bat, in the same silence: level with the bat's own hit at full
+     * volume, since its crunch is mostly thump and a phone's speaker loses most of that.
+     */
+    VENOM_BITE("venomBite.wav", 1f),
 }

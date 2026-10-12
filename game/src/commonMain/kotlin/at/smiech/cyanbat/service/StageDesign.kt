@@ -19,6 +19,7 @@ import at.smiech.cyanbat.service.EnemySpecies.WEAVER
 import at.smiech.cyanbat.service.EnemySpecies.WISP
 import at.smiech.cyanbat.service.EnemySpecies.WYRMLING
 import at.smiech.cyanbat.util.NAGA_VITALITY
+import at.smiech.cyanbat.util.SKY_VIPER_VITALITY
 import at.smiech.cyanbat.util.STAGE_DIFFICULTY_STEP
 
 /**
@@ -67,6 +68,14 @@ enum class BossKind {
      * brood, a shield and a swim across the frame. See [NagaBrain].
      */
     NAGA,
+
+    /**
+     * The lagoon's second boss, come once the Naga has fallen: a winged serpent of a head, wings and
+     * ten parts that dives out of the sky, bites the bat and poisons it, then swoops at it, weaves
+     * across the frame spitting, and from its second phase rains venom from above. See
+     * [SkyViperBrain].
+     */
+    SKY_VIPER,
 }
 
 /**
@@ -77,12 +86,18 @@ enum class BossKind {
  *   waves, more for one kept harder.
  * @param bossVitality a multiplier on the boss's health alone: a longer fight, where
  *   [bossToughness] would also make its blows hit harder.
+ * @param encore a second boss that comes once [boss] has fallen, and must fall too before the stage
+ *   is won; null for a stage that ends on its boss. It is fought at the boss's difficulty.
+ * @param encoreVitality the multiplier on the second boss's health, as [bossVitality] is on the
+ *   first's.
  */
 data class StageDesign(
     val waves: List<WaveDesign>,
     val boss: BossKind,
     val bossToughness: Float = 1f,
     val bossVitality: Float = 1f,
+    val encore: BossKind? = null,
+    val encoreVitality: Float = 1f,
 ) {
     companion object {
         /**
@@ -203,7 +218,8 @@ data class StageDesign(
          * and elites ramp higher than in any earlier stage.
          *
          * The Naga is fought at the stage's difficulty with nearly twice the health, since its
-         * fight is five phases rather than three.
+         * fight is five phases rather than three. It is not the end: once it falls, the Sky Viper
+         * comes down out of the sky, which the stage select never mentions.
          */
         val LAGOON = StageDesign(
             waves = listOf(
@@ -235,6 +251,8 @@ data class StageDesign(
             ),
             boss = BossKind.NAGA,
             bossVitality = NAGA_VITALITY,
+            encore = BossKind.SKY_VIPER,
+            encoreVitality = SKY_VIPER_VITALITY,
         )
 
         /**

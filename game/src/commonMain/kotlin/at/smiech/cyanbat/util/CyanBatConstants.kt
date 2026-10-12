@@ -1152,3 +1152,177 @@ const val NAGA_RECOIL_SECONDS = 0.5f
  */
 const val NAGA_SWIM_SPEED = 2.3f
 const val NAGA_ENRAGED_SWIM_SPEED = 2.9f
+
+
+// --- The Sky Viper -----------------------------------------------------------------------------
+//
+// Stage 4's second boss, which nothing before it gives away: once the Naga falls, a winged serpent
+// comes down out of the sky, bites the bat and poisons it, and the stage is won only when it falls
+// too. A head, a pair of wings and ten parts, laid along the path the head flies, as the Sand Wyrm's
+// are; what lands on the body lands on the head. See SkyViperBrain.
+
+/** The square frame every part is drawn in on its sheet, its wings and its venom included. */
+const val SKY_VIPER_FRAME = 80
+
+/** Its jaws working, two frames on a slow beat. */
+const val SKY_VIPER_HEAD_FRAMES = 2
+const val SKY_VIPER_HEAD_FRAME_SECONDS = 0.2f
+
+/** Its wings beating, four frames from the sheet's third: quick, as a flyer's are. */
+const val SKY_VIPER_WINGS_FRAME = 2
+const val SKY_VIPER_WING_FRAMES = 4
+const val SKY_VIPER_WING_FRAME_SECONDS = 0.09f
+
+/** The venom its bite bursts into, four frames from the sheet's twelfth. */
+const val SKY_VIPER_VENOM_FRAME = 11
+const val SKY_VIPER_VENOM_FRAMES = 4
+const val SKY_VIPER_VENOM_FRAME_SECONDS = 0.08f
+
+/**
+ * How far behind its head, along the path it flies, its neck lies and its wings beat, and how far
+ * apart the parts behind the neck are: a little under a part's length, so they overlap and read as
+ * one body. The wings are set back past the head's frill, which would cover them.
+ */
+const val SKY_VIPER_WING_BACK = 30f
+const val SKY_VIPER_NECK_BACK = 20f
+const val SKY_VIPER_SPACING = 16f
+
+/** The health fractions at which it starts to rain venom and becomes enraged; see [WOUND_MARKS]. */
+const val SKY_VIPER_PHASE_2_AT = WOUNDED_AT
+const val SKY_VIPER_PHASE_3_AT = BATTERED_AT
+
+/**
+ * Its health against its stage's boss health: barely more than any single boss's, and well short of
+ * the Naga's, since it is fought straight after the Naga, by a bat that has just won the longest
+ * fight in the game.
+ */
+const val SKY_VIPER_VITALITY = 1.1f
+
+/**
+ * What its head and body deal on contact, and how much of a shot into its body or wings carries
+ * through to its head, all as the Naga's are.
+ */
+const val SKY_VIPER_HEAD_DAMAGE = 0.75f
+const val SKY_VIPER_BODY_DAMAGE = 0.3f
+const val SKY_VIPER_PLATE_SHARE = 0.5f
+
+/**
+ * What its venom deals, as a share of the head's contact damage: a spat bolt about a third of the
+ * bat's bar, as the Naga's spit is, and a drop of its rain or a bolt of its ring about a fifth.
+ */
+const val SKY_VIPER_SPIT_DAMAGE = 0.42f
+const val SKY_VIPER_DROP_DAMAGE = 0.28f
+const val SKY_VIPER_RING_DAMAGE = 0.28f
+
+/**
+ * The colorway of shot.png its venom is drawn in: the venom elites' green, which no elite of its
+ * fight shares, since nothing elite flies with a boss.
+ */
+const val SKY_VIPER_SHOT_VARIANT = 10
+
+/**
+ * Its swoop: it comes in from above to hover ahead of the bat, rears for [SKY_VIPER_TELL_SECONDS]
+ * (less enraged), the last of it shivering, as the warning, and dives at where the bat was at this
+ * many pixels a tick, faster enraged, and on out of the frame.
+ */
+const val SKY_VIPER_TELL_SECONDS = 1.1f
+const val SKY_VIPER_ENRAGED_TELL_SECONDS = 0.75f
+const val SKY_VIPER_SWOOP_SPEED = 6.2f
+const val SKY_VIPER_ENRAGED_SWOOP_SPEED = 7.4f
+
+/** Its weave: in from the right across the frame, round the bat's height, spitting as it goes. */
+const val SKY_VIPER_WEAVE_SPEED = 3f
+const val SKY_VIPER_ENRAGED_WEAVE_SPEED = 3.6f
+
+/**
+ * Its rain, from its second phase: along the top of the frame, a drop of venom falling from it every
+ * [SKY_VIPER_DROP_SECONDS]: far enough apart for the bat to slip between two.
+ */
+const val SKY_VIPER_RAIN_SPEED = 2.6f
+const val SKY_VIPER_DROP_SECONDS = 0.42f
+
+/** How long it is out of sight between passes, less enraged. */
+const val SKY_VIPER_AWAY_SECONDS = 0.7f
+const val SKY_VIPER_ENRAGED_AWAY_SECONDS = 0.35f
+
+
+// --- The interlude -----------------------------------------------------------------------------
+//
+// Between the Naga going down and the Sky Viper's fight, the run plays a cutscene: the Naga's wreck
+// goes up, black bars come in over the frame, the bat is taken to a mark, the viper comes down out
+// of the sky and bites it, and the fight begins as it sweeps back into sight. See GameScreen's
+// playInterlude, and SkyViperBrain for the viper's part.
+
+/**
+ * When, after the Naga goes down, a level up it bought is offered: once its wreck has gone up. And
+ * when the black bars come in and the bat is taken, a moment after, or after the pick. The viper
+ * comes once the bars are in, which hide its health bar until then.
+ */
+const val INTERLUDE_OFFER_SECONDS = 0.9f
+const val INTERLUDE_HOLD_SECONDS = 1.3f
+
+/** How tall the black bars are, top and bottom, and how long they take to slide in or out. */
+const val LETTERBOX_HEIGHT = 30
+const val LETTERBOX_SECONDS = 0.5f
+
+/**
+ * Where the bat is taken for the bite, how long it takes to get there, and how far the bite throws it
+ * back and down, and how quickly.
+ */
+const val INTERLUDE_MARK_X = 170f
+const val INTERLUDE_MARK_Y = 210f
+const val INTERLUDE_GLIDE_SECONDS = 0.9f
+const val INTERLUDE_RECOIL_X = -34f
+const val INTERLUDE_RECOIL_Y = 20f
+const val INTERLUDE_RECOIL_SECONDS = 0.35f
+
+/** The green the bite flashes the bat, and how long it lasts. */
+const val VENOM_FLASH_COLOR = 0xD08CF050.toInt()
+const val VENOM_FLASH_SECONDS = 0.5f
+
+/**
+ * The bat's grace as the fight begins: it was out of the player's hands until then, and the finger
+ * that steered before has to find it again.
+ */
+const val ENCORE_GRACE_SECONDS = 1.5f
+
+
+// --- Poison ------------------------------------------------------------------------------------
+//
+// The Sky Viper's bite poisons the bat until the viper falls: the run's frame swims, rows of it
+// rippling sideways, and is washed green - a little all fight long, and more for a moment at every
+// blow the bat takes. It costs no health; what it takes is a clear view. See Poison.
+
+/** How strongly it shows as it takes hold, how strongly it settles to, and what a blow adds. */
+const val POISON_ONSET = 1f
+const val POISON_REST = 0.4f
+const val POISON_SURGE = 0.45f
+
+/** How fast it settles back to its rest, and lifts once the viper falls, in strength a second. */
+const val POISON_SETTLE_PER_SECOND = 0.35f
+const val POISON_CURE_PER_SECOND = 0.7f
+
+/**
+ * Its ripple at full strength: the most a row is shifted, in frame pixels, which at its rest rounds
+ * to a pixel either way; how many rows one wave spans; and how many waves a second roll up the frame.
+ * A second, shorter wave rolls down against it, so the ripple never settles into a pattern.
+ */
+const val POISON_RIPPLE_PIXELS = 3.2f
+const val POISON_RIPPLE_ROWS = 72f
+const val POISON_RIPPLE_PER_SECOND = 0.55f
+const val POISON_CHOP_ROWS = 23f
+const val POISON_CHOP_PER_SECOND = 1.3f
+const val POISON_CHOP_SHARE = 0.3f
+
+/**
+ * Its wash: the green the frame is washed in, how much of it at full strength, and how much more
+ * gathers at the frame's edges, in [POISON_EDGE_BANDS] bands of [POISON_EDGE_BAND] pixels, fading
+ * inward. Slow to breathe in and out, so it reads as sickness rather than a light.
+ */
+const val POISON_GREEN = 0xFF46D23C.toInt()
+const val POISON_WASH = 0.22f
+const val POISON_EDGE = 0.3f
+const val POISON_EDGE_BANDS = 3
+const val POISON_EDGE_BAND = 6
+const val POISON_BREATH = 0.15f
+const val POISON_BREATHS_PER_SECOND = 0.4f

@@ -81,6 +81,7 @@
 
     <string name="banner_wave">WELLE %1$d</string>
     <string name="banner_second_life">ZWEITES LEBEN</string>
+    <string name="banner_poisoned">VERGIFTET</string>
 
     <string name="boss_moth_queen">DIE MOTTENKÖNIGIN</string>
     <string name="boss_moth_queen_swarm">SIE RUFT DEN SCHWARM</string>
@@ -100,6 +101,10 @@
     <string name="boss_naga_tide">DIE GEZEITEN WENDEN SICH</string>
     <string name="boss_naga_enraged">DIE NAGA TOBT</string>
     <string name="boss_naga_falls">DIE NAGA FÄLLT</string>
+    <string name="boss_sky_viper">DIE HIMMELSVIPER</string>
+    <string name="boss_sky_viper_rain">GIFTREGEN</string>
+    <string name="boss_sky_viper_enraged">DIE VIPER TOBT</string>
+    <string name="boss_sky_viper_falls">DIE HIMMELSVIPER FÄLLT</string>
 
     <string name="pause_title">PAUSE</string>
     <string name="pause_resume">Tippen oder klicken zum Fortsetzen</string>

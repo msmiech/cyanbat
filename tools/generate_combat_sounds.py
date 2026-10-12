@@ -29,6 +29,10 @@ the frost beam and the drop an elite leaves:
                      crackling as it sets.
 * powerUp.wav      - an elite's drop taken: a breath drawn in, and a glass chime rising out of it
                      into a wide, dark hall.
+* viperScreech.wav - the Sky Viper, heard before it is seen, in the silence the Naga's fall leaves:
+                     a hiss swelling out of the air, a screech tearing down through it, and the beat
+                     of its wings.
+* venomBite.wav    - its bite: jaws snapping shut on the bat, and venom hissing and bubbling into it.
 
 They share a palette and a level. Each is written near full scale and played at the volume its
 `SoundEffect` gives it, which is where the balance between them and against the music is set.
@@ -421,6 +425,70 @@ def boss_death(rng) -> np.ndarray:
     return finish(out, release=0.6)
 
 
+def viper_screech(rng) -> np.ndarray:
+    """The Sky Viper, heard before it is seen: a hiss swelling out of the air, a screech tearing down
+    through the top of it, roughened by a growl, and two beats of its wings under it, all in the open
+    sky over the water.
+
+    Warm and rough, as everything hostile is: a buzz rather than a whistle, and no glass in it. It
+    plays in the silence the Naga's fall leaves, so it needs no help to be heard; it has to make the
+    player look up.
+    """
+    seconds = 1.5
+    out = silence(seconds)
+
+    n = seconds_to_samples(1.0)
+    t = np.arange(n) / RENDER_RATE
+    hiss = normalized(one_shot_filter(rng.standard_normal(n), bandpass(2600, 8500)))
+    lay(out, hiss * np.clip(t / 0.35, 0, 1) * decay(n, 0.45), 0, 0.4)
+
+    n = seconds_to_samples(0.85)
+    t = np.arange(n) / RENDER_RATE
+    tone = buzz(1900, 620, 0.85, glide=0.3, harmonics=12)
+    # A growl through it, and a waver, so it reads as a throat rather than a siren.
+    growl = 1 + 0.55 * np.sin(2 * np.pi * 68 * t)
+    waver = 1 + 0.25 * np.sin(2 * np.pi * 9 * t + 1.0)
+    screech = one_shot_filter(tone * growl * waver, bandpass(450, 6500))
+    lay(out, normalized(screech) * np.clip(t / 0.04, 0, 1) * decay(n, 0.32), 0.25, 0.9)
+
+    for at in (0.12, 0.58):
+        whump = falling_roar(rng, 0.25, ((70, 350, 0.07), (350, 1200, 0.03)))
+        lay(out, whump, at, 0.45)
+
+    room = reverb_ir(1.6, rng, predelay=0.04, brightness=0.4, early=4, early_spread=0.06)[0]
+    wet = signal.fftconvolve(out, room)[:out.shape[0]]
+    out = out + 0.25 * normalized(wet) * np.max(np.abs(out))
+    return finish(out, release=0.2)
+
+
+def venom_bite(rng) -> np.ndarray:
+    """The Sky Viper's bite: jaws snapping shut, a crunch and a thump, and venom going into the bat,
+    a wet hiss with bubbles popping in it that thin out as it sinks in."""
+    seconds = 0.9
+    out = silence(seconds)
+    lay(out, burst(rng, 0.02, (1500, 9000), 0.003), 0, 1.0)
+    lay(out, burst(rng, 0.09, (400, 3200), 0.022), 0.004, 0.7)
+    thump = boom(190, 70, 0.22, fall=0.05, drive=2.0)
+    lay(out, thump, 0, 0.6)
+    lay(out, presence(thump), 0, 0.2)
+
+    n = seconds_to_samples(0.8)
+    t = np.arange(n) / RENDER_RATE
+    fizz = normalized(one_shot_filter(rng.standard_normal(n), bandpass(3000, 9000)))
+    lay(out, fizz * np.clip(t / 0.05, 0, 1) * decay(n, 0.22), 0.04, 0.35)
+
+    # The bubbles: short chirps rising as they pop, thick at first and thinning out.
+    at = 0.05
+    while at < 0.72:
+        f = rng.uniform(450, 1300)
+        m = seconds_to_samples(0.035)
+        tt = np.arange(m) / RENDER_RATE
+        bubble = np.sin(2 * np.pi * np.cumsum(f * (1 + 1.8 * tt / 0.035)) / RENDER_RATE) * decay(m, 0.009)
+        lay(out, bubble, at, 0.4 * np.exp(-at / 0.35))
+        at += rng.uniform(0.018, 0.055)
+    return finish(out, release=0.1)
+
+
 # --- Writing it out ----------------------------------------------------------------------------
 
 
@@ -434,6 +502,8 @@ EFFECTS = {
     "bossDeath.wav": (boss_death, 7),
     "frostBeam.wav": (frost_beam, 8),
     "powerUp.wav": (power_up, 9),
+    "viperScreech.wav": (viper_screech, 10),
+    "venomBite.wav": (venom_bite, 11),
 }
 
 SEED = 20261001

@@ -16,6 +16,8 @@ import org.jetbrains.compose.resources.StringResource
  * @param enemySheet the sheet every enemy of this stage is drawn from.
  * @param bossSheet the boss's own sheet, for a boss drawn at its own size rather than magnified
  *   off [enemySheet].
+ * @param encoreSheet the sheet of the second boss that comes once the first has fallen, for a stage
+ *   with one; see [at.smiech.cyanbat.service.StageDesign.encore].
  * @param lighting how dark the stage is flown, for one flown in the dark; null for daylight.
  * @param approach what the stage's obstacles turn into on the way to its boss; null for a stage whose
  *   scenery is the same from start to finish.
@@ -29,6 +31,7 @@ data class Stage(
     val music: StageMusic,
     val enemySheet: Pixmap,
     val bossSheet: Pixmap? = null,
+    val encoreSheet: Pixmap? = null,
     val lighting: StageLighting? = null,
     val approach: Approach? = null,
 ) {

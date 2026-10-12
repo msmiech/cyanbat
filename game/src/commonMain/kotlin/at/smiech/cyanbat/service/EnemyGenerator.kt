@@ -23,6 +23,9 @@ import at.smiech.cyanbat.util.NAGA_HEAD_DAMAGE
 import at.smiech.cyanbat.util.SAND_WYRM_BODY_DAMAGE
 import at.smiech.cyanbat.util.SAND_WYRM_FRAME
 import at.smiech.cyanbat.util.SAND_WYRM_HEAD_DAMAGE
+import at.smiech.cyanbat.util.SKY_VIPER_BODY_DAMAGE
+import at.smiech.cyanbat.util.SKY_VIPER_FRAME
+import at.smiech.cyanbat.util.SKY_VIPER_HEAD_DAMAGE
 import at.smiech.cyanbat.util.SWARM_SIZE
 import at.smiech.cyanbat.util.SWARM_SIZE_MAX
 import at.smiech.cyanbat.util.SWARM_SIZE_PER_TWO_WAVES
@@ -54,6 +57,10 @@ import kotlin.random.Random
  *   the screen can announce it. Not fired for the opening wave, which needs no announcing.
  * @param onBossSpawned fired once, with the boss entity, when the stage's boss arrives.
  * @param onBossPhaseChanged fired when a boss with phases enters a new one.
+ * @param encorePixmap the sheet of the stage's second boss, for a stage with one; see
+ *   [StageDesign.encore] and [spawnEncore].
+ * @param onEncoreBite fired the moment the second boss's entrance bites the bat.
+ * @param onEncoreArrived fired when the second boss has made its entrance and its fight begins.
  */
 class EnemyGenerator(
     private val xSpawnPosition: Int,
@@ -66,6 +73,9 @@ class EnemyGenerator(
     private val onBossSpawned: (EntityId) -> Unit = {},
     private val bossPixmap: Pixmap? = null,
     private val onBossPhaseChanged: (Int) -> Unit = {},
+    private val encorePixmap: Pixmap? = null,
+    private val onEncoreBite: () -> Unit = {},
+    private val onEncoreArrived: () -> Unit = {},
 ) {
     /** One picture of an enemy: the sheet stacks each of them unhurt, wounded and battered. */
     private val realEnemyHeight = enemyPixmap.height / WOUND_ROWS
@@ -86,9 +96,27 @@ class EnemyGenerator(
     var bossSpawned = false
         private set
 
-    /** The boss's own logic; see [CacoImpBrain], [MothQueenBrain], [SandWyrmBrain] and [NagaBrain]. */
+    /**
+     * The boss's own logic; see [CacoImpBrain], [MothQueenBrain], [SandWyrmBrain], [NagaBrain] and
+     * [SkyViperBrain].
+     */
     var bossBrain: BossBrain? = null
         private set
+
+    /** True from the moment the stage's second boss comes; see [spawnEncore]. */
+    var encoreSpawned = false
+        private set
+
+    /**
+     * Whether the stage has a second boss still to come once the one now fighting falls: the stage
+     * is not won until it has. See [StageDesign.encore].
+     */
+    val encoreDue: Boolean
+        get() = progression.design.encore != null && !encoreSpawned
+
+    /** Which boss the stage is on: its boss, and once that has fallen and it has come, its second. */
+    val bossKind: BossKind
+        get() = progression.design.encore?.takeIf { encoreSpawned } ?: progression.design.boss
 
     /** Seconds until the next spawn. */
     private var timeUntilNextSpawn = progression.nextSpawnDelay(0f, random)
@@ -413,6 +441,8 @@ class EnemyGenerator(
                 ids.first()
             }
 
+            BossKind.SKY_VIPER -> spawnSkyViper(wave)
+
             BossKind.NAGA -> {
                 val sheet = requireNotNull(bossPixmap) { "The Naga needs its own sheet" }
                 val ids = factory.createNaga(
@@ -443,6 +473,53 @@ class EnemyGenerator(
         }
         bossId = id
         onBossSpawned(id)
+    }
+
+    /**
+     * Brings on the stage's second boss, once its first has fallen (see [clearBoss]), for a stage
+     * with one: it makes its own entrance, and fires [onEncoreArrived] when its fight begins. Called
+     * by the screen, which plays the interlude between the two; only once.
+     */
+    fun spawnEncore() {
+        val kind = progression.design.encore ?: return
+        if (encoreSpawned) return
+        encoreSpawned = true
+        val wave = progression.encoreWave()
+        bossId = when (kind) {
+            BossKind.SKY_VIPER -> spawnSkyViper(wave)
+            else -> error("$kind has no entrance of its own to come on as a second boss with")
+        }
+    }
+
+    /**
+     * The Sky Viper, its whole body out of sight above the frame, where its brain starts its
+     * entrance; see [SkyViperBrain].
+     */
+    private fun spawnSkyViper(wave: EnemyWave): EntityId {
+        val sheet = requireNotNull(encorePixmap) { "The Sky Viper needs its own sheet" }
+        val ids = factory.createSkyViper(
+            x = xSpawnPosition * 0.62f,
+            y = -2f * SKY_VIPER_FRAME,
+            pixmap = sheet,
+            hitPoints = wave.hitPoints,
+            damage = (wave.damage * SKY_VIPER_HEAD_DAMAGE).roundToInt().coerceAtLeast(1),
+            bodyDamage = (wave.damage * SKY_VIPER_BODY_DAMAGE).roundToInt().coerceAtLeast(1),
+            gun = SkyViperBrain.GUN,
+            bar = pinnedBar(),
+        )
+        bossBrain = SkyViperBrain(
+            factory.world,
+            headId = ids[0],
+            wingsId = ids[1],
+            parts = ids.drop(2),
+            frameWidth = xSpawnPosition,
+            frameHeight = worldHeight,
+            random = random,
+            onBite = onEncoreBite,
+            onArrived = onEncoreArrived,
+            onPhaseChanged = onBossPhaseChanged,
+        )
+        return ids[0]
     }
 
     /**

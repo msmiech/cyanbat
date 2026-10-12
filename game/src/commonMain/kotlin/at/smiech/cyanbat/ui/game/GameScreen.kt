@@ -28,6 +28,7 @@ import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.resource.SoundEffect
 import at.smiech.cyanbat.resource.StageMusic
 import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.banner_poisoned
 import at.smiech.cyanbat.resources.banner_second_life
 import at.smiech.cyanbat.resources.banner_wave
 import at.smiech.cyanbat.resources.boss_caco_imp
@@ -48,6 +49,10 @@ import at.smiech.cyanbat.resources.boss_sand_wyrm
 import at.smiech.cyanbat.resources.boss_sand_wyrm_brood
 import at.smiech.cyanbat.resources.boss_sand_wyrm_enraged
 import at.smiech.cyanbat.resources.boss_sand_wyrm_falls
+import at.smiech.cyanbat.resources.boss_sky_viper
+import at.smiech.cyanbat.resources.boss_sky_viper_enraged
+import at.smiech.cyanbat.resources.boss_sky_viper_falls
+import at.smiech.cyanbat.resources.boss_sky_viper_rain
 import at.smiech.cyanbat.resources.hud_boss
 import at.smiech.cyanbat.resources.hud_level
 import at.smiech.cyanbat.resources.hud_wave
@@ -84,6 +89,7 @@ import at.smiech.cyanbat.util.DEATH_PUFF_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.DEATH_PUFF_SCALE
 import at.smiech.cyanbat.util.DEATH_SPIN_DEGREES_PER_SECOND
 import at.smiech.cyanbat.util.DEATH_TERMINAL_VELOCITY
+import at.smiech.cyanbat.util.ENCORE_GRACE_SECONDS
 import at.smiech.cyanbat.util.FROST_FLASH_RADIUS
 import at.smiech.cyanbat.util.FROST_FLASH_SECONDS
 import at.smiech.cyanbat.util.FROST_LIGHT_COLOR
@@ -91,6 +97,8 @@ import at.smiech.cyanbat.util.HIT_FLASH_COLOR
 import at.smiech.cyanbat.util.HIT_FLASH_SECONDS
 import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.cyanbat.util.IMPACT_LEAD
+import at.smiech.cyanbat.util.LETTERBOX_HEIGHT
+import at.smiech.cyanbat.util.LETTERBOX_SECONDS
 import at.smiech.cyanbat.util.ORB_REHIT_SECONDS
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
@@ -111,6 +119,8 @@ import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
+import at.smiech.cyanbat.util.VENOM_FLASH_COLOR
+import at.smiech.cyanbat.util.VENOM_FLASH_SECONDS
 import at.smiech.cyanbat.util.VICTORY_FANFARE_DELAY_SECONDS
 import at.smiech.cyanbat.util.WAKE_HARMLESS_FROM
 import at.smiech.cyanbat.util.WAKE_REHIT_SECONDS
@@ -255,6 +265,9 @@ class GameScreen(
             announce(text[bossPhaseBanner(phase)])
             director?.onBossPhaseChanged()
         },
+        encorePixmap = currentStage.encoreSheet,
+        onEncoreBite = ::venomBite,
+        onEncoreArrived = ::beginEncoreFight,
     )
 
     /** Spawns the stage's obstacles. */
@@ -321,6 +334,21 @@ class GameScreen(
     private var stageCompleteArmingTime = 0f
 
     /**
+     * Set from the moment the stage's boss goes down, for a stage with a second boss still to come,
+     * until the second's fight begins: the cutscene between the two; see [playInterlude].
+     */
+    private var interlude: Interlude? = null
+
+    /** How far the interlude's black bars are in, 0..1. They slide out as the fight begins. */
+    private var letterbox = 0f
+
+    /** The Sky Viper's venom in the bat, and the ripple and green it shows as; see [Poison]. */
+    private val poison = Poison()
+
+    /** Draws the run's world; kept, so drawing it through the poison's ripple allocates nothing. */
+    private val drawWorld: () -> Unit = { world.draw(g) }
+
+    /**
      * The stage clock when the run ended, won or lost, where the timer stops; null while the run is
      * flown. The clock itself, [EnemyGenerator.elapsedSeconds], runs on while the bat falls.
      */
@@ -374,8 +402,9 @@ class GameScreen(
         game.frameBufferWidth,
         game.frameBufferHeight,
         random,
-        // Not once the stage is won: nothing hostile is left, and the bat flies on unarmed.
-        origin = { if (stageComplete) null else batRect() },
+        // Not once the stage is won: nothing hostile is left, and the bat flies on unarmed. Nor in
+        // the interlude between two bosses, which is a cutscene.
+        origin = { if (stageComplete || interlude != null) null else batRect() },
         canFreeze = ::canFreeze,
         onFire = { frozen, _ -> frostBeamFired(frozen) },
     )
@@ -513,8 +542,8 @@ class GameScreen(
      */
     private fun fireShot(shooterId: EntityId) {
         // Nothing fires once the stage is won: nothing hostile is left, and the bat's gun would
-        // only be noise under the fanfare.
-        if (stageComplete) return
+        // only be noise under the fanfare. Nor in the interlude between two bosses, a cutscene.
+        if (stageComplete || interlude != null) return
         val transform = world.getComponent(shooterId, TransformComponent::class) ?: return
         val isPlayer = world.hasComponent(shooterId, PlayerControlComponent::class)
         // An enemy holds its fire until it is on screen, so no shot arrives unwarned from past the
@@ -630,6 +659,8 @@ class GameScreen(
                 gun.spin = (gun.spin + step / 2f) % 360f
                 List(volley.count) { start + it * step }
             }
+
+            ShotPattern.DOWN -> listOf(DOWNWARD_DEGREES)
         }
 
     /**
@@ -668,6 +699,9 @@ class GameScreen(
 
     /** Resolves one overlapping pair from the collision pass, which reports it in either order. */
     private fun handleCollision(id1: EntityId, id2: EntityId) {
+        // Nothing meets anything in the interlude between two bosses: the second's bite is the
+        // cutscene's, not a blow, and nothing of the bat's lands on it before its fight.
+        if (interlude != null) return
         val group1 = collisionGroupOf(id1)
         val group2 = collisionGroupOf(id2)
         // An elite's drop only ever meets the bat (see CollisionGroup.PICKUP), which takes it.
@@ -979,9 +1013,9 @@ class GameScreen(
         // Never smaller than the art: only something bigger than an ordinary enemy scales it up.
         spawn(rect.centerX, rect.centerY, pixmap, (rect.height / pixmap.height).coerceAtLeast(1f))
 
-        // Silent once the stage is won: the boss's blast, played as it fell, covers everything
-        // going up with it; see [completeStage].
-        if (!stageComplete) sounds.play(sound)
+        // Silent once the stage is won, or in the interlude before a second boss: the boss's blast,
+        // played as it fell, covers everything going up with it; see [wreckBoss].
+        if (!stageComplete && interlude == null) sounds.play(sound)
     }
 
     /**
@@ -1024,11 +1058,13 @@ class GameScreen(
         val control = world.getComponent(targetId, PlayerControlComponent::class)
         if (control != null) {
             // The hostiles cleared with the boss are still in the rest of that tick's collision
-            // pass; a won stage leaves the bat untouchable.
-            if (stageComplete || control.hitCooldown > 0f) return 0
+            // pass; a won stage, and the interlude before a second boss, leave the bat untouchable.
+            if (stageComplete || interlude != null || control.hitCooldown > 0f) return 0
             control.hitCooldown = loadout.hitCooldownSeconds
             scoring.registerPlayerHit()
             director?.onPlayerHit()
+            // Poisoned, a blow stirs the venom up, and the frame swims for a moment.
+            poison.surge()
 
             // The flat cut comes off first and armor scales the rest, so the two stack as expected.
             // Floored at one, so no hit is ever free and a run can always be lost.
@@ -1056,7 +1092,7 @@ class GameScreen(
                 beginDeath(targetId)
                 endRun()
             }
-            if (targetId == enmGen.bossId) completeStage()
+            if (targetId == enmGen.bossId) bossFell()
         } else if (control != null) {
             // Not on the blow that kills it, which the death sound speaks for.
             sounds.play(SoundEffect.BAT_HIT)
@@ -1081,6 +1117,15 @@ class GameScreen(
     }
 
     /**
+     * The boss is down: the stage is won, or, for a stage with a second boss still to come (see
+     * [StageDesign.encore][at.smiech.cyanbat.service.StageDesign.encore]), the first is down and the
+     * interlude before the second begins.
+     */
+    private fun bossFell() {
+        if (enmGen.encoreDue) beginInterlude() else completeStage()
+    }
+
+    /**
      * The stage's boss is down, so the stage is won. Everything hostile goes down with it, the run
      * plays on a few seconds (the wreck going up, the fanfare coming in; see [playOutVictory]), and
      * the overlay then shows the total.
@@ -1089,13 +1134,9 @@ class GameScreen(
         if (stageComplete) return
         stageComplete = true
         finalStageSeconds = enmGen.elapsedSeconds
-        // Read before the boss is forgotten: the aftershocks go off where it was.
-        enmGen.bossId?.let { world.getComponent(it, TransformComponent::class)?.rect }
-            ?.takeIf(::inSight)
-            ?.let(wreck::add)
-        explodeBossBody()
-        clearHostiles()
-        enmGen.clearBoss()
+        // Read before the boss is forgotten.
+        val falls = bossFalls()
+        wreckBoss()
         scoring.awardStageCleared()
         // Banked though the run ends here: a boss worth nothing would read as one
         // that did not count.
@@ -1104,14 +1145,54 @@ class GameScreen(
         // within it. The next stage unlocks now, not on tapping through: a player who quits from
         // the overlay has still won.
         nextStageId?.let { env.stageUnlocks.unlockAsync(it) }
+        // With the Sky Viper down, its venom lifts, over the seconds the victory plays out.
+        poison.cure()
 
         // The music stops dead on the kill and the blast fills the silence; the fanfare follows
         // (see [playOutVictory]).
         music?.pause()
-        sounds.play(SoundEffect.BOSS_DEATH)
         // Its fall is announced and held until the overlay, so the seconds between read as the
         // victory rather than a hang.
-        announce(text[bossFalls()], seconds = STAGE_COMPLETE_DELAY_SECONDS)
+        announce(text[falls], seconds = STAGE_COMPLETE_DELAY_SECONDS)
+    }
+
+    /**
+     * The first of a stage's two bosses is down: it goes up as any boss does, and the music stops
+     * dead for it, but the stage is not won. The run plays the interlude instead (see
+     * [playInterlude]), at the end of which the second boss's fight begins.
+     *
+     * Not for a bat that went down in the same tick: that run is lost, and ends as any other.
+     */
+    private fun beginInterlude() {
+        val falls = bossFalls()
+        // Begun first, so what goes up with the boss is not heard over its blast.
+        if (batRect() != null) interlude = Interlude()
+        wreckBoss()
+        // As much as any boss is worth; what it buys is offered in the interlude.
+        awardExperience(XP_PER_BOSS)
+        // The boss's own piece is done with. The second's fight opens it again from the top.
+        music?.dispose()
+        music = null
+        director = null
+        if (interlude != null) announce(text[falls])
+    }
+
+    /**
+     * The boss going up: every part of it in sight bursts and everything hostile goes with it, the
+     * wreck is kept for the aftershocks to go off in (see [aftershock]), and the boss's death is
+     * heard, alone, since the music stops for it.
+     */
+    private fun wreckBoss() {
+        // Read before the boss is forgotten: the aftershocks go off where it was. Only this boss's
+        // wreck, not a first boss's, long since drifted off.
+        wreck.clear()
+        enmGen.bossId?.let { world.getComponent(it, TransformComponent::class)?.rect }
+            ?.takeIf(::inSight)
+            ?.let(wreck::add)
+        explodeBossBody()
+        clearHostiles()
+        enmGen.clearBoss()
+        sounds.play(SoundEffect.BOSS_DEATH)
     }
 
     /**
@@ -1167,27 +1248,32 @@ class GameScreen(
     private val nextStageId: Int?
         get() = (currentStage.id + 1).takeIf { env.assets.hasStageAfter(currentStage.id) }
 
-    /** What the stage's boss is called, which is the banner it arrives on. */
-    private fun bossName(): StringResource = when (progression.design.boss) {
+    /** What the boss the stage is on is called, which is the banner it arrives on. */
+    private fun bossName(): StringResource = when (enmGen.bossKind) {
         BossKind.MOTH_QUEEN -> Res.string.boss_moth_queen
         BossKind.CACO_IMP -> Res.string.boss_caco_imp
         BossKind.SAND_WYRM -> Res.string.boss_sand_wyrm
         BossKind.NAGA -> Res.string.boss_naga
+        BossKind.SKY_VIPER -> Res.string.boss_sky_viper
     }
 
     /**
-     * The banner the stage's boss falls under: a whole line rather than its name plus a word, since
-     * in some languages the word has to agree with the name.
+     * The banner the boss the stage is on falls under: a whole line rather than its name plus a
+     * word, since in some languages the word has to agree with the name.
      */
-    private fun bossFalls(): StringResource = when (progression.design.boss) {
+    private fun bossFalls(): StringResource = when (enmGen.bossKind) {
         BossKind.MOTH_QUEEN -> Res.string.boss_moth_queen_falls
         BossKind.CACO_IMP -> Res.string.boss_caco_imp_falls
         BossKind.SAND_WYRM -> Res.string.boss_sand_wyrm_falls
         BossKind.NAGA -> Res.string.boss_naga_falls
+        BossKind.SKY_VIPER -> Res.string.boss_sky_viper_falls
     }
 
     /** What a boss announces on entering phase [phase]. */
-    private fun bossPhaseBanner(phase: Int): StringResource = when (progression.design.boss) {
+    private fun bossPhaseBanner(phase: Int): StringResource = when (enmGen.bossKind) {
+        BossKind.SKY_VIPER ->
+            if (phase >= 3) Res.string.boss_sky_viper_enraged else Res.string.boss_sky_viper_rain
+
         BossKind.CACO_IMP ->
             if (phase >= 3) Res.string.boss_caco_imp_blazes else Res.string.boss_caco_imp_lights_out
 
@@ -1381,6 +1467,14 @@ class GameScreen(
             playOutVictory(deltaTime)
             return
         }
+        // Between a stage's two bosses the run plays its interlude, a cutscene, until the second
+        // boss's fight begins; see [playInterlude].
+        interlude?.let {
+            playInterlude(it, deltaTime)
+            return
+        }
+        // The interlude's bars slide back out as the fight begins.
+        if (letterbox > 0f) letterbox = (letterbox - deltaTime / LETTERBOX_SECONDS).coerceAtLeast(0f)
 
         // An owed level up is offered before anything moves, so the pick changes the fight the
         // player is in.
@@ -1405,6 +1499,7 @@ class GameScreen(
             regenerate(tick)
             // After the world, so a kill or a hit in this tick's collisions shows on this tick.
             comboMeter.update(tick, scoring.hitStreak, scoring.multiplier)
+            poison.update(tick)
 
             // The stage clock runs on the fixed tick, not the wall clock: a paused game is a paused
             // stage.
@@ -1417,11 +1512,13 @@ class GameScreen(
             // goes down partway through the collision pass, after which the kill and any later
             // ones in the pass still score; banked early, the overlay could show a record below
             // the score. The frame's remaining ticks are dropped: from the next frame the run
-            // plays out its victory; see [playOutVictory].
+            // plays out its victory; see [playOutVictory]. A first boss down drops them too, and
+            // from the next frame the run plays its interlude; see [playInterlude].
             if (stageComplete) {
                 saveHighscore()
                 break
             }
+            if (interlude != null) break
         }
 
         val health = world.getComponent(batId, HealthComponent::class)!!
@@ -1629,13 +1726,13 @@ class GameScreen(
     private fun playOutVictory(deltaTime: Float) {
         val before = victorySeconds
         victorySeconds += deltaTime
-        fun reached(seconds: Float) = before < seconds && victorySeconds >= seconds
 
-        BOSS_AFTERSHOCK_SECONDS.forEachIndexed { index, seconds ->
-            if (reached(seconds)) aftershock(index)
+        aftershocks(before, victorySeconds)
+        if (before < VICTORY_FANFARE_DELAY_SECONDS && victorySeconds >= VICTORY_FANFARE_DELAY_SECONDS) {
+            playFanfare()
         }
-        if (reached(VICTORY_FANFARE_DELAY_SECONDS)) playFanfare()
         if (bannerTime > 0) bannerTime -= deltaTime
+        if (letterbox > 0f) letterbox = (letterbox - deltaTime / LETTERBOX_SECONDS).coerceAtLeast(0f)
 
         tickTime += deltaTime
         while (tickTime > tick) {
@@ -1643,8 +1740,9 @@ class GameScreen(
             contactClock += tick
             world.update(tick, game.input)
             comboMeter.update(tick, scoring.hitStreak, scoring.multiplier)
-            // The blasts drift with the scenery, so the wreck they go off in drifts with them.
-            for (i in wreck.indices) wreck[i] = wreck[i].offset(BURST_DRIFT, 0f)
+            // A poisoned bat's venom lifts as the victory plays out.
+            poison.update(tick)
+            driftWreck()
         }
 
         if (stageCompleteShown) {
@@ -1653,6 +1751,125 @@ class GameScreen(
             // The overlay says it now, and nothing counts the banner down under it.
             bannerTime = 0f
         }
+    }
+
+    /**
+     * The wreck bursting again at each of [BOSS_AFTERSHOCK_SECONDS] that falls between [before] and
+     * [now], in seconds since the boss went down.
+     */
+    private fun aftershocks(before: Float, now: Float) {
+        BOSS_AFTERSHOCK_SECONDS.forEachIndexed { index, seconds ->
+            if (before < seconds && now >= seconds) aftershock(index)
+        }
+    }
+
+    /** The blasts drift with the scenery, so the wreck they go off in drifts with them. */
+    private fun driftWreck() {
+        for (i in wreck.indices) wreck[i] = wreck[i].offset(BURST_DRIFT, 0f)
+    }
+
+    /**
+     * Plays the interlude between a stage's two bosses (see [Interlude]): a cutscene, run on the
+     * world's ticks, so the first boss's wreck goes up and the second boss comes on in the same
+     * world the fight goes on in.
+     *
+     * The first boss's wreck bursts again at its aftershocks, with the bat still the player's to fly.
+     * Then the black bars come in and the bat is out of the player's hands (see [holdBat]), and once
+     * they are in the second boss comes on, heard before it is seen. Its brain flies the rest - the
+     * dive, the bite ([venomBite]), and sweeping back into sight ([beginEncoreFight]) - and the fight
+     * begins partway through a frame, whose remaining ticks are the fight's. The stage clock runs on
+     * throughout, and nothing hurts anything.
+     *
+     * What the first boss's experience bought is offered once its wreck has gone up and before the
+     * bars come in, holding the interlude meanwhile: picked by a player who thinks the stage is won,
+     * rather than over the second boss's name as it arrives.
+     */
+    private fun playInterlude(interlude: Interlude, deltaTime: Float) {
+        if (interlude.offersDue && offer.isEmpty() && pendingLevelUps > 0) openLevelUpOffer()
+        if (offer.isNotEmpty()) {
+            handlePowerUpChoice(deltaTime)
+            return
+        }
+        val before = interlude.seconds
+        interlude.advance(deltaTime)
+        aftershocks(before, interlude.seconds)
+        if (bannerTime > 0) bannerTime -= deltaTime
+        letterbox = interlude.bars
+        // Out of the player's hands, the bat takes none of what they do meanwhile, and none of it
+        // is kept to reach the bat all at once when the fight begins.
+        val held = interlude.holdsBat
+        if (held) game.input?.touchEvents
+
+        tickTime += deltaTime
+        while (tickTime > tick) {
+            tickTime -= tick
+            contactClock += tick
+            world.update(tick, if (held) null else game.input)
+            if (held) holdBat(interlude)
+            comboMeter.update(tick, scoring.hitStreak, scoring.multiplier)
+            poison.update(tick)
+            if (interlude.viperDue && !enmGen.encoreSpawned) {
+                enmGen.spawnEncore()
+                sounds.play(SoundEffect.VIPER_SCREECH)
+            }
+            enmGen.update(tick)
+            driftWreck()
+            // The fight began in this tick.
+            if (this.interlude == null) break
+        }
+    }
+
+    /**
+     * Holds the bat where the interlude has it (see [Interlude.batX]), out of the player's hands:
+     * whatever pointer was steering it is let go, the first time, or it would fly back to it.
+     */
+    private fun holdBat(interlude: Interlude) {
+        val transform = world.getComponent(batId, TransformComponent::class) ?: return
+        val rect = transform.rect
+        if (!interlude.batTaken) {
+            interlude.take(rect.centerX, rect.centerY)
+            world.getComponent(batId, PlayerControlComponent::class)?.apply {
+                activePointer = PlayerControlComponent.NO_POINTER
+                pointerHeld = false
+                dragging = false
+            }
+        }
+        transform.rect = Rect.fromLTWH(
+            interlude.batX - rect.width / 2f,
+            interlude.batY - rect.height / 2f,
+            rect.width,
+            rect.height,
+        )
+        world.getComponent(batId, VelocityComponent::class)?.velocity = Vector2.Zero
+    }
+
+    /**
+     * The Sky Viper's bite, the moment its entrance's dive reaches the bat: venom bursts out of the
+     * bat, which flashes green and is thrown back, and is poisoned from here until the viper falls;
+     * see [Poison]. Heard and felt, and announced.
+     */
+    private fun venomBite() {
+        val bat = batRect() ?: return
+        poison.take()
+        interlude?.bite()
+        currentStage.encoreSheet?.let { factory.createVenomBurst(bat.centerX, bat.centerY, it) }
+        world.addComponent(batId, HitFlashComponent(VENOM_FLASH_SECONDS, VENOM_FLASH_COLOR))
+        sounds.play(SoundEffect.VENOM_BITE)
+        env.haptics.vibrate(HIT_VIBRATION_MILLIS)
+        announce(text[Res.string.banner_poisoned])
+    }
+
+    /**
+     * The Sky Viper has bitten the bat and swept back into sight: the interlude is over, and its
+     * fight begins. It arrives on its name and the boss's music, from the top, holding its bed for a
+     * bar and slamming in; and the bat, back in the player's hands, has a moment's grace to find.
+     */
+    private fun beginEncoreFight() {
+        interlude = null
+        announce(text[bossName()])
+        InvulnerabilitySystem.grant(world, batId, ENCORE_GRACE_SECONDS)
+        startStageMusic()
+        director?.onBossArrived()
     }
 
     /**
@@ -1767,7 +1984,8 @@ class GameScreen(
 
     /**
      * Restores what a pause cut off: the stage's music during the run, the fanfare once it is won.
-     * Nothing once the bat is dead, since the game over track owns playback then.
+     * Nothing in the interlude before a second boss, which is played in silence, nor once the bat is
+     * dead, since the game over track owns playback then.
      */
     private fun resumeMusic() {
         when {
@@ -1775,6 +1993,8 @@ class GameScreen(
                 fanfareHeld = false
                 fanfare?.play()
             }
+
+            interlude != null -> Unit
 
             world.getComponent(batId, HealthComponent::class)?.alive == true -> startStageMusic()
         }
@@ -1948,10 +2168,21 @@ class GameScreen(
 
     override fun present(deltaTime: Float) {
         g.clear(EngineColors.BLACK)
-        world.draw(g)
-        drawStats()
-        drawExperienceBar()
-        drawStageTimer()
+        // Poisoned, the run swims and is washed green. The HUD drawn over it stays clear to read.
+        if (poison.showing) {
+            g.drawWarped(poison.ripple(game.frameBufferHeight), drawWorld)
+            poison.drawWash(g, game.frameBufferWidth, game.frameBufferHeight)
+        } else {
+            world.draw(g)
+        }
+        // The interlude's bars hide the HUD while they are in, as a cutscene would.
+        if (letterbox > 0f) {
+            drawLetterbox()
+        } else {
+            drawStats()
+            drawExperienceBar()
+            drawStageTimer()
+        }
         if (stageNameDisplayTime > 0) {
             drawStageName()
         }
@@ -1960,6 +2191,18 @@ class GameScreen(
         if (offer.isNotEmpty()) drawPowerUpOffer()
         if (stageCompleteShown) drawStageCompleteOverlay()
         if (paused) drawPauseOverlay()
+    }
+
+    /**
+     * The interlude's black bars across the top and bottom of the frame, [letterbox] of the way in,
+     * eased, in whole frame pixels.
+     */
+    private fun drawLetterbox() {
+        val t = letterbox.coerceIn(0f, 1f)
+        val height = (LETTERBOX_HEIGHT * t * t * (3f - 2f * t)).roundToInt()
+        if (height <= 0) return
+        g.drawRect(0, 0, game.frameBufferWidth, height, EngineColors.BLACK)
+        g.drawRect(0, game.frameBufferHeight - height, game.frameBufferWidth, height, EngineColors.BLACK)
     }
 
     /**
@@ -2102,6 +2345,9 @@ class GameScreen(
 
         /** Degrees in a radian. */
         const val DEGREES_PER_RADIAN = 57.29578f
+
+        /** Straight down, as enemy fire's headings are measured: off straight ahead, down positive. */
+        const val DOWNWARD_DEGREES = 90f
 
         /**
          * The lowest z index drawn over a halo: the scenery strip sits below it, and every sprite

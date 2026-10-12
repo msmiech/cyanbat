@@ -5,6 +5,7 @@ import at.smiech.cyanbat.progress.PlayerLoadout
 import at.smiech.cyanbat.progress.PlayerProgress
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.ui.game.GameScreen
+import at.smiech.cyanbat.ui.game.Poison
 import at.smiech.engine.ecs.EntityId
 import at.smiech.engine.ecs.World
 import java.lang.reflect.Field
@@ -26,6 +27,8 @@ class RunProbe(private val screen: GameScreen) {
     private val scoringField = field("scoring")
     private val bannerTextField = field("bannerText")
     private val bannerTimeField = field("bannerTime")
+    private val interludeField = field("interlude")
+    private val poisonField = field("poison")
 
     /** The run's world. */
     val world: World get() = worldField.get(screen) as World
@@ -63,6 +66,12 @@ class RunProbe(private val screen: GameScreen) {
             if (bannerTimeField.getFloat(screen) <= 0f) return null
             return bannerTextField.get(screen) as String?
         }
+
+    /** Whether the run is in the interlude between a stage's two bosses, a cutscene. */
+    val inInterlude: Boolean get() = interludeField.get(screen) != null
+
+    /** The bat's poison, from the Sky Viper's bite until it falls. */
+    val poison: Poison get() = poisonField.get(screen) as Poison
 
     /** [GameScreen]'s private field [name], opened for reading. */
     private fun field(name: String): Field =

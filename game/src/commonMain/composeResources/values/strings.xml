@@ -105,6 +105,7 @@
     <!-- Banners, across the run. -->
     <string name="banner_wave">WAVE %1$d</string>
     <string name="banner_second_life">SECOND LIFE</string>
+    <string name="banner_poisoned">POISONED</string>
 
     <!-- Each boss's banners: as it arrives, at each new phase of its fight, and as it falls. -->
     <string name="boss_moth_queen">THE MOTH QUEEN</string>
@@ -125,6 +126,10 @@
     <string name="boss_naga_tide">THE TIDE TURNS</string>
     <string name="boss_naga_enraged">NAGA ENRAGED</string>
     <string name="boss_naga_falls">THE NAGA FALLS</string>
+    <string name="boss_sky_viper">THE SKY VIPER</string>
+    <string name="boss_sky_viper_rain">VENOM RAIN</string>
+    <string name="boss_sky_viper_enraged">VIPER ENRAGED</string>
+    <string name="boss_sky_viper_falls">THE SKY VIPER FALLS</string>
 
     <!-- The pause screen. Back is Android's, Q the desktop's. -->
     <string name="pause_title">PAUSED</string>

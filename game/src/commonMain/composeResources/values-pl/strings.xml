@@ -83,6 +83,7 @@
 
     <string name="banner_wave">FALA %1$d</string>
     <string name="banner_second_life">DRUGIE ŻYCIE</string>
+    <string name="banner_poisoned">ZATRUCIE</string>
 
     <string name="boss_moth_queen">KRÓLOWA CIEM</string>
     <string name="boss_moth_queen_swarm">NADCIĄGA RÓJ</string>
@@ -102,6 +103,10 @@
     <string name="boss_naga_tide">NADCHODZI PRZYPŁYW</string>
     <string name="boss_naga_enraged">NAGA WPADA W SZAŁ</string>
     <string name="boss_naga_falls">NAGA POKONANA</string>
+    <string name="boss_sky_viper">NIEBIAŃSKA ŻMIJA</string>
+    <string name="boss_sky_viper_rain">DESZCZ JADU</string>
+    <string name="boss_sky_viper_enraged">ŻMIJA WPADA W SZAŁ</string>
+    <string name="boss_sky_viper_falls">NIEBIAŃSKA ŻMIJA POKONANA</string>
 
     <string name="pause_title">PAUZA</string>
     <string name="pause_resume">Dotknij lub kliknij, aby wznowić</string>

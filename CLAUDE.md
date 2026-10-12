@@ -170,6 +170,15 @@ playfield for wide screens; it would change difficulty by device.
   `BOSS_AFTERSHOCK_SECONDS`, the stage's music stops dead for the boss's blast, and a fanfare comes
   in. The overlay lands on the fanfare's drop. The aftershocks are timed to the blasts in
   `bossDeath.wav` and the delay to the fanfare's `LANDING_BEAT`; change each with its script.
+- A stage with a second boss (`StageDesign.encore`; only the lagoon) is not won by its first. The
+  first goes up as any does (`wreckBoss`), and the run plays an interlude instead (`Interlude`,
+  `playInterlude`), a cutscene on the world's own ticks: the wreck's aftershocks with the bat still
+  flown; any level up the first boss bought, offered there rather than over the second's name;
+  then black bars come in (`letterbox`, which hides the HUD), the bat is taken out of the player's
+  hands to a mark (`holdBat`, input dropped rather than queued), and once the bars are in the
+  second boss comes on (`EnemyGenerator.spawnEncore`). Its brain flies its entrance and calls back
+  for the bite and for its arrival, which begins its fight partway through a frame. Nothing
+  collides in the interlude, the bat fires nothing, and the music is silent until the fight.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
 - Every way the bat is kept from harm is its `hitCooldown`: the mercy after a hit, which Second Wind
@@ -238,9 +247,10 @@ playfield for wide screens; it would change difficulty by device.
   either a `Strip` (the jungle, the cave: one tiled image) or a `Sky` (the desert and the lagoon: a
   sky the game draws, changing with the time of day on the stage clock, over parallax bands of
   ground). Its `Approach`, where it has one, is what its obstacles turn into on the way to its boss.
-- `StageDesign` is its waves and boss; `StageDesign.forStage` maps a stage id to its design. Its
-  `bossToughness` keeps a boss harder than the waves that lead to it: the Moth Queen is fought at
-  the strength she had as stage 2's boss, at the end of an eased opening stage.
+- `StageDesign` is its waves and boss, and for the lagoon a second boss after it (`encore`);
+  `StageDesign.forStage` maps a stage id to its design. Its `bossToughness` keeps a boss harder than
+  the waves that lead to it: the Moth Queen is fought at the strength she had as stage 2's boss, at
+  the end of an eased opening stage.
 - `StageProgression` turns seconds elapsed into the current wave's stats, scaled up per stage, and
   the boss by its own `bossDifficulty`; what a boss calls in arrives as its `escortWave`, at the
   boss's difficulty.
@@ -255,6 +265,20 @@ with sharks that come in from behind along the waterline (`Squad.FROM_BEHIND`, a
 right)
 and puffers that throw rings. A temple comes into sight on the way to the Naga: three of its bands
 switch to temple strips, and its obstacles to temple stones.
+
+The Naga is not its end, and nothing outside the run gives that away - not the stage select, not
+the README, not the recorder's reel. Once it falls, the Sky Viper, a winged coral-banded serpent,
+comes down out of the sky in the interlude (see A run), bites the bat and poisons it, and the stage
+is won when the viper falls. `SkyViperBrain` flies its entrance and its fight: passes across the
+frame from out of sight - a swoop from a hover, aimed once; a weave round the bat's height; from
+its first wound a rain of venom (`ShotPattern.DOWN`) along the top - out of sight again between
+them. Its fight is the Naga's piece again, from the top; it has no music of its own.
+
+**Poison.** The bite poisons the bat until the viper falls (`Poison`, on the run's ticks). It costs
+no health: the run's world is drawn rippling, rows shifted sideways by whole frame pixels
+(`Graphics.drawWarped`), and washed green, the edges more; a pixel either way at its rest, more as
+the bite goes in and for a moment after every blow. The HUD is drawn over it, clear. It lifts over
+the victory's seconds.
 
 **The sky's day.** A `Day` is a pure function of how far through its day the stage is -
 `Day.position`, elapsed time over the boss's arrival - and says what the sky, sun, moon and stars
@@ -338,6 +362,12 @@ only because nothing else moves, culls or kills them; `GameScreen` removes them 
 Its health bar is pinned to the screen (`HealthBarComponent.pinnedTo`), because the head spends half
 the fight under the sand. The Naga's is pinned for the same reason, and its fight is five phases, at
 fifths of its health (`NAGA_PHASE_*_AT`), where every other boss changes phase at its wounds' marks.
+The Sky Viper is a head, a pair of wings and ten parts, all laid by `SkyViperBrain` back along the
+path its head has flown, the wings on a walk of their own since they sit among the parts. Its art
+faces left like every hostile's, and nothing flips a sprite, so it only ever flies leftward, or as
+near straight up or down as a dive needs (`STEEPEST`); a head turned past straight up would fly
+upside down. It goes out of sight after every pass and starts the next from out of sight, so its
+body is never seen to jump.
 
 **Wounds.** Every creature's sheet - the bat's, the enemy sheets, the boss sheets - stacks each
 frame three times, top to bottom: unhurt, wounded, battered (`WOUND_ROWS`). `WoundSystem`
@@ -437,7 +467,8 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   run with music off never reads the stems and the next stage's run does not play over this one.
 - A stage's boss can be fought to a piece of its own (`StageMusic.boss`; the lagoon's Naga): as it
   arrives the stage's music is disposed and the boss's opened, with a director of its own, which
-  holds it on its bed for a bar and slams everything in. Every layer is up for the whole fight, so
+  holds it on its bed for a bar and slams everything in. A second boss is fought to the same piece,
+  disposed as the first falls and opened again from the top as the second's fight begins. Every layer is up for the whole fight, so
   its stems are there for the drops at its phases. `MusicStemTest` holds every piece to its grid.
   The fanfare is the same (`GameAssets.VICTORY_MUSIC`): each won run opens its own, because a track
   paused partway resumes from there, and a fanfare has to start from the top.
@@ -506,6 +537,11 @@ for an app to come). There is no framebuffer bitmap.
   `Graphics.measureString`, never by a count of characters.
 - A translucent blend can round a step apart on the GPU, on the CPU and between scales; the tests
   allow a step a channel and no more.
+- A warp (`Graphics.drawWarped`, the poison's ripple) shifts rows of whatever it draws sideways by
+  whole frame pixels, wrapping at the edges, so it stays on the grid. It is no offscreen picture:
+  the recording groups rows that shift alike into runs, and draws the warp's commands once a run,
+  clipped to its rows and moved, skipping those outside them, plus the strip a shift leaves bare,
+  from the far edge. A gentle ripple is a few dozen runs; its cost grows with how many.
 - A see-through sprite is dithered rather than blended (`DitherComponent`, `drawPixmapDithered`):
   only the share of its pixels that `Dither`, a four by four ordered pattern in the sprite's own
   pixels, keeps is drawn, so the art stays whole pixels on the grid. Each frame is dithered once per
@@ -588,7 +624,8 @@ two are hand-drawn sources, kept as they were drawn, which `generate_title.py` a
 - Runs are random, so unlike the art a re-recording is never byte for byte the same. Re-record after
   a visible change.
 - `RunProbe` reads a handful of `GameScreen`'s private fields by reflection (`world`, `batId`,
-  `offer`, `stageComplete`, `progress`, `loadout`, `scoring`, `bannerText`, `bannerTime`).
+  `offer`, `stageComplete`, `progress`, `loadout`, `scoring`, `bannerText`, `bannerTime`,
+  `interlude`, `poison`).
   Renaming one still compiles; `RunProbeTest`, which flies a few seconds of the cave, is what fails.
 - The same hosting tests `GameScreen` itself: `GameScreenTest` builds a run on a `DesktopGame`, sets
   up a moment through `RunProbe` and the public `enmGen`, and steps it with `update`.
