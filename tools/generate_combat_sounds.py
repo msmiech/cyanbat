@@ -22,9 +22,10 @@ the frost beam and the drop an elite leaves:
 * rockShatter.wav  - a spire breaking: a crack and then stone clattering down, with a chip of crystal
                      in it. No roar - the shatter sheet has no fire in it, and nor does this.
 * batHit.wav       - the bat taking a blow: a dull thump and a squeak.
-* batDeath.wav     - the bat going down, and the run with it: a heavy blow, and a chord that is all
-                     wrong, roaring and wavering, sinking and darkening, with a thin whine over it.
-                     In the game over track's key, which starts with it.
+* batDeath.wav     - the bat going down, and the run with it: its cry falling away, then a game over
+                     sting as a 16-bit console would play one - two orchestra hits over timpani, and
+                     strings left holding the last chord, under the console's echo. In the game
+                     over track's key, which starts with it.
 * bossDeath.wav    - the boss going down: an enormous boom, a roar rolling on under it, and three
                      more blasts going off after it, at [AFTERSHOCKS], where the game lights its
                      wreck up again. They are over before the victory's fanfare comes in.
@@ -56,7 +57,8 @@ import numpy as np
 from scipy import signal
 
 from musicsynth import (
-    RENDER_RATE, bandpass, highpass, hz, lowpass, note, one_shot_filter, reverb_ir, seconds_to_samples,
+    RENDER_RATE, bandpass, dark, echo, held, highpass, hz, lowpass, membrane, note, one_shot_filter,
+    reverb_ir, saw, seconds_to_samples,
 )
 
 OUTPUT_RATE = 22050
@@ -80,18 +82,20 @@ POWER_UP_STEP = 0.045
 # little as it rises, high enough to stay air.
 BREATH_DAMPING = 0.35
 
-# The bat's death chord, in the game over track's C Phrygian, which starts under it: its root, the
-# flat second the mode is named for and the tritone, as MIDI notes with their levels. Each is a pair
-# of saws [DEATH_DETUNE_CENTS] either side of its pitch, so the chord beats and churns.
-DEATH_CHORD = ((36, 1.0), (42, 0.7), (48, 0.5), (49, 0.6))
-DEATH_DETUNE_CENTS = 9
-# When the chord starts to sink, how far it falls by its end, in semitones, and how hard it is
-# driven: hard enough to roar, which is also what carries a chord this low through a phone.
-DEATH_SAG_FROM = 0.9
-DEATH_SAG = 1.0
-DEATH_DRIVE = 3.5
-# How hard the finished death sound is saturated as a whole; see [bat_death].
-DEATH_GLUE = 2.2
+# The bat's death sting, in the game over track's C Phrygian, which starts under it: the flat
+# second's chord, then the tonic's - the half step down onto the root the mode is named for - as MIDI
+# notes, struck as orchestra hits half a beat apart at [DEATH_TEMPO]. The strings hold the last chord,
+# and a high voice over them sighs from the flat second down onto the root.
+DEATH_PICKUP_CHORD = (49, 53, 56, 61)  # D-flat major: Db3 F3 Ab3 Db4
+DEATH_CHORD = (48, 51, 55, 60)  # C minor: C3 Eb3 G3 C4
+DEATH_SIGH = (73, 72)  # Db5 to C5
+DEATH_TEMPO = 120
+# When the cry ends and the sting starts, in seconds.
+DEATH_STING_AT = 0.4
+
+# How a 16-bit console played its samples back: at a low rate, with few bits, through an
+# interpolation that muffles the top. Each sampled instrument gives its own rate.
+SAMPLER_BITS = 11
 
 # A glass note: how hard its overtones are driven in, at what inharmonic ratio to it, how fast they
 # melt away, how long it takes to bloom, and how far apart its two voices are tuned.
@@ -309,84 +313,115 @@ def bat_hit(rng) -> np.ndarray:
     return finish(out, release=0.03)
 
 
-def smoothstep(x: np.ndarray) -> np.ndarray:
-    """0 below 0, 1 above 1, and an S-curve between."""
-    x = np.clip(x, 0, 1)
-    return x * x * (3 - 2 * x)
+def sampled(sound: np.ndarray, rate: float, bits: int = SAMPLER_BITS) -> np.ndarray:
+    """[sound] as a 16-bit console's sampler played it back: held at [rate] samples a second, cut to
+    [bits], and muffled above half of what that rate carries, as its interpolation did."""
+    hold = RENDER_RATE / rate
+    index = (np.floor(np.arange(sound.shape[0]) / hold) * hold).astype(np.int64)
+    steps = 2 ** (bits - 1)
+    crushed = np.round(normalized(sound[index]) * steps) / steps
+    return one_shot_filter(crushed, lowpass(rate * 0.42, order=4))
 
 
-def saw_tone(freq: np.ndarray, top_hz: float = 9000) -> np.ndarray:
-    """A saw following [freq], one value a sample, built from the partials under [top_hz]: band
-    limited, so it never aliases, however it bends."""
-    phase = 2 * np.pi * np.cumsum(freq) / RENDER_RATE
-    out = np.zeros(freq.shape[0])
-    for k in range(1, int(top_hz / np.min(freq)) + 1):
-        out += np.sin(k * phase) / k * (freq * k < top_hz)
-    return out
+def orchestra_hit(chord, rng, seconds: float, velocity: float = 1.0) -> np.ndarray:
+    """An orchestra hit, the sampled one every 16-bit game reached for: brass and strings struck
+    together on [chord], with a burst of bow and breath on the front, gone in a moment."""
+    n = seconds_to_samples(seconds)
+    t = np.arange(n) / RENDER_RATE
+    body = np.zeros(n)
+    for midi in chord:
+        f0 = hz(midi)
+        for cents in (-7, 7):
+            # A slight scoop down onto the note, as a section lands on it together.
+            freq = f0 * 2 ** (cents / 1200) * (1 + 0.02 * np.exp(-t / 0.02))
+            phase = 2 * np.pi * np.cumsum(freq) / RENDER_RATE + rng.random() * 6.28
+            for k in range(1, int(5000 / f0) + 1):
+                body += np.sin(k * phase) / k ** 1.1
+    body = one_shot_filter(body, lowpass(3200))
+    env = np.clip(t / 0.004, 0, 1) * (0.25 + 0.75 * np.exp(-t / 0.06)) * np.exp(-t / (seconds * 0.5))
+    bow = one_shot_filter(rng.standard_normal(n), bandpass(900, 5000)) * np.exp(-t / 0.025)
+    hit = normalized(body) * env + 0.25 * normalized(bow)
+    return sampled(hit, 16000) * velocity
+
+
+def timpani(midi, rng, seconds: float, velocity: float = 1.0) -> np.ndarray:
+    """A timpano: the drum's note, a hair sharp as the head is struck, under a soft thump."""
+    drum = membrane(hz(midi), seconds, rng, bend=1.06, bend_seconds=0.05, modes=(1.0, 1.5, 1.98, 2.44),
+                    mode_levels=(1.0, 0.5, 0.25, 0.12), thump=0.35, thump_hz=900, velocity=velocity)
+    return sampled(drum, 12000)
+
+
+def strings(midi, rng, seconds: float, glide_from=None) -> np.ndarray:
+    """A string section holding a note, bowed tremolo for the first moment as it lands, then
+    sustained and let go, as a console's looped string sample was."""
+    f0 = hz(midi)
+    tone = held(f0, seconds, rng, dark(saw, f0, 2400), attack=0.03, decay=0.5, sustain=0.55,
+                release=0.9, voices=3, detune_cents=10, vibrato_hz=5.6, vibrato_cents=14,
+                vibrato_delay=0.25, glide_from=glide_from, glide=0.18).mean(axis=0)
+    t = np.arange(tone.shape[0]) / RENDER_RATE
+    tremolo = 1 - 0.45 * (0.5 + 0.5 * np.sin(2 * np.pi * 13 * t)) * np.exp(-t / 0.5)
+    return sampled(tone * tremolo, 22000)
 
 
 def bat_death(rng) -> np.ndarray:
-    """The bat going down, and the run with it: a heavy blow, and a chord that is all wrong.
+    """The bat going down, and the run with it: its cry falling away, then a game over sting as a
+    16-bit console would play one.
 
-    The chord is the game over track's root with the two notes that sit worst on it, the flat
-    second and the tritone: a pair of detuned saws on each, driven until it roars, and wavering
-    as it holds. Then it sinks a semitone and darkens, as if whatever was running the game were
-    winding down, with a thin whine over it that sinks with it. A crunch of something digital
-    breaking up rides under the whole of it. All of it in a hall, like the boss's fall.
+    The cry is the bat's hit squeak played back slow and low, bending down and breaking up as a
+    sample pitched far from home does. Then, half a beat apart, two orchestra hits over timpani: the flat
+    second's chord as a pickup, and the tonic's, accented - the half step down onto the root that
+    the game over track's Phrygian mode is named for. The strings hold the last chord and fade, a
+    high voice sighing down that same half step over them, and the console's echo carries it off.
 
-    Louder and darker than the bat's hit, which it grows out of, and long enough to say the run is
-    over, but out of the way before the game over track's first bar is.
+    In the game over track's key, so the two agree as the track comes in under it; loud enough to
+    end a run, and done before the track's first phrase is.
     """
-    seconds = 2.8
+    beat = 60 / DEATH_TEMPO
+    seconds = 3.4
     out = silence(seconds)
 
-    # The blow: the bat's hit, heavier and lower.
-    lay(out, burst(rng, 0.05, (300, 6500), 0.012), 0, 0.8)
-    thud = boom(150, 36, 0.7, fall=0.2, drive=2.6)
-    lay(out, thud, 0, 1.0)
-    lay(out, presence(thud), 0, 0.3)
-
-    n = seconds_to_samples(seconds - 0.03)
+    # The blow, and the cry: high and sliding down, with a flutter, sampled at a low rate so it
+    # comes apart as it falls.
+    lay(out, burst(rng, 0.04, (400, 6000), 0.01), 0, 0.6)
+    lay(out, boom(140, 50, 0.3, fall=0.08, drive=2.0), 0, 0.6)
+    n = seconds_to_samples(0.36)
     t = np.arange(n) / RENDER_RATE
-    sag = 2 ** (-DEATH_SAG / 12 * smoothstep((t - DEATH_SAG_FROM) / (seconds - DEATH_SAG_FROM - 0.4)))
+    freq = 380 + 1700 * np.exp(-t / 0.11) + 70 * np.sin(2 * np.pi * 21 * t) * np.clip(t / 0.1, 0, 1)
+    phase = 2 * np.pi * np.cumsum(freq) / RENDER_RATE
+    cry = np.sin(phase) + 0.35 * np.sin(2 * phase) + 0.15 * np.sign(np.sin(phase))
+    cry *= np.clip(t / 0.01, 0, 1) * np.clip((0.36 - t) / 0.12, 0, 1)
+    lay(out, sampled(cry, 8000, bits=9), 0.01, 0.45)
 
-    drone = np.zeros(n)
-    for midi, level in DEATH_CHORD:
-        for cents in (-DEATH_DETUNE_CENTS, DEATH_DETUNE_CENTS):
-            # Each voice drifts a little on its own, so the beating never settles into a pattern.
-            drift = 1 + 0.002 * np.sin(2 * np.pi * rng.uniform(0.3, 0.9) * t + rng.random() * 6.28)
-            drone += level * saw_tone(hz(midi + cents / 100) * sag * drift)
-    roar = np.tanh(DEATH_DRIVE * normalized(drone)) / np.tanh(DEATH_DRIVE)
-    # Darkening: from bright to a muffled hum as it sinks.
-    dark = smoothstep((t - 0.5) / 1.9)
-    roar = (one_shot_filter(roar, lowpass(3800)) * (1 - dark)
-            + one_shot_filter(roar, lowpass(700)) * dark)
-    waver = 1 + 0.2 * np.sin(2 * np.pi * (6.5 * t - 0.6 * t * t))
-    swell = np.clip(t / 0.05, 0, 1) * np.exp(-np.clip(t - DEATH_SAG_FROM, 0, None) / 0.6)
-    lay(out, roar * waver * swell, 0.03, 0.85)
-    # What a phone's speaker gets of it: its buzz, since the chord's weight is below its reach.
-    lay(out, presence(roar, drive=4.0) * waver * swell * (1 - 0.6 * dark), 0.03, 0.45)
+    # The sting: a pickup a half beat before the downbeat, then the downbeat, accented.
+    pickup, down = DEATH_STING_AT, DEATH_STING_AT + beat / 2
+    lay(out, orchestra_hit(DEATH_PICKUP_CHORD, rng, 0.3, velocity=0.85), pickup)
+    lay(out, timpani(DEATH_PICKUP_CHORD[0] - 12, rng, 0.5, velocity=0.6), pickup)
+    lay(out, orchestra_hit(DEATH_CHORD, rng, 0.5), down)
+    lay(out, timpani(DEATH_CHORD[0] - 12, rng, 1.4), down, 1.1)
+    # A second stroke on the drum, softer, as the chord rings: the end of the phrase.
+    lay(out, timpani(DEATH_CHORD[0] - 12, rng, 1.0, velocity=0.5), down + beat, 0.8)
 
-    # The crunch: the roar held in steps and cut to a few bits, as a machine's sound breaks up.
-    hold = 9
-    crushed = np.repeat(roar[::hold], hold)[:n]
-    crushed = np.round(crushed * 12) / 12
-    lay(out, one_shot_filter(crushed, highpass(900)) * swell * 0.5, 0.03, 0.25)
+    hold = seconds - down - 1.0
+    for midi in DEATH_CHORD + (DEATH_CHORD[0] - 12,):
+        lay(out, strings(midi, rng, hold), down + 0.01, 0.32)
+    sigh_from, sigh_to = DEATH_SIGH
+    sigh = strings(sigh_to, rng, hold, glide_from=hz(sigh_from))
+    # Held on the flat second for a beat before it falls: the glide starts late, not at once.
+    lead_in = seconds_to_samples(beat * 0.9)
+    first = strings(sigh_from, rng, beat * 0.9)[:lead_in]
+    sigh = np.concatenate((first, sigh))
+    lay(out, sigh, down + 0.01, 0.4)
 
-    # The whine: high over the chord, on its flat second, quivering and sinking with it.
-    whine_freq = hz(85) * sag * (1 + 0.015 * np.sin(2 * np.pi * 7.5 * t))
-    whine_phase = 2 * np.pi * np.cumsum(whine_freq) / RENDER_RATE
-    whine = np.sin(whine_phase) + 0.2 * np.sin(2 * whine_phase)
-    whine *= smoothstep((t - 0.08) / 0.3) * np.exp(-np.clip(t - 0.4, 0, None) / 0.7)
-    lay(out, whine, 0.03, 0.22)
+    # The console's echo: a dotted eighth and a quarter, each repeat duller than the last. Worked
+    # on the sound padded with silence, since the echo wraps round its end.
+    padded = np.concatenate((out, np.zeros(seconds_to_samples(2.0))))
+    wet = echo(np.vstack((padded, padded)), beat * 0.75, beat, 0.35, 2600).mean(axis=0)
+    out = out + 0.3 * normalized(wet[:out.shape[0]]) * np.max(np.abs(out))
 
-    room = reverb_ir(2.0, rng, predelay=0.03, brightness=0.25, early=6, early_spread=0.08)[0]
-    wet = signal.fftconvolve(out, room)[:out.shape[0]]
-    out = out + 0.25 * normalized(wet) * np.max(np.abs(out))
-    # Louder than its peak would let it be: the rumble under anything a speaker plays taken out,
-    # and the blow's peak rounded off into the roar, so the chord holds up close to the blow.
-    out = np.tanh(DEATH_GLUE * normalized(one_shot_filter(out, highpass(45)))) / np.tanh(DEATH_GLUE)
-    return finish(out, release=0.5)
+    # Loud enough for the end of a run: the rumble under any speaker taken out, and the peaks of the
+    # hits rounded off into the chord.
+    out = np.tanh(2.6 * normalized(one_shot_filter(out, highpass(45)))) / np.tanh(2.6)
+    return finish(out, release=0.6)
 
 
 def frost_beam(rng) -> np.ndarray:

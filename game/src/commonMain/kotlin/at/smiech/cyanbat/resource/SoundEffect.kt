@@ -45,9 +45,10 @@ enum class SoundEffect(val file: String, val volume: Float, val gapSeconds: Floa
     BAT_HIT("batHit.wav", 0.7f),
 
     /**
-     * The bat going down. Full volume, and the loudest thing in the game, about 6 dB over the music
-     * on a full-range speaker and 3 dB on a phone's: the stage's music has stopped for it, and the
-     * game over track starting under it is quieter still.
+     * The bat going down: its cry, and a game over sting. Full volume, and the loudest thing in the
+     * game, about 6 dB over the music on a full-range speaker and a phone's alike, since its
+     * orchestra hits and strings sit where a phone's speaker reaches: the stage's music has stopped
+     * for it, and the game over track starting under it is quieter still.
      */
     BAT_DEATH("batDeath.wav", 1f),
 
