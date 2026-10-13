@@ -1682,8 +1682,17 @@ class GameScreenTest {
         var left = (15f / FRAME_SECONDS).toInt()
         while (probe.inInterlude) {
             assertTrue(left-- > 0, "the Sky Viper's fight never began")
-            if (probe.offer.isNotEmpty()) game.controlHandler.onButtonPress(GameButton.CONFIRM)
+            // The level up the Naga bought is offered here, and taken once the dialog is armed. The
+            // card is always Heavy Rounds, which only adds to the gun: a random one could be Vitality,
+            // and the health it adds would read as harm. Its grace is spent once it lands, so it is
+            // the interlude that keeps the bat whole and not the pick.
+            val offered = probe.offer.isNotEmpty()
+            if (offered) {
+                probe.offer = listOf(PowerUp.HEAVY_ROUNDS)
+                game.controlHandler.onButtonPress(GameButton.CONFIRM)
+            }
             screen.update(FRAME_SECONDS)
+            if (offered && probe.offer.isEmpty()) spendGrace()
             if (probe.inInterlude) fired = maxOf(fired, ownShots())
         }
 
