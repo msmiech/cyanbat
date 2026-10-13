@@ -86,4 +86,15 @@ class DataStoreSettingsRepositoryTest {
 
         assertEquals(Difficulty.HARD, settings.difficulty.first())
     }
+
+    /** Not chosen is what has the menu ask, before the first run. */
+    @Test
+    fun `the steering is not chosen until it is, and then kept`() = runBlocking {
+        val settings = DataStoreSettingsRepository(dataStore)
+        assertEquals(null, settings.touchSteering.first())
+
+        settings.setTouchSteering(TouchSteering.STICK)
+
+        assertEquals(TouchSteering.STICK, settings.touchSteering.first())
+    }
 }

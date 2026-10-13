@@ -43,6 +43,12 @@ internal val PREFS_KEY_LANGUAGE = stringPreferencesKey("language")
 /** The difficulty last chosen, by name too, for the same reason as the display mode. */
 internal val PREFS_KEY_DIFFICULTY = stringPreferencesKey("difficulty")
 
+/**
+ * How a finger steers the bat, by name too. Absent until the player has said, which is what has the
+ * menu ask before their first run.
+ */
+internal val PREFS_KEY_TOUCH_STEERING = stringPreferencesKey("touch_steering")
+
 /** The single highscore kept before they were per stage; see [LegacyHighscoreMigration]. */
 internal val PREFS_KEY_LEGACY_HIGH_SCORE = intPreferencesKey("highscore")
 

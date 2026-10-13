@@ -1,6 +1,7 @@
 package at.smiech.cyanbat
 
 import at.smiech.cyanbat.data.AudioSettings
+import at.smiech.cyanbat.data.SteeringSettings
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.GameText
 import at.smiech.engine.Haptics
@@ -21,4 +22,6 @@ class CyanBatEnvironment(
     val onExitToMenu: () -> Unit,
     /** Consulted each time a track or effect would start, so setting changes apply immediately. */
     val audioSettings: AudioSettings = AudioSettings.AllEnabled,
+    /** Whether a finger drags the bat or works a stick on the screen; read every tick. */
+    val steeringSettings: SteeringSettings = SteeringSettings.Default,
 )

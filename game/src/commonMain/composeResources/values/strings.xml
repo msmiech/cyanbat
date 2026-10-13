@@ -51,11 +51,19 @@
     <string name="difficulty_hard_cleared">Cleared on Hard</string>
     <string name="stage_not_cleared">Not cleared yet</string>
 
+    <!-- How a finger flies the bat: asked before the first run on a touch screen, and in Settings. -->
+    <string name="steering_title">How do you want to fly?</string>
+    <string name="steering_hint">You can change this any time in Settings.</string>
+    <string name="steering_drag">Drag</string>
+    <string name="steering_drag_description">Touch anywhere and CyanBat flies there, then follows your finger wherever you drag it.</string>
+    <string name="steering_stick">Stick</string>
+    <string name="steering_stick_description">Push the stick at the bottom left the way CyanBat should fly. Your finger stays clear of the bat.</string>
+
     <string name="dialog_help_title">Help</string>
     <!-- Controls differ per platform; Platform.kt picks the one to show above the rest. -->
-    <string name="dialog_help_controls_touch">• Fly: drag CyanBat with your finger. A keyboard or controller works too.\n• Pause: swipe or press Back. Back again quits to the menu.</string>
+    <string name="dialog_help_controls_touch">• Fly: drag CyanBat with your finger, or push the stick at the bottom left if you chose it in Settings. A keyboard or controller works too.\n• Pause: swipe or press Back. Back again quits to the menu.</string>
     <string name="dialog_help_controls_desktop">• Fly: drag CyanBat with the mouse, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.\n• Fullscreen: F11 or Alt+Enter.</string>
-    <string name="dialog_help_controls_web">• Fly: drag CyanBat with the mouse or a finger, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.</string>
+    <string name="dialog_help_controls_web">• Fly: drag CyanBat with the mouse or a finger, or use the arrow keys or WASD. On a touch screen, Settings can put a stick at the bottom left instead.\n• Pause: Q. Press Q again to quit to the menu.</string>
     <string name="dialog_help_text">• Shoot: CyanBat fires automatically. Shoot enemies and obstacles, and avoid touching them or their shots.\n• Health: every hit drains the bar under the bat. When it is empty, the run is over.\n• Score: points come from surviving and from kills. Kills in a row raise the multiplier, and taking a hit resets it.\n• Level up: kills earn experience. Each new level lets you pick one of three power-ups.\n• Waves: a tougher wave arrives every minute. After five, the boss appears. Defeat it to clear the stage for a big bonus.\n• Difficulty: choose Easy, Normal or Hard as a stage starts. An easier one sends fewer enemies, pays more experience, and gives you a bat that takes more hits, hits harder and starts with power-ups. The stars on each stage show the hardest difficulty you have cleared it on: one for Easy, three for Hard.
 • Stages: in the jungle, enemies swarm, fly in formation, shoot back and hide behind shields. The first shot at a shield pops it. Clearing the jungle opens the cave, flown in the dark by the bat's own light, where the boss hides in the dark between ambushes. Clearing the cave opens the desert, flown from noon into night, where things leap out of the sand and scarab shells grow back if they are left alone. Clearing the desert opens the lagoon, flown from night into noon, where sharks come from behind along the waterline and puffers throw rings of spines. Each stage starts fresh: score, level and power-ups begin again.
 • Endless Mode: clearing the lagoon opens it. Rounds of waves from every stage, each ending in a boss from any of them, over a land that keeps changing, by day and by night, in rain, snow and ash. It never ends, and every wave is harder than the last: see how far you get.</string>
@@ -63,6 +71,8 @@
     <string name="settings_music_title">Music</string>
     <string name="settings_sound_title">Sounds</string>
     <string name="settings_vibration_title">Vibration</string>
+    <!-- A switch, offered on a touch screen only: on flies the bat by the stick, off by dragging it. -->
+    <string name="settings_stick_title">On-screen stick</string>
     <string name="settings_theme_title">Theme</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_dark">Dark</string>

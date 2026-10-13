@@ -15,6 +15,12 @@ internal actual val hasSystemBack: Boolean = false
 // Only a phone's browser could vibrate, and the page gives the game no haptics yet.
 internal actual val canVibrate: Boolean = false
 
+// A phone's or a tablet's browser, or a laptop's with a touch screen; not one with only a mouse.
+internal actual val hasTouchScreen: Boolean = maxTouchPoints() > 0
+
+/** How many fingers the device's screen can follow at once: none without a touch screen. */
+private fun maxTouchPoints(): Int = js("navigator.maxTouchPoints || 0")
+
 // The page fills the browser's window, and the browser's own full screen takes it from there.
 internal actual val windowModes: List<WindowMode> = emptyList()
 

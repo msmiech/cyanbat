@@ -6,6 +6,7 @@ import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.SettingsRepository
+import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.engine.Music
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -59,6 +60,20 @@ class MainMenuViewModel(
     /** Keeps [difficulty] as the one the player last started a stage on. */
     fun rememberDifficulty(difficulty: Difficulty) {
         viewModelScope.launch { settings.setDifficulty(difficulty) }
+    }
+
+    /**
+     * How a finger steers the bat, or null while the player has not said, which has the menu ask
+     * before a run on a touch screen. Taken as the default until the store answers: a first read
+     * slower than the player would otherwise ask one who has already chosen, where this way one who
+     * has not is only asked a run later.
+     */
+    val touchSteering: StateFlow<TouchSteering?> = settings.touchSteering
+        .stateIn(viewModelScope, SharingStarted.Eagerly, TouchSteering.DEFAULT)
+
+    /** Keeps [steering] as how a finger steers the bat, from the next run on. */
+    fun chooseTouchSteering(steering: TouchSteering) {
+        viewModelScope.launch { settings.setTouchSteering(steering) }
     }
 
     /** Starts the menu track, looping, if music is on. */

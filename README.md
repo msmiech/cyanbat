@@ -152,6 +152,7 @@ harmless until they thaw - though never a boss or an elite.
 |            | Move                                   | Pause / resume  | Quit to menu |
 |------------|----------------------------------------|-----------------|--------------|
 | Touch      | Drag the bat, or tap where you want it | — (tap resumes) | Back, twice  |
+| Touch      | Or the stick at the bottom left        | — (tap resumes) | Back, twice  |
 | Keyboard   | `WASD` or the arrow keys               | `Q`             | `Q`, twice   |
 | Controller | Left stick or d-pad                    | `Start`         | `B`          |
 
@@ -159,6 +160,10 @@ Dragging pins the bat under your finger and keeps the offset you grabbed it by, 
 out from under the fingertip; the hit box is padded well past the sprite so it is catchable without
 aiming. A touch landing away from the bat flies it over instead, which is how the game played before
 it was draggable. Holding a key or pushing a stick overrides a drag for as long as it lasts.
+
+On a touch screen the game asks before your first run whether to drag the bat or fly it with a stick
+drawn at the bottom left, which keeps your thumb off the bat; Settings → On-screen stick changes it.
+The stick is analog, half pushed is half speed, and a thumb put down beside it brings it to the thumb.
 
 The game is in English, German and Polish. It follows the language the device or computer is set to,
 unless you pick one under Settings → Language. On Android 13 and later that is the same setting as

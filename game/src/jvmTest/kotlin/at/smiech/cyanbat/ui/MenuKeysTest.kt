@@ -38,6 +38,7 @@ import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.FakeSettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.Dispatchers
@@ -82,6 +83,8 @@ class MenuKeysTest {
         highestUnlocked: Int = 1,
         clears: Map<Int, Difficulty> = emptyMap(),
         lastDifficulty: Difficulty = Difficulty.DEFAULT,
+        steering: TouchSteering? = null,
+        touchScreen: Boolean = false,
         test: ComposeUiTest.(Menu) -> Unit,
     ) {
         Dispatchers.setMain(UnconfinedTestDispatcher())
@@ -94,6 +97,7 @@ class MenuKeysTest {
                 mainClock.autoAdvance = false
                 val menu = Menu(FakeSettingsRepository(), mutableListOf())
                 menu.settings.lastDifficulty.value = lastDifficulty
+                menu.settings.steering.value = steering
                 val viewModels = object : ViewModelStoreOwner {
                     override val viewModelStore = ViewModelStore()
                 }
@@ -112,7 +116,8 @@ class MenuKeysTest {
                                     menu.started += stage to difficulty
                                 },
                                 onExit = {},
-                            )
+                            ),
+                            touchScreen = touchScreen,
                         )
                     }
                 }
@@ -370,6 +375,79 @@ class MenuKeysTest {
         menu(lastDifficulty = Difficulty.HARD) {
             press(Key.Enter)
             cursorOn("Hard")
+        }
+
+    @Test
+    fun `on a touch screen the first run asks how to fly once the difficulty is chosen`() =
+        menu(touchScreen = true) { menu ->
+            press(Key.Enter)
+            press(Key.Enter)
+            assertEquals(emptyList(), menu.started)
+            onNodeWithText("How do you want to fly?").assertExists()
+            cursorOn("Drag")
+            press(Key.DirectionRight)
+            cursorOn("Stick")
+            press(Key.Enter)
+
+            assertEquals(listOf(1 to Difficulty.NORMAL), menu.started)
+            assertEquals(TouchSteering.STICK, menu.settings.steering.value)
+            onAllNodesWithText("How do you want to fly?").assertCountEquals(0)
+        }
+
+    @Test
+    fun `Escape out of how to fly starts nothing, and it is asked again`() =
+        menu(touchScreen = true) { menu ->
+            press(Key.Enter)
+            press(Key.Enter)
+            press(Key.Escape)
+            onAllNodesWithText("How do you want to fly?").assertCountEquals(0)
+            onAllNodesWithText("Choose a difficulty").assertCountEquals(0)
+            assertEquals(emptyList(), menu.started)
+            assertEquals(null, menu.settings.steering.value)
+
+            press(Key.Enter)
+            press(Key.Enter)
+            onNodeWithText("How do you want to fly?").assertExists()
+        }
+
+    @Test
+    fun `a player who has said how to fly is not asked again`() =
+        menu(touchScreen = true, steering = TouchSteering.DRAG) { menu ->
+            press(Key.Enter)
+            press(Key.Enter)
+            assertEquals(listOf(1 to Difficulty.NORMAL), menu.started)
+        }
+
+    /** A desktop is flown by the mouse or the keys, and has no use for a stick on the screen. */
+    @Test
+    fun `off a touch screen nobody is asked how to fly, and Settings does not offer it`() =
+        menu(touchScreen = false) { menu ->
+            press(Key.Enter)
+            press(Key.Enter)
+            assertEquals(listOf(1 to Difficulty.NORMAL), menu.started)
+            onAllNodesWithText("How do you want to fly?").assertCountEquals(0)
+
+            press(Key.DirectionDown)
+            press(Key.Enter)
+            onAllNodesWithText("On-screen stick").assertCountEquals(0)
+        }
+
+    @Test
+    fun `on a touch screen Settings offers the stick as a switch, under the vibration`() =
+        menu(touchScreen = true) { menu ->
+            press(Key.DirectionDown)
+            press(Key.Enter)
+            // Down past Sounds and Vibration, which is only offered where there is something to
+            // vibrate, and the desktop the tests run on has nothing.
+            press(Key.DirectionDown, times = 2)
+            cursorOn("On-screen stick")
+            press(Key.Enter)
+            assertEquals(TouchSteering.STICK, menu.settings.steering.value)
+            press(Key.Enter)
+            assertEquals(TouchSteering.DRAG, menu.settings.steering.value)
+            // And on down to the theme, as before.
+            press(Key.DirectionDown)
+            cursorOn("System")
         }
 
     @Test

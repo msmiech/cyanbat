@@ -3,6 +3,7 @@ package at.smiech.engine.ecs
 import at.smiech.engine.Controls
 import at.smiech.engine.Direction
 import at.smiech.engine.Input
+import at.smiech.engine.VirtualStick
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
@@ -31,12 +32,14 @@ class PlayerInputSystemTest {
     private class FakeInput(override val controls: Controls) : Input {
         private val queued = mutableListOf<Input.TouchEvent>()
         private val held = mutableSetOf<Int>()
+        private val positions = mutableMapOf<Int, Pair<Int, Int>>()
 
         fun queue(type: Int, x: Int, y: Int, pointer: Int) {
             when (type) {
                 Input.TouchEvent.TOUCH_DOWN -> held += pointer
                 Input.TouchEvent.TOUCH_UP -> held -= pointer
             }
+            positions[pointer] = x to y
             queued += Input.TouchEvent().also {
                 it.type = type
                 it.x = x
@@ -57,16 +60,20 @@ class PlayerInputSystemTest {
         }
 
         override fun isTouchDown(pointer: Int) = pointer in held
-        override fun getTouchX(pointer: Int) = 0
-        override fun getTouchY(pointer: Int) = 0
+        override fun getTouchX(pointer: Int) = positions[pointer]?.first ?: 0
+        override fun getTouchY(pointer: Int) = positions[pointer]?.second ?: 0
         override val pointerCount = 0
     }
 
-    private class Harness(batX: Float = 100f, batY: Float = 100f) {
+    private class Harness(
+        batX: Float = 100f,
+        batY: Float = 100f,
+        val stick: VirtualStick? = null,
+    ) {
         val controls = ControlHandler()
         val input = FakeInput(controls)
         val world = World().apply {
-            addSystem(PlayerInputSystem(WIDTH, HEIGHT))
+            addSystem(PlayerInputSystem(WIDTH, HEIGHT, stick))
             addSystem(MovementSystem())
         }
         val bat: EntityId = world.createEntity().also { id ->
@@ -434,5 +441,88 @@ class PlayerInputSystemTest {
 
         h.tick(5)
         assertEquals(0, h.control.activePointer)
+    }
+
+    /** A stick at the bottom left of the test's frame, switched on. */
+    private fun stickOn() = VirtualStick(
+        homeX = 60f,
+        homeY = 260f,
+        radius = 40f,
+        zoneRight = 200f,
+        zoneTop = 150f,
+    ).apply { enabled = true }
+
+    @Test
+    fun `with the stick on a finger on the bat does not drag it`() {
+        val h = Harness(stick = stickOn())
+        h.down(110, 110)
+        h.tick()
+        h.drag(200, 200)
+        h.tick(times = 10)
+
+        assertEquals(PlayerControlComponent.NO_POINTER, h.control.activePointer)
+        assertClose(100f, h.rect.left)
+        assertClose(100f, h.rect.top)
+    }
+
+    @Test
+    fun `the stick pushed to its rim flies the bat at the directional speed`() {
+        val h = Harness(stick = stickOn())
+        val startX = h.rect.centerX
+        h.down(100, 260)
+
+        h.tick(times = 10)
+        assertClose(PlayerInputSystem.DIRECTIONAL_SPEED * TICK * 10, h.rect.centerX - startX, 0.5f)
+        assertClose(100f, h.rect.top)
+
+        // Letting go stops it, as a key's does.
+        h.up(100, 260)
+        h.tick()
+        val stoppedAt = h.rect
+        h.tick(times = 10)
+        assertEquals(stoppedAt, h.rect)
+    }
+
+    @Test
+    fun `a key beats the stick on the screen`() {
+        val h = Harness(stick = stickOn())
+        h.down(100, 260)
+        h.controls.onDirection(Direction.LEFT, true)
+
+        h.tick(times = 10)
+        assertTrue(h.rect.centerX < 122.5f, "the key should outrank the stick")
+    }
+
+    @Test
+    fun `a dead bat lets go of the stick`() {
+        val stick = stickOn()
+        val h = Harness(stick = stick)
+        h.down(100, 260)
+        h.tick()
+        assertTrue(stick.held)
+
+        h.kill()
+        h.tick()
+        assertFalse(stick.held)
+    }
+
+    @Test
+    fun `turning the stick off hands the bat back to the finger`() {
+        val stick = stickOn()
+        val h = Harness(stick = stick)
+        h.down(100, 260)
+        h.tick()
+
+        stick.enabled = false
+        h.up(100, 260)
+        h.down(110, 110, pointer = 1)
+        h.tick()
+        assertTrue(h.control.dragging)
+        // The stick's tick has moved the bat on a little; from here it goes as the finger does.
+        val grabbed = h.rect
+        h.drag(160, 140, pointer = 1)
+        h.tick()
+        assertClose(grabbed.left + 50f, h.rect.left)
+        assertClose(grabbed.top + 30f, h.rect.top)
     }
 }

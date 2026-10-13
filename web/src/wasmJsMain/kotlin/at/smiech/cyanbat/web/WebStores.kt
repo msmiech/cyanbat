@@ -8,6 +8,7 @@ import at.smiech.cyanbat.harderThanBest
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
@@ -39,6 +40,7 @@ internal class WebSettingsRepository(private val storage: WebStorage) : Settings
     private val theme = MutableStateFlow(ThemeMode.fromName(storage.get(KEY_THEME_MODE)))
     private val chosenLanguage = MutableStateFlow(AppLanguage.fromName(storage.get(KEY_LANGUAGE)))
     private val lastDifficulty = MutableStateFlow(Difficulty.fromName(storage.get(KEY_DIFFICULTY)))
+    private val steering = MutableStateFlow(TouchSteering.fromName(storage.get(KEY_TOUCH_STEERING)))
 
     override val isMusicEnabled: Flow<Boolean> = music.asStateFlow()
     override val isSoundEnabled: Flow<Boolean> = sound.asStateFlow()
@@ -48,6 +50,7 @@ internal class WebSettingsRepository(private val storage: WebStorage) : Settings
     override val themeMode: Flow<ThemeMode> = theme.asStateFlow()
     override val language: Flow<AppLanguage> = chosenLanguage.asStateFlow()
     override val difficulty: Flow<Difficulty> = lastDifficulty.asStateFlow()
+    override val touchSteering: Flow<TouchSteering?> = steering.asStateFlow()
 
     init {
         WebLocale.apply(chosenLanguage.value)
@@ -95,6 +98,11 @@ internal class WebSettingsRepository(private val storage: WebStorage) : Settings
         lastDifficulty.value = difficulty
     }
 
+    override suspend fun setTouchSteering(steering: TouchSteering) {
+        storage.put(KEY_TOUCH_STEERING, steering.name)
+        this.steering.value = steering
+    }
+
     private companion object {
         const val KEY_MUSIC = "music_enabled"
         const val KEY_SOUND = "sound_enabled"
@@ -104,6 +112,7 @@ internal class WebSettingsRepository(private val storage: WebStorage) : Settings
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_LANGUAGE = "language"
         const val KEY_DIFFICULTY = "difficulty"
+        const val KEY_TOUCH_STEERING = "touch_steering"
     }
 }
 

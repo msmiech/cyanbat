@@ -17,6 +17,9 @@ internal actual val hasSystemBack: Boolean = false
 // An iPhone vibrates; the app to come supplies the Haptics that do it.
 internal actual val canVibrate: Boolean = true
 
+// An iPhone is flown by touch, as a phone is on Android.
+internal actual val hasTouchScreen: Boolean = true
+
 // An iPhone's game fills its screen, as a phone's does on Android.
 internal actual val windowModes: List<WindowMode> = emptyList()
 

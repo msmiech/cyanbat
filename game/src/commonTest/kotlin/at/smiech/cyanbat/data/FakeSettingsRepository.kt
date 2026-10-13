@@ -20,6 +20,7 @@ internal class FakeSettingsRepository(
     val theme = MutableStateFlow(ThemeMode.DEFAULT)
     val chosenLanguage = MutableStateFlow(AppLanguage.DEFAULT)
     val lastDifficulty = MutableStateFlow(Difficulty.DEFAULT)
+    val steering = MutableStateFlow<TouchSteering?>(null)
 
     override val isMusicEnabled = music
     override val isSoundEnabled = sound
@@ -29,6 +30,7 @@ internal class FakeSettingsRepository(
     override val themeMode = theme
     override val language = chosenLanguage
     override val difficulty = lastDifficulty
+    override val touchSteering = steering
 
     override suspend fun setMusicEnabled(enabled: Boolean) {
         music.value = enabled
@@ -61,5 +63,9 @@ internal class FakeSettingsRepository(
 
     override suspend fun setDifficulty(difficulty: Difficulty) {
         lastDifficulty.value = difficulty
+    }
+
+    override suspend fun setTouchSteering(steering: TouchSteering) {
+        this.steering.value = steering
     }
 }

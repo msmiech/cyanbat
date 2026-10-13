@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.language_english
@@ -54,6 +55,7 @@ import at.smiech.cyanbat.resources.settings_language_system
 import at.smiech.cyanbat.resources.settings_language_title
 import at.smiech.cyanbat.resources.settings_music_title
 import at.smiech.cyanbat.resources.settings_sound_title
+import at.smiech.cyanbat.resources.settings_stick_title
 import at.smiech.cyanbat.resources.settings_theme_dark
 import at.smiech.cyanbat.resources.settings_theme_light
 import at.smiech.cyanbat.resources.settings_theme_system
@@ -68,7 +70,11 @@ import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.stringResource
 
 @Composable
-fun SettingsScreen(viewModel: SettingsViewModel) {
+fun SettingsScreen(
+    viewModel: SettingsViewModel,
+    /** Whether the player may fly by touch, and so is offered how; see [hasTouchScreen]. */
+    touchScreen: Boolean = hasTouchScreen,
+) {
     val musicEnabled by viewModel.isMusicEnabled.collectAsState()
     val soundEnabled by viewModel.isSoundEnabled.collectAsState()
     val vibrationEnabled by viewModel.isVibrationEnabled.collectAsState()
@@ -76,11 +82,14 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
     val windowMode by viewModel.windowMode.collectAsState()
     val themeMode by viewModel.themeMode.collectAsState()
     val language by viewModel.language.collectAsState()
+    val touchSteering by viewModel.touchSteering.collectAsState()
     SettingsContent(
         musicEnabled = musicEnabled,
         soundEnabled = soundEnabled,
         // Null hides the switch, on a platform with nothing to vibrate.
         vibrationEnabled = vibrationEnabled.takeIf { canVibrate },
+        // And the choice, on one with no touch screen to steer on.
+        touchSteering = touchSteering.takeIf { touchScreen },
         themeMode = themeMode,
         language = language,
         displayMode = displayMode,
@@ -88,6 +97,7 @@ fun SettingsScreen(viewModel: SettingsViewModel) {
         onMusicEnabledChanged = viewModel::setMusicEnabled,
         onSoundEnabledChanged = viewModel::setSoundEnabled,
         onVibrationEnabledChanged = viewModel::setVibrationEnabled,
+        onTouchSteeringChanged = viewModel::setTouchSteering,
         onThemeModeChanged = viewModel::setThemeMode,
         onLanguageChanged = viewModel::setLanguage,
         onDisplayModeChanged = viewModel::setDisplayMode,
@@ -109,6 +119,7 @@ private fun SettingsContent(
     musicEnabled: Boolean,
     soundEnabled: Boolean,
     vibrationEnabled: Boolean?,
+    touchSteering: TouchSteering?,
     themeMode: ThemeMode,
     language: AppLanguage,
     displayMode: DisplayMode,
@@ -116,6 +127,7 @@ private fun SettingsContent(
     onMusicEnabledChanged: (Boolean) -> Unit,
     onSoundEnabledChanged: (Boolean) -> Unit,
     onVibrationEnabledChanged: (Boolean) -> Unit,
+    onTouchSteeringChanged: (TouchSteering) -> Unit,
     onThemeModeChanged: (ThemeMode) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onDisplayModeChanged: (DisplayMode) -> Unit,
@@ -156,6 +168,19 @@ private fun SettingsContent(
                     stringResource(Res.string.settings_vibration_title),
                     vibrationEnabled,
                     onVibrationEnabledChanged
+                )
+            }
+            if (touchSteering != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                // A switch, off for dragging, rather than a choice of two segments: a row of two
+                // short words sits so far right that the cursor going down skipped it for the
+                // theme's first segment, which is nearer the middle.
+                SettingRow(
+                    stringResource(Res.string.settings_stick_title),
+                    touchSteering == TouchSteering.STICK,
+                    { on ->
+                        onTouchSteeringChanged(if (on) TouchSteering.STICK else TouchSteering.DRAG)
+                    },
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))

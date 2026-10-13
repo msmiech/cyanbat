@@ -12,6 +12,7 @@ import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.data.DataStoreStageUnlockStore
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.data.ObservedHaptics
+import at.smiech.cyanbat.data.ObservedSteeringSettings
 import at.smiech.cyanbat.dataStore
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.GameText
@@ -76,6 +77,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
             finish()
         },
         audioSettings = ObservedAudioSettings(settings, activityScope),
+        steeringSettings = ObservedSteeringSettings(settings, activityScope),
     )
 
     /**
