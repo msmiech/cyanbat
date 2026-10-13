@@ -12,6 +12,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
 
@@ -137,5 +138,15 @@ class DifficultyTest {
             mapOf(1 to Difficulty.HARD, 2 to Difficulty.HARD, 3 to Difficulty.HARD),
             clearsBeforeDifficulties(4),
         )
+    }
+
+    @Test
+    fun `a stage is open once unlocked or once the one before it is cleared`() {
+        assertTrue(stageOpen(1, highestUnlocked = 1, clears = emptyMap()))
+        assertTrue(stageOpen(3, highestUnlocked = 3, clears = emptyMap()))
+        assertFalse(stageOpen(5, highestUnlocked = 4, clears = mapOf(3 to Difficulty.HARD)))
+        // The lagoon cleared before the endless stage was there to unlock opens it now.
+        assertTrue(stageOpen(5, highestUnlocked = 4, clears = mapOf(4 to Difficulty.EASY)))
+        assertTrue(stageOpen(5, highestUnlocked = 5, clears = emptyMap()))
     }
 }

@@ -10,6 +10,7 @@ import at.smiech.cyanbat.ecs.ContactCooldownComponent
 import at.smiech.cyanbat.ecs.ContactWeapon
 import at.smiech.cyanbat.ecs.ContactWeaponComponent
 import at.smiech.cyanbat.ecs.EliteComponent
+import at.smiech.cyanbat.ecs.EndlessScenerySystem
 import at.smiech.cyanbat.ecs.FrostBeamSystem
 import at.smiech.cyanbat.ecs.FrostSystem
 import at.smiech.cyanbat.ecs.GunComponent
@@ -19,6 +20,7 @@ import at.smiech.cyanbat.ecs.OrbitSystem
 import at.smiech.cyanbat.ecs.ShotPattern
 import at.smiech.cyanbat.ecs.SkySystem
 import at.smiech.cyanbat.ecs.Volley
+import at.smiech.cyanbat.ecs.WeatherSystem
 import at.smiech.cyanbat.music.MusicDirector
 import at.smiech.cyanbat.progress.PlayerLoadout
 import at.smiech.cyanbat.progress.PlayerProgress
@@ -57,6 +59,7 @@ import at.smiech.cyanbat.resources.boss_sky_viper_rain
 import at.smiech.cyanbat.resources.hud_boss
 import at.smiech.cyanbat.resources.hud_level
 import at.smiech.cyanbat.resources.hud_wave
+import at.smiech.cyanbat.resources.hud_wave_endless
 import at.smiech.cyanbat.resources.level_up_choose
 import at.smiech.cyanbat.resources.level_up_title
 import at.smiech.cyanbat.resources.pause_quit
@@ -64,16 +67,20 @@ import at.smiech.cyanbat.resources.pause_resume
 import at.smiech.cyanbat.resources.pause_title
 import at.smiech.cyanbat.resources.score
 import at.smiech.cyanbat.resources.stage_complete_continue
+import at.smiech.cyanbat.resources.stage_complete_endless
 import at.smiech.cyanbat.resources.stage_complete_fresh_start
 import at.smiech.cyanbat.resources.stage_complete_menu
 import at.smiech.cyanbat.resources.stage_complete_next
 import at.smiech.cyanbat.resources.stage_complete_title
 import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.scenery.Day
+import at.smiech.cyanbat.scenery.EndlessScenery
 import at.smiech.cyanbat.service.BossKind
+import at.smiech.cyanbat.service.EndlessCourse
 import at.smiech.cyanbat.service.EnemyGenerator
 import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.ObstacleGenerator
+import at.smiech.cyanbat.service.SkyViperBrain
 import at.smiech.cyanbat.service.StageProgression
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_COUNT
@@ -91,6 +98,7 @@ import at.smiech.cyanbat.util.DEATH_PUFF_SCALE
 import at.smiech.cyanbat.util.DEATH_SPIN_DEGREES_PER_SECOND
 import at.smiech.cyanbat.util.DEATH_TERMINAL_VELOCITY
 import at.smiech.cyanbat.util.ENCORE_GRACE_SECONDS
+import at.smiech.cyanbat.util.ENDLESS_ROUND_BREAK_SECONDS
 import at.smiech.cyanbat.util.FROST_FLASH_RADIUS
 import at.smiech.cyanbat.util.FROST_FLASH_SECONDS
 import at.smiech.cyanbat.util.FROST_LIGHT_COLOR
@@ -136,6 +144,7 @@ import at.smiech.engine.GameButton
 import at.smiech.engine.Graphics
 import at.smiech.engine.LayeredMusic
 import at.smiech.engine.Music
+import at.smiech.engine.Pixmap
 import at.smiech.engine.Screen
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AnimationSystem
@@ -199,15 +208,24 @@ import kotlin.random.Random
  * experience and its power-ups, so every stage is beaten from a standing start however it was
  * reached. It is flown on the same [difficulty], which the player chose as the first one started.
  *
+ * The endless stage is flown here too, as rounds of a stage that never ends (see [EndlessCourse]):
+ * a round's boss falling is banked as a stage's is, and after a breather the next round begins on
+ * the same screen, score, level and power-ups carried on. Its country is made up as it scrolls (see
+ * [EndlessScenery]), with weather that lands on the bat and its enemies ([WeatherSystem]), and a dark
+ * that falls with its night.
+ *
  * @param stageId which stage to fly, 1-based. An id with no stage behind it flies the first.
  * @param difficulty how hard the run is. Hard by default: the game as it is tuned, which is what
  *   the tests and the recorder fly.
+ * @param endlessSeed the dice the endless stage deals its rounds with, for a test that needs to
+ *   know which boss comes first; a run of its own by default.
  */
 class GameScreen(
     override val game: Game,
     private val env: CyanBatEnvironment,
     stageId: Int = 1,
     val difficulty: Difficulty = Difficulty.HARD,
+    endlessSeed: Int? = null,
 ) : Screen {
     /** The stage being flown. */
     val currentStage = env.assets.stage(stageId)
@@ -249,8 +267,16 @@ class GameScreen(
     /** Frame time not yet spent on a whole tick. */
     private var tickTime = 0f
 
-    /** The difficulty curve of the stage being played; see [StageProgression]. */
-    private val progression = StageProgression.forStage(currentStage.id, difficulty)
+    /** The endless stage's rounds, dealt one after another; null on a stage. */
+    private val course: EndlessCourse? =
+        if (currentStage.endless) EndlessCourse(endlessSeed?.let { Random(it) } ?: Random.Default, difficulty) else null
+
+    /**
+     * The difficulty curve of what is being flown: the stage, or the endless stage's current round;
+     * see [StageProgression].
+     */
+    private val progression: StageProgression
+        get() = enmGen.progression
 
     /** Spawns the stage's waves and its boss, and keeps the stage clock. */
     val enmGen = EnemyGenerator(
@@ -258,7 +284,7 @@ class GameScreen(
         worldHeight = game.frameBufferHeight,
         factory,
         currentStage.enemySheet,
-        progression = progression,
+        progression = course?.next() ?: StageProgression.forStage(currentStage.id, difficulty),
         onWaveChanged = { wave -> announce(text.format(Res.string.banner_wave, wave.index + 1)) },
         onBossSpawned = {
             announce(text[bossName()])
@@ -272,7 +298,40 @@ class GameScreen(
         encorePixmap = currentStage.encoreSheet,
         onEncoreBite = ::venomBite,
         onEncoreArrived = ::beginEncoreFight,
+        // The endless stage flies every stage's species and bosses, each from its own stage's sheets.
+        sheets = if (currentStage.endless) { species -> env.assets.stage(species.home).enemySheet } else null,
+        bossSheets = if (currentStage.endless) ::homeSheetOf else null,
     )
+
+    /** The sheet [kind] is drawn from on its own stage. */
+    private fun homeSheetOf(kind: BossKind): Pixmap? {
+        val home = env.assets.stage(kind.home)
+        return if (kind == BossKind.SKY_VIPER) home.encoreSheet else home.bossSheet
+    }
+
+    /**
+     * The endless stage's country, made up as it scrolls into view; null on a stage, and without
+     * graphics to make it with.
+     */
+    private val scenery: EndlessScenery? =
+        if (currentStage.endless) game.graphics?.let { EndlessScenery(it, game.frameBufferWidth) } else null
+
+    /** The endless stage's weather, which lands on the bat and its enemies; see [WeatherSystem]. */
+    private val weather: WeatherSystem? =
+        scenery?.let { WeatherSystem(it, game.frameBufferWidth, game.frameBufferHeight) }
+
+    /** The dark, for a stage flown in it; on the endless stage its night falls and lifts. */
+    private var lighting: LightingSystem? = null
+
+    /**
+     * Seconds left of the breather between an endless round's boss going down and the next round,
+     * and how long it has run; see [endRound].
+     */
+    private var roundBreak = 0f
+    private var breakSeconds = 0f
+
+    /** The order the endless stage's remixes take their turns in, shuffled for the run. */
+    private val remixOrder = currentStage.playlist.drop(1).shuffled(Random.Default)
 
     /** Spawns the stage's obstacles. */
     private val obsGen = ObstacleGenerator(
@@ -281,6 +340,7 @@ class GameScreen(
         factory,
         currentStage,
         dayPosition = ::dayPosition,
+        scenery = scenery,
     )
 
     /**
@@ -440,6 +500,15 @@ class GameScreen(
                 )
             )
         }
+        // The endless stage's country is the back of the picture in the same way, and its update
+        // moves the land, the day and the weather on by the run's tick.
+        if (backdrop is Backdrop.Endless) {
+            scenery?.let {
+                world.addSystem(EndlessScenerySystem(it, backdrop.moon, game.frameBufferWidth, game.frameBufferHeight))
+            }
+        }
+        // The weather's far layer, behind every sprite, and so under the night's dark with them.
+        weather?.let { world.addSystem(it) }
         world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight))
         // Before the movement it feeds, so the gravity it adds moves the bat this
         // tick, not the next.
@@ -488,16 +557,19 @@ class GameScreen(
         // one would.
         world.addSystem(RenderSystem(layers = SPRITE_LAYERS_FROM until LIGHTS_FROM))
         currentStage.lighting?.let {
-            world.addSystem(
-                LightingSystem(
-                    game.frameBufferWidth,
-                    game.frameBufferHeight,
-                    it.ambient,
-                    it.glow
-                )
+            val dark = LightingSystem(
+                game.frameBufferWidth,
+                game.frameBufferHeight,
+                it.ambient,
+                it.glow
             )
+            lighting = dark
+            world.addSystem(dark)
         }
         world.addSystem(RenderSystem(layers = LIGHTS_FROM..Int.MAX_VALUE))
+        // The weather's near layer and what it has left on the creatures, over every sprite and the
+        // dark, which it darkens itself; under the shields and the bars, which nothing may hide.
+        weather?.let { world.addSystem(it.front) }
         // Straight after the sprites, so a bubble encloses its enemy rather than being painted
         // over, and before the health bars, which must never be hidden behind one.
         world.addSystem(ShieldSystem())
@@ -526,6 +598,9 @@ class GameScreen(
             shotIntervalSeconds = loadout.shotIntervalSeconds,
             hitPoints = loadout.maxHitPoints,
         )
+
+        // A storm's thunder, after its lightning.
+        scenery?.onThunder = { sounds.play(SoundEffect.THUNDER) }
 
         startStageMusic()
         initStats()
@@ -705,8 +780,9 @@ class GameScreen(
     /** Resolves one overlapping pair from the collision pass, which reports it in either order. */
     private fun handleCollision(id1: EntityId, id2: EntityId) {
         // Nothing meets anything in the interlude between two bosses: the second's bite is the
-        // cutscene's, not a blow, and nothing of the bat's lands on it before its fight.
-        if (interlude != null) return
+        // cutscene's, not a blow, and nothing of the bat's lands on it before its fight. The same
+        // holds while the Sky Viper makes its entrance as an endless round's boss.
+        if (interlude != null || viperEntering()) return
         val group1 = collisionGroupOf(id1)
         val group2 = collisionGroupOf(id2)
         // An elite's drop only ever meets the bat (see CollisionGroup.PICKUP), which takes it.
@@ -825,6 +901,12 @@ class GameScreen(
         val trail = world.getComponent(segmentId, TrailComponent::class) ?: return false
         return trail.elapsed < trail.duration * WAKE_HARMLESS_FROM
     }
+
+    /**
+     * Whether the Sky Viper is the boss and has not yet come into its fight: diving at the bat,
+     * biting it and sweeping back round. Its entrance is a cutscene wherever it comes.
+     */
+    private fun viperEntering(): Boolean = (enmGen.bossBrain as? SkyViperBrain)?.arrived == false
 
     /** Whether the bat, in [group], is meeting [other] while [other] is frozen. */
     private fun isBatMeetingFrost(group: CollisionGroup?, other: EntityId): Boolean =
@@ -953,6 +1035,8 @@ class GameScreen(
             // Read off the blow, not the amount, which a heavily upgraded ordinary shot can match.
             showDamageText(id, dealt, critical = isCritical(dealtBy))
             lightUp(id)
+            // A blow knocks off whatever the weather has left on it.
+            weather?.shake(world, id)
         }
 
         val died = dealt > 0 && world.getComponent(target, HealthComponent::class)?.alive == false
@@ -1079,6 +1163,7 @@ class GameScreen(
 
             // Felt as well as seen.
             env.haptics.vibrate(HIT_VIBRATION_MILLIS)
+            weather?.shake(world, targetId)
         }
 
         // Capped at what is left, so an overkill reports the damage the target could actually take.
@@ -1127,7 +1212,60 @@ class GameScreen(
      * interlude before the second begins.
      */
     private fun bossFell() {
-        if (enmGen.encoreDue) beginInterlude() else completeStage()
+        when {
+            course != null -> endRound()
+            enmGen.encoreDue -> beginInterlude()
+            else -> completeStage()
+        }
+    }
+
+    /**
+     * An endless round's boss is down: it goes up as any boss does, everything hostile with it, and
+     * the music stops dead for its blast. It is banked as a won stage's boss is, bonus and all, but
+     * nothing is won: after [ENDLESS_ROUND_BREAK_SECONDS], with the fanfare in between, the next
+     * round begins; see [beginNextRound]. The Sky Viper's venom lifts as it falls.
+     */
+    private fun endRound() {
+        val falls = bossFalls()
+        val viper = enmGen.bossKind == BossKind.SKY_VIPER
+        wreckBoss()
+        scoring.awardStageCleared()
+        awardExperience(XP_PER_BOSS)
+        if (viper) poison.cure()
+        music?.dispose()
+        music = null
+        director = null
+        roundBreak = ENDLESS_ROUND_BREAK_SECONDS
+        breakSeconds = 0f
+        announce(text[falls], seconds = STAGE_COMPLETE_DELAY_SECONDS)
+    }
+
+    /**
+     * The breather after an endless round's boss: the wreck bursting at its aftershocks, the
+     * fanfare, and at its end the next round. Run on the run's ticks, so a pause holds it.
+     */
+    private fun breathe(tick: Float) {
+        val before = breakSeconds
+        breakSeconds += tick
+        aftershocks(before, breakSeconds)
+        driftWreck()
+        if (before < VICTORY_FANFARE_DELAY_SECONDS && breakSeconds >= VICTORY_FANFARE_DELAY_SECONDS) playFanfare()
+        roundBreak -= tick
+        if (roundBreak <= 0f) beginNextRound()
+    }
+
+    /**
+     * The endless stage's next round: its waves from the first, announced, to the next piece of its
+     * playlist; the fanfare, if it still rings, makes way.
+     */
+    private fun beginNextRound() {
+        roundBreak = 0f
+        val course = course ?: return
+        enmGen.beginRound(course.next())
+        fanfare?.dispose()
+        fanfare = null
+        fanfareHeld = false
+        startStageMusic()
     }
 
     /**
@@ -1513,6 +1651,9 @@ class GameScreen(
             // No obstacles during the boss: one pinning the player against scenery they cannot
             // outrun is an unfair death.
             if (!enmGen.bossSpawned) obsGen.update(tick)
+            // The endless stage's breather between rounds, and its dark, which follows the hour.
+            if (roundBreak > 0f) breathe(tick)
+            scenery?.let { lighting?.ambient = it.ambient() }
 
             // A won stage's score is banked once the winning tick has resolved, not as the boss
             // goes down partway through the collision pass, after which the kill and any later
@@ -1534,7 +1675,8 @@ class GameScreen(
                 // Banked again on the way out: a shot in flight can still score while the bat
                 // falls, and the game over screen shows the record beside the score.
                 saveHighscore()
-                game.setScreen(GameOverScreen(game, env, scoring.score, highscore))
+                val wave = if (currentStage.endless) enmGen.currentWave.index + 1 else null
+                game.setScreen(GameOverScreen(game, env, scoring.score, highscore, wave))
             }
         }
     }
@@ -1858,7 +2000,7 @@ class GameScreen(
         val bat = batRect() ?: return
         poison.take()
         interlude?.bite()
-        currentStage.encoreSheet?.let { factory.createVenomBurst(bat.centerX, bat.centerY, it) }
+        homeSheetOf(BossKind.SKY_VIPER)?.let { factory.createVenomBurst(bat.centerX, bat.centerY, it) }
         world.addComponent(batId, HitFlashComponent(VENOM_FLASH_SECONDS, VENOM_FLASH_COLOR))
         sounds.play(SoundEffect.VENOM_BITE)
         env.haptics.vibrate(HIT_VIBRATION_MILLIS)
@@ -2003,6 +2145,12 @@ class GameScreen(
 
             interlude != null -> Unit
 
+            // Between endless rounds only the fanfare plays.
+            roundBreak > 0f -> if (fanfareHeld) {
+                fanfareHeld = false
+                fanfare?.play()
+            }
+
             world.getComponent(batId, HealthComponent::class)?.alive == true -> startStageMusic()
         }
     }
@@ -2073,12 +2221,12 @@ class GameScreen(
 
         val next = nextStageId
         if (next != null) {
-            drawCentered(
-                text.format(Res.string.stage_complete_next, next),
-                247,
-                15,
-                EngineColors.WHITE
-            )
+            val onward = if (env.assets.stage(next).endless) {
+                text[Res.string.stage_complete_endless]
+            } else {
+                text.format(Res.string.stage_complete_next, next)
+            }
+            drawCentered(onward, 247, 15, EngineColors.WHITE)
             drawCentered(text[Res.string.stage_complete_menu], 269, 15, EngineColors.WHITE)
             drawCentered(text[Res.string.stage_complete_fresh_start], 294, 13, EngineColors.CYAN)
         } else {
@@ -2251,7 +2399,11 @@ class GameScreen(
      * for the player, where the code indexes waves from zero.
      */
     private fun waveLabel(): String = when {
+        // Between endless rounds, the wave that is coming.
+        roundBreak > 0f -> text.format(Res.string.hud_wave_endless, progression.wavesBefore + progression.bossWave + 1)
         enmGen.bossSpawned -> text[Res.string.hud_boss]
+        // The endless stage has no last wave to count toward.
+        currentStage.endless -> text.format(Res.string.hud_wave_endless, enmGen.currentWave.index + 1)
         else -> text.format(Res.string.hud_wave, enmGen.currentWave.index + 1, progression.bossWave)
     }
 
@@ -2281,7 +2433,19 @@ class GameScreen(
      * for a stage that has one.
      */
     private val score: StageMusic
-        get() = currentStage.music.boss?.takeIf { enmGen.bossSpawned } ?: currentStage.music
+        get() = course?.let { playlistPiece(it.rounds - 1) }
+            ?: currentStage.music.boss?.takeIf { enmGen.bossSpawned }
+            ?: currentStage.music
+
+    /**
+     * The piece an endless round is flown to: the stage's own theme on the first and every third
+     * after, the remixes taking turns between, in the run's shuffled order. A round's boss is fought
+     * to its round's piece.
+     */
+    private fun playlistPiece(round: Int): StageMusic {
+        if (round % THEME_EVERY == 0 || remixOrder.isEmpty()) return currentStage.music
+        return remixOrder[(round - round / THEME_EVERY - 1) % remixOrder.size]
+    }
 
     /** Opens [score]'s stems and a director for them, or returns null without audio. */
     private fun openStageMusic(): LayeredMusic? {
@@ -2289,7 +2453,7 @@ class GameScreen(
         val score = score
         return audio.newLayeredMusic(score.stems, score.grid).also {
             music = it
-            director = MusicDirector(it, score.grid, progression.bossWave, progression.difficulty)
+            director = MusicDirector(it, score.grid, progression.bossWave, progression.difficulty, currentStage.endless)
         }
     }
 
@@ -2352,6 +2516,9 @@ class GameScreen(
 
         /** Degrees in a radian. */
         const val DEGREES_PER_RADIAN = 57.29578f
+
+        /** How often the endless stage's own theme comes round: every this many rounds. */
+        const val THEME_EVERY = 3
 
         /** Straight down, as enemy fire's headings are measured: off straight ahead, down positive. */
         const val DOWNWARD_DEGREES = 90f

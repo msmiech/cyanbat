@@ -15,11 +15,20 @@ import kotlin.math.sqrt
  * One band of the endless stage's land, back to front: where it sits on the 640x360 frame, how
  * tall it is, and how fast it scrolls, in frame pixels a tick like every velocity in the game. The
  * nearest moves with the obstacles standing on it; farther ones move slower, which reads as depth.
+ *
+ * @param floor ground under every land's own profile, in pixels, so a band reaches down behind the
+ *   one in front of it and no sky shows between them.
  */
-enum class Band(val top: Int, val height: Int, val speed: Float, internal val depth: ScenePalettes.Depth) {
+enum class Band(
+    val top: Int,
+    val height: Int,
+    val speed: Float,
+    internal val depth: ScenePalettes.Depth,
+    val floor: Int = 0,
+) {
     CLOUDS(top = 4, height = 130, speed = 0.07f, depth = ScenePalettes.Depth.CLOUDS),
     FAR(top = 70, height = 190, speed = 0.16f, depth = ScenePalettes.Depth.FAR),
-    MID(top = 150, height = 170, speed = 0.42f, depth = ScenePalettes.Depth.MID),
+    MID(top = 150, height = 200, speed = 0.42f, depth = ScenePalettes.Depth.MID, floor = 30),
     NEAR(top = 290, height = 70, speed = 1f, depth = ScenePalettes.Depth.NEAR),
 }
 

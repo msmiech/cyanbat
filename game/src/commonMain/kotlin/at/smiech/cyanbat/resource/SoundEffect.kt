@@ -85,4 +85,11 @@ enum class SoundEffect(val file: String, val volume: Float, val gapSeconds: Floa
      * volume, since its crunch is mostly thump and a phone's speaker loses most of that.
      */
     VENOM_BITE("venomBite.wav", 1f),
+
+    /**
+     * Thunder after lightning in the endless stage's storms: about 5 dB under the music, between a
+     * full-range speaker and a phone's, which loses most of its rumble. The weather, not a blow, so
+     * it rolls under the fight rather than over it. Never two at once.
+     */
+    THUNDER("thunder.wav", 0.5f, gapSeconds = 1f),
 }

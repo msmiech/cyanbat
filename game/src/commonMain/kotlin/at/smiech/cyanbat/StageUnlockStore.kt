@@ -65,3 +65,11 @@ fun harderThanBest(best: Difficulty?, difficulty: Difficulty): Boolean =
  */
 fun clearsBeforeDifficulties(highestUnlocked: Int): Map<Int, Difficulty> =
     (1 until highestUnlocked).associateWith { Difficulty.HARD }
+
+/**
+ * Whether stage [id] is open: unlocked, or the stage before it cleared on some difficulty. The two
+ * agree for every stage but one: a store kept before the endless stage existed recorded the
+ * lagoon's clear, which unlocked nothing then, and that clear opens the endless stage now.
+ */
+fun stageOpen(id: Int, highestUnlocked: Int, clears: Map<Int, Difficulty>): Boolean =
+    id <= highestUnlocked || clears.containsKey(id - 1)

@@ -26,6 +26,8 @@
     <string name="stage_3_description">Lot od południa aż po noc, a z piasku wyskakują różne stwory. Po zmroku powstaje Piaskowy Czerw.</string>
     <string name="stage_4_name">Etap 4: Laguna</string>
     <string name="stage_4_description">Lot od nocy do południa nad zatoką pełną wysp, a rekiny nadpływają od tyłu. Naga wynurza się z fosy świątyni.</string>
+    <string name="stage_5_name">Tryb nieskończony</string>
+    <string name="stage_5_description">Runda za rundą fal i bossów ze wszystkich etapów, z każdą falą trudniejszych, nad krainą bez końca: szczyty, wulkany, bagna i mgliste lasy, w dzień i w nocy, w deszczu, śniegu i popiele.</string>
     <string name="stage_locked">Ukończ poprzedni etap, aby go odblokować</string>
     <string name="stage_locked_badge">ZABLOKOWANY</string>
     <string name="stage_highscore">Rekord: %1$d</string>
@@ -47,7 +49,8 @@
     <string name="dialog_help_controls_desktop">• Lot: przeciągaj CyanBata myszą albo użyj strzałek lub WASD.\n• Pauza: Q. Ponowne Q wraca do menu.\n• Pełny ekran: F11 lub Alt+Enter.</string>
     <string name="dialog_help_controls_web">• Lot: przeciągaj CyanBata myszą lub palcem albo użyj strzałek lub WASD.\n• Pauza: Q. Ponowne Q wraca do menu.</string>
     <string name="dialog_help_text">• Strzelanie: CyanBat strzela sam. Strzelaj do wrogów i przeszkód i nie dotykaj ani ich, ani ich pocisków.\n• Zdrowie: każde trafienie uszczupla pasek pod nietoperzem. Gdy się opróżni, gra się kończy.\n• Punkty: zdobywasz je za przetrwanie i za zestrzelenia. Zestrzelenia z rzędu podnoszą mnożnik, a każde trafienie go zeruje.\n• Awans: zestrzelenia dają doświadczenie. Każdy nowy poziom pozwala wybrać jedno z trzech ulepszeń.\n• Fale: co minutę nadciąga silniejsza fala. Po piątej pojawia się boss. Pokonaj go, aby ukończyć etap z dużą premią.\n• Trudność: na początku etapu wybierz Łatwy, Normalny lub Trudny. Łatwiejszy stopień to mniej wrogów, więcej doświadczenia i nietoperz, który wytrzymuje więcej trafień, mocniej trafia i zaczyna z ulepszeniami. Gwiazdki przy każdym etapie pokazują najtrudniejszy stopień, na jakim go ukończono: jedna za Łatwy, trzy za Trudny.
-• Etapy: w dżungli wrogowie nadlatują rojami, latają w formacjach, odpowiadają ogniem i chowają się za tarczami. Pierwszy strzał w tarczę ją rozbija. Ukończenie dżungli otwiera jaskinię, przez którą lecisz w ciemności przy własnym świetle nietoperza, a boss kryje się w mroku między zasadzkami. Ukończenie jaskini otwiera pustynię, przez którą lecisz od południa do nocy; z piasku wyskakują stwory, a pancerze skarabeuszy odrastają, jeśli zostawi się je w spokoju. Ukończenie pustyni otwiera lagunę, przez którą lecisz od nocy do południa; rekiny nadpływają od tyłu wzdłuż linii wody, a rozdymki miotają pierścienie kolców. Każdy etap zaczyna się od nowa: punkty, poziom i ulepszenia startują od zera.</string>
+• Etapy: w dżungli wrogowie nadlatują rojami, latają w formacjach, odpowiadają ogniem i chowają się za tarczami. Pierwszy strzał w tarczę ją rozbija. Ukończenie dżungli otwiera jaskinię, przez którą lecisz w ciemności przy własnym świetle nietoperza, a boss kryje się w mroku między zasadzkami. Ukończenie jaskini otwiera pustynię, przez którą lecisz od południa do nocy; z piasku wyskakują stwory, a pancerze skarabeuszy odrastają, jeśli zostawi się je w spokoju. Ukończenie pustyni otwiera lagunę, przez którą lecisz od nocy do południa; rekiny nadpływają od tyłu wzdłuż linii wody, a rozdymki miotają pierścienie kolców. Każdy etap zaczyna się od nowa: punkty, poziom i ulepszenia startują od zera.
+• Tryb nieskończony: otwiera go ukończenie laguny. Rundy fal ze wszystkich etapów, każda zakończona bossem z któregoś z nich, nad krainą, która wciąż się zmienia, w dzień i w nocy, w deszczu, śniegu i popiele. Nigdy się nie kończy, a każda fala jest trudniejsza od poprzedniej: sprawdź, jak daleko dotrzesz.</string>
 
     <string name="settings_music_title">Muzyka</string>
     <string name="settings_sound_title">Dźwięki</string>
@@ -81,6 +84,7 @@
 
     <string name="score">Punkty: %1$d</string>
     <string name="hud_wave">Fala: %1$d/%2$d</string>
+    <string name="hud_wave_endless">Fala: %1$d</string>
     <string name="hud_boss">BOSS</string>
     <string name="hud_level">Poziom: %1$d</string>
 
@@ -130,8 +134,10 @@
     <string name="stage_complete_menu">Wstecz lub Q, aby wrócić do menu</string>
     <string name="stage_complete_fresh_start">Punkty, poziom i ulepszenia zaczynają się od nowa</string>
     <string name="stage_complete_continue">Dotknij lub naciśnij Enter, aby kontynuować</string>
+    <string name="stage_complete_endless">Dotknij lub naciśnij Enter, aby przejść do trybu nieskończonego</string>
 
     <string name="game_over_hint">Dotknij ekranu, aby wrócić do menu głównego</string>
+    <string name="game_over_wave">Osiągnięta fala: %1$d</string>
 
     <string name="level_up_title">POZIOM %1$d</string>
     <string name="level_up_choose">Wybierz ulepszenie</string>

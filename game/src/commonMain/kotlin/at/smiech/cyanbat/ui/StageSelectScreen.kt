@@ -38,6 +38,7 @@ import at.smiech.cyanbat.resources.stage1_preview
 import at.smiech.cyanbat.resources.stage2_preview
 import at.smiech.cyanbat.resources.stage3_preview
 import at.smiech.cyanbat.resources.stage4_preview
+import at.smiech.cyanbat.resources.stage5_preview
 import at.smiech.cyanbat.resources.stage_1_description
 import at.smiech.cyanbat.resources.stage_1_name
 import at.smiech.cyanbat.resources.stage_2_description
@@ -46,11 +47,15 @@ import at.smiech.cyanbat.resources.stage_3_description
 import at.smiech.cyanbat.resources.stage_3_name
 import at.smiech.cyanbat.resources.stage_4_description
 import at.smiech.cyanbat.resources.stage_4_name
+import at.smiech.cyanbat.resources.stage_5_description
+import at.smiech.cyanbat.resources.stage_5_name
 import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.resources.stage_locked
 import at.smiech.cyanbat.resources.stage_locked_badge
 import at.smiech.cyanbat.resources.stage_not_cleared
 import at.smiech.cyanbat.resources.stage_select_title
+import at.smiech.cyanbat.stageOpen
+import at.smiech.cyanbat.util.ENDLESS_STAGE_ID
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.imageResource
@@ -95,13 +100,25 @@ private val STAGES = listOf(
     ),
 )
 
+/**
+ * The endless stage's card, under the stages' row and as wide as it: not a stage to clear but a run
+ * to see how far it goes, opened by clearing the last stage.
+ */
+private val ENDLESS = StageEntry(
+    ENDLESS_STAGE_ID,
+    Res.string.stage_5_name,
+    Res.string.stage_5_description,
+    Res.drawable.stage5_preview,
+)
+
 /** The name of the stage with [id], as its card and its run head it; the first's for an unknown id. */
 internal fun stageNameOf(id: Int): StringResource =
-    (STAGES.firstOrNull { it.id == id } ?: STAGES.first()).name
+    ((STAGES + ENDLESS).firstOrNull { it.id == id } ?: STAGES.first()).name
 
 /**
  * The stage select, reached from Start Game once the player has cleared a stage. Until then there
- * is nothing to choose, so Start Game goes straight into stage 1.
+ * is nothing to choose, so Start Game goes straight into stage 1. The endless stage's card sits under
+ * the stages', locked until the last of them is cleared.
  *
  * @param onStartStage starts the stage with this id, once the player has said how hard; see
  *   [DifficultyDialog].
@@ -122,7 +139,10 @@ fun StageSelectScreen(
     )
 }
 
-/** The stage select's layout: a row of cards, the cursor starting on the furthest stage open. */
+/**
+ * The stage select's layout: a row of cards, the endless stage's under them, the cursor starting on
+ * the furthest open.
+ */
 @Composable
 private fun StageSelectContent(
     highestUnlocked: Int,
@@ -130,10 +150,11 @@ private fun StageSelectContent(
     clears: Map<Int, Difficulty>,
     onStartStage: (Int) -> Unit,
 ) {
-    val cursor = remember { STAGES.associate { it.id to FocusRequester() } }
+    val cursor = remember { (STAGES + ENDLESS).associate { it.id to FocusRequester() } }
+    val endlessOpen = stageOpen(ENDLESS.id, highestUnlocked, clears)
     // On the furthest stage open: the one the player has just won their way into, and the one they
     // are most likely here for.
-    HomeCursor(cursor.getValue(highestUnlocked.coerceIn(1, STAGES.size)))
+    HomeCursor(cursor.getValue(if (endlessOpen) ENDLESS.id else highestUnlocked.coerceIn(1, STAGES.size)))
 
     Surface {
         Column(
@@ -154,7 +175,7 @@ private fun StageSelectContent(
                 for (stage in STAGES) {
                     StageCard(
                         stage = stage,
-                        unlocked = stage.id <= highestUnlocked,
+                        unlocked = stageOpen(stage.id, highestUnlocked, clears),
                         highscore = highscores[stage.id] ?: 0,
                         cleared = clears[stage.id],
                         onClick = { onStartStage(stage.id) },
@@ -162,6 +183,17 @@ private fun StageSelectContent(
                     )
                 }
             }
+            Spacer(Modifier.height(16.dp))
+            StageCard(
+                stage = ENDLESS,
+                unlocked = endlessOpen,
+                highscore = highscores[ENDLESS.id] ?: 0,
+                // A run that only ends one way is never cleared, so it has no stars to earn.
+                cleared = null,
+                stars = false,
+                onClick = { onStartStage(ENDLESS.id) },
+                modifier = Modifier.widthIn(max = 1000.dp).fillMaxWidth().focusRequester(cursor.getValue(ENDLESS.id)),
+            )
         }
     }
 }
@@ -173,6 +205,8 @@ private fun StageSelectContent(
  *
  * @param cleared the hardest difficulty the stage has been cleared on, which earns it as many stars
  *   as it is worth; null for none yet.
+ * @param stars whether the card shows its stars at all: not for the endless stage, which is never
+ *   cleared.
  */
 @Composable
 private fun StageCard(
@@ -182,6 +216,7 @@ private fun StageCard(
     cleared: Difficulty?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    stars: Boolean = true,
 ) {
     val cursor = rememberCursorMark()
     Card(
@@ -211,7 +246,7 @@ private fun StageCard(
                     color = Color.White,
                     modifier = Modifier.align(Alignment.Center),
                 )
-            } else {
+            } else if (stars) {
                 // In a corner of the preview, on a dark backing that keeps them readable over any
                 // stage's art. Every open stage shows all three, the ones still to earn as
                 // outlines, so a stage never cleared says as much.

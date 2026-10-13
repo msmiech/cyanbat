@@ -65,8 +65,11 @@ object EndlessDay {
         /** The sun going down behind the bat, red, under a purple sky. */
         SUNSET(0xFFFF8A60.toInt(), 0xFF6A5080.toInt(), fromLeft = 1f, fromRight = 0.05f, fromAbove = 0.3f, haze = 1.2f),
 
-        /** Moonlight: dim, blue, from above and the left. */
-        NIGHT(0xFF8AA0D8.toInt(), 0xFF2C3458.toInt(), fromLeft = 0.6f, fromRight = 0.15f, fromAbove = 0.5f, haze = 0.8f),
+        /**
+         * Moonlight: blue, from above and the left. Brighter than a night really is, since the
+         * stage's dark falls over it as well; see [ambient].
+         */
+        NIGHT(0xFFA8BCF0.toInt(), 0xFF56628C.toInt(), fromLeft = 0.6f, fromRight = 0.15f, fromAbove = 0.6f, haze = 0.8f),
     }
 
     /**

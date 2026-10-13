@@ -29,6 +29,8 @@
     <string name="stage_3_description">Flown from noon into nightfall, with things leaping out of the sand. The Sand Wyrm rises after dark.</string>
     <string name="stage_4_name">Stage 4: The Lagoon</string>
     <string name="stage_4_description">Flown from night into noon across a bay of islands, with sharks coming from behind. The Naga rises from the temple's moat.</string>
+    <string name="stage_5_name">Endless Mode</string>
+    <string name="stage_5_description">Round after round of waves and bosses from every stage, harder with every wave, over a land that never ends: peaks, volcanoes, swamps and foggy forests, by day and by night, in rain, snow and ash.</string>
     <string name="stage_locked">Clear the stage before it to unlock</string>
     <!-- Across a locked stage's preview. -->
     <string name="stage_locked_badge">LOCKED</string>
@@ -55,7 +57,8 @@
     <string name="dialog_help_controls_desktop">• Fly: drag CyanBat with the mouse, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.\n• Fullscreen: F11 or Alt+Enter.</string>
     <string name="dialog_help_controls_web">• Fly: drag CyanBat with the mouse or a finger, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.</string>
     <string name="dialog_help_text">• Shoot: CyanBat fires automatically. Shoot enemies and obstacles, and avoid touching them or their shots.\n• Health: every hit drains the bar under the bat. When it is empty, the run is over.\n• Score: points come from surviving and from kills. Kills in a row raise the multiplier, and taking a hit resets it.\n• Level up: kills earn experience. Each new level lets you pick one of three power-ups.\n• Waves: a tougher wave arrives every minute. After five, the boss appears. Defeat it to clear the stage for a big bonus.\n• Difficulty: choose Easy, Normal or Hard as a stage starts. An easier one sends fewer enemies, pays more experience, and gives you a bat that takes more hits, hits harder and starts with power-ups. The stars on each stage show the hardest difficulty you have cleared it on: one for Easy, three for Hard.
-• Stages: in the jungle, enemies swarm, fly in formation, shoot back and hide behind shields. The first shot at a shield pops it. Clearing the jungle opens the cave, flown in the dark by the bat's own light, where the boss hides in the dark between ambushes. Clearing the cave opens the desert, flown from noon into night, where things leap out of the sand and scarab shells grow back if they are left alone. Clearing the desert opens the lagoon, flown from night into noon, where sharks come from behind along the waterline and puffers throw rings of spines. Each stage starts fresh: score, level and power-ups begin again.</string>
+• Stages: in the jungle, enemies swarm, fly in formation, shoot back and hide behind shields. The first shot at a shield pops it. Clearing the jungle opens the cave, flown in the dark by the bat's own light, where the boss hides in the dark between ambushes. Clearing the cave opens the desert, flown from noon into night, where things leap out of the sand and scarab shells grow back if they are left alone. Clearing the desert opens the lagoon, flown from night into noon, where sharks come from behind along the waterline and puffers throw rings of spines. Each stage starts fresh: score, level and power-ups begin again.
+• Endless Mode: clearing the lagoon opens it. Rounds of waves from every stage, each ending in a boss from any of them, over a land that keeps changing, by day and by night, in rain, snow and ash. It never ends, and every wave is harder than the last: see how far you get.</string>
 
     <string name="settings_music_title">Music</string>
     <string name="settings_sound_title">Sounds</string>
@@ -100,6 +103,8 @@
     <!-- The HUD. The score line also heads the stage complete and game over screens. -->
     <string name="score">Score: %1$d</string>
     <string name="hud_wave">Wave: %1$d/%2$d</string>
+    <!-- The endless stage has no last wave to count toward. -->
+    <string name="hud_wave_endless">Wave: %1$d</string>
     <string name="hud_boss">BOSS</string>
     <string name="hud_level">Level: %1$d</string>
 
@@ -157,9 +162,13 @@
     <string name="stage_complete_menu">Back or Q for the menu</string>
     <string name="stage_complete_fresh_start">Score, level and power-ups start over</string>
     <string name="stage_complete_continue">Tap or press Enter to continue</string>
+    <!-- On the last stage's complete screen, which flies on into the endless stage. -->
+    <string name="stage_complete_endless">Tap or press Enter for Endless Mode</string>
 
     <!-- The game over screen, under GAME OVER, which is drawn into gameover.png and stays English. -->
     <string name="game_over_hint">Touch the screen for main menu</string>
+    <!-- Under the score, when an endless run ends. -->
+    <string name="game_over_wave">Reached wave %1$d</string>
 
     <!-- The level up dialog, over three power-up cards. -->
     <string name="level_up_title">LEVEL %1$d</string>
