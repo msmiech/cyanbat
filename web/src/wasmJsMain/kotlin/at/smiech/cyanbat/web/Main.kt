@@ -26,6 +26,9 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AudioSettings
+import at.smiech.cyanbat.data.KeyValueHighscoreStore
+import at.smiech.cyanbat.data.KeyValueSettingsRepository
+import at.smiech.cyanbat.data.KeyValueStageUnlockStore
 import at.smiech.cyanbat.data.ObservedAudioSettings
 import at.smiech.cyanbat.data.ObservedSteeringSettings
 import at.smiech.cyanbat.data.SteeringSettings
@@ -95,11 +98,11 @@ private fun CyanBatPage(
     // How hard it is flown, which the player chose as it started.
     var difficulty by remember { mutableStateOf(Difficulty.DEFAULT) }
     val storage = remember { WebStorage() }
-    val settings = remember { WebSettingsRepository(storage) }
+    val settings = remember { KeyValueSettingsRepository(storage, applyLanguage = WebLocale::apply) }
     // One of each for the menu and every run, so the menu sees what a run records the moment it
-    // records it; see WebStores.
-    val stageUnlocks = remember { WebStageUnlockStore(storage) }
-    val highscores = remember { WebHighscoreStore(storage) }
+    // records it; see KeyValueStores.
+    val stageUnlocks = remember { KeyValueStageUnlockStore(storage) }
+    val highscores = remember { KeyValueHighscoreStore(storage) }
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
     val steeringSettings = remember(scope) { ObservedSteeringSettings(settings, scope) }
@@ -177,8 +180,8 @@ private fun rememberRun(
     preloaded: Deferred<Unit>,
     sound: WebAudioDevice,
     controls: ControlHandler,
-    highscores: WebHighscoreStore,
-    stageUnlocks: WebStageUnlockStore,
+    highscores: KeyValueHighscoreStore,
+    stageUnlocks: KeyValueStageUnlockStore,
     audioSettings: AudioSettings,
     steeringSettings: SteeringSettings,
     onExitToMenu: () -> Unit,
