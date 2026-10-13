@@ -227,6 +227,12 @@ private abstract class Land(val biome: Biome) {
     /** [waterline] over the band's floor, as the ground's height is; 0 for none. */
     fun liquid(band: Band): Float = waterline(band).let { if (it > 0f) it + band.floor else 0f }
 
+    /**
+     * Whether the liquid runs all the way down far off, as open water does, or pools on the ground
+     * under it, as lava does in a valley.
+     */
+    open val deepLiquid: Boolean get() = true
+
     /** What the liquid is: its surface, its body and its depths. */
     open val liquidTop: Int get() = 0
     open val liquidBody: Int get() = 0
@@ -246,15 +252,16 @@ private abstract class Land(val biome: Biome) {
 
     /**
      * Paints one column of ground of [height] sloping by [slope]. Where the ground lies under this
-     * land's water (or lava), far off the water runs all the way down, deepening; close up, in the
-     * near band, it is shallows, with the bottom showing under it.
+     * land's water, far off the water runs all the way down, deepening; close up, in the near band,
+     * it is shallows, with the bottom showing under it. Lava pools on the ground everywhere; see
+     * [deepLiquid].
      */
     fun column(p: LandPainter, x: Int, height: Float, slope: Float, seed: Int) {
         val band = p.band
         val h = p.height
         val level = liquid(band)
         val surface = (h - level).roundToInt().coerceAtLeast(0)
-        if (level > height && band != Band.NEAR) {
+        if (level > height && band != Band.NEAR && deepLiquid) {
             pool(p, x, surface, h, seed)
             return
         }
@@ -701,6 +708,7 @@ private object VolcanoLand : Land(Biome.VOLCANO) {
 
     override fun waterline(band: Band): Float = if (band == Band.MID) 48f else 0f
 
+    override val deepLiquid: Boolean get() = false
     override val liquidTop: Int get() = LAVA_HOT
     override val liquidBody: Int get() = LAVA
     override val liquidDeep: Int get() = EMBER

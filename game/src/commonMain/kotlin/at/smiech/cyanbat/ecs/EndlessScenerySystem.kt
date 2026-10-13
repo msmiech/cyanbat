@@ -50,6 +50,16 @@ class EndlessScenerySystem(
     /** The sky, a color per band of rows, worked out once a tick. */
     private val bands = IntArray((HORIZON_Y + BAND_HEIGHT - 1) / BAND_HEIGHT)
 
+    /**
+     * The sky's bands as a picture two pixels wide and a pixel a band, drawn stretched across the
+     * frame in one blit rather than a rectangle a band. Made again only when a band's color has
+     * moved, which a sky that changes over minutes does a few times a second at most; see [paintSky].
+     */
+    private var sky: Pixmap? = null
+    private var skyStale = true
+    private var skyPaintedAt = Float.NEGATIVE_INFINITY
+    private val skyPixels = IntArray(2 * (bands.size + 1))
+
     private val starX = FloatArray(STAR_COUNT)
     private val starY = IntArray(STAR_COUNT)
     private val starBrightness = FloatArray(STAR_COUNT)
@@ -79,7 +89,9 @@ class EndlessScenerySystem(
         scenery.update(deltaTime)
         for (band in bands.indices) {
             val middle = band * BAND_HEIGHT + BAND_HEIGHT / 2f
-            bands[band] = scenery.skyColor(middle / HORIZON_Y)
+            val color = scenery.skyColor(middle / HORIZON_Y)
+            if (color != bands[band]) skyStale = true
+            bands[band] = color
         }
 
         // The obstacles are drawn in the same palettes as the land, a row of their sheet apiece,
@@ -120,11 +132,27 @@ class EndlessScenerySystem(
 
     /** Banded rather than smooth, like the sprites' shading; the last band runs on under the land. */
     private fun drawSky(graphics: Graphics) {
-        for (band in bands.indices) {
-            graphics.drawRect(0, band * BAND_HEIGHT, frameWidth, BAND_HEIGHT, bands[band])
-        }
+        if (sky == null || skyStale && clock - skyPaintedAt >= SKY_REPAINT_SECONDS) paintSky(graphics)
+        val picture = sky ?: return
+        // A blit paints a column and a row short of what it is given (the deliberate `- 1` in
+        // ComposeGraphics.drawPixmap), so the picture has a column and a row more than it shows, and
+        // the box asks for a pixel more each way than it covers.
+        graphics.drawPixmap(picture, 0, 0, 0, 0, 2, bands.size + 1, frameWidth + 1, bands.size * BAND_HEIGHT + 1)
         val below = bands.size * BAND_HEIGHT
         graphics.drawRect(0, below, frameWidth, frameHeight - below, bands.last())
+    }
+
+    /** The sky's bands as a picture of their own; see [sky]. */
+    private fun paintSky(graphics: Graphics) {
+        for (row in 0..bands.size) {
+            val color = bands[row.coerceAtMost(bands.lastIndex)]
+            skyPixels[2 * row] = color
+            skyPixels[2 * row + 1] = color
+        }
+        sky?.dispose()
+        sky = graphics.newPixmap(2, bands.size + 1, skyPixels)
+        skyStale = false
+        skyPaintedAt = clock
     }
 
     /** How much of the sky the clouds hide, 0..1, for the stars and the sun behind them. */
@@ -318,6 +346,9 @@ class EndlessScenerySystem(
         const val HORIZON_Y = 252
 
         const val BAND_HEIGHT = 3
+
+        /** The least time between two repaints of the sky's picture: it changes over minutes. */
+        const val SKY_REPAINT_SECONDS = 0.25f
 
         const val STAR_COUNT = 130
         const val STAR_FADE_IN = 0.2f
