@@ -2,6 +2,7 @@ package at.smiech.cyanbat.ui
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -137,12 +140,15 @@ private fun SettingsContent(
     HomeCursor(music)
     Surface {
         // Scrolls, because a phone held landscape is only about 400dp tall and the display choices
-        // alone take most of that.
+        // alone take most of that. No wider than a column reads well, and in the middle of a
+        // screen wider than that, so a switch is never a screen's width from what it switches.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 16.dp - ROW_INSET, vertical = 16.dp)
+                .padding(horizontal = SCREEN_PADDING - ROW_INSET, vertical = SCREEN_PADDING)
+                .wrapContentWidth()
+                .widthIn(max = CONTENT_WIDTH + ROW_INSET * 2)
         ) {
             Text(
                 text = stringResource(Res.string.settings),
@@ -266,6 +272,10 @@ private fun SettingRow(
  * one row of segments beside its label, in line with the switches: short words need no hints, and
  * radio rows like the display's would push those below the fold on a landscape phone. Each segment
  * takes the cursor on its own, and the arrows walk along them.
+ *
+ * Where the label and the segments do not fit side by side, a phone's browser held upright or an
+ * iPad's narrowest window, the segments go under the label rather than squeeze their words onto
+ * two lines each.
  */
 @Composable
 private fun <T> ChoiceRow(
@@ -275,10 +285,11 @@ private fun <T> ChoiceRow(
     onSelected: (T) -> Unit,
     optionLabel: @Composable (T) -> String,
 ) {
-    Row(
+    FlowRow(
         modifier = Modifier.fillMaxWidth().padding(horizontal = ROW_INSET),
         horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        itemVerticalAlignment = Alignment.CenterVertically,
     ) {
         Text(text = label)
         SingleChoiceSegmentedButtonRow {

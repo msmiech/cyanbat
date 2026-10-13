@@ -3,9 +3,12 @@ package at.smiech.cyanbat.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,6 +16,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Card
 import androidx.compose.material3.MaterialTheme
@@ -31,7 +35,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.FilterQuality
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.stage1_preview
@@ -71,6 +77,12 @@ private data class StageEntry(
 
 /** How tall a card's preview strip is. */
 private val PREVIEW_HEIGHT = 130.dp
+
+/** The widest the cards are laid out across; see [StageSelectContent]. */
+private val GRID_MAX_WIDTH = 1000.dp
+
+/** The room between two cards, and between the title and the first row. */
+private val CARD_GAP = 16.dp
 
 /** Every stage's card, in order. */
 private val STAGES = listOf(
@@ -140,8 +152,9 @@ fun StageSelectScreen(
 }
 
 /**
- * The stage select's layout: a row of cards, the endless stage's under them, the cursor starting on
- * the furthest open.
+ * The stage select's layout: the stages' cards in rows of as many as the screen has room for (see
+ * [columnsFor]), the endless stage's under them as wide as a row, the cursor starting on the
+ * furthest open.
  */
 @Composable
 private fun StageSelectContent(
@@ -152,50 +165,76 @@ private fun StageSelectContent(
 ) {
     val cursor = remember { (STAGES + ENDLESS).associate { it.id to FocusRequester() } }
     val endlessOpen = stageOpen(ENDLESS.id, highestUnlocked, clears)
-    // On the furthest stage open: the one the player has just won their way into, and the one they
-    // are most likely here for.
-    HomeCursor(cursor.getValue(if (endlessOpen) ENDLESS.id else highestUnlocked.coerceIn(1, STAGES.size)))
 
     Surface {
         Column(
-            modifier = Modifier.fillMaxSize().padding(16.dp).verticalScroll(rememberScrollState()),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
+                .padding(SCREEN_PADDING),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
                 text = stringResource(Res.string.stage_select_title),
                 style = MaterialTheme.typography.headlineMedium,
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(CARD_GAP))
             // Capped wide enough that each card's preview strip is still a picture of the stage
             // rather than a sliver of it.
-            Row(
-                modifier = Modifier.widthIn(max = 1000.dp).fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-            ) {
-                for (stage in STAGES) {
+            BoxWithConstraints(Modifier.widthIn(max = GRID_MAX_WIDTH).fillMaxWidth()) {
+                // On the furthest stage open: the one the player has just won their way into, and
+                // the one they are most likely here for. Asked for in here, where the cards are,
+                // since what is in here is only composed once it is measured.
+                HomeCursor(
+                    cursor.getValue(
+                        if (endlessOpen) ENDLESS.id else highestUnlocked.coerceIn(1, STAGES.size)
+                    )
+                )
+                val columns = columnsFor(maxWidth)
+                Column(verticalArrangement = Arrangement.spacedBy(CARD_GAP)) {
+                    for (row in STAGES.chunked(columns)) {
+                        // Every card in a row as tall as the tallest, a locked one's included,
+                        // whose description is a line where an open one's runs to four.
+                        Row(
+                            modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min),
+                            horizontalArrangement = Arrangement.spacedBy(CARD_GAP),
+                        ) {
+                            for (stage in row) {
+                                StageCard(
+                                    stage = stage,
+                                    unlocked = stageOpen(stage.id, highestUnlocked, clears),
+                                    highscore = highscores[stage.id] ?: 0,
+                                    cleared = clears[stage.id],
+                                    onClick = { onStartStage(stage.id) },
+                                    modifier = Modifier.weight(1f).fillMaxHeight()
+                                        .focusRequester(cursor.getValue(stage.id)),
+                                )
+                            }
+                        }
+                    }
                     StageCard(
-                        stage = stage,
-                        unlocked = stageOpen(stage.id, highestUnlocked, clears),
-                        highscore = highscores[stage.id] ?: 0,
-                        cleared = clears[stage.id],
-                        onClick = { onStartStage(stage.id) },
-                        modifier = Modifier.weight(1f).focusRequester(cursor.getValue(stage.id)),
+                        stage = ENDLESS,
+                        unlocked = endlessOpen,
+                        highscore = highscores[ENDLESS.id] ?: 0,
+                        // A run that only ends one way is never cleared, so it has no stars to earn.
+                        cleared = null,
+                        stars = false,
+                        onClick = { onStartStage(ENDLESS.id) },
+                        modifier = Modifier.fillMaxWidth().focusRequester(cursor.getValue(ENDLESS.id)),
                     )
                 }
             }
-            Spacer(Modifier.height(16.dp))
-            StageCard(
-                stage = ENDLESS,
-                unlocked = endlessOpen,
-                highscore = highscores[ENDLESS.id] ?: 0,
-                // A run that only ends one way is never cleared, so it has no stars to earn.
-                cleared = null,
-                stars = false,
-                onClick = { onStartStage(ENDLESS.id) },
-                modifier = Modifier.widthIn(max = 1000.dp).fillMaxWidth().focusRequester(cursor.getValue(ENDLESS.id)),
-            )
         }
     }
+}
+
+/**
+ * How many of the stages' cards sit side by side across [width]: all four where each still has
+ * room for its name and a few words a line, as on a phone held landscape; two on one held upright
+ * or a narrow window; and one where even two would be columns of single words.
+ */
+private fun columnsFor(width: Dp): Int = when {
+    width >= 600.dp -> 4
+    width >= 340.dp -> 2
+    else -> 1
 }
 
 /**
@@ -239,12 +278,19 @@ private fun StageCard(
                     .alpha(if (unlocked) 1f else 0.35f),
             )
             if (!unlocked) {
+                // On one line, shrunk to fit a narrow card rather than broken in two: ZABLOKOWANY
+                // is wider than a phone's four cards leave it.
                 Text(
                     text = stringResource(Res.string.stage_locked_badge),
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                     color = Color.White,
-                    modifier = Modifier.align(Alignment.Center),
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = 12.sp,
+                        maxFontSize = MaterialTheme.typography.titleLarge.fontSize,
+                    ),
+                    modifier = Modifier.align(Alignment.Center).padding(horizontal = 8.dp),
                 )
             } else if (stars) {
                 // In a corner of the preview, on a dark backing that keeps them readable over any
