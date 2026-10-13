@@ -64,6 +64,7 @@ import at.smiech.cyanbat.resources.hud_wave_endless
 import at.smiech.cyanbat.resources.level_up_choose
 import at.smiech.cyanbat.resources.level_up_title
 import at.smiech.cyanbat.resources.pause_quit
+import at.smiech.cyanbat.resources.pause_quit_button
 import at.smiech.cyanbat.resources.pause_resume
 import at.smiech.cyanbat.resources.pause_title
 import at.smiech.cyanbat.resources.score
@@ -110,6 +111,13 @@ import at.smiech.cyanbat.util.IMPACT_LEAD
 import at.smiech.cyanbat.util.LETTERBOX_HEIGHT
 import at.smiech.cyanbat.util.LETTERBOX_SECONDS
 import at.smiech.cyanbat.util.ORB_REHIT_SECONDS
+import at.smiech.cyanbat.util.PAUSE_BUTTON_FILL
+import at.smiech.cyanbat.util.PAUSE_BUTTON_RADIUS
+import at.smiech.cyanbat.util.PAUSE_BUTTON_SIGN_COLOR
+import at.smiech.cyanbat.util.PAUSE_BUTTON_TOUCH_BOTTOM
+import at.smiech.cyanbat.util.PAUSE_BUTTON_TOUCH_LEFT
+import at.smiech.cyanbat.util.PAUSE_BUTTON_X
+import at.smiech.cyanbat.util.PAUSE_BUTTON_Y
 import at.smiech.cyanbat.util.PAUSE_DIM
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.POWER_UP_ARMING_SECONDS
@@ -120,6 +128,10 @@ import at.smiech.cyanbat.util.POWER_UP_CARD_TOP
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
 import at.smiech.cyanbat.util.POWER_UP_DROP_FRAME
 import at.smiech.cyanbat.util.POWER_UP_GRACE_SECONDS
+import at.smiech.cyanbat.util.QUIT_BUTTON_HEIGHT
+import at.smiech.cyanbat.util.QUIT_BUTTON_SLOP
+import at.smiech.cyanbat.util.QUIT_BUTTON_TOP
+import at.smiech.cyanbat.util.QUIT_BUTTON_WIDTH
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.REVIVE_HEALTH_FRACTION
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
@@ -159,6 +171,7 @@ import at.smiech.engine.LayeredMusic
 import at.smiech.engine.Music
 import at.smiech.engine.Pixmap
 import at.smiech.engine.Screen
+import at.smiech.engine.TouchButton
 import at.smiech.engine.VirtualStick
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AnimationSystem
@@ -473,6 +486,17 @@ class GameScreen(
         zoneTop = STICK_ZONE_TOP.toFloat(),
     )
 
+    /**
+     * The pause button at the top right, for a platform with no Back to pause with; see
+     * [CyanBatEnvironment.pauseButton]. It takes in the bars beside and above the frame's corner.
+     */
+    private val pauseButton = TouchButton(
+        left = PAUSE_BUTTON_TOUCH_LEFT.toFloat(),
+        top = Float.NEGATIVE_INFINITY,
+        right = Float.POSITIVE_INFINITY,
+        bottom = PAUSE_BUTTON_TOUCH_BOTTOM.toFloat(),
+    ).apply { enabled = env.pauseButton }
+
     /** Fractional health owed by Regeneration, carried between ticks; see [regenerate]. */
     private var regenCarry = 0f
 
@@ -536,7 +560,14 @@ class GameScreen(
         }
         // The weather's far layer, behind every sprite, and so under the night's dark with them.
         weather?.let { world.addSystem(it) }
-        world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight, stick))
+        world.addSystem(
+            PlayerInputSystem(
+                game.frameBufferWidth,
+                game.frameBufferHeight,
+                stick,
+                listOf(pauseButton),
+            )
+        )
         // Before the movement it feeds, so the gravity it adds moves the bat this
         // tick, not the next.
         world.addSystem(DeathSystem { dyingId -> shedDeathPuff(dyingId) })
@@ -2134,13 +2165,25 @@ class GameScreen(
         if (controls?.consumePress(GameButton.PAUSE) == true) {
             setPaused(!paused)
         }
+        // Read every update, so a press the world took just before a pause does not wait for it.
+        // A press it took while the button was not to be seen is dropped.
+        if (pauseButton.consumePress() && pauseButtonShown) setPaused(true)
 
         if (!paused) return false
 
         resumeArmingTime -= deltaTime
         // Read even when it cannot resume, so events do not pile up and reach the bat all at once.
-        val tapped = overlayTaps.taps(input?.touchEvents.orEmpty()).isNotEmpty()
-        if (tapped && resumeArmingTime <= 0f) setPaused(false)
+        val taps = overlayTaps.taps(input?.touchEvents.orEmpty())
+        if (taps.isNotEmpty() && resumeArmingTime <= 0f) {
+            // Where there is no Back, the pause screen's Quit button is the way out; a tap anywhere
+            // else resumes, as it does everywhere.
+            if (pauseButton.enabled && taps.any { onQuitButton(it.x, it.y) }) {
+                saveHighscore()
+                env.onExitToMenu()
+                return true
+            }
+            setPaused(false)
+        }
         return true
     }
 
@@ -2186,12 +2229,34 @@ class GameScreen(
         }
     }
 
-    /** The pause overlay: the run dimmed, and how to resume or quit. */
+    /**
+     * The pause overlay: the run dimmed, and how to resume or quit. Where there is no Back to quit
+     * with, quitting is a button, drawn as a power-up card is, as something to press.
+     */
     private fun drawPauseOverlay() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
         drawCentered(text[Res.string.pause_title], 160, 30, EngineColors.CYAN)
         drawCentered(text[Res.string.pause_resume], 195, 15, EngineColors.WHITE)
-        drawCentered(text[Res.string.pause_quit], 217, 15, EngineColors.WHITE)
+        if (!pauseButton.enabled) {
+            drawCentered(text[Res.string.pause_quit], 217, 15, EngineColors.WHITE)
+            return
+        }
+        val left = quitButtonLeft()
+        g.drawRect(left, QUIT_BUTTON_TOP, QUIT_BUTTON_WIDTH, QUIT_BUTTON_HEIGHT, CARD_FILL)
+        g.drawRect(left, QUIT_BUTTON_TOP, QUIT_BUTTON_WIDTH, 2, EngineColors.CYAN)
+        val label = text[Res.string.pause_quit_button]
+        drawCentered(label, QUIT_BUTTON_TOP + 21, 15, EngineColors.WHITE)
+    }
+
+    /** The left edge of the pause screen's Quit button, which is centered on the frame. */
+    private fun quitButtonLeft(): Int = (game.frameBufferWidth - QUIT_BUTTON_WIDTH) / 2
+
+    /** Whether a tap at ([x], [y]) lands on the pause screen's Quit button, or near enough. */
+    private fun onQuitButton(x: Int, y: Int): Boolean {
+        val left = quitButtonLeft()
+        return x >= left - QUIT_BUTTON_SLOP && x < left + QUIT_BUTTON_WIDTH + QUIT_BUTTON_SLOP &&
+            y >= QUIT_BUTTON_TOP - QUIT_BUTTON_SLOP &&
+            y < QUIT_BUTTON_TOP + QUIT_BUTTON_HEIGHT + QUIT_BUTTON_SLOP
     }
 
     /** Raises [highscore] to the run's score if it beat it, and stores it. */
@@ -2369,6 +2434,7 @@ class GameScreen(
             drawExperienceBar()
             drawStageTimer()
             drawStick()
+            drawPauseButton()
         }
         if (stageNameDisplayTime > 0) {
             drawStageName()
@@ -2408,6 +2474,32 @@ class GameScreen(
             if (held) STICK_KNOB_HELD_COLOR else STICK_KNOB_COLOR,
             if (held) STICK_RIM_HELD_COLOR else STICK_RIM_COLOR,
         )
+    }
+
+    /**
+     * Whether the pause button is on the screen: where the host asks for one, while the bat flies
+     * and the interlude's bars are out, as the rest of the HUD is.
+     */
+    private val pauseButtonShown: Boolean
+        get() = pauseButton.enabled && letterbox <= 0f &&
+            world.getComponent(batId, HealthComponent::class)?.alive == true
+
+    /**
+     * The pause button, where there is no Back to pause with: a dark disc ringed as the stick is,
+     * with the pause sign on it, cyan while a finger is on it. Gone once the bat is down, as the
+     * stick is, since there is no run left to pause, and while the interlude's bars are in.
+     */
+    private fun drawPauseButton() {
+        if (!pauseButtonShown) return
+        val x = PAUSE_BUTTON_X.toFloat()
+        val y = PAUSE_BUTTON_Y.toFloat()
+        val rim = if (pauseButton.held) STICK_RIM_HELD_COLOR else STICK_RIM_COLOR
+        val sign = if (pauseButton.held) STICK_KNOB_HELD_COLOR else PAUSE_BUTTON_SIGN_COLOR
+        circle(x, y, PAUSE_BUTTON_RADIUS, PAUSE_BUTTON_FILL, STICK_SHADOW_COLOR)
+        circle(x, y, PAUSE_BUTTON_RADIUS - 1, null, rim)
+        // Two bars, 3 by 9 pixels, 3 apart, square on the disc's center pixel.
+        g.drawRect(PAUSE_BUTTON_X - 4, PAUSE_BUTTON_Y - 4, 3, 9, sign)
+        g.drawRect(PAUSE_BUTTON_X + 2, PAUSE_BUTTON_Y - 4, 3, 9, sign)
     }
 
     /**

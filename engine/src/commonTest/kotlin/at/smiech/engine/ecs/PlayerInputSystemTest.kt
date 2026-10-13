@@ -3,6 +3,7 @@ package at.smiech.engine.ecs
 import at.smiech.engine.Controls
 import at.smiech.engine.Direction
 import at.smiech.engine.Input
+import at.smiech.engine.TouchButton
 import at.smiech.engine.VirtualStick
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.math.Rect
@@ -69,11 +70,12 @@ class PlayerInputSystemTest {
         batX: Float = 100f,
         batY: Float = 100f,
         val stick: VirtualStick? = null,
+        val button: TouchButton? = null,
     ) {
         val controls = ControlHandler()
         val input = FakeInput(controls)
         val world = World().apply {
-            addSystem(PlayerInputSystem(WIDTH, HEIGHT, stick))
+            addSystem(PlayerInputSystem(WIDTH, HEIGHT, stick, listOfNotNull(button)))
             addSystem(MovementSystem())
         }
         val bat: EntityId = world.createEntity().also { id ->
@@ -524,5 +526,70 @@ class PlayerInputSystemTest {
         h.tick()
         assertClose(grabbed.left + 50f, h.rect.left)
         assertClose(grabbed.top + 30f, h.rect.top)
+    }
+
+    /** A button in the test frame's top right corner, switched on. */
+    private fun buttonOn() = TouchButton(left = 430f, top = 0f, right = 480f, bottom = 50f)
+        .apply { enabled = true }
+
+    @Test
+    fun `a finger put down on a button presses it and steers nothing`() {
+        val button = buttonOn()
+        val h = Harness(button = button)
+        h.down(460, 20)
+        h.tick()
+        h.drag(300, 200)
+        h.tick(times = 10)
+
+        assertTrue(button.consumePress())
+        assertFalse(button.consumePress())
+        assertEquals(PlayerControlComponent.NO_POINTER, h.control.activePointer)
+        assertClose(100f, h.rect.left)
+        assertClose(100f, h.rect.top)
+    }
+
+    @Test
+    fun `a steering finger sliding over a button does not press it`() {
+        val button = buttonOn()
+        val h = Harness(button = button)
+        h.down(110, 110)
+        h.tick()
+        h.drag(460, 20)
+        h.tick()
+
+        assertFalse(button.consumePress())
+        assertEquals(0, h.control.activePointer)
+    }
+
+    @Test
+    fun `a second finger on a button leaves the first one steering`() {
+        val button = buttonOn()
+        val h = Harness(button = button)
+        h.down(110, 110)
+        h.tick()
+        h.down(460, 20, pointer = 1)
+        h.drag(160, 140)
+        h.tick()
+
+        assertTrue(button.consumePress())
+        assertEquals(0, h.control.activePointer)
+        assertClose(150f, h.rect.left)
+        assertClose(130f, h.rect.top)
+    }
+
+    @Test
+    fun `a finger that lifted off a button can steer once it comes down again`() {
+        val button = buttonOn()
+        val h = Harness(button = button)
+        h.down(460, 20)
+        h.tick()
+        // Lifted while the pause screen read the events.
+        h.liftUnseen()
+        h.tick()
+        assertFalse(button.held)
+
+        h.down(110, 110)
+        h.tick()
+        assertEquals(0, h.control.activePointer)
     }
 }

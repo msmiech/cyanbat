@@ -65,6 +65,37 @@ const val STICK_KNOB_COLOR = 0x7000C8E8
 const val STICK_KNOB_HELD_COLOR = 0xC000D8F8.toInt()
 
 /**
+ * The pause button of a platform with no Back to pause with (iOS), in frame pixels: a disc at the
+ * top right, under the bat's level, drawn in the stick's colors. It takes a touch well beyond what
+ * is drawn - the frame's corner left to [PAUSE_BUTTON_TOUCH_LEFT] and down to
+ * [PAUSE_BUTTON_TOUCH_BOTTOM], and the bars beside and above it - since a fingertip covers far more
+ * of the frame than the disc does. Only a finger put down there presses it; one steering the bat
+ * into the corner does not.
+ */
+const val PAUSE_BUTTON_RADIUS = 11
+const val PAUSE_BUTTON_X = FRAME_BUFFER_WIDTH - 5 - PAUSE_BUTTON_RADIUS
+const val PAUSE_BUTTON_Y = 28 + PAUSE_BUTTON_RADIUS
+const val PAUSE_BUTTON_TOUCH_LEFT = FRAME_BUFFER_WIDTH - 56
+const val PAUSE_BUTTON_TOUCH_BOTTOM = 64
+
+/**
+ * The pause button's disc, darker than the stick's since it sits among the scenery hanging from the
+ * top of the frame, and its sign, nearly opaque, so it reads over any stage at a glance.
+ */
+const val PAUSE_BUTTON_FILL = 0x80000000.toInt()
+const val PAUSE_BUTTON_SIGN_COLOR = 0xE8E8FCFF.toInt()
+
+/**
+ * The pause screen's Quit button, where there is no Back to quit with, in frame pixels: centered
+ * under the line that says how to resume. A tap within [QUIT_BUTTON_SLOP] of it counts, so the
+ * target is about as tall as a fingertip.
+ */
+const val QUIT_BUTTON_WIDTH = 180
+const val QUIT_BUTTON_HEIGHT = 30
+const val QUIT_BUTTON_TOP = 212
+const val QUIT_BUTTON_SLOP = 8
+
+/**
  * How long the game over screen ignores a tap. Longer than the other overlays: a player steering
  * with a finger down tends to lift it only once the screen has changed.
  */

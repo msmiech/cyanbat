@@ -2,6 +2,7 @@ package at.smiech.engine.ecs
 
 import at.smiech.engine.Controls
 import at.smiech.engine.Input
+import at.smiech.engine.TouchButton
 import at.smiech.engine.VirtualStick
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
@@ -30,11 +31,15 @@ import kotlin.math.sqrt
  * While the [stick] drawn on the screen is enabled, touches steer through it instead, and nothing
  * drags the bat: a thumb on the stick is a pad's stick, and a finger anywhere else is ignored. Keys
  * and a pad still beat it.
+ *
+ * A finger put down on one of the [buttons] drawn over the run, such as a pause button, is the
+ * button's: it neither drags the bat nor takes the stick.
  */
 class PlayerInputSystem(
     private val frameBufferWidth: Int,
     private val frameBufferHeight: Int,
     private val stick: VirtualStick? = null,
+    private val buttons: List<TouchButton> = emptyList(),
 ) : GameSystem() {
 
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -51,7 +56,10 @@ class PlayerInputSystem(
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
         // A consuming read, so exactly one per update however many entities are steered.
-        val touchEvents = input?.touchEvents
+        val touchEvents = input?.touchEvents?.let { events ->
+            buttons.forEach { it.update(input, events) }
+            withoutButtonFingers(events)
+        }
         val controls = input?.controls ?: Controls.None
         // The stick, if it steers this update, else null: one local for every check below.
         val stick = stick?.takeIf { it.enabled && input != null }
@@ -94,6 +102,15 @@ class PlayerInputSystem(
                 follow(transform.rect, control, deltaTime)
             }
         }
+    }
+
+    /**
+     * [events] less those of the fingers the [buttons] hold. A copy only while a finger is on one,
+     * which is a moment, not every update.
+     */
+    private fun withoutButtonFingers(events: List<Input.TouchEvent>): List<Input.TouchEvent> {
+        if (buttons.none { it.held }) return events
+        return events.filter { event -> buttons.none { it.held && it.pointer == event.pointer } }
     }
 
     /**
