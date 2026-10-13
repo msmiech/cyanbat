@@ -1,7 +1,6 @@
 package at.smiech.cyanbat.scenery
 
 import at.smiech.cyanbat.util.ENDLESS_BIOME_SECONDS
-import at.smiech.cyanbat.util.ENDLESS_STORM_GLOOM
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
@@ -328,13 +327,13 @@ class EndlessScenery(
         get() = EndlessDay.darkness(position)
 
     /**
-     * The light where nothing else reaches, for the stage's dark: the night's, dimmed further under
-     * a storm, and lit up for a moment by its lightning. Daylight on a clear day, so the dark costs
-     * nothing then.
+     * The light where nothing else reaches, for the stage's dark: the night's, lit up for a moment
+     * by a storm's lightning. Daylight by day, storm or none, so the dark costs nothing then: a storm
+     * darkens the sky and its clouds, and colored light round every shot in a bright land would read
+     * as balloons rather than light.
      */
     fun ambient(): Int {
         var ambient = EndlessDay.ambient(position)
-        if (storm > 0f) ambient = EngineColors.lerp(ambient, ENDLESS_STORM_GLOOM, storm * (1f - EndlessDay.darkness(position)) * 0.7f)
         if (flash > 0f) ambient = EngineColors.lerp(ambient, LightingSystem.DAYLIGHT, flash)
         return if (ambient or OPAQUE == LightingSystem.DAYLIGHT) LightingSystem.DAYLIGHT else ambient
     }

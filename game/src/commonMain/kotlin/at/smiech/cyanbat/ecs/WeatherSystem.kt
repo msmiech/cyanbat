@@ -18,7 +18,6 @@ import at.smiech.engine.ecs.World
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
-import kotlin.math.sqrt
 import kotlin.random.Random
 
 /**
@@ -480,11 +479,10 @@ class WeatherSystem(
         val isNear = near[i]
         when (kind[i]) {
             RAIN -> {
-                val length = if (isNear) 6f else 3f
-                val speed = sqrt(vx[i] * vx[i] + vy[i] * vy[i]).coerceAtLeast(1f)
-                val tx = (x[i] - vx[i] / speed * length).roundToInt()
-                val ty = (y[i] - vy[i] / speed * length).roundToInt()
-                graphics.drawLine(tx, ty, px, py, lit(EngineColors.withAlpha(RAIN_COLOR, if (isNear) 0.55f else 0.3f), shade))
+                // A streak a pixel wide, upright: a slanted line is two or three rectangles where
+                // this is one, a few hundred times a frame, and at this speed nobody sees the slant.
+                val length = if (isNear) 6 else 3
+                graphics.drawRect(px, py - length, 1, length, lit(EngineColors.withAlpha(RAIN_COLOR, if (isNear) 0.55f else 0.3f), shade))
             }
             SNOW -> {
                 val size = if (isNear) 2 else 1
@@ -575,7 +573,7 @@ class WeatherSystem(
 
     companion object {
         /** The most particles in the air at once. */
-        const val MAX_PARTICLES = 340
+        const val MAX_PARTICLES = 260
 
         // The particles.
         private const val RAIN = 0
@@ -609,7 +607,7 @@ class WeatherSystem(
         private const val EMBER_GLOW_SECONDS = 0.9f
 
         /** Particles a second at full intensity, by [Weather]. */
-        private val RATE = floatArrayOf(240f, 70f, 55f, 70f)
+        private val RATE = floatArrayOf(190f, 55f, 45f, 55f)
         private const val EMBER_RATE = 14f
         private const val FIREFLY_RATE = 1.6f
 

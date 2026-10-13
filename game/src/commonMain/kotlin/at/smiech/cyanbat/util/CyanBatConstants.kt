@@ -1365,6 +1365,3 @@ const val ENDLESS_NIGHT_GLOW = CAVE_GLOW
  * a place, short enough that a round sees two.
  */
 const val ENDLESS_BIOME_SECONDS = 100f
-
-/** The light under a storm by day: a gloom the bat's light and the lightning stand out in. */
-const val ENDLESS_STORM_GLOOM = 0xFF9EA4B4.toInt()

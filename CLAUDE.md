@@ -315,8 +315,9 @@ down. `Stage.endless` says which stage it is; its `Backdrop` is `Endless`, and a
   biome on each visit, in the same palettes. `EndlessScenerySystem` draws it all, first in the order,
   and lights the obstacles as `SkySystem` does.
 - The night is dark: the stage is `lit`, and the scenery sets the `LightingSystem`'s ambient every
-  tick, `DAYLIGHT` by day (when the dark costs nothing), down to `ENDLESS_NIGHT_AMBIENT` at the dead of
-  night, gloomier under a storm and flashing with its lightning.
+  tick, `DAYLIGHT` by day, storm or none (when the dark costs nothing, and a shot's colored light
+  would read as a balloon in a bright land), down to `ENDLESS_NIGHT_AMBIENT` at the dead of night,
+  lit up for a moment by a storm's lightning.
 - `WeatherSystem` is rain, snow, ash with embers, dust, and fireflies at night, in a far layer behind
   every sprite and a near one (`front`) after them. Only the near one lands, on the bat and anything
   hostile, read against the outline of the frame each shows: snow settles and piles, rain beads and
