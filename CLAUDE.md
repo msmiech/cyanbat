@@ -505,6 +505,18 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
 **Input.**
 
 - `PointerTouchHandler` handles touch. On desktop, mouse motion counts as a drag.
+- A finger flies the bat one of two ways, the player's `TouchSteering`: dragging it, or a stick
+  drawn at the bottom left (`VirtualStick`, which `PlayerInputSystem` reads as a pad's stick, and
+  `GameScreen.drawStick` draws in the HUD). With the stick on, nothing drags the bat, and keys and
+  pads still beat it. The stick reads its thumb's place off `Input.getTouchX` rather than the
+  events, which an overlay may have read meanwhile. A run reads the setting every update, through
+  `SteeringSettings` in its environment, as it reads the sound's.
+- Where there is a touch screen (`hasTouchScreen`: Android, iOS, and a browser that reports touch
+  points), Settings offers the stick as a switch, and a player who has not chosen (`touchSteering`
+  is null) is asked in a `SteeringDialog` after the difficulty, before their first run. A switch
+  rather than two segments: a row of two short words sits so far right that the cursor going down
+  skips it. The dialog's pictures are `tools/generate_steering_previews.py`'s, which draws the stick
+  as the game does: keep it in step with `STICK_*` in `CyanBatConstants`.
 - `ControlHandler` turns keyboard and gamepad into the `Controls` intent: two axes plus
   edge-triggered `GameButton`s. `ComposeKeyAdapter` (desktop) and `AndroidKeyAdapter` (keyboard and
   pads) feed it.
@@ -620,7 +632,8 @@ two are hand-drawn sources, kept as they were drawn, which `generate_title.py` a
 - The scripts are deterministic: re-running an unchanged one must reproduce the committed file byte
   for byte.
 - `SpriteSheetTest` pins each sheet's dimensions and color ceiling.
-- Re-run `generate_stage_previews.py` and `generate_icons.py` after changing any sheet they compose.
+- Re-run `generate_stage_previews.py`, `generate_steering_previews.py` and `generate_icons.py` after
+  changing any sheet they compose.
 - Palette rule: the player is cool, everything hostile is warm.
 - The music scripts are scores - which notes, on which instrument, when - and `musicsynth.py` is the
   band. Everything in it is circular: a note, a reverb tail or an echo that runs past the end of a

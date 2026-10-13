@@ -45,6 +45,13 @@ interface SettingsRepository {
      */
     val difficulty: Flow<Difficulty>
 
+    /**
+     * How a finger steers the bat on a touch screen, or null until the player has said, which a run
+     * flies as [TouchSteering.DEFAULT]. Null is what has the menu ask, before the first run on a
+     * touch screen; Settings shows it as the default.
+     */
+    val touchSteering: Flow<TouchSteering?>
+
     suspend fun setMusicEnabled(enabled: Boolean)
     suspend fun setSoundEnabled(enabled: Boolean)
     suspend fun setVibrationEnabled(enabled: Boolean)
@@ -53,4 +60,5 @@ interface SettingsRepository {
     suspend fun setThemeMode(mode: ThemeMode)
     suspend fun setLanguage(language: AppLanguage)
     suspend fun setDifficulty(difficulty: Difficulty)
+    suspend fun setTouchSteering(steering: TouchSteering)
 }

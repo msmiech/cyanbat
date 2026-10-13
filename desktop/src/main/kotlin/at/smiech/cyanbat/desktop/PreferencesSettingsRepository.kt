@@ -4,6 +4,7 @@ import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
@@ -20,6 +21,7 @@ import java.util.prefs.Preferences
  *
  * Vibration is stored like the rest, although the desktop has nothing to vibrate yet and the menu
  * does not offer it; a gamepad backend that rumbles would find the player's choice already here.
+ * So is the touch steering, which the desktop, flown by mouse, neither asks for nor offers.
  *
  * Making one puts the stored language into effect ([DesktopLocale]), and the desktop makes its one
  * before the menu reads a string.
@@ -46,6 +48,8 @@ class PreferencesSettingsRepository(
         MutableStateFlow(AppLanguage.fromName(prefs.get(KEY_LANGUAGE, null)))
     private val lastDifficulty =
         MutableStateFlow(Difficulty.fromName(prefs.get(KEY_DIFFICULTY, null)))
+    private val steering =
+        MutableStateFlow(TouchSteering.fromName(prefs.get(KEY_TOUCH_STEERING, null)))
 
     override val isMusicEnabled: Flow<Boolean> = music.asStateFlow()
     override val isSoundEnabled: Flow<Boolean> = sound.asStateFlow()
@@ -66,6 +70,7 @@ class PreferencesSettingsRepository(
     override val themeMode: Flow<ThemeMode> = theme.asStateFlow()
     override val language: Flow<AppLanguage> = chosenLanguage.asStateFlow()
     override val difficulty: Flow<Difficulty> = lastDifficulty.asStateFlow()
+    override val touchSteering: Flow<TouchSteering?> = steering.asStateFlow()
 
     init {
         DesktopLocale.apply(chosenLanguage.value)
@@ -114,6 +119,11 @@ class PreferencesSettingsRepository(
         lastDifficulty.value = difficulty
     }
 
+    override suspend fun setTouchSteering(steering: TouchSteering) {
+        prefs.put(KEY_TOUCH_STEERING, steering.name)
+        this.steering.value = steering
+    }
+
     private companion object {
         const val KEY_MUSIC = "music_enabled"
         const val KEY_SOUND = "sound_enabled"
@@ -124,5 +134,6 @@ class PreferencesSettingsRepository(
         const val KEY_THEME_MODE = "theme_mode"
         const val KEY_LANGUAGE = "language"
         const val KEY_DIFFICULTY = "difficulty"
+        const val KEY_TOUCH_STEERING = "touch_steering"
     }
 }

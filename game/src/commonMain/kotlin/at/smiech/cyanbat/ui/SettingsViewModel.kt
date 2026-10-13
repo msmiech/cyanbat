@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -51,6 +53,15 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
             AppLanguage.DEFAULT
         )
 
+    /** How a finger steers, shown as the default until the player has chosen. */
+    val touchSteering: StateFlow<TouchSteering> = settings.touchSteering
+        .map { it ?: TouchSteering.DEFAULT }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            TouchSteering.DEFAULT
+        )
+
     fun setMusicEnabled(enabled: Boolean) = viewModelScope.launch {
         settings.setMusicEnabled(enabled)
     }
@@ -77,6 +88,10 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
 
     fun setLanguage(language: AppLanguage) = viewModelScope.launch {
         settings.setLanguage(language)
+    }
+
+    fun setTouchSteering(steering: TouchSteering) = viewModelScope.launch {
+        settings.setTouchSteering(steering)
     }
 
     private companion object {

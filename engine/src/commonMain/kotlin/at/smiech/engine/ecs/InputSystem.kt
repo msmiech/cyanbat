@@ -2,6 +2,7 @@ package at.smiech.engine.ecs
 
 import at.smiech.engine.Controls
 import at.smiech.engine.Input
+import at.smiech.engine.VirtualStick
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
 import kotlin.math.max
@@ -25,10 +26,15 @@ import kotlin.math.sqrt
  * Held keys and a pushed stick take precedence and drop the drag while they last, since one scheme
  * names a place to be and the other a direction to go. Releasing them hands control back to the
  * next pointer event, so a mouse takes over as soon as it moves again.
+ *
+ * While the [stick] drawn on the screen is enabled, touches steer through it instead, and nothing
+ * drags the bat: a thumb on the stick is a pad's stick, and a finger anywhere else is ignored. Keys
+ * and a pad still beat it.
  */
 class PlayerInputSystem(
     private val frameBufferWidth: Int,
-    private val frameBufferHeight: Int
+    private val frameBufferHeight: Int,
+    private val stick: VirtualStick? = null,
 ) : GameSystem() {
 
     private lateinit var transforms: ComponentMapper<TransformComponent>
@@ -47,8 +53,13 @@ class PlayerInputSystem(
         // A consuming read, so exactly one per update however many entities are steered.
         val touchEvents = input?.touchEvents
         val controls = input?.controls ?: Controls.None
-        val moveX = controls.moveX
-        val moveY = controls.moveY
+        // The stick, if it steers this update, else null: one local for every check below.
+        val stick = stick?.takeIf { it.enabled && input != null }
+        if (stick != null && input != null) stick.update(input, touchEvents)
+        val keyed = controls.moveX != 0f || controls.moveY != 0f
+        // A key or a pad beats the stick on the screen, as it beats the drag.
+        val moveX = if (keyed || stick == null) controls.moveX else stick.moveX
+        val moveY = if (keyed || stick == null) controls.moveY else stick.moveY
         val steering = moveX != 0f || moveY != 0f
 
         world.forEach(transforms, velocities, playerControls, healths) { id ->
@@ -60,6 +71,7 @@ class PlayerInputSystem(
                 // A dead bat takes no input and is not moved here; DeathThroesComponent owns its
                 // fall. This only releases the finger that was steering.
                 control.releaseDrag()
+                stick?.release()
                 return@forEach
             }
 
@@ -67,7 +79,11 @@ class PlayerInputSystem(
                 control.hitCooldown -= deltaTime
             }
 
-            if (input != null) {
+            if (stick != null) {
+                // Nothing drags the bat while the stick steers, not even a drag begun before it
+                // came on.
+                control.releaseDrag()
+            } else if (input != null) {
                 dropLiftedPointer(input, control)
                 if (touchEvents != null) trackPointer(input, touchEvents, transform.rect, control)
             }

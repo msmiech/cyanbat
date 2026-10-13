@@ -23,6 +23,13 @@ internal expect val hasSystemBack: Boolean
 internal expect val canVibrate: Boolean
 
 /**
+ * Whether the player may be flying by touch, and so whether Settings offers the stick on the screen
+ * and the menu asks how to steer before the first run; see [at.smiech.cyanbat.data.TouchSteering].
+ * A phone is flown by touch, a desktop window by the mouse or the keys.
+ */
+internal expect val hasTouchScreen: Boolean
+
+/**
  * The ways the game can take its screen that Settings offers, or none where it always fills it, as
  * a phone's does. A desktop has a window to leave; a Mac's own full screen is already borderless,
  * and a window without a frame would only sit under its menu bar and Dock.

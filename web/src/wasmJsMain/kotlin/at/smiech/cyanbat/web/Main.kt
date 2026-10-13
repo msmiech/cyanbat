@@ -27,6 +27,8 @@ import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.data.ObservedAudioSettings
+import at.smiech.cyanbat.data.ObservedSteeringSettings
+import at.smiech.cyanbat.data.SteeringSettings
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.ui.CyanBatMenu
@@ -97,6 +99,7 @@ private fun CyanBatPage(
     val highscores = remember { WebHighscoreStore(storage) }
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
+    val steeringSettings = remember(scope) { ObservedSteeringSettings(settings, scope) }
     // The menu outlives any single run, so it owns its own Audio, and its track is made out here
     // with it rather than with the menu, which leaves composition for every run.
     val menuMusic = remember { WebAudio(sound, assets).newMusic("music/menu.wav") }
@@ -118,6 +121,7 @@ private fun CyanBatPage(
         highscores,
         stageUnlocks,
         audioSettings,
+        steeringSettings,
     ) {
         controls.releaseAll()
         playingStage = null
@@ -173,6 +177,7 @@ private fun rememberRun(
     highscores: WebHighscoreStore,
     stageUnlocks: WebStageUnlockStore,
     audioSettings: AudioSettings,
+    steeringSettings: SteeringSettings,
     onExitToMenu: () -> Unit,
 ): ComposeGame? {
     val fonts = LocalFontFamilyResolver.current
@@ -207,6 +212,7 @@ private fun rememberRun(
             stageUnlocks = stageUnlocks,
             onExitToMenu = onExitToMenu,
             audioSettings = audioSettings,
+            steeringSettings = steeringSettings,
         )
         game.setScreen(GameScreen(game, env, id, difficulty))
         value = game

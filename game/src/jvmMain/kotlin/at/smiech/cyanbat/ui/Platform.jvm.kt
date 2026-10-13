@@ -12,6 +12,9 @@ internal actual val hasSystemBack: Boolean = false
 
 internal actual val canVibrate: Boolean = false
 
+// The desktop is flown by the mouse, which the bat follows with no button held, or by the keys.
+internal actual val hasTouchScreen: Boolean = false
+
 internal actual val windowModes: List<WindowMode> =
     if (System.getProperty("os.name").orEmpty().startsWith("Mac")) {
         listOf(WindowMode.WINDOWED, WindowMode.FULLSCREEN)

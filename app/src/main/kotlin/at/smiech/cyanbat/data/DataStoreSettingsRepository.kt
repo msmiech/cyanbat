@@ -9,6 +9,7 @@ import at.smiech.cyanbat.PREFS_KEY_DISPLAY_MODE
 import at.smiech.cyanbat.PREFS_KEY_MUSIC
 import at.smiech.cyanbat.PREFS_KEY_SOUNDS
 import at.smiech.cyanbat.PREFS_KEY_THEME_MODE
+import at.smiech.cyanbat.PREFS_KEY_TOUCH_STEERING
 import at.smiech.cyanbat.PREFS_KEY_VIBRATION
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
@@ -47,6 +48,9 @@ class DataStoreSettingsRepository(
     override val difficulty: Flow<Difficulty> =
         dataStore.data.map { Difficulty.fromName(it[PREFS_KEY_DIFFICULTY]) }
 
+    override val touchSteering: Flow<TouchSteering?> =
+        dataStore.data.map { TouchSteering.fromName(it[PREFS_KEY_TOUCH_STEERING]) }
+
     override suspend fun setMusicEnabled(enabled: Boolean) {
         dataStore.edit { it[PREFS_KEY_MUSIC] = enabled }
     }
@@ -73,5 +77,9 @@ class DataStoreSettingsRepository(
 
     override suspend fun setDifficulty(difficulty: Difficulty) {
         dataStore.edit { it[PREFS_KEY_DIFFICULTY] = difficulty.name }
+    }
+
+    override suspend fun setTouchSteering(steering: TouchSteering) {
+        dataStore.edit { it[PREFS_KEY_TOUCH_STEERING] = steering.name }
     }
 }

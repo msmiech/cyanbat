@@ -29,6 +29,7 @@ import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.button_back
 import at.smiech.engine.Music
@@ -73,6 +74,11 @@ fun CyanBatMenu(
     host: MenuHost,
     /** Pass a host-owned stack to route a platform back gesture into [MenuBackStack.back]. */
     backStack: MenuBackStack = rememberMenuBackStack(),
+    /**
+     * Whether the player may fly by touch, which has the menu ask how before their first run and
+     * Settings offer it; the platform's own unless a test says otherwise.
+     */
+    touchScreen: Boolean = hasTouchScreen,
 ) {
     // The default until the store is read, a frame or two in, rather than a blank frame: the menu
     // opens on the main screen, whose sky is the same in either theme, so at worst its buttons
@@ -95,28 +101,65 @@ fun CyanBatMenu(
         // The stage the player has picked, while they choose how hard to fly it; null otherwise.
         // Every way into a stage asks, so it is asked here rather than by each screen.
         var choosing by rememberSaveable { mutableStateOf<Int?>(null) }
+        // How hard, once they have said, while they are still to be asked how to steer.
+        var chosenDifficulty by rememberSaveable { mutableStateOf<Difficulty?>(null) }
+        val steering by menuViewModel.touchSteering.collectAsState()
+        val start = { stageId: Int, difficulty: Difficulty ->
+            choosing = null
+            chosenDifficulty = null
+            // Only now: the menu's music plays on while the player makes up their mind.
+            menuViewModel.stopMusic()
+            host.onStartGame(stageId, difficulty)
+        }
         key(language) {
             // Keeps what a screen remembers while the player is in another one, so the main
             // screen's cursor is still on Settings when they come back out of it.
             val screens = rememberSaveableStateHolder()
             MenuKeys(onBack = backStack::back) {
                 screens.SaveableStateProvider(backStack.current.name) {
-                    Destination(backStack, host, menuViewModel, onStartStage = { choosing = it })
+                    Destination(
+                        backStack,
+                        host,
+                        menuViewModel,
+                        touchScreen,
+                        onStartStage = { choosing = it },
+                    )
                 }
             }
             val lastDifficulty by menuViewModel.lastDifficulty.collectAsState()
-            choosing?.let { stageId ->
-                DifficultyDialog(
+            val stageId = choosing
+            val difficulty = chosenDifficulty
+            when {
+                stageId == null -> Unit
+
+                difficulty == null -> DifficultyDialog(
                     stage = stageNameOf(stageId),
                     home = lastDifficulty,
-                    onChoose = { difficulty ->
-                        choosing = null
-                        menuViewModel.rememberDifficulty(difficulty)
-                        // Only now: the menu's music plays on while the player makes up their mind.
-                        menuViewModel.stopMusic()
-                        host.onStartGame(stageId, difficulty)
+                    onChoose = { chosen ->
+                        menuViewModel.rememberDifficulty(chosen)
+                        // A player on a touch screen who has not said how to steer is asked once,
+                        // before their first run, rather than left to find the stick in Settings.
+                        if (touchScreen && steering == null) {
+                            chosenDifficulty = chosen
+                        } else {
+                            start(stageId, chosen)
+                        }
                     },
                     onDismiss = { choosing = null },
+                )
+
+                else -> SteeringDialog(
+                    home = TouchSteering.DEFAULT,
+                    onChoose = { chosen ->
+                        menuViewModel.chooseTouchSteering(chosen)
+                        start(stageId, difficulty)
+                    },
+                    // Back out of the run altogether, as from the difficulty: nothing starts
+                    // until both are answered.
+                    onDismiss = {
+                        choosing = null
+                        chosenDifficulty = null
+                    },
                 )
             }
         }
@@ -129,6 +172,7 @@ private fun Destination(
     backStack: MenuBackStack,
     host: MenuHost,
     menuViewModel: MainMenuViewModel,
+    touchScreen: Boolean,
     onStartStage: (stageId: Int) -> Unit,
 ) {
     when (backStack.current) {
@@ -149,7 +193,7 @@ private fun Destination(
 
         MenuDestination.Settings -> SubScreen(onBack = { backStack.back() }) {
             val viewModel = viewModel { SettingsViewModel(host.settings) }
-            SettingsScreen(viewModel)
+            SettingsScreen(viewModel, touchScreen)
         }
 
         // Nothing on it to choose, so the cursor starts on the way back out, where there is one.

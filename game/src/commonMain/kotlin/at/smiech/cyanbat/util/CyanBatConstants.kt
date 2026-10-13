@@ -34,6 +34,37 @@ const val PAUSE_DIM = 0xB4000000.toInt()
 const val RESUME_ARMING_SECONDS = 0.35f
 
 /**
+ * The stick on the screen, for a player who flies by it rather than dragging the bat (see
+ * VirtualStick), in frame pixels. At the bottom left, where a left thumb rests on a phone held
+ * sideways, and clear of the edges, which a phone's rounded corners can clip; about 18 mm across on
+ * a phone's screen. The thumb moves [STICK_RADIUS] from the center for full speed.
+ */
+const val STICK_RADIUS = 48
+const val STICK_KNOB_RADIUS = 20
+const val STICK_HOME_X = 16 + STICK_RADIUS
+const val STICK_HOME_Y = FRAME_BUFFER_HEIGHT - 16 - STICK_RADIUS
+
+/**
+ * Where a thumb put down takes the stick: left of [STICK_ZONE_RIGHT] and below [STICK_ZONE_TOP],
+ * which is about the bottom left third of the frame, and the bars beside and below it. Anywhere
+ * else a finger does nothing while the stick is on.
+ */
+const val STICK_ZONE_RIGHT = 240
+const val STICK_ZONE_TOP = 150
+
+/**
+ * The stick's colors: cool and see-through, as the bat it flies under, and stronger while a thumb
+ * is on it. The disc's outermost ring is dark and the one inside it light, so it reads over any
+ * stage.
+ */
+const val STICK_BASE_COLOR = 0x46000000
+const val STICK_SHADOW_COLOR = 0x70000000
+const val STICK_RIM_COLOR = 0x80B8F4FF.toInt()
+const val STICK_RIM_HELD_COLOR = 0xD0C8F8FF.toInt()
+const val STICK_KNOB_COLOR = 0x7000C8E8
+const val STICK_KNOB_HELD_COLOR = 0xC000D8F8.toInt()
+
+/**
  * How long the game over screen ignores a tap. Longer than the other overlays: a player steering
  * with a finger down tends to lift it only once the screen has changed.
  */

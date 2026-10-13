@@ -3,6 +3,7 @@ package at.smiech.cyanbat.ui.game
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.ScoreTracker
+import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.ColorwayComponent
@@ -117,6 +118,18 @@ import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
 import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
+import at.smiech.cyanbat.util.STICK_BASE_COLOR
+import at.smiech.cyanbat.util.STICK_HOME_X
+import at.smiech.cyanbat.util.STICK_HOME_Y
+import at.smiech.cyanbat.util.STICK_KNOB_COLOR
+import at.smiech.cyanbat.util.STICK_KNOB_HELD_COLOR
+import at.smiech.cyanbat.util.STICK_KNOB_RADIUS
+import at.smiech.cyanbat.util.STICK_RADIUS
+import at.smiech.cyanbat.util.STICK_RIM_COLOR
+import at.smiech.cyanbat.util.STICK_RIM_HELD_COLOR
+import at.smiech.cyanbat.util.STICK_SHADOW_COLOR
+import at.smiech.cyanbat.util.STICK_ZONE_RIGHT
+import at.smiech.cyanbat.util.STICK_ZONE_TOP
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
@@ -137,6 +150,7 @@ import at.smiech.engine.Graphics
 import at.smiech.engine.LayeredMusic
 import at.smiech.engine.Music
 import at.smiech.engine.Screen
+import at.smiech.engine.VirtualStick
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AnimationSystem
 import at.smiech.engine.ecs.AuraComponent
@@ -386,6 +400,19 @@ class GameScreen(
      */
     private val overlayTaps = TapDetector()
 
+    /**
+     * The stick drawn at the bottom left, for a player who flies by it rather than dragging the
+     * bat. Switched on and off by the setting, read at every update; see
+     * [CyanBatEnvironment.steeringSettings].
+     */
+    private val stick = VirtualStick(
+        homeX = STICK_HOME_X.toFloat(),
+        homeY = STICK_HOME_Y.toFloat(),
+        radius = STICK_RADIUS.toFloat(),
+        zoneRight = STICK_ZONE_RIGHT.toFloat(),
+        zoneTop = STICK_ZONE_TOP.toFloat(),
+    )
+
     /** Fractional health owed by Regeneration, carried between ticks; see [regenerate]. */
     private var regenCarry = 0f
 
@@ -440,7 +467,7 @@ class GameScreen(
                 )
             )
         }
-        world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight))
+        world.addSystem(PlayerInputSystem(game.frameBufferWidth, game.frameBufferHeight, stick))
         // Before the movement it feeds, so the gravity it adds moves the bat this
         // tick, not the next.
         world.addSystem(DeathSystem { dyingId -> shedDeathPuff(dyingId) })
@@ -1457,6 +1484,8 @@ class GameScreen(
     }
 
     override fun update(deltaTime: Float) {
+        // Every update, since a host's store can answer a frame or two into the run.
+        stick.enabled = env.steeringSettings.touchSteering == TouchSteering.STICK
         // Ahead of every early return: the music plays on, muffled, under the level-up dialog.
         steerMusic(deltaTime)
         // The sound effects' clock; it may run through a pause, since nothing plays then.
@@ -1839,6 +1868,8 @@ class GameScreen(
                 pointerHeld = false
                 dragging = false
             }
+            // The stick too, which would otherwise come back pushed where the thumb last had it.
+            stick.release()
         }
         transform.rect = Rect.fromLTWH(
             interlude.batX - rect.width / 2f,
@@ -2189,6 +2220,7 @@ class GameScreen(
             drawStats()
             drawExperienceBar()
             drawStageTimer()
+            drawStick()
         }
         if (stageNameDisplayTime > 0) {
             drawStageName()
@@ -2198,6 +2230,48 @@ class GameScreen(
         if (offer.isNotEmpty()) drawPowerUpOffer()
         if (stageCompleteShown) drawStageCompleteOverlay()
         if (paused) drawPauseOverlay()
+    }
+
+    /**
+     * The stick on the screen, for a player who flies by it: a dark disc ringed in light where the
+     * thumb goes, and the knob where the thumb is. See-through, since the bat flies under it, and
+     * cool, as everything of the player's is; brighter while a thumb is on it. Gone once the bat is
+     * down, with nothing left to fly.
+     *
+     * The disc is ringed in dark as well as light, so it reads on the desert's pale noon sky and in
+     * the cave's dark alike.
+     */
+    private fun drawStick() {
+        if (!stick.enabled) return
+        if (world.getComponent(batId, HealthComponent::class)?.alive != true) return
+        val held = stick.held
+        circle(stick.centerX, stick.centerY, STICK_RADIUS, STICK_BASE_COLOR, STICK_SHADOW_COLOR)
+        circle(
+            stick.centerX,
+            stick.centerY,
+            STICK_RADIUS - 1,
+            null,
+            if (held) STICK_RIM_HELD_COLOR else STICK_RIM_COLOR,
+        )
+        circle(
+            stick.knobX,
+            stick.knobY,
+            STICK_KNOB_RADIUS,
+            if (held) STICK_KNOB_HELD_COLOR else STICK_KNOB_COLOR,
+            if (held) STICK_RIM_HELD_COLOR else STICK_RIM_COLOR,
+        )
+    }
+
+    /**
+     * A circle of [radius] whole frame pixels round ([x], [y]), filled with [fill] if there is one
+     * and ringed with [rim]. An odd number of pixels across, so it sits square on its center pixel.
+     */
+    private fun circle(x: Float, y: Float, radius: Int, fill: Int?, rim: Int) {
+        val left = x.roundToInt() - radius
+        val top = y.roundToInt() - radius
+        val size = radius * 2 + 1
+        if (fill != null) g.drawOval(left, top, size, size, fill)
+        g.drawOvalOutline(left, top, size, size, rim)
     }
 
     /**
