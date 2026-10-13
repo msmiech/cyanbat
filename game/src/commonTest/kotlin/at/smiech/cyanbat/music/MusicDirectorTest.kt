@@ -296,4 +296,42 @@ class MusicDirectorTest {
             falls
         )
     }
+
+    // region the endless stage
+
+    private fun endless() = MusicDirector(music, grid, bossWave = 3, difficulty = 1.35f, endless = true)
+
+    @Test
+    fun `the endless stage opens with its bass in already`() {
+        endless().fly(waveIndex = 0)
+        assertEquals(setOf(MusicLayer.BED, MusicLayer.PULSE), music.playing())
+    }
+
+    /** No last wave to climb toward: the run's waves keep raising the floor, round after round. */
+    @Test
+    fun `the endless stage's waves bring the layers in one by one without a streak`() {
+        val director = endless()
+        var before = 0
+        var wave = 0
+        while (wave < MusicDirector.ENDLESS_FURY_WAVE) {
+            director.fly(waveIndex = wave, seconds = 3f)
+            val now = music.playing().size
+            assertTrue(now >= before, "wave ${wave + 1} took a layer away")
+            before = now
+            wave++
+        }
+        assertEquals(MusicLayer.entries.toSet() - MusicLayer.FURY, music.playing(), "by wave $wave every layer but the heavy one")
+        director.fly(waveIndex = MusicDirector.ENDLESS_FURY_WAVE, seconds = 3f)
+        assertEquals(MusicLayer.entries.toSet(), music.playing(), "and then the heavy one stays up")
+    }
+
+    @Test
+    fun `on the endless stage the combo still builds on the wave's floor`() {
+        val calm = MusicDirector.endlessIntensity(waveIndex = 2, comboMultiplier = 1)
+        val hot = MusicDirector.endlessIntensity(waveIndex = 2, comboMultiplier = 15)
+        assertTrue(hot > calm)
+        assertTrue(MusicDirector.endlessIntensity(waveIndex = 3, comboMultiplier = 1) > calm)
+    }
+
+    // endregion
 }

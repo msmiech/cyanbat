@@ -74,12 +74,16 @@ import kotlin.math.sin
  * @param loadImage decodes an asset; the host knows where its assets are and how to decode them
  *   (see `DesktopGame` for the desktop's extra step).
  * @param fontFamilyResolver how the platform finds a font.
+ * @param makeImage turns pixels the game made, ARGB row by row, into a picture it can draw; see
+ *   [newPixmap]. The default paints them in on the CPU run by run, which works everywhere; a host
+ *   hands over its platform's own way of wrapping pixels in a bitmap, which is a copy.
  */
 class ComposeGraphics(
     override val width: Int,
     override val height: Int,
     private val loadImage: (filename: String) -> ImageBitmap,
     fontFamilyResolver: FontFamily.Resolver,
+    private val makeImage: (width: Int, height: Int, pixels: IntArray) -> ImageBitmap = ::paintImage,
 ) : Graphics {
 
     /**
@@ -246,6 +250,9 @@ class ComposeGraphics(
 
     override fun newPixmap(filename: String): Pixmap =
         ImagePixmap(loadImage(filename))
+
+    override fun newPixmap(width: Int, height: Int, pixels: IntArray): Pixmap =
+        ImagePixmap(makeImage(width, height, pixels))
 
     /**
      * Starts the recording over, since nothing recorded before a clear could show through it. Every
@@ -1584,4 +1591,31 @@ class ComposeGraphics(
 
         private fun roundUp(size: Int) = (size + 15) and 15.inv()
     }
+}
+
+/**
+ * [pixels], ARGB row by row, painted into a new [width] by [height] picture on the CPU: each row's
+ * runs of one color as a rectangle, copied in as they are, so a half-transparent pixel stays as it
+ * was rather than blending with the empty picture under it. Works on every platform; a host with a
+ * faster way of wrapping pixels hands that to [ComposeGraphics] instead.
+ */
+fun paintImage(width: Int, height: Int, pixels: IntArray): ImageBitmap {
+    val image = ImageBitmap(width, height)
+    val canvas = Canvas(image)
+    val paint = Paint().apply { isAntiAlias = false; blendMode = BlendMode.Src }
+    for (y in 0 until height) {
+        val row = y * width
+        var x = 0
+        while (x < width) {
+            val color = pixels[row + x]
+            var end = x + 1
+            while (end < width && pixels[row + end] == color) end++
+            if (color ushr 24 != 0) {
+                paint.color = Color(color)
+                canvas.drawRect(x.toFloat(), y.toFloat(), end.toFloat(), y + 1f, paint)
+            }
+            x = end
+        }
+    }
+    return image
 }

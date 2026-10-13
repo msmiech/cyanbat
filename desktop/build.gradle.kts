@@ -57,6 +57,17 @@ tasks.register<JavaExec>("recordGameplay") {
     maxHeapSize = "2g"
 }
 
+// Renders the endless stage's card for the stage select from the game's own scenery code, since
+// that stage's art is made as it runs; see EndlessPreview.kt.
+tasks.register<JavaExec>("renderEndlessPreview") {
+    group = "documentation"
+    description = "Renders the endless stage's preview card from its generated scenery."
+    classpath = sourceSets["recorder"].runtimeClasspath
+    mainClass = "at.smiech.cyanbat.desktop.recorder.EndlessPreviewKt"
+    workingDir = rootDir
+    jvmArgs("-Djava.awt.headless=true", "--enable-native-access=ALL-UNNAMED")
+}
+
 compose.desktop {
     application {
         // Skia loads its native library through System.load, which the JDK warns about otherwise.

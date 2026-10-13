@@ -76,6 +76,19 @@ enum class BossKind {
      * [SkyViperBrain].
      */
     SKY_VIPER,
+    ;
+
+    /**
+     * The stage it is the boss of, whose sheets it is drawn from: its own, or for the Caco Imp the
+     * cave's enemy sheet, magnified.
+     */
+    val home: Int
+        get() = when (this) {
+            MOTH_QUEEN -> 1
+            CACO_IMP -> 2
+            SAND_WYRM -> 3
+            NAGA, SKY_VIPER -> 4
+        }
 }
 
 /**

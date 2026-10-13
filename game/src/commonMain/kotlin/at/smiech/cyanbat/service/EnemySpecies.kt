@@ -271,6 +271,18 @@ enum class EnemySpecies(
     ),
     ;
 
+    /**
+     * The stage whose enemy sheet it is drawn from, and so which sheet its [strip] counts on. A stage
+     * flies only its own species, the endless stage every stage's.
+     */
+    val home: Int
+        get() = when (this) {
+            WASP, BEETLE, SPITTER, OWL, WISP -> 1
+            SCOUT, WEAVER, STRIKER -> 2
+            LOCUST, HAWK, WYRMLING, DJINN, SCARAB -> 3
+            PIRANHA, CRAB, SHARK, PUFFER, KRAIT -> 4
+        }
+
     companion object {
         /** The gun a wave hands an [armable] species: slow, straight and infrequent. */
         val ISSUED_GUN = EnemyGun(2.8f, listOf(Volley(ShotPattern.STRAIGHT, speed = 2.4f)))

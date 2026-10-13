@@ -95,6 +95,17 @@ Beating a stage unlocks the next, and from then on Start Game opens a stage sele
 flown from a standing start: score, experience and power-ups reset when it begins. Each stage keeps
 its own highscore, shown on its card in the stage select and at the end of every run.
 
+Beating the lagoon opens **Endless Mode**, under the four stages on the stage select. It never
+ends: round after round of three waves and a boss, the waves mixed afresh from every stage's
+enemies and the bosses drawn from every stage's, in a new order every run, and every wave harder
+than the last. It is flown over country the game makes up as it scrolls in - snowy peaks,
+volcanoes, swamps and foggy forests, and a jungle, a desert and a coast - under a sky that goes round
+the clock, dark at night but for the bat's own light, with rain, snow, ash and blowing dust that
+settle on the bat and everything it fights, and storms that flash with lightning. Its music is a
+theme of its own, a Mediterranean dance number, taking turns with faster, brighter remixes of the
+stages' pieces, and it builds with every wave as well as with the combo. Score and power-ups carry
+on from round to round, and the run ends on how far it got.
+
 Starting a stage from the menu asks how hard to fly it. Hard is the game as it was tuned, with no
 power-ups until the bat earns them. Normal sends 15% fewer enemies, pays a quarter more experience
 a kill, and starts the bat with a quarter more health, 15% more damage to its shot and Regeneration;

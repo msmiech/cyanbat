@@ -211,4 +211,44 @@ class StageProgressionTest {
     }
 
     // endregion
+
+    // region rounds of the endless stage
+
+    @Test
+    fun `a progression after earlier waves numbers its waves on from them and is tougher for it`() {
+        val fresh = StageProgression(design = StageDesign.CAVE, bossWave = 3)
+        val later = fresh.copy(wavesBefore = 6)
+
+        assertEquals(6, later.waveAt(0f).index)
+        assertEquals(8, later.waveAt(2 * WAVE_DURATION_SECONDS + 1f).index)
+        assertEquals(9, later.bossWave().index)
+        assertTrue(later.waveAt(0f).hitPoints > fresh.waveAt(2 * WAVE_DURATION_SECONDS + 1f).hitPoints)
+        // The design is still read from the progression's own first wave.
+        assertEquals(StageDesign.CAVE.waves.first().species, later.waveAt(0f).enemyTypes)
+    }
+
+    @Test
+    fun `however far a run goes speed bursts and blows stop growing past a stage's boss`() {
+        val far = StageProgression(design = StageDesign.CAVE, bossWave = 3, wavesBefore = 60)
+        val wave = far.waveAt(0f)
+        val bossWave = stage1.waveAt(stage1.bossTimeSeconds - 1f)
+
+        assertTrue(wave.speedMultiplier <= 1.6f, "speed ${wave.speedMultiplier}")
+        assertTrue(wave.burstSize <= 3, "burst ${wave.burstSize}")
+        assertEquals(ENEMY_BASE_DAMAGE + 5 * 6, wave.damage)
+        // Health keeps on growing; it is what makes a long run harder.
+        assertTrue(wave.hitPoints > 5 * bossWave.hitPoints)
+    }
+
+    @Test
+    fun `no stage reaches the caps the endless stage's rounds are held to`() {
+        for (id in 1..4) {
+            val progression = StageProgression.forStage(id)
+            val last = progression.waveAt(progression.bossTimeSeconds - 1f)
+            assertEquals(1f + last.index * 0.1f, last.speedMultiplier, 1e-5f)
+            assertEquals(1 + last.index / 3, last.burstSize)
+        }
+    }
+
+    // endregion
 }

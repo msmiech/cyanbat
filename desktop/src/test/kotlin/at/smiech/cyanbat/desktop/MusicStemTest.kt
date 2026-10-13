@@ -47,11 +47,11 @@ class MusicStemTest {
     }
 
     /**
-     * Every piece a stage plays, by the stage: its own, and its boss fight's where the boss is
-     * fought to a piece of its own.
+     * Every piece a stage plays, by the stage: its own, its boss fight's where the boss is fought
+     * to a piece of its own, and on the endless stage every piece of its playlist.
      */
     private val pieces: List<Pair<String, StageMusic>> =
-        stages.flatMap { stage -> stage.music.pieces.map { "stage ${stage.id}" to it } }
+        stages.flatMap { stage -> stage.playlist.flatMap { it.pieces }.map { "stage ${stage.id}" to it } }
 
     @Test
     fun `every stage has a stem for every layer`() {
