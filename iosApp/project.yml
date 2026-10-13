@@ -1,0 +1,53 @@
+# The iPhone and iPad app, as an XcodeGen spec: `xcodegen` in this folder writes CyanBat.xcodeproj,
+# which is not committed. A spec rather than the project itself, because a .pbxproj is thousands of
+# generated ids that no review can read, and the app is all in Kotlin anyway (the :ios module); the
+# Swift here only puts it on screen. See docs/ios-release.md.
+name: CyanBat
+options:
+  bundleIdPrefix: at.smiech
+  developmentLanguage: en
+  deploymentTarget:
+    iOS: "16.0"
+configFiles:
+  Debug: Configuration/Config.xcconfig
+  Release: Configuration/Config.xcconfig
+targets:
+  CyanBat:
+    type: application
+    platform: iOS
+    # A shared scheme, so xcodebuild finds one in a freshly generated project.
+    scheme: {}
+    sources:
+      - path: CyanBat
+      # The game's asset files, the same ones every platform carries, as a folder: copied into the
+      # bundle whole, under assets/, where IosAssets reads them.
+      - path: ../assets
+        type: folder
+        buildPhase: resources
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: at.smiech.cyanbat
+        INFOPLIST_FILE: CyanBat/Info.plist
+        GENERATE_INFOPLIST_FILE: NO
+        # iPhone and iPad. Not on a Mac or Vision Pro as an iPad app: nothing has been tried there.
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SUPPORTS_MACCATALYST: NO
+        SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD: NO
+        SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD: NO
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Automatic
+        # The Kotlin framework, where embedAndSignAppleFrameworkForXcode puts it for this build.
+        FRAMEWORK_SEARCH_PATHS: $(inherited) $(SRCROOT)/../ios/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)
+        OTHER_LDFLAGS: $(inherited) -framework CyanBatGame
+        # Kotlin builds the simulator's framework for Apple silicon only (iosSimulatorArm64).
+        EXCLUDED_ARCHS[sdk=iphonesimulator*]: x86_64
+        # The script below runs Gradle, which reads and writes all over the repository.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+    preBuildScripts:
+      - name: Build the Kotlin framework
+        # Gradle knows what is out of date; Xcode would otherwise skip the script on a guess.
+        basedOnDependencyAnalysis: false
+        script: |
+          cd "$SRCROOT/.."
+          ./gradlew :ios:embedAndSignAppleFrameworkForXcode

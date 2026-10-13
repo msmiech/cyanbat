@@ -19,6 +19,7 @@ import at.smiech.cyanbat.resources.hud_wave_endless
 import at.smiech.cyanbat.resources.level_up_choose
 import at.smiech.cyanbat.resources.level_up_title
 import at.smiech.cyanbat.resources.pause_quit
+import at.smiech.cyanbat.resources.pause_quit_button
 import at.smiech.cyanbat.resources.pause_resume
 import at.smiech.cyanbat.resources.pause_title
 import at.smiech.cyanbat.resources.score
@@ -38,6 +39,7 @@ import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.POWER_UP_CARD_PADDING
+import at.smiech.cyanbat.util.QUIT_BUTTON_WIDTH
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
 import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
 import at.smiech.engine.impl.ComposeGraphics
@@ -122,6 +124,8 @@ class GameTextLayoutTest {
                 text.format(Res.string.stage_highscore, score),
             )) assertFits(language, line, 15, room)
             assertFits(language, text[Res.string.stage_complete_fresh_start], 13, room)
+            // On the pause screen's Quit button, with a little room either side of it.
+            assertFits(language, text[Res.string.pause_quit_button], 15, QUIT_BUTTON_WIDTH - 20)
         }
     }
 

@@ -18,7 +18,7 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
     }
 
-    // iOS targets ahead of any iOS app, for the reason given in the engine's build file.
+    // iOS targets, for the iPhone and iPad app in :ios; see the engine's build file.
     iosArm64()
     iosSimulatorArm64()
 

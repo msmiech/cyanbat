@@ -22,6 +22,10 @@ the frost beam and the drop an elite leaves:
 * rockShatter.wav  - a spire breaking: a crack and then stone clattering down, with a chip of crystal
                      in it. No roar - the shatter sheet has no fire in it, and nor does this.
 * batHit.wav       - the bat taking a blow: a dull thump and a squeak.
+* batDeath.wav     - the bat going down, and the run with it: its cry falling away, then a game over
+                     sting as a 16-bit console would play one - two orchestra hits over timpani, and
+                     strings left holding the last chord, under the console's echo. In the game
+                     over track's key, which starts with it.
 * bossDeath.wav    - the boss going down: an enormous boom, a roar rolling on under it, and three
                      more blasts going off after it, at [AFTERSHOCKS], where the game lights its
                      wreck up again. They are over before the victory's fanfare comes in.
@@ -53,7 +57,8 @@ import numpy as np
 from scipy import signal
 
 from musicsynth import (
-    RENDER_RATE, bandpass, highpass, hz, lowpass, note, one_shot_filter, reverb_ir, seconds_to_samples,
+    RENDER_RATE, bandpass, dark, echo, held, highpass, hz, lowpass, membrane, note, one_shot_filter,
+    reverb_ir, saw, seconds_to_samples,
 )
 
 OUTPUT_RATE = 22050
@@ -76,6 +81,21 @@ POWER_UP_STEP = 0.045
 # How narrow the breath's band is, as a state-variable filter's damping: low enough to whistle a
 # little as it rises, high enough to stay air.
 BREATH_DAMPING = 0.35
+
+# The bat's death sting, in the game over track's C Phrygian, which starts under it: the flat
+# second's chord, then the tonic's - the half step down onto the root the mode is named for - as MIDI
+# notes, struck as orchestra hits half a beat apart at [DEATH_TEMPO]. The strings hold the last chord,
+# and a high voice over them sighs from the flat second down onto the root.
+DEATH_PICKUP_CHORD = (49, 53, 56, 61)  # D-flat major: Db3 F3 Ab3 Db4
+DEATH_CHORD = (48, 51, 55, 60)  # C minor: C3 Eb3 G3 C4
+DEATH_SIGH = (73, 72)  # Db5 to C5
+DEATH_TEMPO = 120
+# When the cry ends and the sting starts, in seconds.
+DEATH_STING_AT = 0.4
+
+# How a 16-bit console played its samples back: at a low rate, with few bits, through an
+# interpolation that muffles the top. Each sampled instrument gives its own rate.
+SAMPLER_BITS = 11
 
 # A glass note: how hard its overtones are driven in, at what inharmonic ratio to it, how fast they
 # melt away, how long it takes to bloom, and how far apart its two voices are tuned.
@@ -291,6 +311,117 @@ def bat_hit(rng) -> np.ndarray:
     env = np.clip(t / 0.008, 0, 1) * np.clip((0.11 - t) / 0.03, 0, 1)
     lay(out, squeak * env, 0.018, 0.4)
     return finish(out, release=0.03)
+
+
+def sampled(sound: np.ndarray, rate: float, bits: int = SAMPLER_BITS) -> np.ndarray:
+    """[sound] as a 16-bit console's sampler played it back: held at [rate] samples a second, cut to
+    [bits], and muffled above half of what that rate carries, as its interpolation did."""
+    hold = RENDER_RATE / rate
+    index = (np.floor(np.arange(sound.shape[0]) / hold) * hold).astype(np.int64)
+    steps = 2 ** (bits - 1)
+    crushed = np.round(normalized(sound[index]) * steps) / steps
+    return one_shot_filter(crushed, lowpass(rate * 0.42, order=4))
+
+
+def orchestra_hit(chord, rng, seconds: float, velocity: float = 1.0) -> np.ndarray:
+    """An orchestra hit, the sampled one every 16-bit game reached for: brass and strings struck
+    together on [chord], with a burst of bow and breath on the front, gone in a moment."""
+    n = seconds_to_samples(seconds)
+    t = np.arange(n) / RENDER_RATE
+    body = np.zeros(n)
+    for midi in chord:
+        f0 = hz(midi)
+        for cents in (-7, 7):
+            # A slight scoop down onto the note, as a section lands on it together.
+            freq = f0 * 2 ** (cents / 1200) * (1 + 0.02 * np.exp(-t / 0.02))
+            phase = 2 * np.pi * np.cumsum(freq) / RENDER_RATE + rng.random() * 6.28
+            for k in range(1, int(5000 / f0) + 1):
+                body += np.sin(k * phase) / k ** 1.1
+    body = one_shot_filter(body, lowpass(3200))
+    env = np.clip(t / 0.004, 0, 1) * (0.25 + 0.75 * np.exp(-t / 0.06)) * np.exp(-t / (seconds * 0.5))
+    bow = one_shot_filter(rng.standard_normal(n), bandpass(900, 5000)) * np.exp(-t / 0.025)
+    hit = normalized(body) * env + 0.25 * normalized(bow)
+    return sampled(hit, 16000) * velocity
+
+
+def timpani(midi, rng, seconds: float, velocity: float = 1.0) -> np.ndarray:
+    """A timpano: the drum's note, a hair sharp as the head is struck, under a soft thump."""
+    drum = membrane(hz(midi), seconds, rng, bend=1.06, bend_seconds=0.05, modes=(1.0, 1.5, 1.98, 2.44),
+                    mode_levels=(1.0, 0.5, 0.25, 0.12), thump=0.35, thump_hz=900, velocity=velocity)
+    return sampled(drum, 12000)
+
+
+def strings(midi, rng, seconds: float, glide_from=None) -> np.ndarray:
+    """A string section holding a note, bowed tremolo for the first moment as it lands, then
+    sustained and let go, as a console's looped string sample was."""
+    f0 = hz(midi)
+    tone = held(f0, seconds, rng, dark(saw, f0, 2400), attack=0.03, decay=0.5, sustain=0.55,
+                release=0.9, voices=3, detune_cents=10, vibrato_hz=5.6, vibrato_cents=14,
+                vibrato_delay=0.25, glide_from=glide_from, glide=0.18).mean(axis=0)
+    t = np.arange(tone.shape[0]) / RENDER_RATE
+    tremolo = 1 - 0.45 * (0.5 + 0.5 * np.sin(2 * np.pi * 13 * t)) * np.exp(-t / 0.5)
+    return sampled(tone * tremolo, 22000)
+
+
+def bat_death(rng) -> np.ndarray:
+    """The bat going down, and the run with it: its cry falling away, then a game over sting as a
+    16-bit console would play one.
+
+    The cry is the bat's hit squeak played back slow and low, bending down and breaking up as a
+    sample pitched far from home does. Then, half a beat apart, two orchestra hits over timpani: the flat
+    second's chord as a pickup, and the tonic's, accented - the half step down onto the root that
+    the game over track's Phrygian mode is named for. The strings hold the last chord and fade, a
+    high voice sighing down that same half step over them, and the console's echo carries it off.
+
+    In the game over track's key, so the two agree as the track comes in under it; loud enough to
+    end a run, and done before the track's first phrase is.
+    """
+    beat = 60 / DEATH_TEMPO
+    seconds = 3.4
+    out = silence(seconds)
+
+    # The blow, and the cry: high and sliding down, with a flutter, sampled at a low rate so it
+    # comes apart as it falls.
+    lay(out, burst(rng, 0.04, (400, 6000), 0.01), 0, 0.6)
+    lay(out, boom(140, 50, 0.3, fall=0.08, drive=2.0), 0, 0.6)
+    n = seconds_to_samples(0.36)
+    t = np.arange(n) / RENDER_RATE
+    freq = 380 + 1700 * np.exp(-t / 0.11) + 70 * np.sin(2 * np.pi * 21 * t) * np.clip(t / 0.1, 0, 1)
+    phase = 2 * np.pi * np.cumsum(freq) / RENDER_RATE
+    cry = np.sin(phase) + 0.35 * np.sin(2 * phase) + 0.15 * np.sign(np.sin(phase))
+    cry *= np.clip(t / 0.01, 0, 1) * np.clip((0.36 - t) / 0.12, 0, 1)
+    lay(out, sampled(cry, 8000, bits=9), 0.01, 0.45)
+
+    # The sting: a pickup a half beat before the downbeat, then the downbeat, accented.
+    pickup, down = DEATH_STING_AT, DEATH_STING_AT + beat / 2
+    lay(out, orchestra_hit(DEATH_PICKUP_CHORD, rng, 0.3, velocity=0.85), pickup)
+    lay(out, timpani(DEATH_PICKUP_CHORD[0] - 12, rng, 0.5, velocity=0.6), pickup)
+    lay(out, orchestra_hit(DEATH_CHORD, rng, 0.5), down)
+    lay(out, timpani(DEATH_CHORD[0] - 12, rng, 1.4), down, 1.1)
+    # A second stroke on the drum, softer, as the chord rings: the end of the phrase.
+    lay(out, timpani(DEATH_CHORD[0] - 12, rng, 1.0, velocity=0.5), down + beat, 0.8)
+
+    hold = seconds - down - 1.0
+    for midi in DEATH_CHORD + (DEATH_CHORD[0] - 12,):
+        lay(out, strings(midi, rng, hold), down + 0.01, 0.32)
+    sigh_from, sigh_to = DEATH_SIGH
+    sigh = strings(sigh_to, rng, hold, glide_from=hz(sigh_from))
+    # Held on the flat second for a beat before it falls: the glide starts late, not at once.
+    lead_in = seconds_to_samples(beat * 0.9)
+    first = strings(sigh_from, rng, beat * 0.9)[:lead_in]
+    sigh = np.concatenate((first, sigh))
+    lay(out, sigh, down + 0.01, 0.4)
+
+    # The console's echo: a dotted eighth and a quarter, each repeat duller than the last. Worked
+    # on the sound padded with silence, since the echo wraps round its end.
+    padded = np.concatenate((out, np.zeros(seconds_to_samples(2.0))))
+    wet = echo(np.vstack((padded, padded)), beat * 0.75, beat, 0.35, 2600).mean(axis=0)
+    out = out + 0.3 * normalized(wet[:out.shape[0]]) * np.max(np.abs(out))
+
+    # Loud enough for the end of a run: the rumble under any speaker taken out, and the peaks of the
+    # hits rounded off into the chord.
+    out = np.tanh(2.6 * normalized(one_shot_filter(out, highpass(45)))) / np.tanh(2.6)
+    return finish(out, release=0.6)
 
 
 def frost_beam(rng) -> np.ndarray:
@@ -535,6 +666,7 @@ EFFECTS = {
     "viperScreech.wav": (viper_screech, 10),
     "venomBite.wav": (venom_bite, 11),
     "thunder.wav": (thunder, 12),
+    "batDeath.wav": (bat_death, 13),
 }
 
 SEED = 20261001

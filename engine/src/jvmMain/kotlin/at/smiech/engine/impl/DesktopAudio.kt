@@ -16,9 +16,8 @@ import kotlin.math.log10
 /**
  * Desktop [Audio] built on javax.sound.sampled.
  *
- * Sounds go through AudioSystem. The JDK only decodes WAV, AIFF and AU; the mp3spi and jlayer
- * service providers on the classpath add MP3, which the death sound is. Music is decoded by the
- * shared [StemMixer] instead; see [Audio.newMusic] and [Audio.newLayeredMusic].
+ * Sounds go through AudioSystem, which decodes the effects' plain PCM WAVs itself. Music is decoded
+ * by the shared [StemMixer] instead; see [Audio.newMusic] and [Audio.newLayeredMusic].
  *
  * @param assetStream opens an asset by filename; each call must return a fresh stream, since
  *   decoding consumes it.

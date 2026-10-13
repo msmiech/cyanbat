@@ -680,6 +680,75 @@ class GameScreenTest {
         assertTrue(screen.enmGen.elapsedSeconds > clock, "the tap did not resume the run")
     }
 
+    /**
+     * Where there is no Back (iOS), the pause button pauses the run, and the finger that pressed it
+     * does not fly the bat to the corner.
+     */
+    @Test
+    fun `the pause button pauses the run and steers nothing`() = flight(CAVE, pauseButton = true) {
+        fly(0.5f)
+        val start = batRect()
+        game.touchHandler.onPointer(
+            1,
+            FRAME_BUFFER_WIDTH - 20,
+            30,
+            pressed = true,
+            previouslyPressed = false,
+        )
+        fly(0.2f)
+        val clock = screen.enmGen.elapsedSeconds
+        fly(0.5f)
+        assertEquals(clock, screen.enmGen.elapsedSeconds, "the button did not pause the run")
+        assertEquals(start.centerX, batRect().centerX, "the finger on the button flew the bat")
+        assertEquals(start.centerY, batRect().centerY, "the finger on the button flew the bat")
+    }
+
+    /** With no Back to quit with, the pause screen's Quit button leaves; a tap elsewhere resumes. */
+    @Test
+    fun `the pause screen's Quit button leaves for the menu`() {
+        var exits = 0
+        flight(CAVE, onExit = { exits++ }, pauseButton = true) {
+            game.touchHandler.onPointer(
+                1,
+                FRAME_BUFFER_WIDTH - 20,
+                30,
+                pressed = true,
+                previouslyPressed = false,
+            )
+            screen.update(FRAME_SECONDS)
+            game.touchHandler.onPointer(
+                1,
+                FRAME_BUFFER_WIDTH - 20,
+                30,
+                pressed = false,
+                previouslyPressed = true,
+            )
+            fly(RESUME_ARMING_SECONDS + 0.1f)
+
+            game.touchHandler.onPointer(2, 320, 227, pressed = true, previouslyPressed = false)
+            screen.update(FRAME_SECONDS)
+            game.touchHandler.onPointer(2, 320, 227, pressed = false, previouslyPressed = true)
+            screen.update(FRAME_SECONDS)
+            assertEquals(1, exits, "the Quit button did not leave")
+        }
+    }
+
+    /** Without a pause button, a run has none: a finger in the corner flies the bat as anywhere. */
+    @Test
+    fun `without the pause button the corner steers`() = flight(CAVE) {
+        fly(0.5f)
+        val clock = screen.enmGen.elapsedSeconds
+        game.touchHandler.onPointer(
+            1,
+            FRAME_BUFFER_WIDTH - 20,
+            30,
+            pressed = true,
+            previouslyPressed = false,
+        )
+        fly(0.5f)
+        assertTrue(screen.enmGen.elapsedSeconds > clock, "a touch in the corner paused the run")
+    }
+
     private fun Flight.hostiles(): List<EntityId> =
         probe.world.query(CollisionComponent::class).filter {
             probe.world.getComponent(it, CollisionComponent::class)?.group in
@@ -1978,7 +2047,7 @@ class GameScreenTest {
      * A run of [stage] on [difficulty] on the desktop's own host, disposed of when [test] is done
      * with it: silent, or with its effects played through [sounds] for a test that listens to it.
      * [onExit] is the way back to the menu, and [stageUnlocks] where its clear is recorded. A
-     * finger flies the bat by [steering].
+     * finger flies the bat by [steering], and [pauseButton] puts iOS's pause button on the run.
      */
     private fun flight(
         stage: Int,
@@ -1987,6 +2056,7 @@ class GameScreenTest {
         difficulty: Difficulty = Difficulty.HARD,
         stageUnlocks: StageUnlockStore = StageUnlockStore.InMemory(),
         steering: TouchSteering = TouchSteering.DRAG,
+        pauseButton: Boolean = false,
         test: Flight.() -> Unit,
     ) {
         val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
@@ -2005,6 +2075,7 @@ class GameScreenTest {
                 steeringSettings = object : SteeringSettings {
                     override val touchSteering = steering
                 },
+                pauseButton = pauseButton,
             ),
             stage,
             difficulty,

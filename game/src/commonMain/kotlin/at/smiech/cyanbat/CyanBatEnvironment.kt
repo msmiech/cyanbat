@@ -24,4 +24,9 @@ class CyanBatEnvironment(
     val audioSettings: AudioSettings = AudioSettings.AllEnabled,
     /** Whether a finger drags the bat or works a stick on the screen; read every tick. */
     val steeringSettings: SteeringSettings = SteeringSettings.Default,
+    /**
+     * Whether the run draws a pause button, and the pause screen a Quit button: for a platform
+     * with no Back for the player to pause and quit with, and no keys they are sure to have (iOS).
+     */
+    val pauseButton: Boolean = false,
 )

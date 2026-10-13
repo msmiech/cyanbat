@@ -1,44 +1,80 @@
-package at.smiech.cyanbat.web
+package at.smiech.cyanbat.data
 
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.clearsBeforeDifficulties
 import at.smiech.cyanbat.harderThanBest
-import at.smiech.cyanbat.data.AppLanguage
-import at.smiech.cyanbat.data.SettingsRepository
-import at.smiech.cyanbat.data.ThemeMode
-import at.smiech.cyanbat.data.TouchSteering
-import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 
 /*
- * The browser's counterparts of the desktop's preferences stores, on the page's storage and under
- * the same key names. Each flow is an in-memory mirror, as on the desktop: the page is the only
- * writer, so one instance of each has to be shared between the menu and every run.
+ * The stores of a host that keeps what the game remembers as strings under keys - the browser's
+ * local storage, iOS's user defaults - under the desktop's key names. Each flow is an in-memory
+ * mirror, as on the desktop: the host is the only writer, so one instance of each has to be shared
+ * between the menu and every run.
  *
- * The highscores are not migrated: the browser came after the stages last moved, so whatever it has
- * stored is in today's order. The stages' clears are; see WebStageUnlockStore.
+ * The highscores are not migrated: these hosts came after the stages last moved, so whatever they
+ * have stored is in today's order. The stages' clears are; see KeyValueStageUnlockStore.
  */
 
 /**
- * [SettingsRepository] on the page's storage. Making one puts the stored language into effect
- * ([WebLocale]), and the page makes its one before the menu reads a string.
- *
- * The window mode is kept like the rest, although Settings does not offer it here: the page fills
- * the browser's window, and the browser's own full screen takes it from there.
+ * Where a host keeps what the game remembers: strings under the game's own keys. A write that the
+ * platform refuses is still to be read back for as long as the game runs.
  */
-internal class WebSettingsRepository(private val storage: WebStorage) : SettingsRepository {
+interface KeyValueStorage {
+    /** Every key the game has stored. */
+    val keys: Set<String>
+
+    fun get(key: String): String?
+
+    fun put(key: String, value: String)
+}
+
+fun KeyValueStorage.getInt(key: String, default: Int): Int = get(key)?.toIntOrNull() ?: default
+
+fun KeyValueStorage.getBoolean(key: String, default: Boolean): Boolean =
+    get(key)?.toBooleanStrictOrNull() ?: default
+
+/** A [KeyValueStorage] that forgets everything when the game closes, for tests. */
+class MemoryKeyValueStorage : KeyValueStorage {
+    private val values = HashMap<String, String>()
+
+    override val keys: Set<String> get() = values.keys
+
+    override fun get(key: String): String? = values[key]
+
+    override fun put(key: String, value: String) {
+        values[key] = value
+    }
+}
+
+/**
+ * [SettingsRepository] on a [KeyValueStorage]. Making one puts the language into effect, so the
+ * host makes its one before the menu reads a string.
+ *
+ * The window mode is kept like the rest, although no host on these stores offers it: a page fills
+ * the browser's window, and a phone or a tablet its screen.
+ *
+ * @param initialLanguage the language the player chose, where the platform keeps that itself (iOS
+ *   has a per-app language of its own); otherwise the one stored here.
+ * @param applyLanguage puts a language into effect, before the menu hears of it, so it redraws in
+ *   it.
+ */
+class KeyValueSettingsRepository(
+    private val storage: KeyValueStorage,
+    initialLanguage: AppLanguage = AppLanguage.fromName(storage.get(KEY_LANGUAGE)),
+    private val applyLanguage: (AppLanguage) -> Unit,
+) : SettingsRepository {
     private val music = MutableStateFlow(storage.getBoolean(KEY_MUSIC, true))
     private val sound = MutableStateFlow(storage.getBoolean(KEY_SOUND, true))
     private val vibration = MutableStateFlow(storage.getBoolean(KEY_VIBRATION, true))
     private val display = MutableStateFlow(DisplayMode.fromName(storage.get(KEY_DISPLAY_MODE)))
     private val window = MutableStateFlow(WindowMode.fromName(storage.get(KEY_WINDOW_MODE)))
     private val theme = MutableStateFlow(ThemeMode.fromName(storage.get(KEY_THEME_MODE)))
-    private val chosenLanguage = MutableStateFlow(AppLanguage.fromName(storage.get(KEY_LANGUAGE)))
+    private val chosenLanguage = MutableStateFlow(initialLanguage)
     private val lastDifficulty = MutableStateFlow(Difficulty.fromName(storage.get(KEY_DIFFICULTY)))
     private val steering = MutableStateFlow(TouchSteering.fromName(storage.get(KEY_TOUCH_STEERING)))
 
@@ -53,21 +89,21 @@ internal class WebSettingsRepository(private val storage: WebStorage) : Settings
     override val touchSteering: Flow<TouchSteering?> = steering.asStateFlow()
 
     init {
-        WebLocale.apply(chosenLanguage.value)
+        applyLanguage(initialLanguage)
     }
 
     override suspend fun setMusicEnabled(enabled: Boolean) {
-        storage.put(KEY_MUSIC, enabled)
+        storage.put(KEY_MUSIC, enabled.toString())
         music.value = enabled
     }
 
     override suspend fun setSoundEnabled(enabled: Boolean) {
-        storage.put(KEY_SOUND, enabled)
+        storage.put(KEY_SOUND, enabled.toString())
         sound.value = enabled
     }
 
     override suspend fun setVibrationEnabled(enabled: Boolean) {
-        storage.put(KEY_VIBRATION, enabled)
+        storage.put(KEY_VIBRATION, enabled.toString())
         vibration.value = enabled
     }
 
@@ -89,7 +125,7 @@ internal class WebSettingsRepository(private val storage: WebStorage) : Settings
     override suspend fun setLanguage(language: AppLanguage) {
         storage.put(KEY_LANGUAGE, language.name)
         // In effect before the menu hears of it, so it redraws in it.
-        WebLocale.apply(language)
+        applyLanguage(language)
         chosenLanguage.value = language
     }
 
@@ -116,8 +152,8 @@ internal class WebSettingsRepository(private val storage: WebStorage) : Settings
     }
 }
 
-/** [HighscoreStore] on the page's storage, one key per stage. */
-internal class WebHighscoreStore(private val storage: WebStorage) : HighscoreStore {
+/** [HighscoreStore] on a [KeyValueStorage], one key per stage. */
+class KeyValueHighscoreStore(private val storage: KeyValueStorage) : HighscoreStore {
     /** Every stage's score, mirrored from the store, read back off the key names. */
     private val scores = MutableStateFlow(
         storage.keys
@@ -133,7 +169,7 @@ internal class WebHighscoreStore(private val storage: WebStorage) : HighscoreSto
     override fun saveAsync(stageId: Int, value: Int) {
         val key = KEY_PREFIX + stageId
         val raised = maxOf(storage.getInt(key, 0), value)
-        storage.put(key, raised)
+        storage.put(key, raised.toString())
         scores.value += stageId to raised
     }
 
@@ -144,11 +180,11 @@ internal class WebHighscoreStore(private val storage: WebStorage) : HighscoreSto
 }
 
 /**
- * [StageUnlockStore] on the page's storage, next to the highscores. Unlike the stages' order, the
- * difficulties came after the browser, so a page that kept unlocks before them takes the clears
+ * [StageUnlockStore] on a [KeyValueStorage], next to the highscores. Unlike the stages' order, the
+ * difficulties came after the browser, so a store that kept unlocks before them takes the clears
  * they stand for, once, as the desktop does.
  */
-internal class WebStageUnlockStore(private val storage: WebStorage) : StageUnlockStore {
+class KeyValueStageUnlockStore(private val storage: KeyValueStorage) : StageUnlockStore {
     /** The highest stage open, mirrored from the store. */
     private val highest = MutableStateFlow(storage.getInt(KEY, 1).coerceAtLeast(1))
 
@@ -157,7 +193,7 @@ internal class WebStageUnlockStore(private val storage: WebStorage) : StageUnloc
             for ((stageId, difficulty) in clearsBeforeDifficulties(highest.value)) {
                 raiseClear(stageId, difficulty)
             }
-            storage.put(CLEARS_KEPT, true)
+            storage.put(CLEARS_KEPT, true.toString())
         }
     }
 
@@ -179,7 +215,7 @@ internal class WebStageUnlockStore(private val storage: WebStorage) : StageUnloc
 
     override fun unlockAsync(stageId: Int) {
         val raised = maxOf(storage.getInt(KEY, 1), stageId)
-        storage.put(KEY, raised)
+        storage.put(KEY, raised.toString())
         highest.value = raised
     }
 
@@ -191,7 +227,7 @@ internal class WebStageUnlockStore(private val storage: WebStorage) : StageUnloc
     private fun raiseClear(stageId: Int, difficulty: Difficulty): Boolean {
         val key = CLEARED_PREFIX + stageId
         if (!harderThanBest(Difficulty.ofStars(storage.getInt(key, 0)), difficulty)) return false
-        storage.put(key, difficulty.stars)
+        storage.put(key, difficulty.stars.toString())
         return true
     }
 

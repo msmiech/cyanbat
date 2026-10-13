@@ -9,7 +9,7 @@ Synthesized rather than sampled, and kept in the repository as the script that m
 same reason the sprites are: a sound nobody can regenerate is a sound nobody can adjust. It needs
 no third-party package - a WAV is a header and some samples.
 
-WAV rather than MP3, unlike the rest of the audio here. Both backends read it without a codec:
+WAV, as every effect is. Both backends read it without a codec:
 `javax.sound.sampled` decodes PCM natively, and AGP leaves `.wav` uncompressed in the APK, which is
 what `AssetManager.openFd` needs to hand SoundPool a file descriptor.
 

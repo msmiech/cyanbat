@@ -2,7 +2,7 @@
 # requires-python = ">=3.9"
 # dependencies = ["pillow"]
 # ///
-"""Generate the app's icons: Android's launcher icon, and the desktop builds' icons.
+"""Generate the app's icons: Android's launcher icon, the iOS app's, and the desktop builds'.
 
     uv run tools/generate_icons.py
 
@@ -29,9 +29,15 @@ that goes soft. A vector redraws the pixel art as crisp squares at any size.
 the installers are built with, and `desktop/src/main/resources/icons` the sizes the running window
 hands the OS for its title bar and task bar. Sizes that are a whole multiple of the art are scaled
 by pixel replication; the rest are area-averaged from it, never resampled.
+
+**iOS.** One 1024px square, the desktop tile's picture at 16 pixels to an art pixel, opaque and
+square-cornered: iOS rounds it, shades it and scales it to every size itself, and App Store Connect
+refuses an icon with an alpha channel. It goes into the Xcode project's asset catalog, with the
+catalog's Contents.json beside it.
 """
 
 import io
+import json
 import pathlib
 import struct
 import sys
@@ -49,6 +55,7 @@ from generate_title import RIM_GRADIENT
 DRAWABLES = ROOT / "app" / "src" / "main" / "res" / "drawable"
 PACKAGING = ROOT / "desktop" / "icons"
 WINDOW_ICONS = ROOT / "desktop" / "src" / "main" / "resources" / "icons"
+IOS_ICONS = ROOT / "iosApp" / "CyanBat" / "Assets.xcassets" / "AppIcon.appiconset"
 
 # The adaptive icon's 108dp layer, in art pixels. A launcher shows only the middle 72dp of it -
 # rows and columns 15 to 75 here - and keeps the rest for parallax and for masks that bulge.
@@ -117,6 +124,9 @@ MAC_CANVAS = 1024
 MAC_TILE = 13 * 64
 MAC_SHADOW = dict(offset=12, blur=14, opacity=0.3)
 MAC_SIZES = (32, 64, 128, 256, 512)
+
+# The one size an iOS app's icon comes in since Xcode 14; 16 times the desktop tile's 64 pixels.
+IOS_SIZE = 1024
 
 
 def lerp(a, b, t):
@@ -572,8 +582,24 @@ def write_desktop():
     print(f"{icns} ({MAC_CANVAS}px master)")
 
 
+def write_ios():
+    picture = scene()
+    IOS_ICONS.mkdir(parents=True, exist_ok=True)
+    png = IOS_ICONS / "AppIcon.png"
+    upscaled(picture.crop(FULL), IOS_SIZE).convert("RGB").save(png)
+    contents = {
+        "images": [
+            {"filename": png.name, "idiom": "universal", "platform": "ios", "size": f"{IOS_SIZE}x{IOS_SIZE}"}
+        ],
+        "info": {"author": "xcode", "version": 1},
+    }
+    (IOS_ICONS / "Contents.json").write_text(json.dumps(contents, indent=2) + "\n", newline="\n")
+    print(f"{png} ({IOS_SIZE}x{IOS_SIZE})")
+
+
 def main() -> int:
     write_android()
+    write_ios()
     write_desktop()
     return 0
 

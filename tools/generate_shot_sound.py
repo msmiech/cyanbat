@@ -9,7 +9,7 @@ Synthesised and kept as the script that made it, for the same reason the sprites
 surge are: a sound nobody can regenerate is a sound nobody can adjust. It needs no third-party
 package - a WAV is a header and some samples.
 
-WAV rather than MP3, like `auraSurge.wav` and unlike the music: `javax.sound.sampled` decodes PCM
+Plain PCM WAV, like every effect, where the music is ADPCM: `javax.sound.sampled` decodes PCM
 natively, and AGP leaves `.wav` uncompressed in the APK, which is what `AssetManager.openFd` needs
 to hand SoundPool a file descriptor.
 
