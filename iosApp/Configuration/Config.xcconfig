@@ -1,0 +1,12 @@
+// The version a local build carries: cyanbat.version in gradle.properties, as major.minor.patch,
+// and the build number derived from it as the root build derives Android's versionCode
+// (major * 10000 + minor * 100 + patch). Keep both in step with gradle.properties, in the same
+// "Stamp untagged builds" PR. archive.sh overrides them with the version it is given, as the
+// release workflow overrides cyanbat.version with the tag.
+MARKETING_VERSION = 3.4.0
+CURRENT_PROJECT_VERSION = 30400
+
+// The Apple developer team that signs the app, which is not committed: put
+// DEVELOPMENT_TEAM = <your team id> in Local.xcconfig beside this file (it is gitignored), or pick
+// the team in Xcode's Signing & Capabilities.
+#include? "Local.xcconfig"

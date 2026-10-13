@@ -14,3 +14,9 @@
 
 # Byte-cache from the sprite generators importing tools/pixelart.py
 __pycache__/
+
+# The Xcode project is generated from iosApp/project.yml by XcodeGen; a team id is personal.
+iosApp/CyanBat.xcodeproj/
+iosApp/Configuration/Local.xcconfig
+iosApp/build/
+xcuserdata/
