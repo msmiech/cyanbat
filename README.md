@@ -1,8 +1,9 @@
 # CyanBat
 
 CyanBat is a side-scrolling 2D action game, inspired by retro classics like *Gradius*, modern arcade
-staples like *Flappy Bird*, and, of course, *NyanCat*. It runs on **Android**, on the **desktop**
-(Windows, macOS and Linux) and in the **browser** from a single shared codebase.
+staples like *Flappy Bird*, and, of course, *NyanCat*. It runs on **Android**, on **iPhone and
+iPad**, on the **desktop** (Windows, macOS and Linux) and in the **browser** from a single shared
+codebase.
 
 <p align="center">
   <img src="docs/gameplay.gif" alt="Stage 1, the jungle, grown over pale ancient ruins: the bat fans its fire through wasp swarms, wisp formations and shielded beetles past hanging chains and fallen walls, picks Spread Shot at a level up and brings down the Moth Queen. Then glimpses of stage 2, the cave, flown in the dark by the bat's own light, up to the moment the Caco Imp arrives, of stage 3, the desert, at noon and as the sun goes down, and of stage 4, the lagoon, at night and as the sun comes up out of the sea between limestone islands">
@@ -16,11 +17,11 @@ staples like *Flappy Bird*, and, of course, *NyanCat*. It runs on **Android**, o
 - **Kotlin Multiplatform**: the engine and the whole game — rules, screens, rendering and menu UI —
   are common code. The platform modules only supply platform pieces: asset decoding, input, audio,
   haptics and persistence.
-- **Compose Multiplatform**: one set of menu, settings and credits screens renders on Android, the
-  desktop and the web, from shared string and drawable resources. The game itself is drawn through
-  Compose's Canvas too — on the GPU through HWUI on Android, through Skia on the desktop and in the
-  browser, where Kotlin/Wasm runs it — as pixel art on a 640x360 grid at any screen size, with the
-  HUD's text smooth over it.
+- **Compose Multiplatform**: one set of menu, settings and credits screens renders on Android,
+  iOS, the desktop and the web, from shared string and drawable resources. The game itself is drawn
+  through Compose's Canvas too — on the GPU through HWUI on Android, through Skia on iOS, on the
+  desktop and in the browser, where Kotlin/Wasm runs it — as pixel art on a 640x360 grid at any
+  screen size, with the HUD's text smooth over it.
 - **Entity Component System**: `:engine`'s ECS decouples game logic from data, so behavior is
   composed from components rather than an inheritance hierarchy.
 - **2D lighting**: the cave is lit by point lights - the bat, its shots and the flare of every hit,
@@ -44,14 +45,16 @@ staples like *Flappy Bird*, and, of course, *NyanCat*. It runs on **Android**, o
 
 | Module     | What it is                                                                                                                                                                                                                           |
 |------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `:engine`  | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), math (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain`, `jvmMain` and `wasmJsMain` hold the platform implementations. |
-| `:game`    | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI. Android, JVM and the browser, and iOS too, though no iOS app exists yet.                                                                                        |
+| `:engine`  | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), math (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain`, `jvmMain`, `wasmJsMain` and `iosMain` hold the platform implementations. |
+| `:game`    | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI, for Android, the JVM, the browser and iOS.                                                                                                                      |
 | `:app`     | Android application — activities, DataStore, and Android asset wiring.                                                                                                                                                                             |
 | `:desktop` | Compose Desktop application — window, JVM asset wiring, and preferences-backed storage.                                                                                                                                                            |
 | `:web`     | The browser's page — Kotlin/Wasm and Compose, assets fetched beside the page, and storage in the browser's local storage.                                                                                                                         |
+| `:ios`     | The iPhone and iPad app's Kotlin half — the view controller that shows the menu and the runs, and storage in the app's user defaults — built into the framework the Xcode project in `iosApp/` links.                                            |
 
 Game assets live once at the repo root in `assets/`, packaged as Android assets by `:app`, as
-classpath resources by `:desktop`, and served beside the page by `:web`.
+classpath resources by `:desktop`, served beside the page by `:web`, and copied into the iOS app's
+bundle by `iosApp/`.
 
 ## ▶️ Running it
 
@@ -77,6 +80,15 @@ In the browser, served from Gradle on `localhost:8080`:
 `web/build/dist/wasmJs/productionExecutable`, which any static web server can host. It needs a
 browser with WebAssembly garbage collection: Chrome or Edge 119, Firefox 120, or Safari 18.2, or
 later.
+
+iPhone and iPad, on a Mac with Xcode 26 and [XcodeGen](https://github.com/yonaskolb/XcodeGen):
+
+```bash
+cd iosApp && xcodegen generate && open CyanBat.xcodeproj
+```
+
+then run it on a simulator or a device from Xcode. [docs/ios-release.md](docs/ios-release.md)
+covers setting it up, signing it, and taking it to the App Store.
 
 There is also a `/run-cyanbat` skill that drives the Android build end to end on an emulator —
 build, install, launch, screenshot, and check persistence. See
@@ -153,6 +165,7 @@ harmless until they thaw - though never a boss or an elite.
 |------------|----------------------------------------|-----------------|--------------|
 | Touch      | Drag the bat, or tap where you want it | — (tap resumes) | Back, twice  |
 | Touch      | Or the stick at the bottom left        | — (tap resumes) | Back, twice  |
+| iOS touch  | As on Android                          | ⏸ at top right  | Pause screen |
 | Keyboard   | `WASD` or the arrow keys               | `Q`             | `Q`, twice   |
 | Controller | Left stick or d-pad                    | `Start`         | `B`          |
 
@@ -165,9 +178,12 @@ On a touch screen the game asks before your first run whether to drag the bat or
 drawn at the bottom left, which keeps your thumb off the bat; Settings → On-screen stick changes it.
 The stick is analog, half pushed is half speed, and a thumb put down beside it brings it to the thumb.
 
+An iPhone or iPad has no Back, so there a run draws a pause button at the top right, and the pause
+screen a button back to the menu.
+
 The game is in English, German and Polish. It follows the language the device or computer is set to,
-unless you pick one under Settings → Language. On Android 13 and later that is the same setting as
-the game's entry in the system settings' app languages.
+unless you pick one under Settings → Language. On Android 13 and later, and on iOS, that is the same
+setting as the game's entry in the system settings' app languages.
 
 Backgrounding the app — or, on desktop, the window losing focus, or in a browser, switching to
 another tab or window — pauses the run, and it stays paused until you resume it rather than dropping
@@ -217,10 +233,10 @@ that the MP3 service provider the desktop's death sound depends on is actually p
 `build` also compiles the shared code for the browser and builds the web site. The tests are not
 run in a browser: they run on the JVM, and on iOS as below.
 
-`:engine` and `:game` also have iOS targets, groundwork for an iOS app that does not exist yet, so
-shared code cannot quietly come to depend on the JVM. Only a Mac builds them: there `build` also
-compiles the shared code for iOS and runs its tests on the simulator, as CI's `ios` job does.
-Elsewhere they are skipped, which spares Linux and Windows builds the Kotlin/Native toolchain.
+`:engine`, `:game` and `:ios` are built for iOS only on a Mac: there `build` also compiles the
+shared code for iOS and runs its tests on the simulator, as CI's `ios` job does, which also builds
+the whole app for the simulator. Elsewhere they are skipped, which spares Linux and Windows builds
+the Kotlin/Native toolchain.
 
 ## 🎬 Gameplay footage
 
@@ -259,6 +275,9 @@ them to a GitHub release. Tags work with or without a leading `v`; a suffixed ta
 publishes as a pre-release. To rehearse without spending a tag, run the **Release** workflow
 manually from the Actions tab — it builds and uploads the same artifacts to the run, and publishes
 nothing.
+
+The iPhone and iPad app goes to the App Store from a Mac rather than from the workflow: see
+[docs/ios-release.md](docs/ios-release.md).
 
 ### Signing secrets
 
@@ -310,11 +329,12 @@ Fixing that needs a paid code-signing certificate and an Apple developer account
 
 - **Language**: Kotlin 2.x, Kotlin Multiplatform
 - **UI**: Compose Multiplatform
-- **Persistence**: Jetpack DataStore (Android), `java.util.prefs` (desktop), local storage (browser)
-- **Audio**: a shared stem mixer for all of the music, played through `AudioTrack` on Android, a
-  `javax.sound.sampled` line on the desktop and the Web Audio API in the browser; sound effects
-  through `SoundPool`, `javax.sound.sampled` clips and Web Audio; the mp3spi/jlayer service
-  providers decode the desktop's MP3 death sound
+- **Persistence**: Jetpack DataStore (Android), user defaults (iOS), `java.util.prefs` (desktop),
+  local storage (browser)
+- **Audio**: a shared stem mixer for all of the music, played through `AudioTrack` on Android, an
+  `AVAudioEngine` on iOS, a `javax.sound.sampled` line on the desktop and the Web Audio API in the
+  browser; sound effects through `SoundPool`, `AVAudioPlayer`, `javax.sound.sampled` clips and Web
+  Audio; the mp3spi/jlayer service providers decode the desktop's MP3 death sound
 - **CI/CD**: GitHub Actions
 
 ## 📜 History
@@ -323,7 +343,7 @@ This project originated as an academic project in 2012. The initial implementati
 principles from *Beginning Android Games* by Mario Zechner and Robert Green. The original
 implementation of the game framework was provided by DI Robert Grüneis. In 2026 it was rewritten
 from legacy OOP to a completely new data-driven ECS architecture, and then from an Android-only app
-to Kotlin Multiplatform with a desktop target, and later a web target.
+to Kotlin Multiplatform with a desktop target, and later a web target and an iOS app.
 
 ---
 *Developed with ❤️ using Kotlin.*
