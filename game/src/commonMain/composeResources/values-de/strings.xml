@@ -24,6 +24,8 @@
     <string name="stage_3_description">Ein Flug vom Mittag in die Nacht, und aus dem Sand springt so einiges. Nach Einbruch der Dunkelheit erhebt sich der Sandwurm.</string>
     <string name="stage_4_name">Abschnitt 4: Lagune</string>
     <string name="stage_4_description">Ein Flug von der Nacht in den Mittag über eine Bucht voller Inseln, und Haie kommen von hinten. Die Naga steigt aus dem Graben des Tempels.</string>
+    <string name="stage_5_name">Endlosmodus</string>
+    <string name="stage_5_description">Runde um Runde Wellen und Bosse aus allen Abschnitten, mit jeder Welle härter, über ein Land ohne Ende: Gipfel, Vulkane, Sümpfe und Nebelwälder, bei Tag und bei Nacht, in Regen, Schnee und Asche.</string>
     <string name="stage_locked">Schließe den Abschnitt davor ab, um ihn freizuschalten</string>
     <string name="stage_locked_badge">GESPERRT</string>
     <string name="stage_highscore">Highscore: %1$d</string>
@@ -45,7 +47,8 @@
     <string name="dialog_help_controls_desktop">• Fliegen: Ziehe CyanBat mit der Maus oder nimm die Pfeiltasten oder WASD.\n• Pause: Q. Noch einmal Q führt ins Menü.\n• Vollbild: F11 oder Alt+Enter.</string>
     <string name="dialog_help_controls_web">• Fliegen: Ziehe CyanBat mit der Maus oder dem Finger oder nimm die Pfeiltasten oder WASD.\n• Pause: Q. Noch einmal Q führt ins Menü.</string>
     <string name="dialog_help_text">• Schießen: CyanBat feuert von selbst. Schieß auf Gegner und Hindernisse und berühre weder sie noch ihre Schüsse.\n• Gesundheit: Jeder Treffer leert den Balken unter der Fledermaus. Ist er leer, ist die Runde vorbei.\n• Punkte: Punkte gibt es fürs Überleben und für Abschüsse. Abschüsse in Folge erhöhen den Multiplikator, ein Treffer setzt ihn zurück.\n• Stufenaufstieg: Abschüsse bringen Erfahrung. Mit jeder neuen Stufe wählst du eins von drei Power-ups.\n• Wellen: Jede Minute kommt eine stärkere Welle. Nach der fünften erscheint der Boss. Besiege ihn, um den Abschnitt mit einem großen Bonus abzuschließen.\n• Schwierigkeitsgrad: Wähle zu Beginn eines Abschnitts Leicht, Normal oder Schwer. Ein leichterer schickt weniger Gegner, bringt mehr Erfahrung und gibt dir eine Fledermaus, die mehr Treffer einsteckt, härter trifft und mit Power-ups beginnt. Die Sterne auf jedem Abschnitt zeigen den schwersten Grad, auf dem du ihn geschafft hast: einer für Leicht, drei für Schwer.
-• Abschnitte: Im Dschungel schwärmen Gegner aus, fliegen in Formation, schießen zurück und verstecken sich hinter Schilden. Der erste Schuss auf einen Schild bringt ihn zum Platzen. Der geschaffte Dschungel öffnet die Höhle, durch die du im Dunkeln nur im Licht der Fledermaus fliegst und wo sich der Boss zwischen seinen Hinterhalten im Dunkeln versteckt. Die geschaffte Höhle öffnet die Wüste, durch die du vom Mittag in die Nacht fliegst, wo Dinge aus dem Sand springen und Skarabäenpanzer nachwachsen, wenn man sie in Ruhe lässt. Die geschaffte Wüste öffnet die Lagune, durch die du von der Nacht in den Mittag fliegst, wo Haie von hinten an der Wasserlinie entlangkommen und Kugelfische Stachelringe werfen. Jeder Abschnitt beginnt von vorn: Punkte, Stufe und Power-ups fangen neu an.</string>
+• Abschnitte: Im Dschungel schwärmen Gegner aus, fliegen in Formation, schießen zurück und verstecken sich hinter Schilden. Der erste Schuss auf einen Schild bringt ihn zum Platzen. Der geschaffte Dschungel öffnet die Höhle, durch die du im Dunkeln nur im Licht der Fledermaus fliegst und wo sich der Boss zwischen seinen Hinterhalten im Dunkeln versteckt. Die geschaffte Höhle öffnet die Wüste, durch die du vom Mittag in die Nacht fliegst, wo Dinge aus dem Sand springen und Skarabäenpanzer nachwachsen, wenn man sie in Ruhe lässt. Die geschaffte Wüste öffnet die Lagune, durch die du von der Nacht in den Mittag fliegst, wo Haie von hinten an der Wasserlinie entlangkommen und Kugelfische Stachelringe werfen. Jeder Abschnitt beginnt von vorn: Punkte, Stufe und Power-ups fangen neu an.
+• Endlosmodus: Die geschaffte Lagune öffnet ihn. Runden aus Wellen aller Abschnitte, jede mit einem Boss aus einem von ihnen, über ein Land, das sich immer wieder wandelt, bei Tag und bei Nacht, in Regen, Schnee und Asche. Er endet nie, und jede Welle ist härter als die vorige: Schau, wie weit du kommst.</string>
 
     <string name="settings_music_title">Musik</string>
     <string name="settings_sound_title">Soundeffekte</string>
@@ -79,6 +82,7 @@
 
     <string name="score">Punkte: %1$d</string>
     <string name="hud_wave">Welle: %1$d/%2$d</string>
+    <string name="hud_wave_endless">Welle: %1$d</string>
     <string name="hud_boss">BOSS</string>
     <string name="hud_level">Level: %1$d</string>
 
@@ -128,8 +132,10 @@
     <string name="stage_complete_menu">Zurück oder Q für das Menü</string>
     <string name="stage_complete_fresh_start">Punkte, Stufe und Power-ups beginnen von vorn</string>
     <string name="stage_complete_continue">Tippen oder Enter drücken zum Fortfahren</string>
+    <string name="stage_complete_endless">Tippen oder Enter drücken für den Endlosmodus</string>
 
     <string name="game_over_hint">Zum Hauptmenü den Bildschirm berühren</string>
+    <string name="game_over_wave">Welle %1$d erreicht</string>
 
     <string name="level_up_title">LEVEL %1$d</string>
     <string name="level_up_choose">Wähle ein Power-up</string>

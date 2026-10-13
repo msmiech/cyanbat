@@ -12,8 +12,10 @@ import at.smiech.cyanbat.resources.banner_poisoned
 import at.smiech.cyanbat.resources.banner_second_life
 import at.smiech.cyanbat.resources.banner_wave
 import at.smiech.cyanbat.resources.game_over_hint
+import at.smiech.cyanbat.resources.game_over_wave
 import at.smiech.cyanbat.resources.hud_level
 import at.smiech.cyanbat.resources.hud_wave
+import at.smiech.cyanbat.resources.hud_wave_endless
 import at.smiech.cyanbat.resources.level_up_choose
 import at.smiech.cyanbat.resources.level_up_title
 import at.smiech.cyanbat.resources.pause_quit
@@ -24,7 +26,9 @@ import at.smiech.cyanbat.resources.stage_1_name
 import at.smiech.cyanbat.resources.stage_2_name
 import at.smiech.cyanbat.resources.stage_3_name
 import at.smiech.cyanbat.resources.stage_4_name
+import at.smiech.cyanbat.resources.stage_5_name
 import at.smiech.cyanbat.resources.stage_complete_continue
+import at.smiech.cyanbat.resources.stage_complete_endless
 import at.smiech.cyanbat.resources.stage_complete_fresh_start
 import at.smiech.cyanbat.resources.stage_complete_menu
 import at.smiech.cyanbat.resources.stage_complete_next
@@ -97,6 +101,7 @@ class GameTextLayoutTest {
                 Res.string.stage_2_name,
                 Res.string.stage_3_name,
                 Res.string.stage_4_name,
+                Res.string.stage_5_name,
             ).map { text[it] }
             // The opening's stage name is the larger of the two it is drawn at.
             for (name in stageNames) assertFits(language, name, 30, room)
@@ -110,6 +115,7 @@ class GameTextLayoutTest {
                 text[Res.string.pause_resume],
                 text[Res.string.pause_quit],
                 text.format(Res.string.stage_complete_next, 4),
+                text[Res.string.stage_complete_endless],
                 text[Res.string.stage_complete_menu],
                 text[Res.string.stage_complete_continue],
                 text[Res.string.level_up_choose],
@@ -132,6 +138,7 @@ class GameTextLayoutTest {
             assertFits(language, text[Res.string.game_over_hint], GameOverScreen.HINT_SIZE, room)
             assertFits(language, text.format(Res.string.score, score), 20, room)
             assertFits(language, text.format(Res.string.stage_highscore, score), 15, room)
+            assertFits(language, text.format(Res.string.game_over_wave, 999), 15, room)
         }
     }
 
@@ -149,6 +156,8 @@ class GameTextLayoutTest {
                 15,
                 FRAME_BUFFER_WIDTH - 2 * margin
             )
+            // An endless run's wave, however far it has gone, beside the score's column.
+            assertFits(language, text.format(Res.string.hud_wave_endless, 999), 15, room)
         }
     }
 

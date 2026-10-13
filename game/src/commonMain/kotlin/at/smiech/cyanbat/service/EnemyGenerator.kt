@@ -61,13 +61,17 @@ import kotlin.random.Random
  *   [StageDesign.encore] and [spawnEncore].
  * @param onEncoreBite fired the moment the second boss's entrance bites the bat.
  * @param onEncoreArrived fired when the second boss has made its entrance and its fight begins.
+ * @param sheets the sheet each species is drawn from, for a stage that flies other stages' species
+ *   (the endless stage); by default every species is drawn from [enemyPixmap].
+ * @param bossSheets the sheet each boss is drawn from, likewise; by default [bossPixmap], and
+ *   [encorePixmap] for the second boss.
  */
 class EnemyGenerator(
     private val xSpawnPosition: Int,
     private val worldHeight: Int,
     private val factory: EntityFactory,
     private val enemyPixmap: Pixmap,
-    private val progression: StageProgression,
+    progression: StageProgression,
     private val random: Random = Random.Default,
     private val onWaveChanged: (EnemyWave) -> Unit = {},
     private val onBossSpawned: (EntityId) -> Unit = {},
@@ -76,13 +80,29 @@ class EnemyGenerator(
     private val encorePixmap: Pixmap? = null,
     private val onEncoreBite: () -> Unit = {},
     private val onEncoreArrived: () -> Unit = {},
+    private val sheets: ((EnemySpecies) -> Pixmap)? = null,
+    private val bossSheets: ((BossKind) -> Pixmap?)? = null,
 ) {
+    /**
+     * What the stage is running: its waves and boss, or on the endless stage the current round's;
+     * see [beginRound].
+     */
+    var progression: StageProgression = progression
+        private set
+
     /** One picture of an enemy: the sheet stacks each of them unhurt, wounded and battered. */
     private val realEnemyHeight = enemyPixmap.height / WOUND_ROWS
 
     /** Seconds of play into the current stage. Everything else is derived from it. */
     var elapsedSeconds = 0f
         private set
+
+    /** The stage clock when the current round began: zero for a stage, which is one round. */
+    private var roundStart = 0f
+
+    /** Seconds into the current round, which its waves and boss are timed by. */
+    val roundSeconds: Float
+        get() = elapsedSeconds - roundStart
 
     /** The wave in force, refreshed every tick until the boss is due. */
     var currentWave: EnemyWave = progression.waveAt(0f)
@@ -132,7 +152,7 @@ class EnemyGenerator(
 
         // Checked before the wave advances, so the boss's minute announces the boss rather than a
         // wave that will never arrive.
-        if (progression.isBossDue(elapsedSeconds)) {
+        if (progression.isBossDue(roundSeconds)) {
             spawnBossOnce()
             bossBrain?.update(deltaTime)
             return
@@ -147,7 +167,7 @@ class EnemyGenerator(
         // most expensive group.
         var cost = 0f
         repeat(currentWave.burstSize) { cost = maxOf(cost, spawnGroup(currentWave)) }
-        timeUntilNextSpawn += progression.nextSpawnDelay(elapsedSeconds, random) * cost
+        timeUntilNextSpawn += progression.nextSpawnDelay(roundSeconds, random) * cost
     }
 
     /** The boss has been destroyed; forget it so nothing keeps tracking a recycled id. */
@@ -156,9 +176,26 @@ class EnemyGenerator(
         bossBrain = null
     }
 
+    /**
+     * Starts the endless stage's next round on [next], once the last round's boss has fallen and
+     * been cleared ([clearBoss]): its waves from the first, announced, then its boss. The stage
+     * clock runs on; only the round's own is started over.
+     */
+    fun beginRound(next: StageProgression) {
+        progression = next
+        roundStart = elapsedSeconds
+        bossSpawned = false
+        encoreSpawned = false
+        bossId = null
+        bossBrain = null
+        currentWave = next.waveAt(0f)
+        timeUntilNextSpawn = next.nextSpawnDelay(0f, random)
+        onWaveChanged(currentWave)
+    }
+
     /** Moves to the wave in force now, announcing it if it is a new one. */
     private fun advanceWave() {
-        val wave = progression.waveAt(elapsedSeconds)
+        val wave = progression.waveAt(roundSeconds)
         if (wave.index == currentWave.index) {
             // Same wave, but the spawn interval inside it has moved on.
             currentWave = wave
@@ -331,7 +368,7 @@ class EnemyGenerator(
             y = laneY + offsetY,
             width = ENEMY_COLLISION_WIDTH,
             height = realEnemyHeight.toFloat(),
-            pixmap = enemyPixmap,
+            pixmap = sheetOf(species),
             species = species,
             hitPoints = hitPoints,
             damage = damage,
@@ -374,7 +411,8 @@ class EnemyGenerator(
                 // Centered, so its weave has the same room above it as below.
                 y = (worldHeight - realEnemyHeight * BOSS_SPRITE_SCALE) / 2f,
                 holdX = xSpawnPosition * BOSS_HOLD_X_FRACTION,
-                pixmap = enemyPixmap,
+                // The cave's own kind, magnified.
+                pixmap = sheetOf(EnemySpecies.STRIKER),
                 scale = BOSS_SPRITE_SCALE,
                 hitPoints = wave.hitPoints,
                 damage = wave.damage,
@@ -393,7 +431,7 @@ class EnemyGenerator(
             }
 
             BossKind.MOTH_QUEEN -> {
-                val sheet = requireNotNull(bossPixmap) { "The Moth Queen needs her own sheet" }
+                val sheet = requireNotNull(bossSheet(BossKind.MOTH_QUEEN)) { "The Moth Queen needs her own sheet" }
                 factory.createMothQueen(
                     x = xSpawnPosition.toFloat(),
                     y = (worldHeight - sheet.height / WOUND_ROWS) / 2f,
@@ -413,7 +451,7 @@ class EnemyGenerator(
             }
 
             BossKind.SAND_WYRM -> {
-                val sheet = requireNotNull(bossPixmap) { "The Sand Wyrm needs its own sheet" }
+                val sheet = requireNotNull(bossSheet(BossKind.SAND_WYRM)) { "The Sand Wyrm needs its own sheet" }
                 val ids = factory.createSandWyrm(
                     // Under the sand to the right of the frame's middle; its brain buries it
                     // properly and picks where it first comes up.
@@ -444,7 +482,7 @@ class EnemyGenerator(
             BossKind.SKY_VIPER -> spawnSkyViper(wave)
 
             BossKind.NAGA -> {
-                val sheet = requireNotNull(bossPixmap) { "The Naga needs its own sheet" }
+                val sheet = requireNotNull(bossSheet(BossKind.NAGA)) { "The Naga needs its own sheet" }
                 val ids = factory.createNaga(
                     // Under the water; its brain buries it properly and picks where it first comes up.
                     x = xSpawnPosition * 0.7f,
@@ -496,7 +534,7 @@ class EnemyGenerator(
      * entrance; see [SkyViperBrain].
      */
     private fun spawnSkyViper(wave: EnemyWave): EntityId {
-        val sheet = requireNotNull(encorePixmap) { "The Sky Viper needs its own sheet" }
+        val sheet = requireNotNull(bossSheet(BossKind.SKY_VIPER)) { "The Sky Viper needs its own sheet" }
         val ids = factory.createSkyViper(
             x = xSpawnPosition * 0.62f,
             y = -2f * SKY_VIPER_FRAME,
@@ -521,6 +559,13 @@ class EnemyGenerator(
         )
         return ids[0]
     }
+
+    /** The sheet [species] is drawn from; see [sheets]. */
+    private fun sheetOf(species: EnemySpecies): Pixmap = sheets?.invoke(species) ?: enemyPixmap
+
+    /** The sheet [kind] is drawn from; see [bossSheets]. */
+    private fun bossSheet(kind: BossKind): Pixmap? = bossSheets?.invoke(kind)
+        ?: if (kind == progression.design.encore) encorePixmap else bossPixmap
 
     /**
      * Where a boss's health bar is pinned, for bosses that spend part of their fight out of sight:

@@ -21,6 +21,7 @@ covers what you need to change the code.
 ./gradlew :app:installDebug                              # install on a running emulator
 ./gradlew :engine:iosSimulatorArm64Test :game:iosSimulatorArm64Test   # the shared tests on the iOS simulator; Mac only
 ./gradlew :desktop:recordGameplay                        # re-record the README's GIF, docs/gameplay.gif
+./gradlew :desktop:renderEndlessPreview                  # re-render the endless stage's card, stage5_preview.png
 uv run tools/generate_enemy_sprites.py                   # regenerate an asset; each script declares its own deps
 ```
 
@@ -258,7 +259,8 @@ playfield for wide screens; it would change difficulty by device.
 
 Adding a stage touches all four, plus new generators in `tools/` (its music among them, with a
 `StageMusic` in `GameAssets`), a preview card, the stage select's strings, and the recorder's
-`STAGE_COVERAGE`, which says how much of the stage the README's reel shows.
+`STAGE_COVERAGE`, which says how much of the stage the README's reel shows. The endless stage, after
+the last, is made differently on every count; see The endless stage.
 
 **The lagoon** (stage 4) is the hardest stage: its waves are the desert's design pushed further,
 with sharks that come in from behind along the waterline (`Squad.FROM_BEHIND`, a `LEAP` cruising
@@ -279,6 +281,53 @@ no health: the run's world is drawn rippling, rows shifted sideways by whole fra
 (`Graphics.drawWarped`), and washed green, the edges more; a pixel either way at its rest, more as
 the bite goes in and for a moment after every blow. The HUD is drawn over it, clear. It lifts over
 the victory's seconds.
+
+**The endless stage** (stage 5, `ENDLESS_STAGE_ID`) opens once the lagoon is cleared and never
+ends: round after round of waves and a boss, over country made up as it scrolls, until the bat goes
+down. `Stage.endless` says which stage it is; its `Backdrop` is `Endless`, and a run of it is a
+`GameScreen` like any other, which does what differs itself.
+
+- A stage is open once unlocked or once the stage before it is cleared (`stageOpen`): a store kept
+  before the endless stage existed recorded the lagoon's clear, which unlocked nothing then. Its card
+  sits under the stages', full width, with no stars, since it cannot be cleared; its preview is
+  rendered by `:desktop:renderEndlessPreview` from the scenery code itself.
+- `EndlessCourse` deals the rounds, each a `StageProgression` like a stage's: three waves of two to
+  four species from every stage, mixed afresh, then a boss from a shuffled bag of all five, never the
+  same twice running. A round's `wavesBefore` numbers its waves on through the run, and their
+  strength follows the number, so every wave is harder than the last; past a stage's boss wave,
+  speed, bursts and blows stop growing (`StageProgression`'s caps), and health does not. Each round
+  also opens `ENDLESS_DIFFICULTY_PER_ROUND` harder.
+- `EnemyGenerator.beginRound` starts a round on the run's clock: `roundSeconds` restarts, nothing
+  else does. Every species and boss is drawn from its own stage's sheets (`EnemySpecies.home`,
+  `BossKind.home`), which the generator takes as `sheets` and `bossSheets`.
+- A round's boss falling is `GameScreen.endRound`: wrecked, banked as a won stage's is, bonus and
+  all, the music stopped dead, then a breather (`ENDLESS_ROUND_BREAK_SECONDS`) with the aftershocks
+  and the fanfare, and the next round on the next piece of the playlist. The Sky Viper comes as any
+  boss: its entrance still bites, and nothing collides until it arrives (`viperEntering`); its venom
+  lifts as it falls. The game over screen says which wave the run reached.
+- `EndlessScenery` is the country: the biome (`Biome`, from a shuffled bag every
+  `ENDLESS_BIOME_SECONDS`), a cyclic day (`EndlessDay`, every `EndlessDay.SECONDS`), the weather,
+  and four bands (`Band`) of land made a chunk at a time just out of view (`EndlessLand`). A chunk is
+  palette codes (`ScenePalettes`: a biome's material and which way it faces), turned into one picture
+  per `TimeOfDay` and crossfaded like the stages' scenery. Land is a pure function of band-x, seed and
+  biome, so chunks meet without a seam; a new biome blends into each band from its next chunk, over
+  `EndlessLand.transition`, the near band first and the far one last. Obstacles are generated per
+  biome on each visit, in the same palettes. `EndlessScenerySystem` draws it all, first in the order,
+  and lights the obstacles as `SkySystem` does.
+- The night is dark: the stage is `lit`, and the scenery sets the `LightingSystem`'s ambient every
+  tick, `DAYLIGHT` by day, storm or none (when the dark costs nothing, and a shot's colored light
+  would read as a balloon in a bright land), down to `ENDLESS_NIGHT_AMBIENT` at the dead of night,
+  lit up for a moment by a storm's lightning.
+- `WeatherSystem` is rain, snow, ash with embers, dust, and fireflies at night, in a far layer behind
+  every sprite and a near one (`front`) after them. Only the near one lands, on the bat and anything
+  hostile, read against the outline of the frame each shows: snow settles and piles, rain beads and
+  runs down, ash leaves soot (`WeatherMarksComponent`). A blow shakes it off (`shake`). A storm's
+  thunder (`SoundEffect.THUNDER`) comes a moment after its flash.
+- Its music is `Stage.playlist`: its own theme (`tools/generate_endless_music.py`) on the first round
+  and every third, and between them remixes of the stages' and the Naga's pieces
+  (`tools/generate_endless_remixes.py`: each score re-rendered faster, higher and over a house beat).
+  Its `MusicDirector` is `endless`: the floor rises with every wave of the run rather than across a
+  stage, and from `ENDLESS_FURY_WAVE` the heavy layer stays up.
 
 **The sky's day.** A `Day` is a pure function of how far through its day the stage is -
 `Day.position`, elapsed time over the boss's arrival - and says what the sky, sun, moon and stars
@@ -301,7 +350,9 @@ every entity carrying a `CrossfadeComponent` (the obstacles) in the same light.
   generator keeps to the band's own water and haze, so either follows on from the other.
 
 **The cave's dark.** The cave is flown in the dark (`Stage.lighting`, a `StageLighting`); the jungle
-and the desert are flown in daylight, and none of this runs there.
+and the desert are flown in daylight, and none of this runs there. The endless stage is flown in it
+by night only: its ambient is set as the day goes round, and at `LightingSystem.DAYLIGHT` nothing is
+computed or drawn.
 
 - `LightingSystem` sits between two `RenderSystem` passes split at `LIGHTS_FROM` (z 15). Under it
   are the scenery, the halos, the obstacles and everything hostile, as lit as whatever reaches them;
@@ -500,7 +551,8 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   paused partway resumes from there, and a fanfare has to start from the top.
 - The grid is declared twice, in the stage's generator and in its `StageMusic` in `GameAssets`.
   `MusicStemTest` holds them together: every stem whole bars at the declared tempo, and every stem's
-  length dividing the longest, so the layers stay in step however long the run goes.
+  length dividing the longest, so the layers stay in step however long the run goes. It reads every
+  stage's whole `playlist`, the endless stage's remixes included.
 
 **Input.**
 
@@ -575,6 +627,10 @@ for an app to come). There is no framebuffer bitmap.
 - The desktop decodes assets with Skia and marks them immutable (`DesktopGame.loadImage`). Compose's
   desktop canvas wraps a bitmap in a new Skia image every time it draws it, and copies one that
   could still change: the desert's ground was a copy of its whole sheet for every strip.
+- A picture can be made from pixels as the game runs (`Graphics.newPixmap(width, height, pixels)`), as
+  the endless stage's land is. Each host hands `ComposeGraphics` its platform's own way of wrapping
+  pixels in an immutable bitmap (`makeImage`); without one, `paintImage` paints them in run by run on
+  the CPU, and a test double keeps them as a `PixelPixmap`.
 - A new `Graphics` primitive needs a default implementation or a `ComposeGraphics` override, and the
   test fakes need updating.
 
@@ -617,6 +673,8 @@ two are hand-drawn sources, kept as they were drawn, which `generate_title.py` a
 
 - To change art, change the script and re-run it; never edit its output, the icons' vector XML
   included.
+- The endless stage's land, its obstacles and its card are the exception: generated by the game's own
+  code (`EndlessLand`), at run time, and the card by `:desktop:renderEndlessPreview`.
 - The scripts are deterministic: re-running an unchanged one must reproduce the committed file byte
   for byte.
 - `SpriteSheetTest` pins each sheet's dimensions and color ceiling.
@@ -649,6 +707,7 @@ two are hand-drawn sources, kept as they were drawn, which `generate_title.py` a
   no frame of either boss is taped - and the autopilot need not survive the lagoon to its Naga.
 - Runs are random, so unlike the art a re-recording is never byte for byte the same. Re-record after
   a visible change.
+- The endless stage is never in the reel; it has no `STAGE_COVERAGE`.
 - `RunProbe` reads a handful of `GameScreen`'s private fields by reflection (`world`, `batId`,
   `offer`, `stageComplete`, `progress`, `loadout`, `scoring`, `bannerText`, `bannerTime`,
   `interlude`, `poison`).

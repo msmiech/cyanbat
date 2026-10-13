@@ -343,6 +343,9 @@ private class Flight(
             listOf(StageProgression.forStage(stageId).bossTimeSeconds * backdrop.day.showcase)
 
         is Backdrop.Strip -> emptyList()
+
+        // The endless stage is never in the reel; its country is left to find.
+        is Backdrop.Endless -> emptyList()
     }
     private val autopilot = Autopilot(controls, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
 

@@ -32,6 +32,14 @@ sealed interface Backdrop {
         val moon: Pixmap,
         val horizonY: Int,
     ) : Backdrop
+
+    /**
+     * Country made up as it scrolls in, for the endless stage: one land after another, from snowy
+     * peaks to volcanoes, swamps and foggy forests, under a sky that goes round the clock, with
+     * weather of its own. Nothing of it is art on disk but the [moon]; it is generated and drawn by
+     * `EndlessScenerySystem`.
+     */
+    class Endless(val moon: Pixmap) : Backdrop
 }
 
 /**

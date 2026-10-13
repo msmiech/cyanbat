@@ -33,6 +33,8 @@ the frost beam and the drop an elite leaves:
                      a hiss swelling out of the air, a screech tearing down through it, and the beat
                      of its wings.
 * venomBite.wav    - its bite: jaws snapping shut on the bat, and venom hissing and bubbling into it.
+* thunder.wav      - a storm's lightning over the endless stage: a crack splitting the air, and the
+                     rumble rolling off into the distance after it.
 
 They share a palette and a level. Each is written near full scale and played at the volume its
 `SoundEffect` gives it, which is where the balance between them and against the music is set.
@@ -489,6 +491,34 @@ def venom_bite(rng) -> np.ndarray:
     return finish(out, release=0.1)
 
 
+def thunder(rng) -> np.ndarray:
+    """Lightning striking somewhere over the land: a crack tearing the air, a boom under it, and a
+    rumble rolling away for seconds after, lumpy as it echoes off the hills, darkening as it goes.
+
+    Far off rather than overhead, so it rolls more than it bangs, and it stays under the fight: it
+    is the weather, not a blow.
+    """
+    seconds = 3.4
+    out = silence(seconds)
+    lay(out, burst(rng, 0.05, (1500, 9000), 0.01), 0, 0.8)
+    lay(out, burst(rng, 0.25, (300, 3000), 0.05), 0.01, 0.6)
+    crack = boom(95, 32, 0.9, fall=0.3, drive=2.4)
+    lay(out, crack, 0.02, 0.9)
+    lay(out, presence(crack), 0.02, 0.3)
+
+    rumble = falling_roar(rng, 3.2, ((25, 160, 1.3), (160, 500, 0.7), (500, 1600, 0.25)))
+    t = np.arange(rumble.shape[0]) / RENDER_RATE
+    # Rolls: the rumble swells and sags a few times as the sound comes back off the hills.
+    rolls = 0.6 + 0.4 * np.sin(2 * np.pi * (1.3 * t + 0.25 * t * t) + 0.5) * np.exp(-t / 2.0)
+    lay(out, normalized(rumble) * rolls * np.clip(t / 0.08, 0, 1), 0.05, 0.85)
+    lay(out, presence(rumble, drive=4.0) * rolls * 0.5, 0.05, 0.25)
+
+    room = reverb_ir(2.8, rng, predelay=0.06, brightness=0.15, early=5, early_spread=0.12)[0]
+    wet = signal.fftconvolve(out, room)[:out.shape[0]]
+    out = out + 0.3 * normalized(wet) * np.max(np.abs(out))
+    return finish(out, release=0.8)
+
+
 # --- Writing it out ----------------------------------------------------------------------------
 
 
@@ -504,6 +534,7 @@ EFFECTS = {
     "powerUp.wav": (power_up, 9),
     "viperScreech.wav": (viper_screech, 10),
     "venomBite.wav": (venom_bite, 11),
+    "thunder.wav": (thunder, 12),
 }
 
 SEED = 20261001

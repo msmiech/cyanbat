@@ -1,6 +1,8 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.resource.Stage
+import at.smiech.cyanbat.scenery.EndlessDay
+import at.smiech.cyanbat.scenery.EndlessScenery
 import at.smiech.engine.Pixmap
 import kotlin.random.Random
 
@@ -12,6 +14,8 @@ import kotlin.random.Random
  *
  * @param dayPosition how far through its day the stage is, for a stage whose ground changes on the way
  *   to its boss; see [at.smiech.cyanbat.resource.Approach].
+ * @param scenery the endless stage's country, whose land makes its own obstacles as it changes; null
+ *   for a stage, whose obstacles are its own art.
  */
 class ObstacleGenerator(
     private val worldWidth: Int,
@@ -20,6 +24,7 @@ class ObstacleGenerator(
     private val stage: Stage,
     private val random: Random = Random.Default,
     private val dayPosition: () -> Float = { 0f },
+    private val scenery: EndlessScenery? = null,
 ) {
     /** Zero, so the first update places an obstacle at once. */
     private var timeUntilNextObstacle = 0f
@@ -33,12 +38,13 @@ class ObstacleGenerator(
 
         // A sheet drawn in several times of day holds each as a row, so an obstacle
         // is one row tall.
-        val keyframes = stage.obstacleKeyframes
+        val keyframes = if (scenery != null) EndlessDay.ROWS else stage.obstacleKeyframes
         var y = 0f
         // On a stage with an open sky a roll for the top places nothing, rather than a second
         // ground obstacle, so the ground keeps the usual density.
         val obstaclePixmap = if (random.nextBoolean()) {
-            stage.topObstacles.takeIf { it.isNotEmpty() }?.let { it[random.nextInt(it.size)] }
+            val top = scenery?.hangingObstacles() ?: stage.topObstacles
+            top.takeIf { it.isNotEmpty() }?.let { it[random.nextInt(it.size)] }
         } else {
             val ground = groundObstacles()
             ground[random.nextInt(ground.size)]?.also {
@@ -64,6 +70,7 @@ class ObstacleGenerator(
      * has begun, so the random sequence before it is unchanged.
      */
     private fun groundObstacles(): Array<Pixmap?> {
+        scenery?.let { return it.groundObstacles(random) }
         val approach = stage.approach ?: return stage.bottomObstacles
         val share = approach.share(dayPosition())
         if (share <= 0f) return stage.bottomObstacles

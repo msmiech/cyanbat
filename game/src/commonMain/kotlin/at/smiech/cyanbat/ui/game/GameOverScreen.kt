@@ -3,6 +3,7 @@ package at.smiech.cyanbat.ui.game
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.game_over_hint
+import at.smiech.cyanbat.resources.game_over_wave
 import at.smiech.cyanbat.resources.score
 import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.util.GAME_OVER_ARMING_SECONDS
@@ -19,12 +20,15 @@ import at.smiech.engine.Screen
  * @param score what the run that just ended scored.
  * @param highscore the stage's highscore including this run, so a record run shows the same number
  *   twice.
+ * @param wave the wave an endless run reached, counted from one; null for a stage's run, whose waves
+ *   the score already speaks for.
  */
 class GameOverScreen(
     override val game: Game,
     private val env: CyanBatEnvironment,
     private val score: Int,
     private val highscore: Int,
+    private val wave: Int? = null,
 ) : Screen {
 
     /** Time before a tap or press counts as "leave"; see [GAME_OVER_ARMING_SECONDS]. */
@@ -90,6 +94,9 @@ class GameOverScreen(
                 15,
                 EngineColors.CYAN,
             )
+            wave?.let {
+                drawCentered(env.text.format(Res.string.game_over_wave, it), WAVE_BASELINE, 15, EngineColors.YELLOW)
+            }
         }
     }
 
@@ -111,5 +118,8 @@ class GameOverScreen(
         /** The score's two lines' baselines, from the artwork's top edge: in the dark band under it. */
         const val SCORE_BASELINE = 270
         const val HIGHSCORE_BASELINE = 293
+
+        /** How far an endless run got, under the highscore, still inside the frame. */
+        const val WAVE_BASELINE = 315
     }
 }

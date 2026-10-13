@@ -34,14 +34,21 @@ import kotlin.math.max
  * Every layer change lands on the beat, or for a slam on the bar, because [LayeredMusic] schedules
  * it; this class only says what should be playing.
  *
+ * On the endless stage there is no last wave for the floor to rise toward: it rises with every wave
+ * of the run instead ([endlessIntensity]), with the combo building on it as ever, so the layers come
+ * in one by one as the run goes on until the whole piece is up whatever the streak, and from
+ * [ENDLESS_FURY_WAVE] the heavy layer stays in too.
+ *
  * @param bossWave the wave the boss arrives on; the floor rises across the waves before it.
  * @param difficulty the stage's own, where stage 1 is 1: a harder stage opens on a higher floor.
+ * @param endless whether this is the endless stage's music, whose floor rises with the run's waves.
  */
 class MusicDirector(
     private val music: LayeredMusic,
     grid: MusicGrid,
     private val bossWave: Int,
     private val difficulty: Float,
+    private val endless: Boolean = false,
 ) {
     /** What each layer was last set to, so a level is only ordered when it changes. */
     private val ordered = FloatArray(MusicLayer.entries.size) { -1f }
@@ -81,13 +88,15 @@ class MusicDirector(
             if (dropSeconds <= 0f) slamming = true
         }
         val dropping = dropSeconds > 0f
-        val intensity = intensity(waveIndex, bossWave, comboMultiplier, difficulty)
+        val intensity =
+            if (endless) endlessIntensity(waveIndex, comboMultiplier) else intensity(waveIndex, bossWave, comboMultiplier, difficulty)
 
         for (layer in LAYERED) {
             val wanted = when {
                 dropping -> false
                 bossFight -> true
-                layer == MusicLayer.FURY -> comboMultiplier >= ComboHeat.SUPERNOVA
+                layer == MusicLayer.FURY ->
+                    comboMultiplier >= ComboHeat.SUPERNOVA || endless && waveIndex >= ENDLESS_FURY_WAVE
                 else -> intensity >= threshold(layer) - EPSILON
             }
             val fade = when {
@@ -157,6 +166,25 @@ class MusicDirector(
             val combo = COMBO_STEP * ComboHeat.rung(comboMultiplier).coerceAtMost(COMBO_RUNGS)
             return floor + combo
         }
+
+        /**
+         * How much is going on in the endless stage, against the same thresholds as a stage's
+         * [intensity]: a floor that opens with the bass already in and rises [ENDLESS_WAVE_RISE] with
+         * every wave of the run, bringing in the drums by the fourth, the tune by the sixth and the
+         * whole trap beat by the ninth, plus the combo's rungs as on a stage.
+         *
+         * @param waveIndex the wave of the whole run, from 0, across every round.
+         */
+        fun endlessIntensity(waveIndex: Int, comboMultiplier: Int): Float {
+            val floor = ENDLESS_OPENING + ENDLESS_WAVE_RISE * waveIndex
+            return floor + COMBO_STEP * ComboHeat.rung(comboMultiplier).coerceAtMost(COMBO_RUNGS)
+        }
+
+        /** The run's wave from which the endless stage keeps its heavy layer up, streak or none. */
+        const val ENDLESS_FURY_WAVE = 15
+
+        private const val ENDLESS_OPENING = 0.2f
+        private const val ENDLESS_WAVE_RISE = 0.08f
 
         /**
          * Where each layer comes in, tuned against stage 1, whose first wave is the

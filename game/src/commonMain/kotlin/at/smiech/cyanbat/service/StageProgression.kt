@@ -23,7 +23,8 @@ import kotlin.random.Random
  * A snapshot rather than a schedule: [StageProgression] derives it from the clock, so nothing needs
  * stepping or syncing, and any point in a stage can be asked for without playing up to it.
  *
- * @param index full minutes into the stage, so wave 0 is the opening minute.
+ * @param index full minutes into the stage, so wave 0 is the opening minute. On the endless stage it
+ *   counts on through every round, so it is how far into the whole run the wave is.
  * @param enemyTypes the species this wave draws from. A new mix every minute makes a new wave read
  *   as a new group of enemies rather than more of the last.
  * @param hitPoints what each of them can absorb.
@@ -67,6 +68,11 @@ data class EnemyWave(
  * @param enemyDensity how many of the waves' enemies arrive, from the player's [Difficulty]: the gap
  *   between spawns is stretched by its inverse. Unlike [difficulty] it leaves the enemies as tough
  *   as they were, and the boss alone.
+ * @param wavesBefore how many waves the run has flown before this progression's first: none for a
+ *   stage, and on the endless stage the waves of every round before this one. Its waves are numbered
+ *   on from there and are as tough as their number says, so each round starts where the last left
+ *   off rather than over. Speed and bursts stop growing past what any stage reaches, or a long run
+ *   would fill the frame faster than anything could be dodged; see [MAX_SPEED_MULTIPLIER].
  */
 data class StageProgression(
     val design: StageDesign = StageDesign.CAVE,
@@ -77,6 +83,7 @@ data class StageProgression(
     val bossHitPoints: Int = BOSS_HIT_POINTS_PER_STAGE,
     val bossDamage: Int = BOSS_DAMAGE_PER_STAGE,
     val enemyDensity: Float = 1f,
+    val wavesBefore: Int = 0,
 ) {
     /** When the boss arrives, in seconds from the start of the stage. */
     val bossTimeSeconds: Float = bossWave * waveDurationSeconds
@@ -115,19 +122,26 @@ data class StageProgression(
     private fun designOf(index: Int): WaveDesign =
         design.waves[index.coerceAtMost(design.waves.lastIndex)]
 
-    private fun waveFor(index: Int, elapsedSeconds: Float) = EnemyWave(
-        index = index,
-        enemyTypes = designOf(index).species,
-        hitPoints = scaled(ENEMY_BASE_HIT_POINTS + index * ENEMY_HIT_POINTS_PER_WAVE),
-        damage = scaled(ENEMY_BASE_DAMAGE + index * ENEMY_DAMAGE_PER_WAVE),
-        speedMultiplier = 1f + index * ENEMY_SPEED_PER_WAVE,
-        spawnIntervalSeconds = spawnIntervalAt(elapsedSeconds),
-        // One arrival at a time in the opening waves, so the player learns single enemies first.
-        burstSize = 1 + index / BURST_EVERY_WAVES,
-        shieldChance = designOf(index).shieldChance,
-        gunChance = designOf(index).gunChance,
-        eliteChance = designOf(index).eliteChance,
-    )
+    private fun waveFor(index: Int, elapsedSeconds: Float): EnemyWave {
+        // How far into the whole run the wave is, which its strength follows; the design is the
+        // progression's own, counted from its first wave.
+        val number = wavesBefore + index
+        return EnemyWave(
+            index = number,
+            enemyTypes = designOf(index).species,
+            hitPoints = scaled(ENEMY_BASE_HIT_POINTS + number * ENEMY_HIT_POINTS_PER_WAVE),
+            // Held at the last stage's toughest blow, so a long endless run hurts by its numbers
+            // and its fire rather than by single hits no bat could take.
+            damage = scaled(ENEMY_BASE_DAMAGE + number.coerceAtMost(MAX_DAMAGE_WAVE) * ENEMY_DAMAGE_PER_WAVE),
+            speedMultiplier = (1f + number * ENEMY_SPEED_PER_WAVE).coerceAtMost(MAX_SPEED_MULTIPLIER),
+            spawnIntervalSeconds = spawnIntervalAt(elapsedSeconds),
+            // One arrival at a time in the opening waves, so the player learns single enemies first.
+            burstSize = (1 + number / BURST_EVERY_WAVES).coerceAtMost(MAX_BURST),
+            shieldChance = designOf(index).shieldChance,
+            gunChance = designOf(index).gunChance,
+            eliteChance = designOf(index).eliteChance,
+        )
+    }
 
     /**
      * The stage's boss, as a wave of exactly one, so the generator reads one kind of answer. The
@@ -143,7 +157,7 @@ data class StageProgression(
         bossWaveOf((bossHitPoints * design.encoreVitality).toInt())
 
     private fun bossWaveOf(hitPointsBeforeDifficulty: Int) = EnemyWave(
-        index = bossWave,
+        index = wavesBefore + bossWave,
         enemyTypes = design.waves.last().species,
         hitPoints = scaled(hitPointsBeforeDifficulty, bossDifficulty),
         damage = scaled(bossDamage, bossDifficulty),
@@ -180,6 +194,16 @@ data class StageProgression(
     companion object {
         /** Waves between each extra enemy per spawn. */
         private const val BURST_EVERY_WAVES = 3
+
+        /**
+         * The most enemies a spawn sends at once, and the fastest a wave closes: past the boss of
+         * any stage, neither grows, however long the endless stage runs.
+         */
+        private const val MAX_BURST = 3
+        private const val MAX_SPEED_MULTIPLIER = 1.6f
+
+        /** The wave whose blows the endless stage's stop growing at: a stage's boss wave. */
+        private const val MAX_DAMAGE_WAVE = 5
 
         /** How far before the boss the escort is read, to land inside its last wave. */
         private const val ESCORT_LEAD_SECONDS = 1f
