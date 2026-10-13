@@ -44,8 +44,12 @@ enum class SoundEffect(val file: String, val volume: Float, val gapSeconds: Floa
     /** The bat taking a blow, just over the music: the one sound the player cannot miss. */
     BAT_HIT("batHit.wav", 0.7f),
 
-    /** The bat going down. Full volume: the stage's music has stopped for it. */
-    BAT_DEATH("deathSound.mp3", 1f),
+    /**
+     * The bat going down. Full volume, and the loudest thing in the game, about 6 dB over the music
+     * on a full-range speaker and 3 dB on a phone's: the stage's music has stopped for it, and the
+     * game over track starting under it is quieter still.
+     */
+    BAT_DEATH("batDeath.wav", 1f),
 
     /**
      * The stage's boss going down. Full volume and alone: the music stops dead for it, and the

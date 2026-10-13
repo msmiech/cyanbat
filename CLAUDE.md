@@ -687,14 +687,13 @@ browser and on iOS. There is no framebuffer bitmap.
 - CMP 1.12 does not copy those resources into the APK. The `StageComposeResources` task in
   `app/build.gradle.kts` works around that; without it the app crashes on the first
   `painterResource`.
-- The death sound is MP3, which the desktop decodes through the mp3spi/jlayer service providers. No
-  code references them; `Mp3DecodingTest` guards it.
 - Music is not MP3. The stages' stems and the menu's, game over's and victory's tracks are IMA ADPCM
   WAVs in `assets/music/`, decoded in common code (`ImaAdpcmClip`), because a platform MP3 decoder
   pads and trims a file's ends its own way: stems a few milliseconds apart flam on every drum hit,
   and a loop gets a gap. They are 22.05 kHz stereo, a quarter of their PCM size.
-- Generated sound effects are WAV: `javax.sound.sampled` reads PCM natively, and SoundPool can
-  `openFd` them uncompressed from the APK.
+- Sound effects are plain PCM WAVs, all generated: `javax.sound.sampled` reads PCM natively, and
+  SoundPool can `openFd` them uncompressed from the APK. `SoundEffectFilesTest` holds every
+  `SoundEffect` to that; an MP3 would need a decoder on the desktop again.
 - Every effect is a `SoundEffect` - its file, its volume, and the least gap between two plays of
   it - and a run plays them through its `SoundBoard`. The gap is what keeps a fan of hits landing on
   one tick from playing five times over: SoundPool would stack the copies, where a desktop
@@ -712,10 +711,10 @@ browser and on iOS. There is no framebuffer bitmap.
 
 **The art is generated.** `tools/generate_*.py`, built on `tools/pixelart.py`, produce every sprite
 sheet, background, obstacle, stage preview, the framed title, the app icons and the WAV effects;
-`tools/generate_*_music.py`, built on `tools/musicsynth.py`, produce all of the music. The death
-sound's MP3, `tools/title_lettering.png` and `tools/game_over_art.png` are the exceptions: the last
-two are hand-drawn sources, kept as they were drawn, which `generate_title.py` and
-`generate_game_over.py` make the title and `gameover.png` from.
+`tools/generate_*_music.py`, built on `tools/musicsynth.py`, produce all of the music.
+`tools/title_lettering.png` and `tools/game_over_art.png` are the exceptions: hand-drawn sources,
+kept as they were drawn, which `generate_title.py` and `generate_game_over.py` make the title and
+`gameover.png` from.
 
 - To change art, change the script and re-run it; never edit its output, the icons' vector XML
   included.

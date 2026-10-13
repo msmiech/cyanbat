@@ -22,6 +22,9 @@ the frost beam and the drop an elite leaves:
 * rockShatter.wav  - a spire breaking: a crack and then stone clattering down, with a chip of crystal
                      in it. No roar - the shatter sheet has no fire in it, and nor does this.
 * batHit.wav       - the bat taking a blow: a dull thump and a squeak.
+* batDeath.wav     - the bat going down, and the run with it: a heavy blow, and a chord that is all
+                     wrong, roaring and wavering, sinking and darkening, with a thin whine over it.
+                     In the game over track's key, which starts with it.
 * bossDeath.wav    - the boss going down: an enormous boom, a roar rolling on under it, and three
                      more blasts going off after it, at [AFTERSHOCKS], where the game lights its
                      wreck up again. They are over before the victory's fanfare comes in.
@@ -76,6 +79,19 @@ POWER_UP_STEP = 0.045
 # How narrow the breath's band is, as a state-variable filter's damping: low enough to whistle a
 # little as it rises, high enough to stay air.
 BREATH_DAMPING = 0.35
+
+# The bat's death chord, in the game over track's C Phrygian, which starts under it: its root, the
+# flat second the mode is named for and the tritone, as MIDI notes with their levels. Each is a pair
+# of saws [DEATH_DETUNE_CENTS] either side of its pitch, so the chord beats and churns.
+DEATH_CHORD = ((36, 1.0), (42, 0.7), (48, 0.5), (49, 0.6))
+DEATH_DETUNE_CENTS = 9
+# When the chord starts to sink, how far it falls by its end, in semitones, and how hard it is
+# driven: hard enough to roar, which is also what carries a chord this low through a phone.
+DEATH_SAG_FROM = 0.9
+DEATH_SAG = 1.0
+DEATH_DRIVE = 3.5
+# How hard the finished death sound is saturated as a whole; see [bat_death].
+DEATH_GLUE = 2.2
 
 # A glass note: how hard its overtones are driven in, at what inharmonic ratio to it, how fast they
 # melt away, how long it takes to bloom, and how far apart its two voices are tuned.
@@ -291,6 +307,86 @@ def bat_hit(rng) -> np.ndarray:
     env = np.clip(t / 0.008, 0, 1) * np.clip((0.11 - t) / 0.03, 0, 1)
     lay(out, squeak * env, 0.018, 0.4)
     return finish(out, release=0.03)
+
+
+def smoothstep(x: np.ndarray) -> np.ndarray:
+    """0 below 0, 1 above 1, and an S-curve between."""
+    x = np.clip(x, 0, 1)
+    return x * x * (3 - 2 * x)
+
+
+def saw_tone(freq: np.ndarray, top_hz: float = 9000) -> np.ndarray:
+    """A saw following [freq], one value a sample, built from the partials under [top_hz]: band
+    limited, so it never aliases, however it bends."""
+    phase = 2 * np.pi * np.cumsum(freq) / RENDER_RATE
+    out = np.zeros(freq.shape[0])
+    for k in range(1, int(top_hz / np.min(freq)) + 1):
+        out += np.sin(k * phase) / k * (freq * k < top_hz)
+    return out
+
+
+def bat_death(rng) -> np.ndarray:
+    """The bat going down, and the run with it: a heavy blow, and a chord that is all wrong.
+
+    The chord is the game over track's root with the two notes that sit worst on it, the flat
+    second and the tritone: a pair of detuned saws on each, driven until it roars, and wavering
+    as it holds. Then it sinks a semitone and darkens, as if whatever was running the game were
+    winding down, with a thin whine over it that sinks with it. A crunch of something digital
+    breaking up rides under the whole of it. All of it in a hall, like the boss's fall.
+
+    Louder and darker than the bat's hit, which it grows out of, and long enough to say the run is
+    over, but out of the way before the game over track's first bar is.
+    """
+    seconds = 2.8
+    out = silence(seconds)
+
+    # The blow: the bat's hit, heavier and lower.
+    lay(out, burst(rng, 0.05, (300, 6500), 0.012), 0, 0.8)
+    thud = boom(150, 36, 0.7, fall=0.2, drive=2.6)
+    lay(out, thud, 0, 1.0)
+    lay(out, presence(thud), 0, 0.3)
+
+    n = seconds_to_samples(seconds - 0.03)
+    t = np.arange(n) / RENDER_RATE
+    sag = 2 ** (-DEATH_SAG / 12 * smoothstep((t - DEATH_SAG_FROM) / (seconds - DEATH_SAG_FROM - 0.4)))
+
+    drone = np.zeros(n)
+    for midi, level in DEATH_CHORD:
+        for cents in (-DEATH_DETUNE_CENTS, DEATH_DETUNE_CENTS):
+            # Each voice drifts a little on its own, so the beating never settles into a pattern.
+            drift = 1 + 0.002 * np.sin(2 * np.pi * rng.uniform(0.3, 0.9) * t + rng.random() * 6.28)
+            drone += level * saw_tone(hz(midi + cents / 100) * sag * drift)
+    roar = np.tanh(DEATH_DRIVE * normalized(drone)) / np.tanh(DEATH_DRIVE)
+    # Darkening: from bright to a muffled hum as it sinks.
+    dark = smoothstep((t - 0.5) / 1.9)
+    roar = (one_shot_filter(roar, lowpass(3800)) * (1 - dark)
+            + one_shot_filter(roar, lowpass(700)) * dark)
+    waver = 1 + 0.2 * np.sin(2 * np.pi * (6.5 * t - 0.6 * t * t))
+    swell = np.clip(t / 0.05, 0, 1) * np.exp(-np.clip(t - DEATH_SAG_FROM, 0, None) / 0.6)
+    lay(out, roar * waver * swell, 0.03, 0.85)
+    # What a phone's speaker gets of it: its buzz, since the chord's weight is below its reach.
+    lay(out, presence(roar, drive=4.0) * waver * swell * (1 - 0.6 * dark), 0.03, 0.45)
+
+    # The crunch: the roar held in steps and cut to a few bits, as a machine's sound breaks up.
+    hold = 9
+    crushed = np.repeat(roar[::hold], hold)[:n]
+    crushed = np.round(crushed * 12) / 12
+    lay(out, one_shot_filter(crushed, highpass(900)) * swell * 0.5, 0.03, 0.25)
+
+    # The whine: high over the chord, on its flat second, quivering and sinking with it.
+    whine_freq = hz(85) * sag * (1 + 0.015 * np.sin(2 * np.pi * 7.5 * t))
+    whine_phase = 2 * np.pi * np.cumsum(whine_freq) / RENDER_RATE
+    whine = np.sin(whine_phase) + 0.2 * np.sin(2 * whine_phase)
+    whine *= smoothstep((t - 0.08) / 0.3) * np.exp(-np.clip(t - 0.4, 0, None) / 0.7)
+    lay(out, whine, 0.03, 0.22)
+
+    room = reverb_ir(2.0, rng, predelay=0.03, brightness=0.25, early=6, early_spread=0.08)[0]
+    wet = signal.fftconvolve(out, room)[:out.shape[0]]
+    out = out + 0.25 * normalized(wet) * np.max(np.abs(out))
+    # Louder than its peak would let it be: the rumble under anything a speaker plays taken out,
+    # and the blow's peak rounded off into the roar, so the chord holds up close to the blow.
+    out = np.tanh(DEATH_GLUE * normalized(one_shot_filter(out, highpass(45)))) / np.tanh(DEATH_GLUE)
+    return finish(out, release=0.5)
 
 
 def frost_beam(rng) -> np.ndarray:
@@ -535,6 +631,7 @@ EFFECTS = {
     "viperScreech.wav": (viper_screech, 10),
     "venomBite.wav": (venom_bite, 11),
     "thunder.wav": (thunder, 12),
+    "batDeath.wav": (bat_death, 13),
 }
 
 SEED = 20261001

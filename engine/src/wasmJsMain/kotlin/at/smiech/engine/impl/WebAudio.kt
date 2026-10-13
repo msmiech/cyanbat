@@ -19,8 +19,8 @@ import org.khronos.webgl.toByteArray
 /**
  * [Audio] in a browser, on the Web Audio API, through the page's [device].
  *
- * Effects are decoded by the browser from the files [assets] preloaded, the death sound's MP3
- * included, and are silent for the moment that takes. Music is decoded by the shared [StemMixer],
+ * Effects are decoded by the browser from the files [assets] preloaded, and are silent for the
+ * moment that takes. Music is decoded by the shared [StemMixer],
  * as on every platform, and played by [WebLayeredMusic]; its files are fetched as each piece is
  * made, so a piece is a [PendingMusic] or a [PendingLayeredMusic] until they arrive.
  *

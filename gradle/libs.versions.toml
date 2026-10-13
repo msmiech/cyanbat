@@ -16,9 +16,6 @@ composeMultiplatformMaterial3 = "1.9.0"
 kotlinxCoroutines = "1.11.0"
 # The browser's DOM for Kotlin/Wasm, which no longer comes with the standard library.
 kotlinxBrowser = "0.5.0"
-mp3spi = "1.9.5.4"
-jlayer = "1.0.1.4"
-tritonusShare = "0.3.7.4"
 android-compileSdk = "37"
 android-minSdk = "26"
 android-targetSdk = "37"
@@ -46,9 +43,6 @@ kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-t
 kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinxBrowser" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
-mp3spi = { module = "com.googlecode.soundlibs:mp3spi", version.ref = "mp3spi" }
-jlayer = { module = "com.googlecode.soundlibs:jlayer", version.ref = "jlayer" }
-tritonus-share = { module = "com.googlecode.soundlibs:tritonus-share", version.ref = "tritonusShare" }
 
 [plugins]
 androidApplication = { id = "com.android.application", version.ref = "agp" }

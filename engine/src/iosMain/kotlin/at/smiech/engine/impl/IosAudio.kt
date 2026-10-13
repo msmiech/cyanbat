@@ -10,8 +10,8 @@ import platform.AVFAudio.AVAudioPlayer
 import platform.Foundation.NSData
 
 /**
- * iOS [Audio]: effects through AVAudioPlayer, which decodes WAV and the death sound's MP3 alike,
- * and music decoded by the shared [StemMixer] and played on the app's one engine
+ * iOS [Audio]: effects through AVAudioPlayer, which plays their WAVs as they are, and music decoded
+ * by the shared [StemMixer] and played on the app's one engine
  * ([IosAudioDevice]); see [Audio.newMusic] and [Audio.newLayeredMusic].
  */
 class IosAudio(
