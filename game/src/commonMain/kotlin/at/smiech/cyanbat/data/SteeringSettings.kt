@@ -13,6 +13,9 @@ import kotlin.concurrent.Volatile
 interface SteeringSettings {
     val touchSteering: TouchSteering
 
+    /** How far the stick has to be pushed, when [touchSteering] is the stick. */
+    val stickSensitivity: StickSensitivity get() = StickSensitivity.DEFAULT
+
     companion object {
         /** For hosts with no touch screen, and no settings store of their own. */
         val Default: SteeringSettings = object : SteeringSettings {
@@ -23,8 +26,9 @@ interface SteeringSettings {
 
 /**
  * [SteeringSettings] kept current by collecting a [SettingsRepository], as [ObservedAudioSettings]
- * keeps the sound's. [TouchSteering.DEFAULT] until the first value arrives, and while the player
- * has not chosen; a run reads it every tick, so it takes up the stored choice a frame or two in.
+ * keeps the sound's. The defaults until the first values arrive, and [TouchSteering.DEFAULT] while
+ * the player has not chosen; a run reads it every tick, so it takes up the stored choice a frame or
+ * two in.
  *
  * @param scope canceled by the host when the game goes away.
  */
@@ -37,9 +41,14 @@ class ObservedSteeringSettings(
     override var touchSteering: TouchSteering = TouchSteering.DEFAULT
         private set
 
+    @Volatile
+    override var stickSensitivity: StickSensitivity = StickSensitivity.DEFAULT
+        private set
+
     init {
         scope.launch {
             repository.touchSteering.collect { touchSteering = it ?: TouchSteering.DEFAULT }
         }
+        scope.launch { repository.stickSensitivity.collect { stickSensitivity = it } }
     }
 }

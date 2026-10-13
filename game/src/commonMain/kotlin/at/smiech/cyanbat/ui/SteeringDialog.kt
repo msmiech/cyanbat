@@ -48,8 +48,8 @@ import org.jetbrains.compose.resources.stringResource
 private const val PREVIEW_ASPECT = 2f
 
 /**
- * Asks how a finger is to fly the bat - dragging it, or a stick drawn at the bottom left - before
- * the first run on a touch screen. Each choice is a picture of a hand flying the bat that way, with
+ * Asks how a finger is to fly the bat - dragging it, or a stick that comes up under the thumb -
+ * before the first run on a touch screen. Each choice is a picture of a hand flying the bat that way, with
  * what it means under it. The cursor starts on [home].
  *
  * Worked like the difficulty's: the arrows move between the choices, Enter takes one, and Escape or

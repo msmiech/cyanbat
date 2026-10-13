@@ -164,7 +164,7 @@ harmless until they thaw - though never a boss or an elite.
 |            | Move                                   | Pause / resume  | Quit to menu |
 |------------|----------------------------------------|-----------------|--------------|
 | Touch      | Drag the bat, or tap where you want it | — (tap resumes) | Back, twice  |
-| Touch      | Or the stick at the bottom left        | — (tap resumes) | Back, twice  |
+| Touch      | Or a stick wherever your thumb goes    | — (tap resumes) | Back, twice  |
 | iOS touch  | As on Android                          | ⏸ at top right  | Pause screen |
 | Keyboard   | `WASD` or the arrow keys               | `Q`             | `Q`, twice   |
 | Controller | Left stick or d-pad                    | `Start`         | `B`          |
@@ -174,9 +174,11 @@ out from under the fingertip; the hit box is padded well past the sprite so it i
 aiming. A touch landing away from the bat flies it over instead, which is how the game played before
 it was draggable. Holding a key or pushing a stick overrides a drag for as long as it lasts.
 
-On a touch screen the game asks before your first run whether to drag the bat or fly it with a stick
-drawn at the bottom left, which keeps your thumb off the bat; Settings → On-screen stick changes it.
-The stick is analog, half pushed is half speed, and a thumb put down beside it brings it to the thumb.
+On a touch screen the game asks before your first run whether to drag the bat or fly it with a
+stick, which keeps your thumb off the bat; Settings → On-screen stick changes it. There is no stick
+on the screen until you touch it: wherever your thumb goes down, a stick comes up under it, and
+lifting the thumb takes it away. It is analog, half pushed is half speed, and Settings → Stick
+sensitivity sets how far it has to be pushed for full speed.
 
 An iPhone or iPad has no Back, so there a run draws a pause button at the top right, and the pause
 screen a button back to the menu.

@@ -28,9 +28,9 @@ import kotlin.math.sqrt
  * names a place to be and the other a direction to go. Releasing them hands control back to the
  * next pointer event, so a mouse takes over as soon as it moves again.
  *
- * While the [stick] drawn on the screen is enabled, touches steer through it instead, and nothing
- * drags the bat: a thumb on the stick is a pad's stick, and a finger anywhere else is ignored. Keys
- * and a pad still beat it.
+ * While the [stick] is enabled, touches steer through it instead, and nothing drags the bat: the
+ * first finger put down, anywhere, is the stick's thumb, read as a pad's stick, and every other
+ * finger is ignored. Keys and a pad still beat it.
  *
  * A finger put down on one of the [buttons] drawn over the run, such as a pause button, is the
  * button's: it neither drags the bat nor takes the stick.

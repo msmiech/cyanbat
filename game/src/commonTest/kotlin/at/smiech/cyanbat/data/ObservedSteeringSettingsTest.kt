@@ -5,6 +5,7 @@ import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class ObservedSteeringSettingsTest {
@@ -41,6 +42,30 @@ class ObservedSteeringSettingsTest {
         // Deliberately no runCurrent: the collector has not been dispatched yet.
 
         assertEquals(TouchSteering.DRAG, settings.touchSteering)
+    }
+
+    @Test
+    fun `follows the stick's sensitivity and is medium until it arrives`() = runTest {
+        val repository = FakeSettingsRepository()
+        repository.sensitivity.value = StickSensitivity.LOW
+
+        val settings = ObservedSteeringSettings(repository, backgroundScope)
+        assertEquals(StickSensitivity.MEDIUM, settings.stickSensitivity)
+        runCurrent()
+        assertEquals(StickSensitivity.LOW, settings.stickSensitivity)
+
+        repository.setStickSensitivity(StickSensitivity.HIGH)
+        runCurrent()
+        assertEquals(StickSensitivity.HIGH, settings.stickSensitivity)
+    }
+
+    /** Medium, the default, asks for more of a push than the stick first did, which was High. */
+    @Test
+    fun `the less sensitive the further the push`() {
+        assertEquals(StickSensitivity.MEDIUM, StickSensitivity.DEFAULT)
+        assertTrue(StickSensitivity.LOW.radius > StickSensitivity.MEDIUM.radius)
+        assertTrue(StickSensitivity.MEDIUM.radius > StickSensitivity.HIGH.radius)
+        assertEquals(StickSensitivity.MEDIUM, StickSensitivity.fromName("TWITCHY"))
     }
 
     @Test

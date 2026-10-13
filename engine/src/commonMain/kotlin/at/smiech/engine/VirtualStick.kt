@@ -4,26 +4,25 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 /**
- * An analog stick drawn on a touch screen: one thumb on it is read as a deflection, the way a game
- * pad's stick is, for a player who would rather steer the bat than drag it.
+ * An analog stick on a touch screen that is not there until a thumb is: wherever a thumb is put
+ * down becomes its center, and moving the thumb from there is read as a deflection, the way a game
+ * pad's stick is, for a player who would rather steer the bat than drag it. Letting go takes it
+ * away again.
  *
- * It rests at [homeX], [homeY]. A thumb put down on it, within [radius] of its center, pushes it
- * from there, so a thumb put down at its rim moves the bat at once. A thumb put down anywhere else
- * in its zone - left of `zoneRight` and below `zoneTop`, which takes in the bars beside and below
- * the frame - brings the stick to the thumb instead, and it starts at rest there: a thumb is rarely
- * put down exactly where the stick is drawn. Letting go sends it home.
+ * Starting where the thumb lands, the stick always starts at rest under it, and the player never
+ * has to look for it: nothing is drawn, and nothing is in the way, until the thumb is down.
  *
  * It holds one thumb and ignores every other finger, as the drag does. Positions are in frame
  * pixels. Not synchronized, for the same reason as the touch handler: it is fed and read on the
  * game loop's thread.
  */
 class VirtualStick(
-    val homeX: Float,
-    val homeY: Float,
-    /** How far the thumb has to move from the center for full speed, and how far the knob goes. */
-    val radius: Float,
-    private val zoneRight: Float,
-    private val zoneTop: Float,
+    /**
+     * How far the thumb has to move from the center for full speed, and how far the knob goes: the
+     * further, the less sensitive. A host may change it between updates, as the player's setting
+     * arrives.
+     */
+    var radius: Float,
 ) {
     /**
      * Whether the stick steers at all. Off, it holds nothing and reads nothing, and the bat is
@@ -39,19 +38,19 @@ class VirtualStick(
     var pointer: Int = NO_POINTER
         private set
 
-    /** Whether a thumb is on the stick. */
+    /** Whether a thumb is on the stick, and so whether there is a stick to see. */
     val held: Boolean get() = pointer != NO_POINTER
 
-    /** Where the stick's center is: home, or wherever it came to the thumb. */
-    var centerX: Float = homeX
+    /** Where the thumb was put down, the stick's center while it is [held]. */
+    var centerX: Float = 0f
         private set
-    var centerY: Float = homeY
+    var centerY: Float = 0f
         private set
 
     /** Where the knob is, under the thumb, and never further from the center than [radius]. */
-    var knobX: Float = homeX
+    var knobX: Float = 0f
         private set
-    var knobY: Float = homeY
+    var knobY: Float = 0f
         private set
 
     /** The deflection, -1 hard left to +1 hard right, as [Controls.moveX]. */
@@ -81,10 +80,11 @@ class VirtualStick(
                     if (event.pointer == pointer) release()
                     continue
                 }
-                // A drag claims it as well as a touch, so a thumb put down just outside the zone
-                // can slide in and take it. Only a pointer that is down, though: a mouse reports
-                // motion with no button held, and hovering over the stick is not holding it.
-                if (!held && input.isTouchDown(event.pointer) && inZone(event.x, event.y)) {
+                // A drag claims it as well as a touch, so a finger already down when an overlay
+                // closed, which read its touch, takes the stick as soon as it moves. Only a pointer
+                // that is down, though: a mouse reports motion with no button held, and hovering
+                // is not holding.
+                if (!held && input.isTouchDown(event.pointer)) {
                     grab(event.pointer, event.x.toFloat(), event.y.toFloat())
                 }
             }
@@ -92,30 +92,19 @@ class VirtualStick(
         if (held) follow(input.getTouchX(pointer).toFloat(), input.getTouchY(pointer).toFloat())
     }
 
-    /** Lets go of the thumb, if one is on it, and sends the stick home. */
+    /** Lets go of the thumb, if one is on it, which takes the stick away. */
     fun release() {
         pointer = NO_POINTER
-        centerX = homeX
-        centerY = homeY
-        knobX = homeX
-        knobY = homeY
+        knobX = centerX
+        knobY = centerY
         moveX = 0f
         moveY = 0f
     }
 
-    private fun inZone(x: Int, y: Int) = x < zoneRight && y > zoneTop
-
     private fun grab(pointer: Int, x: Float, y: Float) {
         this.pointer = pointer
-        val dx = x - homeX
-        val dy = y - homeY
-        if (dx * dx + dy * dy <= radius * radius) {
-            centerX = homeX
-            centerY = homeY
-        } else {
-            centerX = x
-            centerY = y
-        }
+        centerX = x
+        centerY = y
     }
 
     /**

@@ -3,6 +3,7 @@ package at.smiech.cyanbat.ui.game
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.ScoreTracker
+import at.smiech.cyanbat.data.StickSensitivity
 import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.ecs.BackgroundScrollingSystem
 import at.smiech.cyanbat.ecs.BossPartComponent
@@ -139,17 +140,11 @@ import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
 import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
 import at.smiech.cyanbat.util.STICK_BASE_COLOR
-import at.smiech.cyanbat.util.STICK_HOME_X
-import at.smiech.cyanbat.util.STICK_HOME_Y
-import at.smiech.cyanbat.util.STICK_KNOB_COLOR
 import at.smiech.cyanbat.util.STICK_KNOB_HELD_COLOR
 import at.smiech.cyanbat.util.STICK_KNOB_RADIUS
-import at.smiech.cyanbat.util.STICK_RADIUS
 import at.smiech.cyanbat.util.STICK_RIM_COLOR
 import at.smiech.cyanbat.util.STICK_RIM_HELD_COLOR
 import at.smiech.cyanbat.util.STICK_SHADOW_COLOR
-import at.smiech.cyanbat.util.STICK_ZONE_RIGHT
-import at.smiech.cyanbat.util.STICK_ZONE_TOP
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_HEIGHT_FRACTION
 import at.smiech.cyanbat.util.TRAIL_SEGMENT_WIDTH_FRACTION
@@ -474,17 +469,11 @@ class GameScreen(
     private val overlayTaps = TapDetector()
 
     /**
-     * The stick drawn at the bottom left, for a player who flies by it rather than dragging the
-     * bat. Switched on and off by the setting, read at every update; see
-     * [CyanBatEnvironment.steeringSettings].
+     * The stick a thumb puts down wherever it touches, for a player who flies by it rather than
+     * dragging the bat. Switched on and off, and sized to the player's sensitivity, by the settings,
+     * read at every update; see [CyanBatEnvironment.steeringSettings].
      */
-    private val stick = VirtualStick(
-        homeX = STICK_HOME_X.toFloat(),
-        homeY = STICK_HOME_Y.toFloat(),
-        radius = STICK_RADIUS.toFloat(),
-        zoneRight = STICK_ZONE_RIGHT.toFloat(),
-        zoneTop = STICK_ZONE_TOP.toFloat(),
-    )
+    private val stick = VirtualStick(radius = StickSensitivity.DEFAULT.radius)
 
     /**
      * The pause button at the top right, for a platform with no Back to pause with; see
@@ -1655,6 +1644,7 @@ class GameScreen(
     override fun update(deltaTime: Float) {
         // Every update, since a host's store can answer a frame or two into the run.
         stick.enabled = env.steeringSettings.touchSteering == TouchSteering.STICK
+        stick.radius = env.steeringSettings.stickSensitivity.radius
         // Ahead of every early return: the music plays on, muffled, under the level-up dialog.
         steerMusic(deltaTime)
         // The sound effects' clock; it may run through a pause, since nothing plays then.
@@ -2447,32 +2437,27 @@ class GameScreen(
     }
 
     /**
-     * The stick on the screen, for a player who flies by it: a dark disc ringed in light where the
-     * thumb goes, and the knob where the thumb is. See-through, since the bat flies under it, and
-     * cool, as everything of the player's is; brighter while a thumb is on it. Gone once the bat is
-     * down, with nothing left to fly.
+     * The stick, while a thumb holds it: a dark disc ringed in light round where the thumb went
+     * down, as wide as the player's sensitivity makes it, and the knob where the thumb is now.
+     * See-through, since the bat flies under it, and cool, as everything of the player's is. Nothing
+     * at all while no thumb is down, so it is never in the way; and gone once the bat is down, with
+     * nothing left to fly.
      *
      * The disc is ringed in dark as well as light, so it reads on the desert's pale noon sky and in
      * the cave's dark alike.
      */
     private fun drawStick() {
-        if (!stick.enabled) return
+        if (!stick.held) return
         if (world.getComponent(batId, HealthComponent::class)?.alive != true) return
-        val held = stick.held
-        circle(stick.centerX, stick.centerY, STICK_RADIUS, STICK_BASE_COLOR, STICK_SHADOW_COLOR)
-        circle(
-            stick.centerX,
-            stick.centerY,
-            STICK_RADIUS - 1,
-            null,
-            if (held) STICK_RIM_HELD_COLOR else STICK_RIM_COLOR,
-        )
+        val radius = stick.radius.roundToInt()
+        circle(stick.centerX, stick.centerY, radius, STICK_BASE_COLOR, STICK_SHADOW_COLOR)
+        circle(stick.centerX, stick.centerY, radius - 1, null, STICK_RIM_HELD_COLOR)
         circle(
             stick.knobX,
             stick.knobY,
             STICK_KNOB_RADIUS,
-            if (held) STICK_KNOB_HELD_COLOR else STICK_KNOB_COLOR,
-            if (held) STICK_RIM_HELD_COLOR else STICK_RIM_COLOR,
+            STICK_KNOB_HELD_COLOR,
+            STICK_RIM_HELD_COLOR,
         )
     }
 

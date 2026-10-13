@@ -3,6 +3,7 @@ package at.smiech.cyanbat.desktop
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
+import at.smiech.cyanbat.data.StickSensitivity
 import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
@@ -50,6 +51,8 @@ class PreferencesSettingsRepository(
         MutableStateFlow(Difficulty.fromName(prefs.get(KEY_DIFFICULTY, null)))
     private val steering =
         MutableStateFlow(TouchSteering.fromName(prefs.get(KEY_TOUCH_STEERING, null)))
+    private val sensitivity =
+        MutableStateFlow(StickSensitivity.fromName(prefs.get(KEY_STICK_SENSITIVITY, null)))
 
     override val isMusicEnabled: Flow<Boolean> = music.asStateFlow()
     override val isSoundEnabled: Flow<Boolean> = sound.asStateFlow()
@@ -71,6 +74,7 @@ class PreferencesSettingsRepository(
     override val language: Flow<AppLanguage> = chosenLanguage.asStateFlow()
     override val difficulty: Flow<Difficulty> = lastDifficulty.asStateFlow()
     override val touchSteering: Flow<TouchSteering?> = steering.asStateFlow()
+    override val stickSensitivity: Flow<StickSensitivity> = sensitivity.asStateFlow()
 
     init {
         DesktopLocale.apply(chosenLanguage.value)
@@ -124,6 +128,11 @@ class PreferencesSettingsRepository(
         this.steering.value = steering
     }
 
+    override suspend fun setStickSensitivity(sensitivity: StickSensitivity) {
+        prefs.put(KEY_STICK_SENSITIVITY, sensitivity.name)
+        this.sensitivity.value = sensitivity
+    }
+
     private companion object {
         const val KEY_MUSIC = "music_enabled"
         const val KEY_SOUND = "sound_enabled"
@@ -135,5 +144,6 @@ class PreferencesSettingsRepository(
         const val KEY_LANGUAGE = "language"
         const val KEY_DIFFICULTY = "difficulty"
         const val KEY_TOUCH_STEERING = "touch_steering"
+        const val KEY_STICK_SENSITIVITY = "stick_sensitivity"
     }
 }

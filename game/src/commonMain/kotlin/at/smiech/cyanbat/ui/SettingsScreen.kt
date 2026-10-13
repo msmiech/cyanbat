@@ -36,6 +36,7 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.data.AppLanguage
+import at.smiech.cyanbat.data.StickSensitivity
 import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
@@ -55,6 +56,7 @@ import at.smiech.cyanbat.resources.settings_language_system
 import at.smiech.cyanbat.resources.settings_language_title
 import at.smiech.cyanbat.resources.settings_music_title
 import at.smiech.cyanbat.resources.settings_sound_title
+import at.smiech.cyanbat.resources.settings_stick_sensitivity_title
 import at.smiech.cyanbat.resources.settings_stick_title
 import at.smiech.cyanbat.resources.settings_theme_dark
 import at.smiech.cyanbat.resources.settings_theme_light
@@ -83,6 +85,7 @@ fun SettingsScreen(
     val themeMode by viewModel.themeMode.collectAsState()
     val language by viewModel.language.collectAsState()
     val touchSteering by viewModel.touchSteering.collectAsState()
+    val stickSensitivity by viewModel.stickSensitivity.collectAsState()
     SettingsContent(
         musicEnabled = musicEnabled,
         soundEnabled = soundEnabled,
@@ -90,6 +93,10 @@ fun SettingsScreen(
         vibrationEnabled = vibrationEnabled.takeIf { canVibrate },
         // And the choice, on one with no touch screen to steer on.
         touchSteering = touchSteering.takeIf { touchScreen },
+        // And the stick's sensitivity, unless the stick is on.
+        stickSensitivity = stickSensitivity.takeIf {
+            touchScreen && touchSteering == TouchSteering.STICK
+        },
         themeMode = themeMode,
         language = language,
         displayMode = displayMode,
@@ -98,6 +105,7 @@ fun SettingsScreen(
         onSoundEnabledChanged = viewModel::setSoundEnabled,
         onVibrationEnabledChanged = viewModel::setVibrationEnabled,
         onTouchSteeringChanged = viewModel::setTouchSteering,
+        onStickSensitivityChanged = viewModel::setStickSensitivity,
         onThemeModeChanged = viewModel::setThemeMode,
         onLanguageChanged = viewModel::setLanguage,
         onDisplayModeChanged = viewModel::setDisplayMode,
@@ -120,6 +128,7 @@ private fun SettingsContent(
     soundEnabled: Boolean,
     vibrationEnabled: Boolean?,
     touchSteering: TouchSteering?,
+    stickSensitivity: StickSensitivity?,
     themeMode: ThemeMode,
     language: AppLanguage,
     displayMode: DisplayMode,
@@ -128,6 +137,7 @@ private fun SettingsContent(
     onSoundEnabledChanged: (Boolean) -> Unit,
     onVibrationEnabledChanged: (Boolean) -> Unit,
     onTouchSteeringChanged: (TouchSteering) -> Unit,
+    onStickSensitivityChanged: (StickSensitivity) -> Unit,
     onThemeModeChanged: (ThemeMode) -> Unit,
     onLanguageChanged: (AppLanguage) -> Unit,
     onDisplayModeChanged: (DisplayMode) -> Unit,
@@ -182,6 +192,15 @@ private fun SettingsContent(
                         onTouchSteeringChanged(if (on) TouchSteering.STICK else TouchSteering.DRAG)
                     },
                 )
+            }
+            if (stickSensitivity != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                ChoiceRow(
+                    stringResource(Res.string.settings_stick_sensitivity_title),
+                    StickSensitivity.entries,
+                    stickSensitivity,
+                    onStickSensitivityChanged,
+                ) { stringResource(it.label) }
             }
             Spacer(modifier = Modifier.height(8.dp))
             ChoiceRow(
@@ -262,10 +281,10 @@ private fun SettingRow(
 }
 
 /**
- * A choice of a few short words - the menu's theme, the game's language, the desktop's window - as
- * one row of segments beside its label, in line with the switches: short words need no hints, and
- * radio rows like the display's would push those below the fold on a landscape phone. Each segment
- * takes the cursor on its own, and the arrows walk along them.
+ * A choice of a few short words - the stick's sensitivity, the menu's theme, the game's language,
+ * the desktop's window - as one row of segments beside its label, in line with the switches: short
+ * words need no hints, and radio rows like the display's would push those below the fold on a
+ * landscape phone. Each segment takes the cursor on its own, and the arrows walk along them.
  */
 @Composable
 private fun <T> ChoiceRow(

@@ -47,13 +47,13 @@
     <string name="steering_drag">Ziehen</string>
     <string name="steering_drag_description">Tippe irgendwohin, und CyanBat fliegt dorthin und folgt dann deinem Finger, wohin du ihn ziehst.</string>
     <string name="steering_stick">Stick</string>
-    <string name="steering_stick_description">Drück den Stick unten links in die Richtung, in die CyanBat fliegen soll. Dein Finger verdeckt die Fledermaus nicht.</string>
+    <string name="steering_stick_description">Setz den Daumen irgendwo auf und schieb ihn in die Richtung, in die CyanBat fliegen soll: Unter ihm erscheint ein Stick. Dein Finger verdeckt die Fledermaus nicht.</string>
 
     <string name="dialog_help_title">Hilfe</string>
-    <string name="dialog_help_controls_touch">• Fliegen: Ziehe CyanBat mit dem Finger, oder drück den Stick unten links, wenn du ihn in den Einstellungen gewählt hast. Tastatur oder Controller gehen auch.\n• Pause: Wische oder drücke Zurück. Noch einmal Zurück führt ins Menü.</string>
+    <string name="dialog_help_controls_touch">• Fliegen: Ziehe CyanBat mit dem Finger, oder, wenn du in den Einstellungen den Stick gewählt hast, setz den Daumen irgendwo auf und schieb ihn in die Richtung. Tastatur oder Controller gehen auch.\n• Pause: Wische oder drücke Zurück. Noch einmal Zurück führt ins Menü.</string>
     <string name="dialog_help_controls_desktop">• Fliegen: Ziehe CyanBat mit der Maus oder nimm die Pfeiltasten oder WASD.\n• Pause: Q. Noch einmal Q führt ins Menü.\n• Vollbild: F11 oder Alt+Enter.</string>
-    <string name="dialog_help_controls_web">• Fliegen: Ziehe CyanBat mit der Maus oder dem Finger oder nimm die Pfeiltasten oder WASD. Auf einem Touchscreen gibt es in den Einstellungen stattdessen einen Stick unten links.\n• Pause: Q. Noch einmal Q führt ins Menü.</string>
-    <string name="dialog_help_controls_ios">• Fliegen: Ziehe CyanBat mit dem Finger, oder drück den Stick unten links, wenn du ihn in den Einstellungen gewählt hast. Eine Tastatur geht auch.\n• Pause: Tippe auf den Knopf oben rechts oder drücke Q. Vom Pausenbildschirm geht es zurück ins Menü.</string>
+    <string name="dialog_help_controls_web">• Fliegen: Ziehe CyanBat mit der Maus oder dem Finger oder nimm die Pfeiltasten oder WASD. Auf einem Touchscreen gibt es in den Einstellungen stattdessen einen Stick: Daumen irgendwo aufsetzen und schieben.\n• Pause: Q. Noch einmal Q führt ins Menü.</string>
+    <string name="dialog_help_controls_ios">• Fliegen: Ziehe CyanBat mit dem Finger, oder, wenn du in den Einstellungen den Stick gewählt hast, setz den Daumen irgendwo auf und schieb ihn in die Richtung. Eine Tastatur geht auch.\n• Pause: Tippe auf den Knopf oben rechts oder drücke Q. Vom Pausenbildschirm geht es zurück ins Menü.</string>
     <string name="dialog_help_text">• Schießen: CyanBat feuert von selbst. Schieß auf Gegner und Hindernisse und berühre weder sie noch ihre Schüsse.\n• Gesundheit: Jeder Treffer leert den Balken unter der Fledermaus. Ist er leer, ist die Runde vorbei.\n• Punkte: Punkte gibt es fürs Überleben und für Abschüsse. Abschüsse in Folge erhöhen den Multiplikator, ein Treffer setzt ihn zurück.\n• Stufenaufstieg: Abschüsse bringen Erfahrung. Mit jeder neuen Stufe wählst du eins von drei Power-ups.\n• Wellen: Jede Minute kommt eine stärkere Welle. Nach der fünften erscheint der Boss. Besiege ihn, um den Abschnitt mit einem großen Bonus abzuschließen.\n• Schwierigkeitsgrad: Wähle zu Beginn eines Abschnitts Leicht, Normal oder Schwer. Ein leichterer schickt weniger Gegner, bringt mehr Erfahrung und gibt dir eine Fledermaus, die mehr Treffer einsteckt, härter trifft und mit Power-ups beginnt. Die Sterne auf jedem Abschnitt zeigen den schwersten Grad, auf dem du ihn geschafft hast: einer für Leicht, drei für Schwer.
 • Abschnitte: Im Dschungel schwärmen Gegner aus, fliegen in Formation, schießen zurück und verstecken sich hinter Schilden. Der erste Schuss auf einen Schild bringt ihn zum Platzen. Der geschaffte Dschungel öffnet die Höhle, durch die du im Dunkeln nur im Licht der Fledermaus fliegst und wo sich der Boss zwischen seinen Hinterhalten im Dunkeln versteckt. Die geschaffte Höhle öffnet die Wüste, durch die du vom Mittag in die Nacht fliegst, wo Dinge aus dem Sand springen und Skarabäenpanzer nachwachsen, wenn man sie in Ruhe lässt. Die geschaffte Wüste öffnet die Lagune, durch die du von der Nacht in den Mittag fliegst, wo Haie von hinten an der Wasserlinie entlangkommen und Kugelfische Stachelringe werfen. Jeder Abschnitt beginnt von vorn: Punkte, Stufe und Power-ups fangen neu an.
 • Endlosmodus: Die geschaffte Lagune öffnet ihn. Runden aus Wellen aller Abschnitte, jede mit einem Boss aus einem von ihnen, über ein Land, das sich immer wieder wandelt, bei Tag und bei Nacht, in Regen, Schnee und Asche. Er endet nie, und jede Welle ist härter als die vorige: Schau, wie weit du kommst.</string>
@@ -62,6 +62,10 @@
     <string name="settings_sound_title">Soundeffekte</string>
     <string name="settings_vibration_title">Vibration</string>
     <string name="settings_stick_title">Stick auf dem Bildschirm</string>
+    <string name="settings_stick_sensitivity_title">Empfindlichkeit des Sticks</string>
+    <string name="stick_sensitivity_low">Niedrig</string>
+    <string name="stick_sensitivity_medium">Mittel</string>
+    <string name="stick_sensitivity_high">Hoch</string>
     <string name="settings_theme_title">Design</string>
     <string name="settings_theme_system">System</string>
     <string name="settings_theme_dark">Dunkel</string>
