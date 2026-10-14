@@ -229,6 +229,14 @@ Center; answer there or fix and upload a new build.
 4. Bump `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `iosApp/Configuration/Config.xcconfig`
    in the "Stamp untagged builds" PR, next to `cyanbat.version`.
 
+## The unsigned IPA on GitHub releases
+
+The Release workflow's `ios` job builds the app for devices, unsigned, with `iosApp/build_ipa.sh`,
+and attaches it to the GitHub release as `cyanBat-release-X.Y-ios-arm64.ipa`, beside the APK and the
+desktop installers. It is for sideloading, not the App Store: AltStore, SideStore or Sideloadly sign
+it with the player's own Apple ID as they install it (a free account's signature lasts seven days).
+Nothing in it differs from the App Store build but the signature.
+
 ## Later: uploading from CI
 
 The release workflow could upload too, from a `macos-latest` job running `iosApp/archive.sh` with

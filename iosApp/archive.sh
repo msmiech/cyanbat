@@ -17,17 +17,10 @@
 # ASC_KEY_ID and ASC_ISSUER_ID are set, as on a build machine.
 set -euo pipefail
 
-version="${1:?usage: iosApp/archive.sh <version> [build number]}"
-version="${version#v}"
-core="${version%%-*}"
-IFS=. read -r major minor patch <<< "$core"
-patch="${patch:-0}"
-if ! [[ "$major" =~ ^[0-9]+$ && "$minor" =~ ^[0-9]+$ && "$patch" =~ ^[0-9]+$ ]]; then
-  echo "'$version' is not major.minor[.patch][-suffix]" >&2
-  exit 1
-fi
-# As the root build derives Android's versionCode, so the two stores' numbers agree.
-build="${2:-$((major * 10000 + minor * 100 + patch))}"
+# shellcheck source=versions.sh
+source "$(dirname "$0")/versions.sh"
+parse_version "${1:?usage: iosApp/archive.sh <version> [build number]}"
+build="${2:-$build_number}"
 
 auth=()
 if [ -n "${ASC_KEY_PATH:-}" ]; then
@@ -42,8 +35,8 @@ xcodebuild archive \
   -project CyanBat.xcodeproj -scheme CyanBat -configuration Release \
   -destination 'generic/platform=iOS' -archivePath build/CyanBat.xcarchive \
   -allowProvisioningUpdates ${auth[@]+"${auth[@]}"} \
-  MARKETING_VERSION="$major.$minor.$patch" CURRENT_PROJECT_VERSION="$build"
+  MARKETING_VERSION="$marketing_version" CURRENT_PROJECT_VERSION="$build"
 xcodebuild -exportArchive \
   -archivePath build/CyanBat.xcarchive -exportOptionsPlist ExportOptions.plist \
   -exportPath build/export -allowProvisioningUpdates ${auth[@]+"${auth[@]}"}
-echo "Uploaded CyanBat $major.$minor.$patch ($build) to App Store Connect."
+echo "Uploaded CyanBat $marketing_version ($build) to App Store Connect."

@@ -794,10 +794,12 @@ kept as they were drawn, which `generate_title.py` and `generate_game_over.py` m
     - Every artifact's version comes from `cyanbat.version` in `gradle.properties`. The root build
       derives `versionCode` as `major * 10000 + minor * 100 + patch`.
     - Pushing a bare tag (`git tag 2.4 && git push origin 2.4`) makes the Release workflow build and
-      publish the APK and the desktop installers. A `-rcN` suffix publishes a pre-release. Running
+      publish the APK, the desktop installers and an unsigned iOS `.ipa` for sideloading
+      (`iosApp/build_ipa.sh`). A `-rcN` suffix publishes a pre-release. Running
       the workflow by hand is a rehearsal that publishes nothing.
     - Keep `cyanbat.version` in step with the newest tag, through a `chore/bump-version-X.Y` PR
       titled "Stamp untagged builds X.Y". The same PR bumps the iOS app's `MARKETING_VERSION` and
       `CURRENT_PROJECT_VERSION` in `iosApp/Configuration/Config.xcconfig`.
     - The iOS app goes to the App Store from a Mac, by `iosApp/archive.sh X.Y` on the tagged
-      commit, not from the Release workflow; see `docs/ios-release.md`.
+      commit, not from the Release workflow, whose `.ipa` is unsigned; see `docs/ios-release.md`.
+      Both scripts take the version from the tag through `iosApp/versions.sh`.
