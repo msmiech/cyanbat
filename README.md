@@ -272,13 +272,15 @@ Pushing a version tag builds and publishes everything:
 git tag 2.0 && git push origin 2.0
 ```
 
-That produces a signed Android APK plus Windows, macOS and Linux desktop installers, and attaches
-them to a GitHub release. Tags work with or without a leading `v`; a suffixed tag such as `2.1-rc1`
+That produces a signed Android APK, Windows, macOS and Linux desktop installers, and an unsigned
+iPhone and iPad app (`ios-arm64.ipa`) for sideloading, and attaches them to a GitHub release. Tags work with or without a leading `v`; a suffixed tag such as `2.1-rc1`
 publishes as a pre-release. To rehearse without spending a tag, run the **Release** workflow
 manually from the Actions tab — it builds and uploads the same artifacts to the run, and publishes
 nothing.
 
-The iPhone and iPad app goes to the App Store from a Mac rather than from the workflow: see
+The `.ipa` is unsigned, since signing needs an Apple developer certificate: a sideloading tool such
+as AltStore, SideStore or Sideloadly signs it with your own Apple ID as it installs it. The App
+Store build goes from a Mac rather than from the workflow: see
 [docs/ios-release.md](docs/ios-release.md).
 
 ### Signing secrets
