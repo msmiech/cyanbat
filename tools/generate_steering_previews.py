@@ -9,14 +9,14 @@ the bat, drag or stick.
 
 Each is the bottom of a frame of the jungle, the stage a first run is flown in, with a hand flying
 the bat. Drag: a finger on the bat, which has come along the dotted way the finger went. Stick: a
-thumb on the stick at the bottom left, pushed up and to the right, and the bat flying off that way
-on the far side of the screen from it - which is the point of the stick, that the thumb is not over
-the bat.
+thumb put down low on the left, the stick that comes up under it pushed up and to the right, and
+the bat flying off that way on the far side of the screen from it - which is the point of the
+stick, that the thumb is not over the bat.
 
 Composed from the game's own art, as the stage select's previews are: the jungle's strip, a frame of
-`assets/cyanBat.png`, the bat's bolt. The stick is drawn as `GameScreen.drawStick` draws it, at its
-place and size in the frame and in its colors, so keep the numbers here in step with `STICK_*` in
-`CyanBatConstants`. The hands are drawn here: a pale, cool glove of a hand, as a game's tutorial
+`assets/cyanBat.png`, the bat's bolt. The stick is drawn as `GameScreen.drawStick` draws it held,
+at the default sensitivity's size and in its colors, so keep the numbers here in step with
+`StickSensitivity.DEFAULT` and `STICK_*` in `CyanBatConstants`. The hands are drawn here: a pale, cool glove of a hand, as a game's tutorial
 draws one, ringed in the outline everything else wears.
 
 640x320 each, the frame's width and its bottom 320 rows: the dialog sets the two side by side at 2:1.
@@ -42,10 +42,11 @@ WOUND_ROWS = 3
 SHOT_W = 24
 SHOT_FRAMES = 4
 
-# The stick, as the game has it: `STICK_*` in CyanBatConstants.
-STICK_RADIUS = 48
+# The stick, as the game has it: `StickSensitivity.DEFAULT` and `STICK_*` in CyanBatConstants.
+STICK_RADIUS = 64
 STICK_KNOB_RADIUS = 20
-STICK_HOME = (16 + STICK_RADIUS, 360 - 16 - STICK_RADIUS - FRAME_TOP)
+# Where the thumb went down, which is where the stick came up.
+STICK_AT = (104, 212)
 STICK_BASE = (0x00, 0x00, 0x00, 0x46)
 STICK_SHADOW = (0x00, 0x00, 0x00, 0x70)
 STICK_RIM_HELD = (0xC8, 0xF8, 0xFF, 0xD0)
@@ -107,8 +108,8 @@ def circle(draw, cx, cy, radius, fill=None, rim=None):
 
 
 def stick(scene, knob):
-    """The stick at its place, a thumb on it pushing the knob to [knob], as `drawStick` draws it held."""
-    cx, cy = STICK_HOME
+    """The stick where the thumb went down, pushing the knob to [knob], as `drawStick` draws it."""
+    cx, cy = STICK_AT
     overlay(scene, lambda d: circle(d, cx, cy, STICK_RADIUS, STICK_BASE, STICK_SHADOW))
     overlay(scene, lambda d: circle(d, cx, cy, STICK_RADIUS - 1, None, STICK_RIM_HELD))
     overlay(scene, lambda d: circle(d, knob[0], knob[1], STICK_KNOB_RADIUS, STICK_KNOB_HELD, STICK_RIM_HELD))
@@ -201,8 +202,8 @@ def pointing_hand():
 
 
 # The thumb's box, and where in it the pad presses down. Big enough to run off the picture's corner.
-THUMB_W, THUMB_H = 170, 170
-THUMB_TIP = (128, 42)
+THUMB_W, THUMB_H = 210, 210
+THUMB_TIP = (160, 42)
 
 
 def thumb_hand():
@@ -275,8 +276,8 @@ def stick_preview():
     scene = jungle()
     sprite = bat()
     # Pushed up and to the right, nearly all the way.
-    cx, cy = STICK_HOME
-    knob = (cx + 30, cy - 30)
+    cx, cy = STICK_AT
+    knob = (cx + 40, cy - 40)
     # The bat flying off up and to the right, across the screen from the thumb, its trail behind it.
     bat_at = (360, 70)
     center = (bat_at[0] + BAT_W / 2, bat_at[1] + sprite.height / 2)

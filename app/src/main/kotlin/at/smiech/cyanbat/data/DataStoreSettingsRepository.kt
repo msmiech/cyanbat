@@ -8,6 +8,7 @@ import at.smiech.cyanbat.PREFS_KEY_DIFFICULTY
 import at.smiech.cyanbat.PREFS_KEY_DISPLAY_MODE
 import at.smiech.cyanbat.PREFS_KEY_MUSIC
 import at.smiech.cyanbat.PREFS_KEY_SOUNDS
+import at.smiech.cyanbat.PREFS_KEY_STICK_SENSITIVITY
 import at.smiech.cyanbat.PREFS_KEY_THEME_MODE
 import at.smiech.cyanbat.PREFS_KEY_TOUCH_STEERING
 import at.smiech.cyanbat.PREFS_KEY_VIBRATION
@@ -51,6 +52,9 @@ class DataStoreSettingsRepository(
     override val touchSteering: Flow<TouchSteering?> =
         dataStore.data.map { TouchSteering.fromName(it[PREFS_KEY_TOUCH_STEERING]) }
 
+    override val stickSensitivity: Flow<StickSensitivity> =
+        dataStore.data.map { StickSensitivity.fromName(it[PREFS_KEY_STICK_SENSITIVITY]) }
+
     override suspend fun setMusicEnabled(enabled: Boolean) {
         dataStore.edit { it[PREFS_KEY_MUSIC] = enabled }
     }
@@ -81,5 +85,9 @@ class DataStoreSettingsRepository(
 
     override suspend fun setTouchSteering(steering: TouchSteering) {
         dataStore.edit { it[PREFS_KEY_TOUCH_STEERING] = steering.name }
+    }
+
+    override suspend fun setStickSensitivity(sensitivity: StickSensitivity) {
+        dataStore.edit { it[PREFS_KEY_STICK_SENSITIVITY] = sensitivity.name }
     }
 }

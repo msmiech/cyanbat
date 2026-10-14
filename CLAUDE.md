@@ -584,17 +584,22 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
 
 - `PointerTouchHandler` handles touch. On desktop, mouse motion counts as a drag.
 - A finger flies the bat one of two ways, the player's `TouchSteering`: dragging it, or a stick
-  drawn at the bottom left (`VirtualStick`, which `PlayerInputSystem` reads as a pad's stick, and
-  `GameScreen.drawStick` draws in the HUD). With the stick on, nothing drags the bat, and keys and
-  pads still beat it. The stick reads its thumb's place off `Input.getTouchX` rather than the
-  events, which an overlay may have read meanwhile. A run reads the setting every update, through
-  `SteeringSettings` in its environment, as it reads the sound's.
+  (`VirtualStick`, which `PlayerInputSystem` reads as a pad's stick). The stick is not there until
+  a thumb is: wherever the first finger goes down becomes its center, `GameScreen.drawStick` draws
+  it in the HUD only while it is held, and lifting the thumb takes it away. Its radius, which the
+  thumb travels most of for full speed, is the player's `StickSensitivity`. With the stick on,
+  nothing drags the bat, and keys and pads still beat it. The stick reads its thumb's place off
+  `Input.getTouchX` rather than the events, which an overlay may have read meanwhile. A run reads
+  both settings every update, through `SteeringSettings` in its environment, as it reads the
+  sound's.
 - Where there is a touch screen (`hasTouchScreen`: Android, iOS, and a browser that reports touch
-  points), Settings offers the stick as a switch, and a player who has not chosen (`touchSteering`
-  is null) is asked in a `SteeringDialog` after the difficulty, before their first run. A switch
-  rather than two segments: a row of two short words sits so far right that the cursor going down
-  skips it. The dialog's pictures are `tools/generate_steering_previews.py`'s, which draws the stick
-  as the game does: keep it in step with `STICK_*` in `CyanBatConstants`.
+  points), Settings offers the stick as a switch, with its sensitivity under it while it is on, and
+  a player who has not chosen (`touchSteering` is null) is asked in a `SteeringDialog` after the
+  difficulty, before their first run. A switch rather than two segments: a row of two short words
+  sits so far right that the cursor going down skips it. The sensitivity is segments rather than a
+  slider, because `MenuKeys` takes the arrows ahead of every control. The dialog's pictures are
+  `tools/generate_steering_previews.py`'s, which draws the stick as the game does: keep it in step
+  with `StickSensitivity.DEFAULT` and `STICK_*` in `CyanBatConstants`.
 - `ControlHandler` turns keyboard and gamepad into the `Controls` intent: two axes plus
   edge-triggered `GameButton`s. `ComposeKeyAdapter` (desktop) and `AndroidKeyAdapter` (keyboard and
   pads) feed it.

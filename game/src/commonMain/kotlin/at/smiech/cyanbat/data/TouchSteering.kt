@@ -27,7 +27,7 @@ enum class TouchSteering(
         Res.drawable.steering_drag_preview,
     ),
 
-    /** A stick drawn at the bottom left is pushed the way the bat is to fly. */
+    /** A stick comes up wherever the thumb goes down, and is pushed the way the bat is to fly. */
     STICK(
         Res.string.steering_stick,
         Res.string.steering_stick_description,

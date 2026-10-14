@@ -97,4 +97,14 @@ class DataStoreSettingsRepositoryTest {
 
         assertEquals(TouchSteering.STICK, settings.touchSteering.first())
     }
+
+    @Test
+    fun `the stick's sensitivity is medium until chosen and then kept`() = runBlocking {
+        val settings = DataStoreSettingsRepository(dataStore)
+        assertEquals(StickSensitivity.MEDIUM, settings.stickSensitivity.first())
+
+        settings.setStickSensitivity(StickSensitivity.LOW)
+
+        assertEquals(StickSensitivity.LOW, settings.stickSensitivity.first())
+    }
 }

@@ -52,6 +52,9 @@ interface SettingsRepository {
      */
     val touchSteering: Flow<TouchSteering?>
 
+    /** How far the stick on the screen has to be pushed; [StickSensitivity.DEFAULT] until set. */
+    val stickSensitivity: Flow<StickSensitivity>
+
     suspend fun setMusicEnabled(enabled: Boolean)
     suspend fun setSoundEnabled(enabled: Boolean)
     suspend fun setVibrationEnabled(enabled: Boolean)
@@ -61,4 +64,5 @@ interface SettingsRepository {
     suspend fun setLanguage(language: AppLanguage)
     suspend fun setDifficulty(difficulty: Difficulty)
     suspend fun setTouchSteering(steering: TouchSteering)
+    suspend fun setStickSensitivity(sensitivity: StickSensitivity)
 }

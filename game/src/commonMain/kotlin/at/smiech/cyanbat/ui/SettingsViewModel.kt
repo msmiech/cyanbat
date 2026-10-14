@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.ThemeMode
+import at.smiech.cyanbat.data.StickSensitivity
 import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode
@@ -62,6 +63,13 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
             TouchSteering.DEFAULT
         )
 
+    val stickSensitivity: StateFlow<StickSensitivity> = settings.stickSensitivity
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(STOP_TIMEOUT_MILLIS),
+            StickSensitivity.DEFAULT
+        )
+
     fun setMusicEnabled(enabled: Boolean) = viewModelScope.launch {
         settings.setMusicEnabled(enabled)
     }
@@ -92,6 +100,10 @@ class SettingsViewModel(private val settings: SettingsRepository) : ViewModel() 
 
     fun setTouchSteering(steering: TouchSteering) = viewModelScope.launch {
         settings.setTouchSteering(steering)
+    }
+
+    fun setStickSensitivity(sensitivity: StickSensitivity) = viewModelScope.launch {
+        settings.setStickSensitivity(sensitivity)
     }
 
     private companion object {

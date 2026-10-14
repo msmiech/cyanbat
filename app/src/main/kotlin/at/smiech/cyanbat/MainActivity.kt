@@ -49,6 +49,9 @@ internal val PREFS_KEY_DIFFICULTY = stringPreferencesKey("difficulty")
  */
 internal val PREFS_KEY_TOUCH_STEERING = stringPreferencesKey("touch_steering")
 
+/** How far the stick on the screen has to be pushed, by name too. */
+internal val PREFS_KEY_STICK_SENSITIVITY = stringPreferencesKey("stick_sensitivity")
+
 /** The single highscore kept before they were per stage; see [LegacyHighscoreMigration]. */
 internal val PREFS_KEY_LEGACY_HIGH_SCORE = intPreferencesKey("highscore")
 
