@@ -37,6 +37,7 @@ import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.FakeSettingsRepository
+import at.smiech.cyanbat.data.StickSensitivity
 import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
@@ -448,6 +449,28 @@ class MenuKeysTest {
             // And on down to the theme, as before.
             press(Key.DirectionDown)
             cursorOn("System")
+        }
+
+    @Test
+    fun `the stick's sensitivity is offered under it once it is on`() =
+        menu(touchScreen = true) { menu ->
+            press(Key.DirectionDown)
+            press(Key.Enter)
+            press(Key.DirectionDown, times = 2)
+            cursorOn("On-screen stick")
+            onAllNodesWithText("Stick sensitivity").assertCountEquals(0)
+
+            press(Key.Enter)
+            onNodeWithText("Stick sensitivity").assertExists()
+            press(Key.DirectionDown)
+            cursorOn("Low")
+            press(Key.DirectionRight, times = 2)
+            cursorOn("High")
+            press(Key.Enter)
+            assertEquals(StickSensitivity.HIGH, menu.settings.sensitivity.value)
+            // And on down to the theme, to the segment under it.
+            press(Key.DirectionDown)
+            cursorOn("Light")
         }
 
     @Test

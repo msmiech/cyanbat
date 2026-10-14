@@ -11,8 +11,9 @@ import kotlin.test.assertTrue
 class VirtualStickTest {
 
     private companion object {
-        const val HOME_X = 60f
-        const val HOME_Y = 300f
+        /** Where the tests put a thumb down, which is where the stick then is. */
+        const val X = 300
+        const val Y = 200
         const val RADIUS = 40f
     }
 
@@ -54,10 +55,9 @@ class VirtualStickTest {
 
     private class Harness {
         val touches = Touches()
-        val stick = VirtualStick(HOME_X, HOME_Y, RADIUS, zoneRight = 200f, zoneTop = 150f)
-            .apply { enabled = true }
+        val stick = VirtualStick(RADIUS).apply { enabled = true }
 
-        fun down(x: Int, y: Int, pointer: Int = 0) =
+        fun down(x: Int = X, y: Int = Y, pointer: Int = 0) =
             touches.queue(Input.TouchEvent.TOUCH_DOWN, x, y, pointer)
 
         fun drag(x: Int, y: Int, pointer: Int = 0, down: Boolean = true) =
@@ -73,24 +73,52 @@ class VirtualStickTest {
         assertTrue(abs(expected - actual) <= tolerance, "expected $expected but was $actual")
 
     @Test
-    fun `a thumb put down on the rim pushes the stick all the way at once`() {
+    fun `there is no stick until a thumb is down and then it is centered under it at rest`() {
         val h = Harness()
-        h.down((HOME_X + RADIUS).toInt(), HOME_Y.toInt())
         h.update()
+        assertFalse(h.stick.held)
 
+        h.down()
+        h.update()
         assertTrue(h.stick.held)
-        assertClose(1f, h.stick.moveX)
-        assertClose(0f, h.stick.moveY)
-        assertClose(HOME_X, h.stick.centerX)
+        assertClose(X.toFloat(), h.stick.centerX)
+        assertClose(Y.toFloat(), h.stick.centerY)
+        assertEquals(0f, h.stick.moveX)
+        assertEquals(0f, h.stick.moveY)
     }
 
     @Test
-    fun `a thumb resting near the center does not steer`() {
+    fun `wherever on the screen the thumb goes down is the center`() {
+        for ((x, y) in listOf(5 to 5, 620 to 40, 320 to 350, -12 to 330)) {
+            val h = Harness()
+            h.down(x, y)
+            h.update()
+            assertTrue(h.stick.held, "a thumb at ($x, $y) did not take the stick")
+            assertClose(x.toFloat(), h.stick.centerX)
+            assertClose(y.toFloat(), h.stick.centerY)
+        }
+    }
+
+    @Test
+    fun `pushed to the rim it is all the way`() {
         val h = Harness()
-        h.down(HOME_X.toInt() + 3, HOME_Y.toInt() - 2)
+        h.down()
+        h.update()
+        h.drag(X + RADIUS.toInt(), Y)
         h.update()
 
-        assertTrue(h.stick.held)
+        assertClose(1f, h.stick.moveX)
+        assertClose(0f, h.stick.moveY)
+    }
+
+    @Test
+    fun `a thumb wandering near the center does not steer`() {
+        val h = Harness()
+        h.down()
+        h.update()
+        h.drag(X + 3, Y - 2)
+        h.update()
+
         assertEquals(0f, h.stick.moveX)
         assertEquals(0f, h.stick.moveY)
     }
@@ -98,10 +126,10 @@ class VirtualStickTest {
     @Test
     fun `the deflection keeps the thumb's direction`() {
         val h = Harness()
-        h.down(HOME_X.toInt(), HOME_Y.toInt())
+        h.down()
         h.update()
         // Up and to the right at 45 degrees, past the rim.
-        h.drag(HOME_X.toInt() + 50, HOME_Y.toInt() - 50)
+        h.drag(X + 50, Y - 50)
         h.update()
 
         assertClose(1f, sqrt(h.stick.moveX * h.stick.moveX + h.stick.moveY * h.stick.moveY))
@@ -112,83 +140,84 @@ class VirtualStickTest {
     @Test
     fun `half way out is slower than all the way`() {
         val h = Harness()
-        h.down(HOME_X.toInt() + 20, HOME_Y.toInt())
+        h.down()
+        h.update()
+        h.drag(X + 20, Y)
         h.update()
 
         assertTrue(h.stick.moveX > 0.3f && h.stick.moveX < 0.6f, "was ${h.stick.moveX}")
     }
 
+    /** The sensitivity: a wider stick needs the thumb to go further for the same speed. */
+    @Test
+    fun `a wider stick is less sensitive`() {
+        val narrow = Harness()
+        val wide = Harness().apply { stick.radius = RADIUS * 2 }
+        for (h in listOf(narrow, wide)) {
+            h.down()
+            h.update()
+            h.drag(X + 30, Y)
+            h.update()
+        }
+
+        // Three quarters of the way out on the one, three eighths on the other.
+        assertTrue(narrow.stick.moveX > 0.75f, "was ${narrow.stick.moveX}")
+        assertTrue(wide.stick.moveX < narrow.stick.moveX / 2f, "was ${wide.stick.moveX}")
+    }
+
     @Test
     fun `the knob stays on the rim however far the thumb goes`() {
         val h = Harness()
-        h.down(HOME_X.toInt(), HOME_Y.toInt())
+        h.down()
         h.update()
-        h.drag(HOME_X.toInt() + 120, HOME_Y.toInt())
+        h.drag(X + 120, Y)
         h.update()
 
-        assertClose(HOME_X + RADIUS, h.stick.knobX)
-        assertClose(HOME_Y, h.stick.knobY)
+        assertClose(X + RADIUS, h.stick.knobX)
+        assertClose(Y.toFloat(), h.stick.knobY)
     }
 
     @Test
-    fun `a thumb put down off the stick brings the stick to it at rest`() {
+    fun `letting go takes the stick away and the next thumb puts it down afresh`() {
         val h = Harness()
-        h.down(150, 200)
+        h.down()
         h.update()
-
-        assertTrue(h.stick.held)
-        assertClose(150f, h.stick.centerX)
-        assertClose(200f, h.stick.centerY)
-        assertEquals(0f, h.stick.moveX)
-
-        h.drag(150, 160)
+        h.drag(X, Y - 40)
         h.update()
         assertClose(-1f, h.stick.moveY)
 
-        // Letting go sends it home.
-        h.up(150, 160)
+        h.up(X, Y - 40)
         h.update()
         assertFalse(h.stick.held)
-        assertClose(HOME_X, h.stick.centerX)
-        assertClose(HOME_Y, h.stick.centerY)
+        assertEquals(0f, h.stick.moveY)
+
+        h.down(100, 300, pointer = 1)
+        h.update()
+        assertClose(100f, h.stick.centerX)
+        assertClose(300f, h.stick.centerY)
         assertEquals(0f, h.stick.moveY)
     }
 
+    /** One the stick missed going down, because an overlay read the touch, takes it as it moves. */
     @Test
-    fun `a thumb on the bar beside the frame still takes it`() {
+    fun `a finger already down takes the stick when it moves`() {
         val h = Harness()
-        h.down(-12, 330)
-        h.update()
-        assertTrue(h.stick.held)
-    }
-
-    @Test
-    fun `a touch outside the zone is not the stick's`() {
-        val h = Harness()
-        h.down(400, 300)
-        h.update()
-        h.down(100, 100, pointer = 1)
-        h.update()
-
-        assertFalse(h.stick.held)
-    }
-
-    @Test
-    fun `a thumb sliding into the zone takes it`() {
-        val h = Harness()
-        h.down(260, 300)
+        h.down()
+        h.touches.touchEvents
         h.update()
         assertFalse(h.stick.held)
 
-        h.drag(190, 300)
+        h.drag(X + 10, Y)
         h.update()
         assertTrue(h.stick.held)
+        assertClose(X + 10f, h.stick.centerX)
+        assertEquals(0f, h.stick.moveX)
     }
 
     @Test
-    fun `a mouse hovering over the stick does not take it`() {
+    fun `a mouse hovering does not take it`() {
         val h = Harness()
-        h.drag(HOME_X.toInt() + 30, HOME_Y.toInt(), down = false)
+        h.drag(X, Y, down = false)
         h.update()
         assertFalse(h.stick.held)
     }
@@ -196,19 +225,23 @@ class VirtualStickTest {
     @Test
     fun `a second finger cannot take the stick from the first`() {
         val h = Harness()
-        h.down(HOME_X.toInt() + RADIUS.toInt(), HOME_Y.toInt(), pointer = 0)
+        h.down(pointer = 0)
         h.update()
-        h.down(HOME_X.toInt() - RADIUS.toInt(), HOME_Y.toInt(), pointer = 1)
+        h.drag(X + RADIUS.toInt(), Y, pointer = 0)
+        h.down(X - 100, Y, pointer = 1)
         h.update()
 
         assertEquals(0, h.stick.pointer)
+        assertClose(X.toFloat(), h.stick.centerX)
         assertClose(1f, h.stick.moveX)
     }
 
     @Test
     fun `a thumb that lifted while an overlay read its release lets go`() {
         val h = Harness()
-        h.down(HOME_X.toInt() + RADIUS.toInt(), HOME_Y.toInt())
+        h.down()
+        h.update()
+        h.drag(X + RADIUS.toInt(), Y)
         h.update()
 
         h.touches.liftUnseen(0)
@@ -220,11 +253,11 @@ class VirtualStickTest {
     @Test
     fun `a thumb held through an overlay steers from where it is now`() {
         val h = Harness()
-        h.down(HOME_X.toInt(), HOME_Y.toInt())
+        h.down()
         h.update()
 
         // The thumb moves while an overlay reads the events, and the stick sees none of them.
-        h.drag(HOME_X.toInt(), HOME_Y.toInt() + RADIUS.toInt())
+        h.drag(X, Y + RADIUS.toInt())
         h.touches.touchEvents
         h.update()
         assertClose(1f, h.stick.moveY)
@@ -233,14 +266,16 @@ class VirtualStickTest {
     @Test
     fun `switched off it lets go and reads nothing`() {
         val h = Harness()
-        h.down(HOME_X.toInt() + RADIUS.toInt(), HOME_Y.toInt())
+        h.down()
+        h.update()
+        h.drag(X + RADIUS.toInt(), Y)
         h.update()
 
         h.stick.enabled = false
         assertFalse(h.stick.held)
         assertEquals(0f, h.stick.moveX)
 
-        h.down(HOME_X.toInt() + RADIUS.toInt(), HOME_Y.toInt(), pointer = 1)
+        h.down(pointer = 1)
         h.update()
         assertFalse(h.stick.held)
     }

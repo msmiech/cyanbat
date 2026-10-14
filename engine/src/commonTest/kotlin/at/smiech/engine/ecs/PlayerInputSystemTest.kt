@@ -445,25 +445,20 @@ class PlayerInputSystemTest {
         assertEquals(0, h.control.activePointer)
     }
 
-    /** A stick at the bottom left of the test's frame, switched on. */
-    private fun stickOn() = VirtualStick(
-        homeX = 60f,
-        homeY = 260f,
-        radius = 40f,
-        zoneRight = 200f,
-        zoneTop = 150f,
-    ).apply { enabled = true }
+    /** A stick of the test's own size, switched on. */
+    private fun stickOn() = VirtualStick(radius = 40f).apply { enabled = true }
 
     @Test
-    fun `with the stick on a finger on the bat does not drag it`() {
+    fun `with the stick on a finger on the bat steers it and does not drag it`() {
         val h = Harness(stick = stickOn())
         h.down(110, 110)
         h.tick()
-        h.drag(200, 200)
-        h.tick(times = 10)
+        // Dragged, the bat would follow the finger there on the next tick.
+        h.drag(200, 110)
+        h.tick()
 
         assertEquals(PlayerControlComponent.NO_POINTER, h.control.activePointer)
-        assertClose(100f, h.rect.left)
+        assertClose(100f + PlayerInputSystem.DIRECTIONAL_SPEED * TICK, h.rect.left)
         assertClose(100f, h.rect.top)
     }
 
@@ -471,14 +466,18 @@ class PlayerInputSystemTest {
     fun `the stick pushed to its rim flies the bat at the directional speed`() {
         val h = Harness(stick = stickOn())
         val startX = h.rect.centerX
-        h.down(100, 260)
+        // Put down anywhere, far from the bat, and pushed straight right.
+        h.down(300, 260)
+        h.tick()
+        assertClose(startX, h.rect.centerX)
+        h.drag(340, 260)
 
         h.tick(times = 10)
         assertClose(PlayerInputSystem.DIRECTIONAL_SPEED * TICK * 10, h.rect.centerX - startX, 0.5f)
         assertClose(100f, h.rect.top)
 
         // Letting go stops it, as a key's does.
-        h.up(100, 260)
+        h.up(340, 260)
         h.tick()
         val stoppedAt = h.rect
         h.tick(times = 10)
@@ -488,7 +487,9 @@ class PlayerInputSystemTest {
     @Test
     fun `a key beats the stick on the screen`() {
         val h = Harness(stick = stickOn())
-        h.down(100, 260)
+        h.down(300, 260)
+        h.tick()
+        h.drag(340, 260)
         h.controls.onDirection(Direction.LEFT, true)
 
         h.tick(times = 10)
@@ -499,7 +500,7 @@ class PlayerInputSystemTest {
     fun `a dead bat lets go of the stick`() {
         val stick = stickOn()
         val h = Harness(stick = stick)
-        h.down(100, 260)
+        h.down(300, 260)
         h.tick()
         assertTrue(stick.held)
 
@@ -509,14 +510,30 @@ class PlayerInputSystemTest {
     }
 
     @Test
+    fun `a finger put down on a button does not take the stick`() {
+        val stick = stickOn()
+        val button = buttonOn()
+        val h = Harness(stick = stick, button = button)
+        h.down(460, 20)
+        h.tick()
+        h.drag(300, 200)
+        h.tick(times = 10)
+
+        assertTrue(button.consumePress())
+        assertFalse(stick.held)
+        assertClose(100f, h.rect.left)
+        assertClose(100f, h.rect.top)
+    }
+
+    @Test
     fun `turning the stick off hands the bat back to the finger`() {
         val stick = stickOn()
         val h = Harness(stick = stick)
-        h.down(100, 260)
+        h.down(300, 260)
         h.tick()
 
         stick.enabled = false
-        h.up(100, 260)
+        h.up(300, 260)
         h.down(110, 110, pointer = 1)
         h.tick()
         assertTrue(h.control.dragging)

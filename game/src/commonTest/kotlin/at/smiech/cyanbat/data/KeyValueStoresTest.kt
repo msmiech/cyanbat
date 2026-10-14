@@ -16,6 +16,7 @@ class KeyValueStoresTest {
             setMusicEnabled(false)
             setDifficulty(Difficulty.EASY)
             setTouchSteering(TouchSteering.STICK)
+            setStickSensitivity(StickSensitivity.LOW)
             setLanguage(AppLanguage.POLISH)
         }
 
@@ -26,6 +27,7 @@ class KeyValueStoresTest {
         assertEquals(true, again.isSoundEnabled.first())
         assertEquals(Difficulty.EASY, again.difficulty.first())
         assertEquals(TouchSteering.STICK, again.touchSteering.first())
+        assertEquals(StickSensitivity.LOW, again.stickSensitivity.first())
         assertEquals(AppLanguage.POLISH, again.language.first())
         // Put into effect as the store is made, before the menu reads a string.
         assertEquals(listOf(AppLanguage.POLISH), applied)
@@ -44,6 +46,12 @@ class KeyValueStoresTest {
     @Test
     fun nobodyHasChosenHowToSteerUntilTheyDo() = runTest {
         assertNull(KeyValueSettingsRepository(MemoryKeyValueStorage()) {}.touchSteering.first())
+    }
+
+    @Test
+    fun theStickIsMediumUntilChosen() = runTest {
+        val settings = KeyValueSettingsRepository(MemoryKeyValueStorage()) {}
+        assertEquals(StickSensitivity.MEDIUM, settings.stickSensitivity.first())
     }
 
     @Test

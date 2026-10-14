@@ -77,6 +77,8 @@ class KeyValueSettingsRepository(
     private val chosenLanguage = MutableStateFlow(initialLanguage)
     private val lastDifficulty = MutableStateFlow(Difficulty.fromName(storage.get(KEY_DIFFICULTY)))
     private val steering = MutableStateFlow(TouchSteering.fromName(storage.get(KEY_TOUCH_STEERING)))
+    private val sensitivity =
+        MutableStateFlow(StickSensitivity.fromName(storage.get(KEY_STICK_SENSITIVITY)))
 
     override val isMusicEnabled: Flow<Boolean> = music.asStateFlow()
     override val isSoundEnabled: Flow<Boolean> = sound.asStateFlow()
@@ -87,6 +89,7 @@ class KeyValueSettingsRepository(
     override val language: Flow<AppLanguage> = chosenLanguage.asStateFlow()
     override val difficulty: Flow<Difficulty> = lastDifficulty.asStateFlow()
     override val touchSteering: Flow<TouchSteering?> = steering.asStateFlow()
+    override val stickSensitivity: Flow<StickSensitivity> = sensitivity.asStateFlow()
 
     init {
         applyLanguage(initialLanguage)
@@ -139,6 +142,11 @@ class KeyValueSettingsRepository(
         this.steering.value = steering
     }
 
+    override suspend fun setStickSensitivity(sensitivity: StickSensitivity) {
+        storage.put(KEY_STICK_SENSITIVITY, sensitivity.name)
+        this.sensitivity.value = sensitivity
+    }
+
     private companion object {
         const val KEY_MUSIC = "music_enabled"
         const val KEY_SOUND = "sound_enabled"
@@ -149,6 +157,7 @@ class KeyValueSettingsRepository(
         const val KEY_LANGUAGE = "language"
         const val KEY_DIFFICULTY = "difficulty"
         const val KEY_TOUCH_STEERING = "touch_steering"
+        const val KEY_STICK_SENSITIVITY = "stick_sensitivity"
     }
 }
 

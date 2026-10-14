@@ -6,6 +6,7 @@ import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.data.SteeringSettings
+import at.smiech.cyanbat.data.StickSensitivity
 import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.desktop.recorder.RunProbe
 import at.smiech.cyanbat.ecs.BossPartComponent
@@ -56,9 +57,6 @@ import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
 import at.smiech.cyanbat.util.STAGE_COMPLETE_ARMING_SECONDS
 import at.smiech.cyanbat.util.STAGE_COMPLETE_DELAY_SECONDS
-import at.smiech.cyanbat.util.STICK_HOME_X
-import at.smiech.cyanbat.util.STICK_HOME_Y
-import at.smiech.cyanbat.util.STICK_RADIUS
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.cyanbat.util.WOUND_ROWS
 import at.smiech.engine.Direction
@@ -627,44 +625,50 @@ class GameScreenTest {
     }
 
     /**
-     * Flown by the stick: a finger on the bat, which would drag it otherwise, does nothing, and a
-     * thumb pushing the stick to the right flies it right.
+     * Flown by the stick: a thumb put down anywhere, on the bat or not, is the stick's center, and
+     * pushing it flies the bat at the stick's speed rather than dragging it to the finger.
      */
     @Test
-    fun `a run flown by the stick takes the thumb on it and not a drag`() =
+    fun `a run flown by the stick flies the bat by the push and not to the finger`() =
         flight(JUNGLE, steering = TouchSteering.STICK) {
-            // Up and right, out of the stick's zone, where it starts the run: a finger put down
-            // there would take the stick, as a thumb anywhere in it does.
-            val transform = probe.world.getComponent(probe.batId, TransformComponent::class)!!
-            transform.rect = Rect.fromLTWH(380f, 80f, transform.rect.width, transform.rect.height)
             val start = batRect()
             val x = start.centerX.roundToInt()
             val y = start.centerY.roundToInt()
+            // Down on the bat, which a drag would have grabbed: the stick comes up there, at rest.
             game.touchHandler.onPointer(1, x, y, pressed = true, previouslyPressed = false)
-            screen.update(FRAME_SECONDS)
-            game.touchHandler.onPointer(1, x + 80, y - 60, pressed = true, previouslyPressed = true)
-            fly(0.3f)
-            assertEquals(start.centerX, batRect().centerX, "a drag moved the bat")
-            assertEquals(start.centerY, batRect().centerY, "a drag moved the bat")
-            game.touchHandler.onPointer(
-                1,
-                x + 80,
-                y - 60,
-                pressed = false,
-                previouslyPressed = true,
-            )
+            fly(0.1f)
+            assertEquals(start.centerX, batRect().centerX, "the thumb going down moved the bat")
 
-            game.touchHandler.onPointer(
-                2,
-                STICK_HOME_X + STICK_RADIUS,
-                STICK_HOME_Y,
-                pressed = true,
-                previouslyPressed = false,
-            )
+            // Pushed right past the rim: dragged, the bat would be over there at once.
+            game.touchHandler.onPointer(1, x + 100, y, pressed = true, previouslyPressed = true)
+            fly(0.05f)
+            assertTrue(batRect().centerX < start.centerX + 30f, "the bat was dragged to the finger")
             fly(0.3f)
             assertTrue(batRect().centerX > start.centerX + 80f, "the stick did not fly the bat")
             assertEquals(start.centerY, batRect().centerY, 0.5f, "pushed right, it flew off level")
         }
+
+    /** The setting reaches the run: the same push flies the bat slower on a less sensitive stick. */
+    @Test
+    fun `a less sensitive stick flies the bat slower for the same push`() {
+        fun pushed(sensitivity: StickSensitivity): Float {
+            var moved = 0f
+            flight(JUNGLE, steering = TouchSteering.STICK, sensitivity = sensitivity) {
+                val start = batRect()
+                game.touchHandler.onPointer(1, 300, 300, pressed = true, previouslyPressed = false)
+                screen.update(FRAME_SECONDS)
+                game.touchHandler.onPointer(1, 340, 300, pressed = true, previouslyPressed = true)
+                fly(0.2f)
+                moved = batRect().centerX - start.centerX
+            }
+            return moved
+        }
+
+        val low = pushed(StickSensitivity.LOW)
+        val high = pushed(StickSensitivity.HIGH)
+        assertTrue(low > 0f, "a push on the low stick did not move the bat")
+        assertTrue(low < high * 0.7f, "low moved the bat $low, high $high")
+    }
 
     /** What the cancel must not stop: a tap of the player's own still resumes the run. */
     @Test
@@ -2047,7 +2051,8 @@ class GameScreenTest {
      * A run of [stage] on [difficulty] on the desktop's own host, disposed of when [test] is done
      * with it: silent, or with its effects played through [sounds] for a test that listens to it.
      * [onExit] is the way back to the menu, and [stageUnlocks] where its clear is recorded. A
-     * finger flies the bat by [steering], and [pauseButton] puts iOS's pause button on the run.
+     * finger flies the bat by [steering], a stick at [sensitivity], and [pauseButton] puts iOS's
+     * pause button on the run.
      */
     private fun flight(
         stage: Int,
@@ -2056,6 +2061,7 @@ class GameScreenTest {
         difficulty: Difficulty = Difficulty.HARD,
         stageUnlocks: StageUnlockStore = StageUnlockStore.InMemory(),
         steering: TouchSteering = TouchSteering.DRAG,
+        sensitivity: StickSensitivity = StickSensitivity.DEFAULT,
         pauseButton: Boolean = false,
         test: Flight.() -> Unit,
     ) {
@@ -2074,6 +2080,7 @@ class GameScreenTest {
                 audioSettings = if (sounds != null) SoundsOnly else Silent,
                 steeringSettings = object : SteeringSettings {
                     override val touchSteering = steering
+                    override val stickSensitivity = sensitivity
                 },
                 pauseButton = pauseButton,
             ),
