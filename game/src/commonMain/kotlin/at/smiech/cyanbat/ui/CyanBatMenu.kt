@@ -4,6 +4,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -22,6 +23,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.HighscoreStore
@@ -58,6 +60,18 @@ class MenuHost(
      */
     val onExit: (() -> Unit)?,
 )
+
+/** The room between a menu screen's edge and what is on it. */
+internal val SCREEN_PADDING = 16.dp
+
+/**
+ * The widest a screen of text and settings is laid out, about as wide as a line of its text still
+ * reads at a glance; a wider screen keeps it in the middle.
+ */
+internal val CONTENT_WIDTH = 600.dp
+
+/** How far the way back sits off the screen's corner. */
+private val BACK_INSET = 8.dp
 
 private val LightColors = lightColorScheme()
 private val DarkColors = darkColorScheme()
@@ -227,7 +241,9 @@ private fun SubScreen(
         Column(Modifier.fillMaxSize()) {
             TextButton(
                 onClick = onBack,
-                modifier = Modifier.focusRequester(back).then(cursor.modifier),
+                // Off the corner, so the cursor's ring round it is not cut by the screen's edge.
+                modifier = Modifier.padding(start = BACK_INSET, top = BACK_INSET)
+                    .focusRequester(back).then(cursor.modifier),
                 border = cursor.border(),
             ) {
                 Text("← " + stringResource(Res.string.button_back))

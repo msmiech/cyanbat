@@ -3,16 +3,17 @@ package at.smiech.cyanbat.ui
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
@@ -23,6 +24,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -41,7 +43,9 @@ import androidx.compose.ui.input.key.KeyEventType
 import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.compose.ui.input.key.type
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.button_credits
@@ -58,6 +62,8 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
+import kotlin.math.min
+import kotlin.math.sqrt
 
 /** The main screen's buttons, top to bottom and then Exit: the places its cursor can be. */
 private enum class MainChoice { START, SETTINGS, HELP, CREDITS, EXIT }
@@ -70,6 +76,22 @@ private val CURSOR_ON_SKY = Color(0xFFA6F6FF)
 
 /** How far one press of up or down scrolls the help text. */
 private val HELP_SCROLL_STEP = 48.dp
+
+/**
+ * The screen the title screen is laid out for: a phone held landscape, about 412dp tall, and
+ * narrower than most, which leaves room for the title and the buttons and little else.
+ */
+private val LAID_OUT_WIDTH = 600.dp
+private val LAID_OUT_HEIGHT = 412.dp
+
+/** The most the title screen is drawn larger by, so a big monitor's buttons are not a poster's. */
+private const val MOST_SCALE = 1.6f
+
+/** How tall the title is drawn, and so how much of the sky it takes, at the title screen's scale. */
+private val TITLE_HEIGHT = 88.dp
+
+/** The narrowest the buttons are: wide enough to read as a column, whatever their words. */
+private val BUTTON_WIDTH = 180.dp
 
 /**
  * The title screen: the title over the flowing sky, and the menu's buttons. Plays the menu music.
@@ -184,22 +206,61 @@ private fun MainMenuContent(
     onChoose: (MainChoice) -> Unit,
 ) {
     val cursor = remember { MainChoice.entries.associateWith { FocusRequester() } }
-    HomeCursor(cursor.getValue(home))
 
     Surface {
         FlowBackground(Modifier.fillMaxSize())
-        Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.SpaceBetween) {
-            Image(
-                modifier = Modifier.align(Alignment.CenterHorizontally),
-                painter = painterResource(Res.drawable.title),
-                contentDescription = stringResource(Res.string.title_image_description)
-            )
-            Spacer(Modifier.height(24.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
+        BoxWithConstraints(Modifier.fillMaxSize()) {
+            // In here, with the buttons, which are only composed once this is measured: asked for
+            // outside, the cursor found none of them to land on.
+            HomeCursor(cursor.getValue(home))
+            // Laid out for a phone held landscape, the tightest it is shown on, and drawn larger on
+            // a bigger screen, so a tablet or a desktop window does not see a phone's buttons lost
+            // in a corner of its sky. By less than the screen is bigger, though, its square root: a
+            // tablet is held nearer than a phone, and a monitor's window has more sky to show.
+            val fits = min(maxWidth / LAID_OUT_WIDTH, maxHeight / LAID_OUT_HEIGHT)
+            val scale = sqrt(fits).coerceIn(1f, MOST_SCALE)
+            val upright = maxHeight > maxWidth
+            val density = LocalDensity.current
+            CompositionLocalProvider(
+                LocalDensity provides Density(density.density * scale, density.fontScale)
             ) {
-                Column(Modifier.width(IntrinsicSize.Max)) {
+                MainMenuLayout(cursor, upright, canExit, onChoose)
+            }
+        }
+    }
+}
+
+/**
+ * The title over the buttons, and Exit apart from them at the bottom right. Held landscape, the
+ * title tops the screen and the buttons sit at the left of the sky under it; held [upright], where
+ * that would leave a tall gap between the two, they are one block in the middle of the screen.
+ */
+@Composable
+private fun MainMenuLayout(
+    cursor: Map<MainChoice, FocusRequester>,
+    upright: Boolean,
+    canExit: Boolean,
+    onChoose: (MainChoice) -> Unit,
+) {
+    Box(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = if (upright) Arrangement.Center else Arrangement.Top,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // Sized here rather than by the picture, whose size in dp would follow the screen's
+            // density: on a desktop, at a density of one, it came out twice a phone's.
+            Image(
+                painter = painterResource(Res.drawable.title),
+                contentDescription = stringResource(Res.string.title_image_description),
+                contentScale = ContentScale.Fit,
+                modifier = Modifier.height(TITLE_HEIGHT),
+            )
+            val buttons = @Composable {
+                Column(
+                    modifier = Modifier.width(IntrinsicSize.Max),
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
                     for (choice in listOf(
                         MainChoice.START,
                         MainChoice.SETTINGS,
@@ -210,19 +271,28 @@ private fun MainMenuContent(
                             choice,
                             cursor.getValue(choice),
                             onChoose,
-                            Modifier.fillMaxWidth()
+                            Modifier.fillMaxWidth().widthIn(min = BUTTON_WIDTH),
                         )
                     }
                 }
-                if (canExit) {
-                    Column(
-                        modifier = Modifier.fillMaxHeight(),
-                        verticalArrangement = Arrangement.Bottom
-                    ) {
-                        MenuButton(MainChoice.EXIT, cursor.getValue(MainChoice.EXIT), onChoose)
-                    }
+            }
+            if (upright) {
+                Spacer(Modifier.height(48.dp))
+                buttons()
+            } else {
+                // In the middle of the sky under the title.
+                Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
+                    buttons()
                 }
             }
+        }
+        if (canExit) {
+            MenuButton(
+                MainChoice.EXIT,
+                cursor.getValue(MainChoice.EXIT),
+                onChoose,
+                Modifier.align(Alignment.BottomEnd),
+            )
         }
     }
 }
