@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.desktop.recorder
 
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
@@ -46,6 +47,7 @@ class RunProbeTest {
                     override fun saveAsync(stageId: Int, value: Int) = Unit
                 },
                 stageUnlocks = StageUnlockStore.InMemory(),
+                achievements = AchievementStore.InMemory(),
                 onExitToMenu = {},
                 audioSettings = object : AudioSettings {
                     override val musicEnabled = false

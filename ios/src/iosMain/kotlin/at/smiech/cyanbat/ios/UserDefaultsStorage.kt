@@ -5,7 +5,7 @@ import platform.Foundation.NSUserDefaults
 
 /**
  * The app's user defaults, which keep what the game remembers - settings, highscores, the stages
- * open - in the app's own container, under the desktop's key names with a prefix of the game's.
+ * open, the achievements - in the app's own container, under the desktop's key names with a prefix of the game's.
  * The stores on it are shared with the browser (see KeyValueStores).
  *
  * The keys are read once, as the app starts, and kept in memory with every write: the defaults are

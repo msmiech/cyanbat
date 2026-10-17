@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.desktop
 
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
@@ -63,6 +64,7 @@ class EndlessRunTest {
                 haptics = Haptics.None,
                 highscores = Unsaved,
                 stageUnlocks = StageUnlockStore.InMemory(),
+                achievements = AchievementStore.InMemory(),
                 onExitToMenu = {},
                 audioSettings = Silent,
             ),

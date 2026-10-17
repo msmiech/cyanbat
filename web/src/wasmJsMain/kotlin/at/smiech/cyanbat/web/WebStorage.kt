@@ -6,7 +6,7 @@ import org.w3c.dom.Storage
 
 /**
  * The page's local storage, which keeps what the game remembers - settings, highscores, the stages
- * open - for this site in this browser, under keys of the game's own. The stores on it are shared
+ * open, the achievements and their pictures - for this site in this browser, under keys of the game's own. The stores on it are shared
  * with iOS (see KeyValueStores).
  *
  * A browser can refuse a page its storage, as some do in a private window, or run out of room for

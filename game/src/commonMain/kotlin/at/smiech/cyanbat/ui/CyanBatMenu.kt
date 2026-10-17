@@ -25,6 +25,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
@@ -52,6 +53,8 @@ class MenuHost(
     val stageUnlocks: StageUnlockStore,
     /** Each stage's highscore, for the stage select. The same store the game saves them in. */
     val highscores: HighscoreStore,
+    /** What the player has achieved, for its own screen. The same store the game adds them to. */
+    val achievements: AchievementStore,
     /** Start a run on the stage with this 1-based id, on the difficulty the player chose for it. */
     val onStartGame: (stageId: Int, difficulty: Difficulty) -> Unit,
     /**
@@ -77,7 +80,7 @@ private val LightColors = lightColorScheme()
 private val DarkColors = darkColorScheme()
 
 /**
- * The whole menu: main screen, stage select, settings and credits, with a back stack.
+ * The whole menu: main screen, stage select, achievements, settings and credits, with a back stack.
  *
  * Shared by both platforms - this is the entry point Android's MainActivity and the desktop
  * window each render. It is drawn light or dark by the player's [ThemeMode], and worked by touch,
@@ -105,7 +108,13 @@ fun CyanBatMenu(
         // Hoisted above the destinations, so the main screen and the stage select share one - and
         // with it one menu track, which keeps playing as the player moves between them.
         val menuViewModel = viewModel {
-            MainMenuViewModel(host.settings, host.menuMusic, host.stageUnlocks, host.highscores)
+            MainMenuViewModel(
+                host.settings,
+                host.menuMusic,
+                host.stageUnlocks,
+                host.highscores,
+                host.achievements,
+            )
         }
         // Every string is read again when the language changes, which nothing else would make a
         // string read again: Compose's resources pick the language when a string is first read.
@@ -196,6 +205,7 @@ private fun Destination(
                 onNavigateToSettings = { backStack.navigateTo(MenuDestination.Settings) },
                 onNavigateToCredits = { backStack.navigateTo(MenuDestination.Credits) },
                 onNavigateToStageSelect = { backStack.navigateTo(MenuDestination.StageSelect) },
+                onNavigateToAchievements = { backStack.navigateTo(MenuDestination.Achievements) },
                 onStartStage = onStartStage,
                 onExit = host.onExit,
             )
@@ -203,6 +213,10 @@ private fun Destination(
 
         MenuDestination.StageSelect -> SubScreen(onBack = { backStack.back() }) {
             StageSelectScreen(menuViewModel, onStartStage = onStartStage)
+        }
+
+        MenuDestination.Achievements -> SubScreen(onBack = { backStack.back() }) {
+            AchievementsScreen(menuViewModel)
         }
 
         MenuDestination.Settings -> SubScreen(onBack = { backStack.back() }) {

@@ -289,6 +289,18 @@ const val WAVE_BANNER_SECONDS = 2.2f
 /** Font size of the wave and boss announcements. */
 const val BANNER_FONT_SIZE = 26
 
+/** How long an achievement just earned is named along the bottom of the frame, in seconds. */
+const val ACHIEVEMENT_NOTICE_SECONDS = 3f
+
+/** Font size of an achievement's notice. */
+const val ACHIEVEMENT_NOTICE_FONT_SIZE = 14
+
+/**
+ * The baseline of an achievement's notice: along the bottom of the frame, under the stage complete
+ * overlay's last line and clear of the edge for the letters that hang below it.
+ */
+const val ACHIEVEMENT_NOTICE_Y = 346
+
 /** Font size of the stage timer, top center. */
 const val STAGE_TIMER_FONT_SIZE = 18
 

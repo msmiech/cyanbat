@@ -13,6 +13,7 @@ import androidx.compose.ui.unit.height
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.FakeSettingsRepository
@@ -59,6 +60,7 @@ class StageSelectLayoutTest {
                                 menuMusic = null,
                                 stageUnlocks = StageUnlockStore.InMemory(3),
                                 highscores = NoHighscores,
+                                achievements = AchievementStore.InMemory(),
                                 onStartGame = { _, _ -> },
                                 onExit = {},
                             ),

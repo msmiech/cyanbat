@@ -13,7 +13,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.ComposeUiTest
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.isFocused
 import androidx.compose.ui.test.isRoot
@@ -33,6 +35,8 @@ import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import at.smiech.cyanbat.Difficulty
+import at.smiech.cyanbat.Achievement
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AppLanguage
@@ -113,6 +117,7 @@ class MenuKeysTest {
                                 menuMusic = null,
                                 stageUnlocks = StageUnlockStore.InMemory(highestUnlocked, clears),
                                 highscores = NoHighscores,
+                                achievements = AchievementStore.InMemory(),
                                 onStartGame = { stage, difficulty ->
                                     menu.started += stage to difficulty
                                 },
@@ -169,11 +174,13 @@ class MenuKeysTest {
     @Test
     fun `the arrows and WASD move the cursor between the buttons`() = menu {
         press(Key.DirectionDown)
-        cursorOn("Settings")
+        cursorOn("Achievements")
         press(Key.S)
+        cursorOn("Settings")
+        press(Key.DirectionDown)
         cursorOn("Help")
         press(Key.DirectionUp)
-        press(Key.W)
+        press(Key.W, times = 2)
         cursorOn("Start Game")
         // Exit stands apart, at the bottom right.
         press(Key.DirectionRight)
@@ -191,14 +198,14 @@ class MenuKeysTest {
     @Test
     fun `Enter opens what the cursor is on, and its screen starts the cursor on its first choice`() =
         menu {
-            press(Key.DirectionDown)
+            press(Key.DirectionDown, times = 2)
             press(Key.Enter)
             cursorOn("Music")
         }
 
     @Test
     fun `Space and Enter work the setting under the cursor`() = menu { menu ->
-        press(Key.DirectionDown)
+        press(Key.DirectionDown, times = 2)
         press(Key.Enter)
         press(Key.Spacebar)
         assertFalse(menu.settings.music.value, "Space did not turn the music off")
@@ -220,7 +227,7 @@ class MenuKeysTest {
 
     @Test
     fun `the theme's segments take the cursor one at a time`() = menu { menu ->
-        press(Key.DirectionDown)
+        press(Key.DirectionDown, times = 2)
         press(Key.Enter)
         press(Key.DirectionDown, times = 2)
         cursorOn("System")
@@ -238,7 +245,7 @@ class MenuKeysTest {
      */
     @Test
     fun `the language's segments take the cursor one at a time`() = menu { menu ->
-        press(Key.DirectionDown)
+        press(Key.DirectionDown, times = 2)
         press(Key.Enter)
         press(Key.DirectionDown, times = 3)
         // Down from the theme's System lands on the segment under it, the language row being longer.
@@ -257,7 +264,7 @@ class MenuKeysTest {
 
     @Test
     fun `Escape goes back, to the button the screen was opened from`() = menu {
-        press(Key.DirectionDown, times = 3)
+        press(Key.DirectionDown, times = 4)
         press(Key.Enter)
         onNodeWithText("Credits").assertExists()
         press(Key.Escape)
@@ -266,7 +273,7 @@ class MenuKeysTest {
 
     @Test
     fun `Backspace goes back too, and up from the first choice is the Back button`() = menu {
-        press(Key.DirectionDown)
+        press(Key.DirectionDown, times = 2)
         press(Key.Enter)
         press(Key.DirectionUp)
         cursorOn("← Back")
@@ -276,7 +283,7 @@ class MenuKeysTest {
 
     @Test
     fun `a pad's B button goes back`() = menu {
-        press(Key.DirectionDown)
+        press(Key.DirectionDown, times = 2)
         press(Key.Enter)
         press(Key.ButtonB)
         cursorOn("Settings")
@@ -315,7 +322,7 @@ class MenuKeysTest {
 
     @Test
     fun `the credits start the cursor on the way back out`() = menu {
-        press(Key.DirectionDown, times = 3)
+        press(Key.DirectionDown, times = 4)
         press(Key.Enter)
         cursorOn("← Back")
         press(Key.Enter)
@@ -428,7 +435,7 @@ class MenuKeysTest {
             assertEquals(listOf(1 to Difficulty.NORMAL), menu.started)
             onAllNodesWithText("How do you want to fly?").assertCountEquals(0)
 
-            press(Key.DirectionDown)
+            press(Key.DirectionDown, times = 2)
             press(Key.Enter)
             onAllNodesWithText("On-screen stick").assertCountEquals(0)
         }
@@ -436,7 +443,7 @@ class MenuKeysTest {
     @Test
     fun `on a touch screen Settings offers the stick as a switch, under the vibration`() =
         menu(touchScreen = true) { menu ->
-            press(Key.DirectionDown)
+            press(Key.DirectionDown, times = 2)
             press(Key.Enter)
             // Down past Sounds and Vibration, which is only offered where there is something to
             // vibrate, and the desktop the tests run on has nothing.
@@ -454,7 +461,7 @@ class MenuKeysTest {
     @Test
     fun `the stick's sensitivity is offered under it once it is on`() =
         menu(touchScreen = true) { menu ->
-            press(Key.DirectionDown)
+            press(Key.DirectionDown, times = 2)
             press(Key.Enter)
             press(Key.DirectionDown, times = 2)
             cursorOn("On-screen stick")
@@ -472,6 +479,21 @@ class MenuKeysTest {
             press(Key.DirectionDown)
             cursorOn("Light")
         }
+
+    @Test
+    fun `the achievements list every one, earned or not, and Escape goes back to them`() = menu {
+        press(Key.DirectionDown)
+        press(Key.Enter)
+        onNodeWithText("0 of 15 earned").assertExists()
+        cursorOn("Fledgling")
+        onNodeWithText("First Fall").assertIsNotDisplayed()
+        // A card takes the cursor, earned or not, so the keys scroll down the list to the last.
+        press(Key.DirectionDown, times = Achievement.entries.size - 1)
+        cursorOn("First Fall")
+        onNodeWithText("First Fall").assertIsDisplayed()
+        press(Key.Escape)
+        cursorOn("Achievements")
+    }
 
     @Test
     fun `each open stage's stars say how hard it has been cleared`() =
@@ -519,7 +541,7 @@ class MenuKeysTest {
 
     @Test
     fun `the help dialog starts on OK, and Escape closes it`() = menu {
-        press(Key.DirectionDown, times = 2)
+        press(Key.DirectionDown, times = 3)
         press(Key.Enter)
         cursorOn("OK")
         // Up and down scroll the text, which is longer than the dialog, rather than move off OK.

@@ -2,29 +2,35 @@ package at.smiech.cyanbat.ui
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import at.smiech.cyanbat.Achievement
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
+import at.smiech.cyanbat.achievementsOfClears
 import at.smiech.cyanbat.data.SettingsRepository
 import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.engine.Music
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
 /**
- * Menu music, the music setting, which stages are open, and each stage's highscore and best clear.
- * The menu track plays through the engine's [Music], so both platforms behave alike.
+ * Menu music, the music setting, which stages are open, each stage's highscore and best clear, and
+ * the achievements. The menu track plays through the engine's [Music], so both platforms behave
+ * alike.
  *
- * Shared by the main screen and the stage select, which ask the same owner for it, so the menu
- * track is one track across the two, and stopping it from either stops it.
+ * Shared by the main screen, the stage select and the achievements, which ask the same owner for it,
+ * so the menu track is one track across them, and stopping it from any stops it.
  */
 class MainMenuViewModel(
     private val settings: SettingsRepository,
     private val menuMusic: Music?,
     stageUnlocks: StageUnlockStore,
     highscores: HighscoreStore,
+    private val achievementStore: AchievementStore,
 ) : ViewModel() {
 
     /** Whether music is on; the menu track plays only while it is. */
@@ -48,6 +54,23 @@ class MainMenuViewModel(
     /** The hardest difficulty each stage has been cleared on, for its stars. Eager, as the scores. */
     val clears: StateFlow<Map<Int, Difficulty>> = stageUnlocks.clears
         .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
+
+    /** Every achievement earned so far. Eager, as the scores, so the screen opens with them on. */
+    val achievements: StateFlow<Set<Achievement>> = achievementStore.unlocked
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptySet())
+
+    init {
+        // A player who cleared stages before there were achievements has earned what those clears
+        // earn; a run earns them from then on.
+        viewModelScope.launch {
+            val owed = achievementsOfClears(stageUnlocks.clears.first())
+            if (owed.isNotEmpty()) achievementStore.unlockAsync(owed, screenshot = null)
+        }
+    }
+
+    /** The picture [achievement] was earned with, as a PNG file, or null for none. */
+    suspend fun screenshot(achievement: Achievement): ByteArray? =
+        achievementStore.screenshot(achievement)
 
     /**
      * The difficulty the player last started a stage on, where the cursor starts the next time they

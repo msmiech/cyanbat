@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.ui.game
 
+import at.smiech.cyanbat.Achievement
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.ScoreTracker
@@ -33,6 +34,7 @@ import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.resource.SoundEffect
 import at.smiech.cyanbat.resource.StageMusic
 import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.achievement_notice
 import at.smiech.cyanbat.resources.banner_poisoned
 import at.smiech.cyanbat.resources.banner_second_life
 import at.smiech.cyanbat.resources.banner_wave
@@ -85,6 +87,9 @@ import at.smiech.cyanbat.service.EntityFactory
 import at.smiech.cyanbat.service.ObstacleGenerator
 import at.smiech.cyanbat.service.SkyViperBrain
 import at.smiech.cyanbat.service.StageProgression
+import at.smiech.cyanbat.util.ACHIEVEMENT_NOTICE_FONT_SIZE
+import at.smiech.cyanbat.util.ACHIEVEMENT_NOTICE_SECONDS
+import at.smiech.cyanbat.util.ACHIEVEMENT_NOTICE_Y
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_COUNT
 import at.smiech.cyanbat.util.BAT_DEATH_FRAME_SECONDS
@@ -215,6 +220,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import kotlin.math.atan2
@@ -517,6 +523,35 @@ class GameScreen(
     private var paused = false
 
     /**
+     * Every achievement the player holds: those earned before, read as the run starts (see
+     * [readAchievements]), and those this run has earned. None is earned, or pictured, twice.
+     */
+    private val achieved = mutableSetOf<Achievement>()
+
+    /**
+     * Achievements earned since the last frame was presented, which the next frame is the picture
+     * of; see [keepAchievements]. They are earned partway through a tick, before the frame showing
+     * the moment is drawn.
+     */
+    private val earnedThisFrame = mutableListOf<Achievement>()
+
+    /**
+     * The achievements still to be named along the bottom of the frame, the first one now, and how
+     * long it has been up; see [drawAchievementNotice].
+     */
+    private val notices = ArrayDeque<Achievement>()
+    private var noticeTime = 0f
+
+    /** Whether anything has hurt the bat this run, which [Achievement.UNTOUCHABLE] asks it not to. */
+    private var batHit = false
+
+    /**
+     * Whether an enemy has got away from the bat this run, which [Achievement.NOTHING_GETS_PAST]
+     * asks none to; see [onLeftFrame].
+     */
+    private var enemyEscaped = false
+
+    /**
      * Time before a tap counts as "resume", in seconds, so the finger lifting at the end of the
      * gesture that paused the game does not unpause it.
      */
@@ -590,7 +625,7 @@ class GameScreen(
         world.addSystem(InvulnerabilitySystem())
         // With the height too: aimed and fanned enemy fire leaves through the top and bottom as
         // well as the sides.
-        world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight))
+        world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight, ::onLeftFrame))
         // The jungle's and the cave's scenery strip, in a pass of its own under every other sprite:
         // drawn in one pass with the rest, it covered every halo.
         world.addSystem(RenderSystem(layers = Int.MIN_VALUE until SPRITE_LAYERS_FROM))
@@ -972,6 +1007,7 @@ class GameScreen(
     private fun awardExperience(amount: Int) {
         pendingLevelUps += progress.award((amount * loadout.experienceMultiplier).roundToInt())
         syncAura()
+        earn(Achievement.forLevel(progress.level))
     }
 
     /**
@@ -1198,6 +1234,7 @@ class GameScreen(
             if (stageComplete || interlude != null || control.hitCooldown > 0f) return 0
             control.hitCooldown = loadout.hitCooldownSeconds
             scoring.registerPlayerHit()
+            batHit = true
             director?.onPlayerHit()
             // Poisoned, a blow stirs the venom up, and the frame swims for a moment.
             poison.surge()
@@ -1228,6 +1265,7 @@ class GameScreen(
             if (control != null) {
                 beginDeath(targetId)
                 endRun()
+                earn(listOf(Achievement.FIRST_FALL))
             }
             if (targetId == enmGen.bossId) bossFell()
         } else if (control != null) {
@@ -1336,6 +1374,14 @@ class GameScreen(
         // a player who quits from the overlay has still won.
         env.stageUnlocks.recordClearAsync(currentStage.id, difficulty)
         nextStageId?.let { env.stageUnlocks.unlockAsync(it) }
+        earn(
+            Achievement.forClear(
+                currentStage.id,
+                difficulty,
+                untouched = !batHit,
+                nothingEscaped = !enemyEscaped,
+            )
+        )
         // With the Sky Viper down, its venom lifts, over the seconds the victory plays out.
         poison.cure()
 
@@ -1630,6 +1676,7 @@ class GameScreen(
     private fun initStats() {
         scoring.reset()
         readHighscore()
+        readAchievements()
     }
 
     /**
@@ -1639,6 +1686,50 @@ class GameScreen(
     private fun readHighscore() = screenScope.launch {
         // Merged rather than assigned, in case this run has already beaten the stored value.
         highscore = maxOf(highscore, env.highscores.read(currentStage.id))
+    }
+
+    /**
+     * Reads the achievements the player already holds, once, since only this run adds to them
+     * while it is flown. Until it answers, a frame or two in, one already held could be earned
+     * again; the store keeps the first, and only the notice would say it twice.
+     */
+    private fun readAchievements() = screenScope.launch {
+        achieved += env.achievements.unlocked.first()
+    }
+
+    /**
+     * Earns each of [achievements] the player does not hold yet. The frame this tick ends on is the
+     * picture of the moment, so they are kept once it is drawn; see [keepAchievements].
+     */
+    private fun earn(achievements: List<Achievement>) {
+        for (achievement in achievements) {
+            if (achieved.add(achievement)) earnedThisFrame += achievement
+        }
+    }
+
+    /**
+     * Keeps the achievements earned since the last frame, with the frame just drawn as their
+     * picture, and queues their notice, which is drawn after the picture is taken and so not in it.
+     */
+    private fun keepAchievements() {
+        if (earnedThisFrame.isEmpty()) return
+        env.achievements.unlockAsync(earnedThisFrame.toList(), g.capture())
+        notices.addAll(earnedThisFrame)
+        earnedThisFrame.clear()
+    }
+
+    /**
+     * Something culled for leaving the frame. An enemy that leaves alive has got away from the bat,
+     * unless it never came into the frame at all: one culled past the right edge on its way left was
+     * still coming in. A boss comes and goes as it fights, and is never culled.
+     */
+    private fun onLeftFrame(id: EntityId) {
+        if (collisionGroupOf(id) != CollisionGroup.ENEMY || isBossPart(id) || id == enmGen.bossId) return
+        if (world.getComponent(id, HealthComponent::class)?.alive == false) return
+        val rect = world.getComponent(id, TransformComponent::class)?.rect ?: return
+        val vx = world.getComponent(id, VelocityComponent::class)?.velocity?.x ?: 0f
+        if (rect.left > game.frameBufferWidth && vx <= 0f) return
+        enemyEscaped = true
     }
 
     override fun update(deltaTime: Float) {
@@ -1814,6 +1905,8 @@ class GameScreen(
         powerUp.applyTo(loadout)
         applyLoadout()
         announce(text[powerUp.title])
+        // Only one with a ceiling can reach it, and from then on it is no longer offered.
+        if (!powerUp.isAvailable(loadout)) earn(listOf(Achievement.MAXED_OUT))
     }
 
     /**
@@ -2434,6 +2527,34 @@ class GameScreen(
         if (offer.isNotEmpty()) drawPowerUpOffer()
         if (stageCompleteShown) drawStageCompleteOverlay()
         if (paused) drawPauseOverlay()
+
+        // Last, so the frame as the player sees it is the picture of what it earned, and the notice
+        // goes over everything else but is not in the picture.
+        keepAchievements()
+        drawAchievementNotice(deltaTime)
+    }
+
+    /**
+     * Names the achievement just earned along the bottom of the frame, where nothing else is drawn,
+     * for [ACHIEVEMENT_NOTICE_SECONDS]; several earned at once are named one after another. The
+     * time stands still while the run is paused.
+     */
+    private fun drawAchievementNotice(deltaTime: Float) {
+        if (notices.isEmpty()) return
+        if (!paused) noticeTime += deltaTime
+        if (noticeTime >= ACHIEVEMENT_NOTICE_SECONDS) {
+            notices.removeFirst()
+            noticeTime = 0f
+        }
+        val achievement = notices.firstOrNull() ?: return
+        val line = text.format(Res.string.achievement_notice, text[achievement.title])
+        g.drawOutlinedString(
+            line,
+            centeredX(line, ACHIEVEMENT_NOTICE_FONT_SIZE),
+            ACHIEVEMENT_NOTICE_Y,
+            ACHIEVEMENT_NOTICE_FONT_SIZE,
+            EngineColors.YELLOW,
+        )
     }
 
     /**
@@ -2643,6 +2764,10 @@ class GameScreen(
 
     override fun dispose() {
         screenScope.cancel()
+        // Earned on a frame that was never drawn, as the run was left: kept all the same, without a
+        // picture.
+        if (earnedThisFrame.isNotEmpty()) env.achievements.unlockAsync(earnedThisFrame.toList(), null)
+        earnedThisFrame.clear()
         // The next stage's screen opens its own music, so this one's and the fanfare must go, or
         // they would play on over it.
         music?.dispose()
