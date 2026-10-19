@@ -55,10 +55,13 @@ import at.smiech.cyanbat.resources.button_help
 import at.smiech.cyanbat.resources.button_ok
 import at.smiech.cyanbat.resources.button_settings
 import at.smiech.cyanbat.resources.button_start_game
+import at.smiech.cyanbat.resources.dialog_help_controls_playstation
+import at.smiech.cyanbat.resources.dialog_help_controls_xbox
 import at.smiech.cyanbat.resources.dialog_help_text
 import at.smiech.cyanbat.resources.dialog_help_title
 import at.smiech.cyanbat.resources.title
 import at.smiech.cyanbat.resources.title_image_description
+import at.smiech.engine.InputMethod
 import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
@@ -108,6 +111,8 @@ fun MainMenuScreen(
     onStartStage: (stageId: Int) -> Unit,
     /** Quits the game; null where it cannot quit, and there is no Exit. */
     onExit: (() -> Unit)?,
+    /** What the player last worked the game with, which the help names the buttons of. */
+    inputMethod: () -> InputMethod = { InputMethod.TOUCH },
 ) {
     val isMusicEnabled by viewModel.isMusicEnabled.collectAsState()
     LaunchedEffect(isMusicEnabled) {
@@ -121,7 +126,7 @@ fun MainMenuScreen(
 
     var showHelpDialog by remember { mutableStateOf(false) }
     if (showHelpDialog) {
-        HelpDialog { showHelpDialog = false }
+        HelpDialog(inputMethod()) { showHelpDialog = false }
     }
 
     MainMenuContent(home = MainChoice.entries[cursor], canExit = onExit != null) { choice ->
@@ -153,7 +158,7 @@ fun MainMenuScreen(
  */
 @Composable
 @OptIn(ExperimentalMaterial3Api::class)
-private fun HelpDialog(dismiss: () -> Unit) {
+private fun HelpDialog(inputMethod: InputMethod, dismiss: () -> Unit) {
     BasicAlertDialog(onDismissRequest = dismiss) {
         val scroll = rememberScrollState()
         val scope = rememberCoroutineScope()
@@ -183,7 +188,8 @@ private fun HelpDialog(dismiss: () -> Unit) {
                     Spacer(Modifier.height(12.dp))
                     // Scrolls rather than pushing OK off a short landscape screen.
                     Text(
-                        text = stringResource(helpControls) + "\n" + stringResource(Res.string.dialog_help_text),
+                        text = stringResource(helpControlsFor(inputMethod)) + "\n" +
+                                stringResource(Res.string.dialog_help_text),
                         modifier = Modifier.weight(1f, fill = false).verticalScroll(scroll)
                     )
                     Spacer(Modifier.height(12.dp))
@@ -329,3 +335,13 @@ private val MainChoice.label: StringResource
         MainChoice.CREDITS -> Res.string.button_credits
         MainChoice.EXIT -> Res.string.button_exit
     }
+
+/**
+ * The help's controls section for [inputMethod]: a controller's own, by the names on its buttons,
+ * while one is in the player's hands, and otherwise the platform's.
+ */
+private fun helpControlsFor(inputMethod: InputMethod): StringResource = when (inputMethod) {
+    InputMethod.XBOX_PAD -> Res.string.dialog_help_controls_xbox
+    InputMethod.PLAYSTATION_PAD -> Res.string.dialog_help_controls_playstation
+    InputMethod.TOUCH, InputMethod.KEYBOARD_MOUSE -> helpControls
+}

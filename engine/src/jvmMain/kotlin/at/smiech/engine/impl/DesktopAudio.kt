@@ -7,6 +7,7 @@ import at.smiech.engine.MusicGrid
 import at.smiech.engine.Sound
 import java.io.ByteArrayOutputStream
 import java.io.InputStream
+import java.util.concurrent.TimeUnit
 import javax.sound.sampled.AudioFormat
 import javax.sound.sampled.AudioSystem
 import javax.sound.sampled.Clip
@@ -87,20 +88,67 @@ internal fun setLineVolume(control: FloatControl?, volume: Float) {
     c.value = db
 }
 
-/** A short effect, decoded up front and replayed from a [Clip]. Silent if no line is available. */
-internal class DesktopSound(pcm: PcmBuffer) : Sound {
-    private val clip: Clip? = runCatching {
-        AudioSystem.getClip().apply { open(pcm.format, pcm.bytes, 0, pcm.bytes.size) }
-    }.getOrNull()
+/**
+ * A short effect, decoded up front and replayed from a [Clip]. Silent while no line is available.
+ *
+ * Played on the game's thread, so nothing a sound device does may throw out of it: a clip that
+ * fails, as one can once the system's output has changed under it, is let go of, and another is
+ * opened, at most every [REOPEN_MILLIS], on the next play. One that could not be opened as the run
+ * started is opened that way too, once a device takes it.
+ */
+internal class DesktopSound(private val pcm: PcmBuffer) : Sound {
+    private var clip: Clip? = open()
+
+    /** When [play] may next try to open a clip, from [System.nanoTime]. */
+    private var reopenAt = 0L
+
+    private var disposed = false
 
     override fun play(volume: Float) {
-        val c = clip ?: return
-        setLineVolume(c.getControl(FloatControl.Type.MASTER_GAIN) as? FloatControl, volume)
-        c.framePosition = 0
-        c.start()
+        if (disposed) return
+        val c = clip ?: reopen() ?: return
+        try {
+            if (c.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
+                setLineVolume(c.getControl(FloatControl.Type.MASTER_GAIN) as? FloatControl, volume)
+            }
+            c.framePosition = 0
+            c.start()
+        } catch (exc: Exception) {
+            System.err.println("CyanBat: sound effect failed, reopening - $exc")
+            c.close()
+            clip = null
+            SoundDevices.lineFailed()
+        }
+    }
+
+    private fun reopen(): Clip? {
+        val now = System.nanoTime()
+        if (now < reopenAt) return null
+        reopenAt = now + TimeUnit.MILLISECONDS.toNanos(REOPEN_MILLIS)
+        return open().also { clip = it }
+    }
+
+    private fun open(): Clip? {
+        var opened: Clip? = null
+        return try {
+            opened = AudioSystem.getClip()
+            opened.open(pcm.format, pcm.bytes, 0, pcm.bytes.size)
+            opened
+        } catch (_: Exception) {
+            opened?.close()
+            SoundDevices.lineFailed()
+            null
+        }
     }
 
     override fun dispose() {
+        disposed = true
         clip?.close()
+        clip = null
+    }
+
+    private companion object {
+        /** The least time between two tries at opening a clip, which costs the game's thread. */
+        const val REOPEN_MILLIS = 2_000L
     }
 }

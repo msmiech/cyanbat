@@ -1,8 +1,12 @@
 package at.smiech.engine.impl
 
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import at.smiech.engine.Controls
 import at.smiech.engine.Direction
 import at.smiech.engine.GameButton
+import at.smiech.engine.InputMethod
 import kotlin.math.abs
 
 /**
@@ -15,8 +19,26 @@ import kotlin.math.abs
  *
  * Not synchronized, for the same reason as [PointerTouchHandler]: key and motion callbacks arrive
  * on the host's UI thread, which is the thread the game loop runs on.
+ *
+ * @param initialMethod what the player is taken to play with until they use something: whatever
+ *   the platform is usually played with, or whatever started the run.
  */
-class ControlHandler : Controls {
+class ControlHandler(initialMethod: InputMethod = InputMethod.KEYBOARD_MOUSE) : Controls {
+    /**
+     * What the player last played with, as the adapters report it through [use]. Snapshot state, so
+     * a menu shown by Compose follows it as the game's screens do.
+     */
+    override var inputMethod: InputMethod by mutableStateOf(initialMethod)
+        private set
+
+    /**
+     * The player has just used [method]: pressed one of its keys or buttons, pushed its stick, or
+     * moved, clicked or touched the pointer.
+     */
+    fun use(method: InputMethod) {
+        if (inputMethod != method) inputMethod = method
+    }
+
     private val heldDirections = BooleanArray(Direction.entries.size)
     private val heldButtons = BooleanArray(GameButton.entries.size)
 
@@ -106,5 +128,11 @@ class ControlHandler : Controls {
     companion object {
         /** Stick travel ignored as rest position, as a fraction of full deflection. */
         const val AXIS_DEAD_ZONE = 0.2f
+
+        /**
+         * How far a stick has to be pushed to count as the player picking the pad up: past the dead
+         * zone and then some, as a pad left on the table can report a stick a little off center.
+         */
+        const val PAD_USE_DEFLECTION = 0.5f
     }
 }

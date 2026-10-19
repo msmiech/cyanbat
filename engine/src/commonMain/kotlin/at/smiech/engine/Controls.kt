@@ -35,6 +35,49 @@ enum class GameButton {
     }
 }
 
+/**
+ * What the player last played with, which decides the button prompts the game shows: a tap, a key
+ * or a click, or a controller's own buttons.
+ *
+ * Controllers are told apart by their maker, since that is what their buttons are labeled by: a
+ * PlayStation pad's face buttons are shapes, an Xbox pad's are letters, and any other pad is taken
+ * for an Xbox one, as the controller libraries lay them all out.
+ */
+enum class InputMethod {
+    TOUCH,
+    KEYBOARD_MOUSE,
+    XBOX_PAD,
+    PLAYSTATION_PAD,
+    ;
+
+    val isPad: Boolean get() = this == XBOX_PAD || this == PLAYSTATION_PAD
+
+    companion object {
+        /**
+         * The pad a controller's name or maker says it is: Sony's are PlayStation pads, the rest
+         * Xbox ones.
+         *
+         * @param vendorId the USB vendor id, where the platform reports one.
+         */
+        fun padOf(name: String?, vendorId: Int? = null): InputMethod {
+            if (vendorId == SONY_VENDOR_ID) return PLAYSTATION_PAD
+            val lower = name.orEmpty().lowercase()
+            val sony = PLAYSTATION_NAMES.any { it in lower } || "054c" in lower
+            return if (sony) PLAYSTATION_PAD else XBOX_PAD
+        }
+
+        /** Sony's USB vendor id. */
+        const val SONY_VENDOR_ID = 0x054C
+
+        /**
+         * What a Sony pad's name has in it, as SDL ("PS5 Controller"), the browsers ("DualSense
+         * Wireless Controller") and Android report it.
+         */
+        private val PLAYSTATION_NAMES =
+            listOf("dualsense", "dualshock", "playstation", "ps3", "ps4", "ps5", "sony")
+    }
+}
+
 /** A digital direction, as a key or a d-pad reports it. Sticks report [Controls.moveX] directly. */
 enum class Direction { LEFT, RIGHT, UP, DOWN }
 
@@ -59,12 +102,16 @@ interface Controls {
      */
     fun consumePress(button: GameButton): Boolean
 
+    /** What the player last played with, so the screens can show its buttons. */
+    val inputMethod: InputMethod
+
     companion object {
         /** For hosts with no keyboard or pad attached, and for tests that only drive touch. */
         val None: Controls = object : Controls {
             override val moveX = 0f
             override val moveY = 0f
             override fun consumePress(button: GameButton) = false
+            override val inputMethod = InputMethod.TOUCH
         }
     }
 }

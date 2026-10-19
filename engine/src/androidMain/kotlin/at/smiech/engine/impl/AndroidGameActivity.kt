@@ -38,6 +38,7 @@ import at.smiech.engine.GameLoop
 import at.smiech.engine.Graphics
 import at.smiech.engine.Haptics
 import at.smiech.engine.Input
+import at.smiech.engine.InputMethod
 import at.smiech.engine.Screen
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -71,7 +72,14 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
      * Keyboard, game controller and back-gesture state. Owned by the activity rather than a screen,
      * because those events arrive at the window.
      */
-    private val controlHandler = ControlHandler()
+    private val controlHandler = ControlHandler(InputMethod.TOUCH)
+
+    /**
+     * What the player was playing with as the activity started, so its first prompts are for that,
+     * such as a pad that started the run from the menu. A phone is touched unless the host knows
+     * better.
+     */
+    protected open val initialInputMethod: InputMethod get() = InputMethod.TOUCH
 
     /**
      * The input device the player last used through a key or a stick, or null once they touch the
@@ -108,6 +116,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
 
         val touchHandler = PointerTouchHandler()
 
+        controlHandler.use(initialInputMethod)
         input = AndroidInput(touchHandler, controlHandler)
         frame = ComposeGraphics(
             frameBufferWidth,
@@ -165,6 +174,7 @@ abstract class AndroidGameActivity : ComponentActivity(), Game {
                             awaitPointerEventScope {
                                 while (true) {
                                     val event = awaitPointerEvent()
+                                    controlHandler.onComposePointerUse(event)
                                     touchHandler.onComposePointerEvent(event, fit)
                                 }
                             }

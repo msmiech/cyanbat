@@ -35,6 +35,7 @@ import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.button_back
+import at.smiech.engine.InputMethod
 import at.smiech.engine.Music
 import org.jetbrains.compose.resources.stringResource
 
@@ -62,6 +63,12 @@ class MenuHost(
      * Exit: a page cannot close its own browser tab.
      */
     val onExit: (() -> Unit)?,
+    /**
+     * What the player last worked the game with, read where the menu speaks of the controls, so a
+     * controller's own buttons are named while one is in their hands. Read in composition: backed
+     * by snapshot state, it redraws what reads it as it changes.
+     */
+    val inputMethod: () -> InputMethod = { InputMethod.TOUCH },
 )
 
 /** The room between a menu screen's edge and what is on it. */
@@ -208,6 +215,7 @@ private fun Destination(
                 onNavigateToAchievements = { backStack.navigateTo(MenuDestination.Achievements) },
                 onStartStage = onStartStage,
                 onExit = host.onExit,
+                inputMethod = host.inputMethod,
             )
         }
 

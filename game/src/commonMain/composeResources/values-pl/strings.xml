@@ -53,7 +53,9 @@
 
     <string name="dialog_help_title">Pomoc</string>
     <string name="dialog_help_controls_touch">• Lot: przeciągaj CyanBata palcem albo, jeśli wybrano gałkę w Ustawieniach, połóż kciuk w dowolnym miejscu i przesuwaj go w wybraną stronę. Działa też klawiatura lub kontroler.\n• Pauza: przesuń palcem od krawędzi lub naciśnij Wstecz. Ponowne Wstecz wraca do menu.</string>
-    <string name="dialog_help_controls_desktop">• Lot: przeciągaj CyanBata myszą albo użyj strzałek lub WASD.\n• Pauza: Q. Ponowne Q wraca do menu.\n• Pełny ekran: F11 lub Alt+Enter.</string>
+    <string name="dialog_help_controls_desktop">• Lot: przeciągaj CyanBata myszą albo użyj strzałek lub WASD.\n• Pauza: Q. Ponowne Q wraca do menu.\n• Pełny ekran: F11 lub Alt+Enter.\n• Kontroler: działa też pad Xbox lub PlayStation.</string>
+    <string name="dialog_help_controls_xbox">• Lot: lewa gałka lub krzyżak.\n• Pauza: Menu lub B. Ponowne B wraca do menu, A gra dalej.\n• Nowy poziom: krzyżak wybiera kartę, A ją bierze.\n• Menu: A wybiera, B cofa.</string>
+    <string name="dialog_help_controls_playstation">• Lot: lewa gałka lub krzyżak.\n• Pauza: Options lub Kółko. Ponowne Kółko wraca do menu, Krzyżyk gra dalej.\n• Nowy poziom: krzyżak wybiera kartę, Krzyżyk ją bierze.\n• Menu: Krzyżyk wybiera, Kółko cofa.</string>
     <string name="dialog_help_controls_web">• Lot: przeciągaj CyanBata myszą lub palcem albo użyj strzałek lub WASD. Na ekranie dotykowym Ustawienia mogą zamiast tego dać gałkę: połóż kciuk w dowolnym miejscu i przesuwaj.\n• Pauza: Q. Ponowne Q wraca do menu.</string>
     <string name="dialog_help_controls_ios">• Lot: przeciągaj CyanBata palcem albo, jeśli wybrano gałkę w Ustawieniach, połóż kciuk w dowolnym miejscu i przesuwaj go w wybraną stronę. Działa też klawiatura.\n• Pauza: dotknij przycisku w prawym górnym rogu lub naciśnij Q. Z ekranu pauzy wrócisz do menu.</string>
     <string name="dialog_help_text">• Strzelanie: CyanBat strzela sam. Strzelaj do wrogów i przeszkód i nie dotykaj ani ich, ani ich pocisków.\n• Zdrowie: każde trafienie uszczupla pasek pod nietoperzem. Gdy się opróżni, gra się kończy.\n• Punkty: zdobywasz je za przetrwanie i za zestrzelenia. Zestrzelenia z rzędu podnoszą mnożnik, a każde trafienie go zeruje.\n• Awans: zestrzelenia dają doświadczenie. Każdy nowy poziom pozwala wybrać jedno z trzech ulepszeń.\n• Fale: co minutę nadciąga silniejsza fala. Po piątej pojawia się boss. Pokonaj go, aby ukończyć etap z dużą premią.\n• Trudność: na początku etapu wybierz Łatwy, Normalny lub Trudny. Łatwiejszy stopień to mniej wrogów, więcej doświadczenia i nietoperz, który wytrzymuje więcej trafień, mocniej trafia i zaczyna z ulepszeniami. Gwiazdki przy każdym etapie pokazują najtrudniejszy stopień, na jakim go ukończono: jedna za Łatwy, trzy za Trudny.
@@ -139,22 +141,29 @@
     <string name="boss_sky_viper_falls">NIEBIAŃSKA ŻMIJA POKONANA</string>
 
     <string name="pause_title">PAUZA</string>
-    <string name="pause_resume">Dotknij lub kliknij, aby wznowić</string>
-    <string name="pause_quit">Wstecz lub Q, aby wyjść</string>
+    <string name="pause_resume">Dotknij, aby wznowić</string>
+    <string name="pause_quit">Wstecz, aby wyjść</string>
     <string name="pause_quit_button">Wyjdź do menu</string>
 
     <string name="stage_complete_title">ETAP UKOŃCZONY</string>
-    <string name="stage_complete_next">Dotknij lub naciśnij Enter, aby przejść do etapu %1$d</string>
-    <string name="stage_complete_menu">Wstecz lub Q, aby wrócić do menu</string>
+    <string name="stage_complete_next">Dotknij, aby przejść do etapu %1$d</string>
+    <string name="stage_complete_menu">Wstecz, aby wrócić do menu</string>
     <string name="stage_complete_fresh_start">Punkty, poziom i ulepszenia zaczynają się od nowa</string>
-    <string name="stage_complete_continue">Dotknij lub naciśnij Enter, aby kontynuować</string>
-    <string name="stage_complete_endless">Dotknij lub naciśnij Enter, aby przejść do trybu nieskończonego</string>
+    <string name="stage_complete_continue">Dotknij, aby kontynuować</string>
+    <string name="stage_complete_endless">Dotknij, aby przejść do trybu nieskończonego</string>
 
     <string name="game_over_hint">Dotknij ekranu, aby wrócić do menu głównego</string>
     <string name="game_over_wave">Osiągnięta fala: %1$d</string>
 
     <string name="level_up_title">POZIOM %1$d</string>
     <string name="level_up_choose">Wybierz ulepszenie</string>
+    <string name="prompt_resume">Wznów</string>
+    <string name="prompt_next_stage">Etap %1$d</string>
+    <string name="prompt_continue">Dalej</string>
+    <string name="prompt_menu">Menu</string>
+    <string name="prompt_main_menu">Menu główne</string>
+    <string name="prompt_choose">Wybierz</string>
+    <string name="prompt_take">Weź</string>
 
     <string name="power_up_rapid_fire">Szybki ogień</string>
     <string name="power_up_rapid_fire_description">Szybsze strzały</string>

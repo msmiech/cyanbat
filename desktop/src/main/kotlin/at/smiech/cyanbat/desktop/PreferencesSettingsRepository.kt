@@ -20,9 +20,8 @@ import java.util.prefs.Preferences
  *
  * The flows are in-memory mirrors: this process is the only writer, so they cannot go stale.
  *
- * Vibration is stored like the rest, although the desktop has nothing to vibrate yet and the menu
- * does not offer it; a gamepad backend that rumbles would find the player's choice already here.
- * So is the touch steering, which the desktop, flown by mouse, neither asks for nor offers.
+ * Vibration is stored like the rest, and rumbles a game controller ([DesktopGamepads]). So is the
+ * touch steering, which the desktop, flown by mouse, neither asks for nor offers.
  *
  * Making one puts the stored language into effect ([DesktopLocale]), and the desktop makes its one
  * before the menu reads a string.

@@ -21,6 +21,7 @@ import at.smiech.cyanbat.ui.game.GameScreen
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.DisplayMode
+import at.smiech.engine.InputMethod
 import at.smiech.engine.Screen
 import at.smiech.engine.impl.AndroidGameActivity
 import kotlinx.coroutines.CoroutineScope
@@ -58,6 +59,12 @@ class CyanBatGameActivity : AndroidGameActivity() {
     private val settings by lazy { DataStoreSettingsRepository(dataStore) }
 
     override val displayModes: Flow<DisplayMode> get() = settings.displayMode
+
+    override val initialInputMethod: InputMethod
+        get() {
+            val name = intent.getStringExtra(EXTRA_INPUT_METHOD)
+            return InputMethod.entries.firstOrNull { it.name == name } ?: InputMethod.TOUCH
+        }
 
     override val frameBufferWidth: Int get() = FRAME_BUFFER_WIDTH
     override val frameBufferHeight: Int get() = FRAME_BUFFER_HEIGHT
@@ -124,5 +131,11 @@ class CyanBatGameActivity : AndroidGameActivity() {
 
         /** How hard the run is, as a [Difficulty]'s name; [Difficulty.DEFAULT] when absent. */
         const val EXTRA_DIFFICULTY = "at.smiech.cyanbat.DIFFICULTY"
+
+        /**
+         * What the menu was last worked with, as an [InputMethod]'s name, so a run started with a
+         * pad shows the pad's buttons from its first prompt; touch when absent.
+         */
+        const val EXTRA_INPUT_METHOD = "at.smiech.cyanbat.INPUT_METHOD"
     }
 }

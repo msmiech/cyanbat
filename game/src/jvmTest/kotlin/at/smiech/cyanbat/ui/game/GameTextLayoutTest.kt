@@ -24,6 +24,13 @@ import at.smiech.cyanbat.resources.pause_quit
 import at.smiech.cyanbat.resources.pause_quit_button
 import at.smiech.cyanbat.resources.pause_resume
 import at.smiech.cyanbat.resources.pause_title
+import at.smiech.cyanbat.resources.prompt_choose
+import at.smiech.cyanbat.resources.prompt_continue
+import at.smiech.cyanbat.resources.prompt_main_menu
+import at.smiech.cyanbat.resources.prompt_menu
+import at.smiech.cyanbat.resources.prompt_next_stage
+import at.smiech.cyanbat.resources.prompt_resume
+import at.smiech.cyanbat.resources.prompt_take
 import at.smiech.cyanbat.resources.score
 import at.smiech.cyanbat.resources.stage_1_name
 import at.smiech.cyanbat.resources.stage_2_name
@@ -45,6 +52,7 @@ import at.smiech.cyanbat.util.POWER_UP_CARD_PADDING
 import at.smiech.cyanbat.util.QUIT_BUTTON_WIDTH
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
 import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
+import at.smiech.engine.InputMethod
 import at.smiech.engine.impl.ComposeGraphics
 import java.io.File
 import javax.imageio.ImageIO
@@ -157,6 +165,45 @@ class GameTextLayoutTest {
             assertFits(language, text.format(Res.string.score, score), 20, room)
             assertFits(language, text.format(Res.string.stage_highscore, score), 15, room)
             assertFits(language, text.format(Res.string.game_over_wave, 999), 15, room)
+        }
+    }
+
+    /**
+     * Every row of button prompts fits across the frame, with every input method's buttons: the
+     * pause screen's, the stage complete screen's and the level up dialog's, and the game over
+     * screen's under GAME OVER.
+     */
+    @Test
+    fun `every row of button prompts fits`() {
+        val prompts = ButtonPrompts(g)
+        val room = FRAME_BUFFER_WIDTH - 2 * margin
+        val artwork = ImageIO.read(File("../assets/gameover.png"))
+        val center = (FRAME_BUFFER_WIDTH - artwork.width) / 2 + GameOverScreen.ARTWORK_CENTER_X
+        val gameOverRoom = 2 * (minOf(center, FRAME_BUFFER_WIDTH - center) - margin)
+        val methods = InputMethod.entries - InputMethod.TOUCH
+        for ((language, text) in texts) {
+            val rows = listOf(
+                listOf(Prompt(PromptAction.RESUME, text[Res.string.prompt_resume])),
+                listOf(Prompt(PromptAction.BACK, text[Res.string.pause_quit_button])),
+                listOf(Prompt(PromptAction.CONFIRM, text.format(Res.string.prompt_next_stage, 4))),
+                listOf(Prompt(PromptAction.CONFIRM, text[Res.string.stage_5_name])),
+                listOf(Prompt(PromptAction.CONFIRM, text[Res.string.prompt_continue])),
+                listOf(Prompt(PromptAction.BACK, text[Res.string.prompt_menu])),
+                listOf(
+                    Prompt(PromptAction.CHOOSE, text[Res.string.prompt_choose]),
+                    Prompt(PromptAction.TAKE, text[Res.string.prompt_take]),
+                ),
+            )
+            val gameOver = listOf(Prompt(PromptAction.CONFIRM, text[Res.string.prompt_main_menu]))
+            for (method in methods) {
+                for (row in rows) {
+                    val width = prompts.measure(method, row, 15)
+                    val labels = row.map { it.label }
+                    assertTrue(width <= room, "$language, $method: $labels is $width wide")
+                }
+                val width = prompts.measure(method, gameOver, GameOverScreen.HINT_SIZE)
+                assertTrue(width <= gameOverRoom, "$language, $method: game over is $width wide")
+            }
         }
     }
 

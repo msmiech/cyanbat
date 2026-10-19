@@ -7,6 +7,7 @@ import androidx.compose.ui.input.key.key
 import androidx.compose.ui.input.key.type
 import at.smiech.engine.Direction
 import at.smiech.engine.GameButton
+import at.smiech.engine.InputMethod
 
 /**
  * Feeds Compose key events into [ControlHandler]: the desktop's counterpart to
@@ -30,6 +31,9 @@ fun ControlHandler.onComposeKeyEvent(event: KeyEvent): Boolean {
  * built by hand outside a window, since it wraps a platform type the toolkit fills in.
  */
 internal fun ControlHandler.applyKey(key: Key, pressed: Boolean): Boolean {
+    if (pressed && (directionOf(key) != null || buttonOf(key) != null)) {
+        use(InputMethod.KEYBOARD_MOUSE)
+    }
     directionOf(key)?.let {
         onDirection(it, pressed)
         return true

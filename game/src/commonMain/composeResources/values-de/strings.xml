@@ -51,7 +51,9 @@
 
     <string name="dialog_help_title">Hilfe</string>
     <string name="dialog_help_controls_touch">• Fliegen: Ziehe CyanBat mit dem Finger, oder, wenn du in den Einstellungen den Stick gewählt hast, setz den Daumen irgendwo auf und schieb ihn in die Richtung. Tastatur oder Controller gehen auch.\n• Pause: Wische oder drücke Zurück. Noch einmal Zurück führt ins Menü.</string>
-    <string name="dialog_help_controls_desktop">• Fliegen: Ziehe CyanBat mit der Maus oder nimm die Pfeiltasten oder WASD.\n• Pause: Q. Noch einmal Q führt ins Menü.\n• Vollbild: F11 oder Alt+Enter.</string>
+    <string name="dialog_help_controls_desktop">• Fliegen: Ziehe CyanBat mit der Maus oder nimm die Pfeiltasten oder WASD.\n• Pause: Q. Noch einmal Q führt ins Menü.\n• Vollbild: F11 oder Alt+Enter.\n• Controller: Ein Xbox- oder PlayStation-Pad geht auch.</string>
+    <string name="dialog_help_controls_xbox">• Fliegen: linker Stick oder Steuerkreuz.\n• Pause: Menü-Taste oder B. Noch einmal B führt ins Menü, A spielt weiter.\n• Neue Stufe: Das Steuerkreuz wählt eine Karte, A nimmt sie.\n• Menüs: A wählt aus, B geht zurück.</string>
+    <string name="dialog_help_controls_playstation">• Fliegen: linker Stick oder Steuerkreuz.\n• Pause: Options oder Kreis. Noch einmal Kreis führt ins Menü, Kreuz spielt weiter.\n• Neue Stufe: Das Steuerkreuz wählt eine Karte, Kreuz nimmt sie.\n• Menüs: Kreuz wählt aus, Kreis geht zurück.</string>
     <string name="dialog_help_controls_web">• Fliegen: Ziehe CyanBat mit der Maus oder dem Finger oder nimm die Pfeiltasten oder WASD. Auf einem Touchscreen gibt es in den Einstellungen stattdessen einen Stick: Daumen irgendwo aufsetzen und schieben.\n• Pause: Q. Noch einmal Q führt ins Menü.</string>
     <string name="dialog_help_controls_ios">• Fliegen: Ziehe CyanBat mit dem Finger, oder, wenn du in den Einstellungen den Stick gewählt hast, setz den Daumen irgendwo auf und schieb ihn in die Richtung. Eine Tastatur geht auch.\n• Pause: Tippe auf den Knopf oben rechts oder drücke Q. Vom Pausenbildschirm geht es zurück ins Menü.</string>
     <string name="dialog_help_text">• Schießen: CyanBat feuert von selbst. Schieß auf Gegner und Hindernisse und berühre weder sie noch ihre Schüsse.\n• Gesundheit: Jeder Treffer leert den Balken unter der Fledermaus. Ist er leer, ist die Runde vorbei.\n• Punkte: Punkte gibt es fürs Überleben und für Abschüsse. Abschüsse in Folge erhöhen den Multiplikator, ein Treffer setzt ihn zurück.\n• Stufenaufstieg: Abschüsse bringen Erfahrung. Mit jeder neuen Stufe wählst du eins von drei Power-ups.\n• Wellen: Jede Minute kommt eine stärkere Welle. Nach der fünften erscheint der Boss. Besiege ihn, um den Abschnitt mit einem großen Bonus abzuschließen.\n• Schwierigkeitsgrad: Wähle zu Beginn eines Abschnitts Leicht, Normal oder Schwer. Ein leichterer schickt weniger Gegner, bringt mehr Erfahrung und gibt dir eine Fledermaus, die mehr Treffer einsteckt, härter trifft und mit Power-ups beginnt. Die Sterne auf jedem Abschnitt zeigen den schwersten Grad, auf dem du ihn geschafft hast: einer für Leicht, drei für Schwer.
@@ -137,22 +139,29 @@
     <string name="boss_sky_viper_falls">DIE HIMMELSVIPER FÄLLT</string>
 
     <string name="pause_title">PAUSE</string>
-    <string name="pause_resume">Tippen oder klicken zum Fortsetzen</string>
-    <string name="pause_quit">Zurück oder Q zum Beenden</string>
+    <string name="pause_resume">Tippen zum Fortsetzen</string>
+    <string name="pause_quit">Zurück zum Beenden</string>
     <string name="pause_quit_button">Zurück ins Menü</string>
 
     <string name="stage_complete_title">ABSCHNITT GESCHAFFT</string>
-    <string name="stage_complete_next">Tippen oder Enter drücken für Abschnitt %1$d</string>
-    <string name="stage_complete_menu">Zurück oder Q für das Menü</string>
+    <string name="stage_complete_next">Tippen für Abschnitt %1$d</string>
+    <string name="stage_complete_menu">Zurück für das Menü</string>
     <string name="stage_complete_fresh_start">Punkte, Stufe und Power-ups beginnen von vorn</string>
-    <string name="stage_complete_continue">Tippen oder Enter drücken zum Fortfahren</string>
-    <string name="stage_complete_endless">Tippen oder Enter drücken für den Endlosmodus</string>
+    <string name="stage_complete_continue">Tippen zum Fortfahren</string>
+    <string name="stage_complete_endless">Tippen für den Endlosmodus</string>
 
     <string name="game_over_hint">Zum Hauptmenü den Bildschirm berühren</string>
     <string name="game_over_wave">Welle %1$d erreicht</string>
 
     <string name="level_up_title">LEVEL %1$d</string>
     <string name="level_up_choose">Wähle ein Power-up</string>
+    <string name="prompt_resume">Fortsetzen</string>
+    <string name="prompt_next_stage">Abschnitt %1$d</string>
+    <string name="prompt_continue">Weiter</string>
+    <string name="prompt_menu">Menü</string>
+    <string name="prompt_main_menu">Hauptmenü</string>
+    <string name="prompt_choose">Auswählen</string>
+    <string name="prompt_take">Nehmen</string>
 
     <string name="power_up_rapid_fire">Schnellfeuer</string>
     <string name="power_up_rapid_fire_description">Schüsse folgen schneller</string>

@@ -5,6 +5,8 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import at.smiech.engine.Direction
 import at.smiech.engine.GameButton
+import at.smiech.engine.InputMethod
+import kotlin.math.abs
 
 /**
  * Feeds `android.view` key events into [ControlHandler]: hardware keyboards and game controllers
@@ -20,6 +22,9 @@ fun ControlHandler.onAndroidKeyEvent(event: KeyEvent): Boolean {
         KeyEvent.ACTION_DOWN -> true
         KeyEvent.ACTION_UP -> false
         else -> return false
+    }
+    if (pressed && (directionOf(event.keyCode) != null || buttonOf(event.keyCode) != null)) {
+        use(inputMethodOf(event.device))
     }
 
     directionOf(event.keyCode)?.let {
@@ -52,6 +57,10 @@ fun ControlHandler.onAndroidMotionEvent(event: MotionEvent): Boolean {
         x = if (hatX != 0f) hatX else event.getAxisValue(MotionEvent.AXIS_X),
         y = if (hatY != 0f) hatY else event.getAxisValue(MotionEvent.AXIS_Y),
     )
+    val deflection = ControlHandler.PAD_USE_DEFLECTION
+    if (abs(moveX) > deflection || abs(moveY) > deflection) {
+        use(inputMethodOf(event.device))
+    }
     return true
 }
 
@@ -90,4 +99,15 @@ private fun buttonOf(keyCode: Int): GameButton? = when (keyCode) {
     KeyEvent.KEYCODE_2, KeyEvent.KEYCODE_NUMPAD_2, KeyEvent.KEYCODE_BUTTON_L1 -> GameButton.CHOICE_2
     KeyEvent.KEYCODE_3, KeyEvent.KEYCODE_NUMPAD_3, KeyEvent.KEYCODE_BUTTON_R1 -> GameButton.CHOICE_3
     else -> null
+}
+
+/**
+ * What [device] is to the prompts: a pad, by its maker or its name, if it is one, and otherwise a
+ * keyboard, which is what Android reports any other source of keys as.
+ */
+fun inputMethodOf(device: InputDevice?): InputMethod {
+    val sources = device?.sources ?: return InputMethod.KEYBOARD_MOUSE
+    val pad = (sources and InputDevice.SOURCE_GAMEPAD) == InputDevice.SOURCE_GAMEPAD ||
+            (sources and InputDevice.SOURCE_JOYSTICK) == InputDevice.SOURCE_JOYSTICK
+    return if (pad) InputMethod.padOf(device.name, device.vendorId) else InputMethod.KEYBOARD_MOUSE
 }

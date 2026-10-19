@@ -178,7 +178,7 @@ harmless until they thaw - though never a boss or an elite.
 | Touch      | Or a stick wherever your thumb goes    | — (tap resumes) | Back, twice  |
 | iOS touch  | As on Android                          | ⏸ at top right  | Pause screen |
 | Keyboard   | `WASD` or the arrow keys               | `Q`             | `Q`, twice   |
-| Controller | Left stick or d-pad                    | `Start`         | `B`          |
+| Controller | Left stick or d-pad                    | `Start` or `B`  | `B`, twice   |
 
 Dragging pins the bat under your finger and keeps the offset you grabbed it by, so it never snaps
 out from under the fingertip; the hit box is padded well past the sprite so it is catchable without
@@ -221,17 +221,24 @@ cursor between the buttons, `Enter`, `Space` or `A` takes the one it is on, and 
 or `B` goes back a screen. The cursor starts on each screen's first choice, and comes back to the
 button you left from.
 
-Controller support is real on Android, where the platform reports pads as key codes and joystick
-axes. On desktop the JDK has no gamepad API, and the browser build does not read the browser's yet,
-so nothing feeds those events there: the mapping seam is `ControlHandler.onAxis`/`onButton`, and a
-backend only has to call them.
+A controller works on Android and on desktop: an Xbox pad, a DualSense or DualShock, or most others.
+Android reports pads to the game itself; the desktop reads them through SDL. `A` (Cross on a
+PlayStation pad) takes what is offered, `B` (Circle) goes back or says no, and the d-pad or the
+left stick flies the bat - and on the level up, moves a cursor between the cards. The browser build
+does not read the browser's pads yet.
+
+The prompts the game shows follow whatever you last played with. Pick up a pad and the pause
+screen, the level up, the stage complete and game over screens draw its buttons, an Xbox pad's
+letters or a PlayStation pad's shapes; press a key or move the mouse and they show the keys
+instead; touch the screen and they say it in words. The help's controls follow along.
 
 A hit buzzes whatever you are playing with. That is the controller, if it can rumble: a DualSense, a
 DualShock 4, or an Xbox One or Series pad over Bluetooth. Android's own kernels carry the drivers
 that rumble those, so a phone that came out with Android 12 or later has them; an older one may not.
 Otherwise it is the phone, and that includes pads with no motors of their own, such as many of the
-ones a phone clips into. Touching the screen hands it back to the phone. Settings → Vibration turns
-it off; it is on by default.
+ones a phone clips into. Touching the screen hands it back to the phone. On desktop the pad you are
+playing with rumbles, and nothing does while you play with the keys or the mouse. Settings →
+Vibration turns it off; it is on by default.
 
 ## 🧪 Building and testing
 
