@@ -15,7 +15,8 @@ import kotlin.math.max
  * Two inputs set how many layers are up, so the music is only as intense as the fighting. Progress
  * through the stage raises a floor: the cave's opening minute is its bed alone, and by the last
  * wave the drums are in regardless. The combo builds on that floor, and a hit takes it away again,
- * so the player hears how well they are doing.
+ * so the player hears how well they are doing. A lost streak winds the music down rather than
+ * cutting it: the layers it had built go a beat apart, the top one first, each fading over its beat.
  *
  * The combo is heard on the HUD's heat ladder ([ComboHeat]): each rung it names,
  * HOT to SUPERNOVA, is a step of the music, so a new title on screen and a new
@@ -27,9 +28,13 @@ import kotlin.math.max
  * low-pass; the level-up dialog, which holds the run still, keeps the music going
  * under a muffle that lifts as the pick is made.
  *
- * The boss gets an entrance: the music drops to its bed for a bar and slams back in on a downbeat
- * with everything, [MusicLayer.FURY] included, and again at each of its phase changes. Its exit is
- * the screen's: the music stops dead as the boss goes down, handing over to the victory fanfare.
+ * The boss gets an entrance: a break, where the weight of the drums - the kit, the 808s and the
+ * heavy layer - drops out while the bass, the rolling hats, the tune and the voices drive on, and
+ * then a slam on a downbeat with everything, [MusicLayer.FURY] included. Each of its phase changes
+ * gets a shorter break of its own. The music never falls back to its bed in the fight: a boss is
+ * the most intense the stage gets, and a fight gone quiet for a bar at every phase sounded as if it
+ * had ended. Its exit is the screen's: the music stops dead as the boss goes down, handing over to
+ * the victory fanfare.
  *
  * Every layer change lands on the beat, or for a slam on the bar, because [LayeredMusic] schedules
  * it; this class only says what should be playing.
@@ -42,6 +47,8 @@ import kotlin.math.max
  * @param bossWave the wave the boss arrives on; the floor rises across the waves before it.
  * @param difficulty the stage's own, where stage 1 is 1: a harder stage opens on a higher floor.
  * @param endless whether this is the endless stage's music, whose floor rises with the run's waves.
+ * @param bossArriving the music is opened for the boss's arrival, a piece of the boss's own: it
+ *   starts in the break, from its first note, rather than on its bed.
  */
 class MusicDirector(
     private val music: LayeredMusic,
@@ -49,24 +56,33 @@ class MusicDirector(
     private val bossWave: Int,
     private val difficulty: Float,
     private val endless: Boolean = false,
+    bossArriving: Boolean = false,
 ) {
     /** What each layer was last set to, so a level is only ordered when it changes. */
     private val ordered = FloatArray(MusicLayer.entries.size) { -1f }
 
-    /** A drop takes this long before the slam: a bar, give or take where in the bar it began. */
-    private val dropLengthSeconds = (grid.beatsPerBar * 60.0 / grid.beatsPerMinute).toFloat()
+    private val beatSeconds = (60.0 / grid.beatsPerMinute).toFloat()
+    private val barSeconds = beatSeconds * grid.beatsPerBar
 
-    /** Time left in a drop; above zero, everything but the bed is out. */
-    private var dropSeconds = 0f
+    /** Time left in a break; above zero, only the [BREAK] layers are up over the bed. */
+    private var breakSeconds = 0f
 
-    /** Set as a drop runs out: the next orders are the slam, and land on a downbeat. */
+    /** Set as a break runs out: the next orders are the slam, and land on a downbeat. */
     private var slamming = false
+
+    /** Time until a lost streak may take another layer away; see [update]. */
+    private var releaseSeconds = 0f
 
     /** How much of a hit's thud is left, from 1 as it lands to 0 once it has passed. */
     private var thud = 0f
 
     init {
         order(MusicLayer.BED, 1f, Quantum.IMMEDIATE, fadeBeats = 0f)
+        if (bossArriving) {
+            // Nothing has played yet, so the break is up from the top rather than a beat in.
+            for (layer in BREAK) order(layer, 1f, Quantum.IMMEDIATE, fadeBeats = 0f)
+            onBossArrived()
+        }
     }
 
     /**
@@ -83,33 +99,42 @@ class MusicDirector(
         suspended: Boolean,
     ) {
         thud = max(0f, thud - deltaTime / THUD_SECONDS)
-        if (dropSeconds > 0f) {
-            dropSeconds -= deltaTime
-            if (dropSeconds <= 0f) slamming = true
+        releaseSeconds = max(0f, releaseSeconds - deltaTime)
+        if (breakSeconds > 0f) {
+            breakSeconds -= deltaTime
+            if (breakSeconds <= 0f) slamming = true
         }
-        val dropping = dropSeconds > 0f
+        val breaking = breakSeconds > 0f
         val intensity =
             if (endless) endlessIntensity(waveIndex, comboMultiplier) else intensity(waveIndex, bossWave, comboMultiplier, difficulty)
 
+        // The highest layer still up that the music no longer calls for, if any.
+        var release: MusicLayer? = null
         for (layer in LAYERED) {
             val wanted = when {
-                dropping -> false
+                breaking -> layer in BREAK
                 bossFight -> true
                 layer == MusicLayer.FURY ->
                     comboMultiplier >= ComboHeat.SUPERNOVA || endless && waveIndex >= ENDLESS_FURY_WAVE
                 else -> intensity >= threshold(layer) - EPSILON
             }
-            val fade = when {
-                wanted && slamming -> SLAM_FADE_BEATS
-                wanted -> LayeredMusic.DEFAULT_FADE_BEATS
-                dropping -> DROP_FADE_BEATS
-                else -> FALL_FADE_BEATS
+            when {
+                wanted -> {
+                    // The heavy layer always comes in on a downbeat, for the boss's slam or a
+                    // supernova streak alike.
+                    val quantum = if (slamming || layer == MusicLayer.FURY) Quantum.BAR else Quantum.BEAT
+                    order(layer, 1f, quantum, if (slamming) SLAM_FADE_BEATS else LayeredMusic.DEFAULT_FADE_BEATS)
+                }
+                // The break is a cut, all at once on the beat: the gap is what makes the slam land.
+                breaking -> order(layer, 0f, Quantum.BEAT, BREAK_FADE_BEATS)
+                ordered[layer.ordinal] == 1f -> release = layer
             }
-            // The heavy layer always comes in on a downbeat, for the boss's slam or
-            // a supernova streak alike.
-            val quantum =
-                if (slamming || (wanted && layer == MusicLayer.FURY)) Quantum.BAR else Quantum.BEAT
-            order(layer, if (wanted) 1f else 0f, quantum, fade)
+        }
+        // A lost streak takes one layer a beat, from the top down, so a hit at a high streak winds
+        // the music down over a few beats instead of collapsing it to the floor at once.
+        if (release != null && releaseSeconds <= 0f) {
+            order(release, 0f, Quantum.BEAT, RELEASE_FADE_BEATS)
+            releaseSeconds = beatSeconds
         }
         slamming = false
 
@@ -122,15 +147,17 @@ class MusicDirector(
         thud = 1f
     }
 
-    /** The boss is here: drop to the bed, then slam everything in on a downbeat. */
-    fun onBossArrived() = drop()
+    /** The boss is here: a break of most of a bar, then everything slams in on a downbeat. */
+    fun onBossArrived() {
+        breakSeconds = barSeconds * ARRIVAL_BREAK_BARS
+    }
 
-    /** The boss has changed phase, which gets the same entrance as the boss itself. */
-    fun onBossPhaseChanged() = drop()
-
-    /** Starts a one-bar drop to the bed, which ends in a slam. */
-    private fun drop() {
-        dropSeconds = dropLengthSeconds
+    /**
+     * The boss has changed phase: a shorter break than its arrival's, so the phase is marked
+     * without the music letting go of the fight.
+     */
+    fun onBossPhaseChanged() {
+        breakSeconds = barSeconds * PHASE_BREAK_BARS
     }
 
     /** Sets [layer] to [level], unless that is what it was last set to. */
@@ -141,8 +168,14 @@ class MusicDirector(
     }
 
     companion object {
-        /** Every layer the director turns up and down; the bed is always up. */
+        /** Every layer the director turns up and down, bottom up; the bed is always up. */
         private val LAYERED = MusicLayer.entries - MusicLayer.BED
+
+        /**
+         * What plays over the bed through a boss's break: the bass, the tune, the rolling hats and
+         * the voices, everything but the drums' weight, so the fight drives on into the slam.
+         */
+        private val BREAK = setOf(MusicLayer.PULSE, MusicLayer.LEAD, MusicLayer.ROLL, MusicLayer.CHOP)
 
         /**
          * How much is going on, from about 0.1 in stage 1's opening seconds upward, compared
@@ -220,11 +253,19 @@ class MusicDirector(
         /** Sums of tenths do not always land on a tenth in floating point. */
         private const val EPSILON = 1e-4f
 
-        /** A layer leaving because the streak broke fades over a quarter of a beat. */
-        private const val FALL_FADE_BEATS = 0.25f
+        /** A layer a lost streak takes away plays out its beat and fades over the next. */
+        private const val RELEASE_FADE_BEATS = 1f
 
-        /** The drop is a cut, not a fade: the silence is what makes the slam land. */
-        private const val DROP_FADE_BEATS = 0.0625f
+        /** The break is a cut, not a fade: the gap is what makes the slam land. */
+        private const val BREAK_FADE_BEATS = 0.0625f
+
+        /**
+         * How long a break runs before its slam waits for the downbeat. The arrival's is most of a
+         * bar, so a piece opened for the boss slams in on its second bar, and one already playing
+         * within two; a phase's is half a bar, so its slam lands within a bar and a half.
+         */
+        private const val ARRIVAL_BREAK_BARS = 0.75f
+        private const val PHASE_BREAK_BARS = 0.5f
 
         /** The slam arrives all at once, on the downbeat. */
         private const val SLAM_FADE_BEATS = 0.03125f

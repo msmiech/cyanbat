@@ -2061,15 +2061,14 @@ class GameScreen(
 
     /**
      * The Sky Viper has bitten the bat and swept back into sight: the interlude is over, and its
-     * fight begins. It arrives on its name and the boss's music, from the top, holding its bed for a
-     * bar and slamming in; and the bat, back in the player's hands, has a moment's grace to find.
+     * fight begins. It arrives on its name and the boss's music, from the top, in its entrance's
+     * break and slamming in; and the bat, back in the player's hands, has a moment's grace to find.
      */
     private fun beginEncoreFight() {
         interlude = null
         announce(text[bossName()])
         InvulnerabilitySystem.grant(world, batId, ENCORE_GRACE_SECONDS)
-        startStageMusic()
-        director?.onBossArrived()
+        startStageMusic(bossArriving = true)
     }
 
     /**
@@ -2573,10 +2572,20 @@ class GameScreen(
         )
     }
 
-    /** Starts or resumes the stage's music, if music is enabled, opening it the first time. */
-    private fun startStageMusic() {
+    /**
+     * Starts or resumes the stage's music, if music is enabled, opening it the first time.
+     *
+     * @param bossArriving the boss is arriving with it, and its entrance plays from the first note.
+     */
+    private fun startStageMusic(bossArriving: Boolean = false) {
         if (!env.audioSettings.musicEnabled) return
-        (music ?: openStageMusic())?.play()
+        val playing = music
+        if (playing == null) {
+            openStageMusic(bossArriving)?.play()
+        } else {
+            if (bossArriving) director?.onBossArrived()
+            playing.play()
+        }
     }
 
     /**
@@ -2599,28 +2608,36 @@ class GameScreen(
     }
 
     /** Opens [score]'s stems and a director for them, or returns null without audio. */
-    private fun openStageMusic(): LayeredMusic? {
+    private fun openStageMusic(bossArriving: Boolean = false): LayeredMusic? {
         val audio = game.audio ?: return null
         val score = score
         return audio.newLayeredMusic(score.stems, score.grid).also {
             music = it
-            director = MusicDirector(it, score.grid, progression.bossWave, progression.difficulty, currentStage.endless)
+            director = MusicDirector(
+                it,
+                score.grid,
+                progression.bossWave,
+                progression.difficulty,
+                currentStage.endless,
+                bossArriving,
+            )
         }
     }
 
     /**
-     * The boss arrives: the music drops to its bed for a bar and slams in on the downbeat. For a
-     * stage whose boss has a piece of its own, the stage's music stops dead and the boss's opens on
-     * its bed alone.
+     * The boss arrives: the drums' weight breaks off for a bar while the rest drives on, and
+     * everything slams in on the downbeat. For a stage whose boss has a piece of its own, the
+     * stage's music stops dead and the boss's opens in that break.
      */
     private fun onBossMusic() {
         if (currentStage.music.boss != null && music != null) {
             music?.dispose()
             music = null
             director = null
-            startStageMusic()
+            startStageMusic(bossArriving = true)
+        } else {
+            director?.onBossArrived()
         }
-        director?.onBossArrived()
     }
 
     /**
