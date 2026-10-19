@@ -889,14 +889,25 @@ kept as they were drawn, which `generate_title.py` and `generate_game_over.py` m
       commands run, test counts, what the emulator showed.
 - **Versions and releases.**
     - Every artifact's version comes from `cyanbat.version` in `gradle.properties`. The root build
-      derives `versionCode` as `major * 10000 + minor * 100 + patch`.
-    - Pushing a bare tag (`git tag 2.4 && git push origin 2.4`) makes the Release workflow build and
-      publish the APK, the desktop installers and an unsigned iOS `.ipa` for sideloading
-      (`iosApp/build_ipa.sh`). A `-rcN` suffix publishes a pre-release. Running the workflow by hand
-      is a rehearsal that publishes nothing.
-    - Keep `cyanbat.version` in step with the newest tag, through a `chore/bump-version-X.Y` PR
-      titled "Stamp untagged builds X.Y". The same PR bumps the iOS app's `MARKETING_VERSION` and
-      `CURRENT_PROJECT_VERSION` in `iosApp/Configuration/Config.xcconfig`.
+      derives `versionCode` as `major * 10000 + minor * 100 + patch`, and `cyanbat.versionCode`
+      writes it out beside it for F-Droid's update check; the build fails when the two disagree,
+      unless the version is given on the command line.
+    - A release is stamped before it is tagged, because F-Droid builds the tagged source as it is:
+      a `chore/release-X.Y` PR titled "Stamp release X.Y" sets `cyanbat.version` and
+      `cyanbat.versionCode`, the iOS app's `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in
+      `iosApp/Configuration/Config.xcconfig`, and adds what is new as
+      `fastlane/metadata/android/{en-US,de-DE,pl-PL}/changelogs/<versionCode>.txt`, 500 characters
+      at most each.
+    - Pushing a bare tag on its merge (`git tag 2.4 && git push origin 2.4`) makes the Release
+      workflow build and publish the APK, the desktop installers and an unsigned iOS `.ipa` for
+      sideloading (`iosApp/build_ipa.sh`); it refuses a tag `gradle.properties` does not agree
+      with. A `-rcN` suffix publishes a pre-release, which needs no stamp. Running the workflow by
+      hand is a rehearsal that publishes nothing.
+    - F-Droid builds and signs every bare tag itself, from the recipe in fdroiddata, and shows the
+      listing in `fastlane/metadata/android`; see `docs/fdroid-release.md`. Keep the Android app
+      free of anything it cannot build from source: no Play Services, Firebase or other closed
+      libraries, no prebuilt binaries, and no `INTERNET` permission, which the listing promises.
+    - The repository is GPL-3.0-or-later (`LICENSE`), the art, music and sound included.
     - The iOS app goes to the App Store from a Mac, by `iosApp/archive.sh X.Y` on the tagged commit,
       not from the Release workflow, whose `.ipa` is unsigned; see `docs/ios-release.md`. Both
       scripts take the version from the tag through `iosApp/versions.sh`.

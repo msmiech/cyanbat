@@ -1,0 +1,7 @@
+• Achievements, each kept with a picture of the moment it was earned
+• Heavy Rounds makes the shots and Guardian Orbs bigger, Rapid Fire turns the orbs faster, and the orb is remade as energy
+• Boss fights keep their music intense through the entrance and every phase
+• Xbox and PlayStation pads get their own button prompts
+• The menu stays clear of the system bars and the camera cutout
+• A smaller APK, shrunk with R8
+• Now free software under the GPL-3.0, and on F-Droid

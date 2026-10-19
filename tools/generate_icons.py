@@ -34,6 +34,9 @@ by pixel replication; the rest are area-averaged from it, never resampled.
 square-cornered: iOS rounds it, shades it and scales it to every size itself, and App Store Connect
 refuses an icon with an alpha channel. It goes into the Xcode project's asset catalog, with the
 catalog's Contents.json beside it.
+
+**F-Droid.** The store listing's icon, `fastlane/metadata/android/en-US/images/icon.png`: the
+desktop's rounded tile at 512px, since F-Droid shows it as it is, without a launcher's mask.
 """
 
 import io
@@ -56,6 +59,7 @@ DRAWABLES = ROOT / "app" / "src" / "main" / "res" / "drawable"
 PACKAGING = ROOT / "desktop" / "icons"
 WINDOW_ICONS = ROOT / "desktop" / "src" / "main" / "resources" / "icons"
 IOS_ICONS = ROOT / "iosApp" / "CyanBat" / "Assets.xcassets" / "AppIcon.appiconset"
+LISTING_IMAGES = ROOT / "fastlane" / "metadata" / "android" / "en-US" / "images"
 
 # The adaptive icon's 108dp layer, in art pixels. A launcher shows only the middle 72dp of it -
 # rows and columns 15 to 75 here - and keeps the rest for parallax and for masks that bulge.
@@ -127,6 +131,7 @@ MAC_SIZES = (32, 64, 128, 256, 512)
 
 # The one size an iOS app's icon comes in since Xcode 14; 16 times the desktop tile's 64 pixels.
 IOS_SIZE = 1024
+LISTING_SIZE = 512
 
 
 def lerp(a, b, t):
@@ -597,10 +602,18 @@ def write_ios():
     print(f"{png} ({IOS_SIZE}x{IOS_SIZE})")
 
 
+def write_listing():
+    LISTING_IMAGES.mkdir(parents=True, exist_ok=True)
+    png = LISTING_IMAGES / "icon.png"
+    tile(scene(), LISTING_SIZE).save(png)
+    print(f"{png} ({LISTING_SIZE}x{LISTING_SIZE})")
+
+
 def main() -> int:
     write_android()
     write_ios()
     write_desktop()
+    write_listing()
     return 0
 
 

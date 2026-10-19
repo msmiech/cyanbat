@@ -43,7 +43,22 @@ extra["cyanbatVersionName"] = declaredVersion
  * room for a patch release at all - 1.2.1 and 1.2.2 would both have landed on 12 - so this widens
  * the digits. 2.0.0 becomes 20000, comfortably above the 16 that 1.6 last used.
  */
-extra["cyanbatVersionCode"] = major * 10000 + minor * 100 + patch
+val versionCode = major * 10000 + minor * 100 + patch
+extra["cyanbatVersionCode"] = versionCode
+
+/*
+ * gradle.properties writes the versionCode out as well, because F-Droid reads a tag's versionCode
+ * off a file in it with a regular expression, which cannot work it out of the version. Written out
+ * twice, the two have to agree. A version given on the command line - the release workflow's tag,
+ * or a rehearsal's made-up version - stands on its own, and the file's code does not apply to it.
+ */
+val declaredVersionCode = providers.gradleProperty("cyanbat.versionCode").orNull
+if ("cyanbat.version" !in gradle.startParameter.projectProperties && declaredVersionCode != null) {
+    require(declaredVersionCode.toIntOrNull() == versionCode) {
+        "cyanbat.versionCode in gradle.properties is $declaredVersionCode, but cyanbat.version " +
+                "$declaredVersion comes to $versionCode (major * 10000 + minor * 100 + patch)"
+    }
+}
 
 // jpackage rejects a suffix, so `2.1-rc1` ships an installer versioned 2.1.0. The display name in
 // the release title and on the download page still carries the suffix.
