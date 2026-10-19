@@ -16,7 +16,7 @@ Black bars. Under Stretch to fit screen the frame fills the capture and this cro
 
 Run through uv so the Pillow dependency resolves itself:
 
-    uv run .claude/skills/run-cyanbat/crop_hud.py <in.png> <out.png>
+    uv run .agents/skills/run-cyanbat/crop_hud.py <in.png> <out.png>
 """
 
 import sys

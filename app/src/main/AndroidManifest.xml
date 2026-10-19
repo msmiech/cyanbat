@@ -4,7 +4,11 @@
 
     <uses-permission android:name="android.permission.VIBRATE" />
 
+    <!-- appCategory game: from Android 16 a large screen ignores an app's orientation and
+         resizability for one that targets 36 or later, and from 17 nothing opts out - except a
+         game. Without it a tablet or an unfolded foldable would turn both activities upright. -->
     <application
+        android:appCategory="game"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name">
         <!-- uiMode: the menu follows the system into dark or light by recomposing in place. Being

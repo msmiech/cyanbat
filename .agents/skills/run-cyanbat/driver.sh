@@ -4,8 +4,8 @@
 # The Android commands go through adb; `desktop` runs the Compose Desktop build instead and
 # needs no emulator.
 #
-#   .claude/skills/run-cyanbat/driver.sh smoke
-#   .claude/skills/run-cyanbat/driver.sh start && ... driver.sh hud g1
+#   .agents/skills/run-cyanbat/driver.sh smoke
+#   .agents/skills/run-cyanbat/driver.sh start && ... driver.sh hud g1
 #
 # Why a driver and not a list of adb commands: three things about this app are
 # easy to get wrong and are baked in below.

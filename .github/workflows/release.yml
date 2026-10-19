@@ -39,6 +39,7 @@ jobs:
   version:
     name: Resolve version
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       version: ${{ steps.resolve.outputs.version }}
       prerelease: ${{ steps.resolve.outputs.prerelease }}
@@ -59,8 +60,10 @@ jobs:
             publish=true
           fi
 
-          # Same shape the Gradle build enforces; failing here costs seconds instead of a build.
-          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?(-.+)?$'; then
+          # Same shape the Gradle build enforces; failing here costs seconds instead of a build. The
+          # suffix is held to letters, digits, dots and dashes, as a pre-release's is, since the
+          # version is handed on to shell scripts and a tag may hold `$`, quotes or backticks.
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+(\.[0-9]+)?(-[0-9A-Za-z.-]+)?$'; then
             echo "::error::'$version' is not major.minor[.patch][-suffix]"
             exit 1
           fi
@@ -83,6 +86,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 25
         uses: actions/setup-java@v6
@@ -130,7 +135,8 @@ jobs:
           # Optional: a missing secret arrives as the empty string, which the build reads as
           # "same as the store password" - which is the only thing PKCS12 allows anyway.
           ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
-        run: ./gradlew build "-Pcyanbat.version=${{ needs.version.outputs.version }}"
+          VERSION: ${{ needs.version.outputs.version }}
+        run: ./gradlew build "-Pcyanbat.version=$VERSION"
 
       - name: Collect the APK
         env:
@@ -206,6 +212,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 25
         uses: actions/setup-java@v6
@@ -221,8 +229,11 @@ jobs:
         if: matrix.format == 'deb'
         run: sudo apt-get update && sudo apt-get install -y fakeroot binutils
 
+      # The version is handed over through the environment, never written into the script.
       - name: Package the installer
-        run: ./gradlew :desktop:packageDistributionForCurrentOS "-Pcyanbat.version=${{ needs.version.outputs.version }}"
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: ./gradlew :desktop:packageDistributionForCurrentOS "-Pcyanbat.version=$VERSION"
 
       - name: Upload the installer
         uses: actions/upload-artifact@v7
@@ -244,6 +255,8 @@ jobs:
     steps:
       - name: Checkout Code
         uses: actions/checkout@v7
+        with:
+          persist-credentials: false
 
       - name: Set up JDK 25
         uses: actions/setup-java@v6
@@ -284,6 +297,7 @@ jobs:
     name: Collect and publish
     needs: [ version, android, desktop, ios ]
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # The only job that writes, and the only one that needs a token that can.
     permissions:
       contents: write
@@ -293,6 +307,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Download every artifact
         uses: actions/download-artifact@v8

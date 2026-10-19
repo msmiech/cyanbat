@@ -1,0 +1,23 @@
+# What Android Studio formats the code to, for any editor or agent that reads EditorConfig. The
+# Kotlin official style itself comes from kotlin.code.style in gradle.properties.
+root = true
+
+[*]
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 4
+
+[*.{kt,kts}]
+max_line_length = 100
+# Never a wildcard import: the code imports every name it uses by itself.
+ij_kotlin_name_count_to_use_star_import = 2147483647
+ij_kotlin_name_count_to_use_star_import_for_members = 2147483647
+
+[*.md]
+max_line_length = 100
+trim_trailing_whitespace = false
+
+[*.{yml,yaml,json}]
+indent_size = 2
