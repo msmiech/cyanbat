@@ -167,8 +167,13 @@ None of this could be tried without a Mac, so all of it needs a look:
   highscore. Going to the home screen mid-run pauses the run and the menu's music.
 - **Touch:** dragging the bat, the stick (Settings → On-screen stick), a finger landing on the pause
   button while another steers. Edge swipes do not leave the app on the first swipe.
-- **Layout:** the menu clear of the Dynamic Island in both landscape orientations; every display
-  mode; an iPad in portrait, in Split View and in a resized Stage Manager window.
+- **Layout:** every display mode; an iPad in portrait, in Split View and in a resized Stage Manager
+  window.
+- **Menu insets:** the menu runs edge to edge, the main screen's sky under the Dynamic Island, and
+  each screen pads itself to the safe area. On an iPhone in both landscape orientations, and on an
+  iPad, check that every screen's buttons - the main screen's, Back, the last row of Settings, Stage
+  select and Achievements scrolled to the end - clear the Dynamic Island, the rounded corners and
+  the home indicator.
 - **iPad keyboard:** arrows/WASD fly, Q pauses, the menu's cursor keys.
 - **Language:** Settings → Language switches the menu at once; the system Settings app → CyanBat →
   Language shows the same choice.
