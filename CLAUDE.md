@@ -127,13 +127,20 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
       (`CyanBatEnvironment.pauseButton`; see Input).
     - `AppFocus` tells `GameSurface` whether the player is at the app, from UIKit's active and
       resign-active notifications, and pauses the menu's music when they leave.
-    - The menu is padded to the safe area (`WindowInsets.safeDrawing`), over black: the shared menu
-      does not pad itself, and the Dynamic Island would sit over it in landscape.
+    - The host pads the whole menu to the safe area (`WindowInsets.safeDrawing`), over black, so
+      the Dynamic Island sits over none of it in landscape. That consumes the insets, and the
+      menu's own padding to them (see below) comes to nothing.
     - An iPhone is landscape only, as on Android; an iPad takes every orientation and any window
       size, as iPadOS 26 expects, the frame fitted with bars as in a desktop window.
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.
+- Android draws the menu's window under the status bar, the navigation bar and a display's cutout
+  (edge to edge, which SDK 35 and up enforce), so each menu screen pads what is on it to
+  `WindowInsets.safeDrawing` and lets its background, the main screen's sky among them, run on
+  under them. The scrolling screens pad inside the scroll, so their rows pass under the bars but
+  the last stops clear of them; the main screen's margins give way to an inset rather than add to
+  it, since a phone held landscape has no height to spare. Elsewhere the insets are nothing.
 - Each host builds a `CyanBatEnvironment` (assets, haptics, highscore, stage unlock and achievement
   stores, audio settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in
   `:game`, backed by DataStore in `:app`, `java.util.prefs` in `:desktop`, and in `:web` and `:ios`
