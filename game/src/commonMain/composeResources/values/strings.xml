@@ -197,12 +197,15 @@
     -->
     <string name="power_up_rapid_fire">Rapid Fire</string>
     <string name="power_up_rapid_fire_description">Shots come faster</string>
+    <string name="power_up_rapid_fire_orbs">Shots come faster, orbs circle faster</string>
     <string name="power_up_spread_shot">Spread Shot</string>
     <string name="power_up_spread_shot_description">Fire one more, fanned out</string>
     <string name="power_up_vitality">Vitality</string>
     <string name="power_up_vitality_description">+%1$d max health, healed</string>
     <string name="power_up_heavy_rounds">Heavy Rounds</string>
-    <string name="power_up_heavy_rounds_description">+%1$d damage per shot</string>
+    <string name="power_up_heavy_rounds_description">+%1$d damage, bigger shots</string>
+    <string name="power_up_heavy_rounds_orbs">+%1$d damage, bigger shots and orbs</string>
+    <string name="power_up_heavy_rounds_full_size">+%1$d damage per shot</string>
     <string name="power_up_sharpshooter">Sharpshooter</string>
     <string name="power_up_sharpshooter_description">+%1$d% critical chance</string>
     <string name="power_up_armor_plating">Armor Plating</string>

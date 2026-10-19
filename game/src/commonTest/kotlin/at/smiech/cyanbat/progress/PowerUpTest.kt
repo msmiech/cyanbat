@@ -17,8 +17,12 @@ import at.smiech.cyanbat.util.MAX_ORBS
 import at.smiech.cyanbat.util.MAX_REVIVES
 import at.smiech.cyanbat.util.MAX_SHOT_BOUNCE
 import at.smiech.cyanbat.util.MAX_SHOT_PIERCE
+import at.smiech.cyanbat.util.MAX_SHOT_SIZE_LEVEL
 import at.smiech.cyanbat.util.MAX_WAKE_LEVEL
 import at.smiech.cyanbat.util.MIN_SHOT_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.ORB_RADIUS
+import at.smiech.cyanbat.util.ORB_REHIT_SECONDS
+import at.smiech.cyanbat.util.ORB_SECONDS_PER_TURN
 import at.smiech.cyanbat.util.POWER_UP_CHOICES
 import at.smiech.cyanbat.util.REGEN_PER_SECOND
 import at.smiech.cyanbat.util.SCORE_BONUS
@@ -250,6 +254,87 @@ class PowerUpTest {
         assertTrue(loadout.orbDamage > before, "Heavy Rounds left the orbs behind")
     }
 
+    /**
+     * A harder shot is a bigger one, and its orbs with it, the ring widened by as much so they stay
+     * clear; past the biggest size only the damage goes on growing.
+     */
+    @Test
+    fun `heavy rounds make shots and orbs bigger with their damage`() {
+        assertEquals(1f, loadout.shotScale)
+        assertEquals(ORB_RADIUS, loadout.orbRadius)
+
+        var scale = loadout.shotScale
+        repeat(MAX_SHOT_SIZE_LEVEL) {
+            take(PowerUp.HEAVY_ROUNDS)
+            assertTrue(loadout.shotScale > scale, "pick ${it + 1} did not make shots bigger")
+            assertEquals(ORB_RADIUS * loadout.shotScale, loadout.orbRadius)
+            scale = loadout.shotScale
+        }
+
+        val damage = loadout.shotDamage
+        take(PowerUp.HEAVY_ROUNDS)
+        assertEquals(scale, loadout.shotScale, "the shots grew past their biggest")
+        assertEquals(damage + HEAVY_ROUNDS_DAMAGE, loadout.shotDamage)
+        assertTrue(PowerUp.HEAVY_ROUNDS.isAvailable(loadout), "the damage alone is still worth it")
+    }
+
+    /** At the biggest size the card stops promising bigger shots. */
+    @Test
+    fun `heavy rounds says when the shots can grow no more`() {
+        val growing = PowerUp.HEAVY_ROUNDS.describe(loadout)
+        take(PowerUp.HEAVY_ROUNDS, times = MAX_SHOT_SIZE_LEVEL)
+
+        assertTrue(PowerUp.HEAVY_ROUNDS.describe(loadout) != growing)
+
+        // Orbs or none: there is nothing bigger to promise them either.
+        val full = PowerUp.HEAVY_ROUNDS.describe(loadout)
+        take(PowerUp.GUARDIAN_ORB)
+        assertEquals(full, PowerUp.HEAVY_ROUNDS.describe(loadout))
+    }
+
+    /**
+     * Rapid Fire turns the ring faster, and the rehit shortens with it, or a fast ring would have
+     * its orbs pass over a target they are not allowed to hit yet.
+     */
+    @Test
+    fun `rapid fire turns the orbs faster too`() {
+        assertEquals(ORB_SECONDS_PER_TURN, loadout.orbSecondsPerTurn)
+        assertEquals(ORB_REHIT_SECONDS, loadout.orbRehitSeconds)
+
+        take(PowerUp.RAPID_FIRE)
+
+        assertTrue(loadout.orbSecondsPerTurn < ORB_SECONDS_PER_TURN, "the ring did not speed up")
+        assertEquals(
+            loadout.orbRehitSeconds / ORB_REHIT_SECONDS,
+            loadout.orbSecondsPerTurn / ORB_SECONDS_PER_TURN,
+            1e-6f,
+        )
+    }
+
+    /** At the gun's floor the ring is faster, but not so fast that the orbs blur into a disc. */
+    @Test
+    fun `the orbs keep a readable pace at the fastest gun`() {
+        take(PowerUp.RAPID_FIRE, times = 60)
+
+        assertTrue(
+            loadout.orbSecondsPerTurn in 0.75f..1.2f,
+            "the ring turns once every ${loadout.orbSecondsPerTurn} s"
+        )
+    }
+
+    /** Rapid Fire and Heavy Rounds do more once orbs are circling, and their cards say so. */
+    @Test
+    fun `the gun's upgrades say what they do for the orbs once there are some`() {
+        val before = listOf(PowerUp.RAPID_FIRE, PowerUp.HEAVY_ROUNDS).associateWith { it.describe(loadout) }
+        for ((powerUp, card) in before) assertEquals(powerUp.description, card, powerUp.name)
+
+        take(PowerUp.GUARDIAN_ORB)
+
+        for ((powerUp, card) in before) {
+            assertTrue(powerUp.describe(loadout) != card, "${powerUp.name} reads the same with orbs")
+        }
+    }
+
     /** The wake every run starts with is only a wake: short, and hurting nothing. */
     @Test
     fun `the plain wake hurts nothing`() {
@@ -325,6 +410,7 @@ class PowerUpTest {
         assertEquals(MAX_FLAT_DAMAGE_REDUCTION, loadout.flatDamageReduction)
         assertEquals(MAX_SHOT_PIERCE, loadout.shotPierce)
         assertEquals(MAX_SHOT_BOUNCE, loadout.shotBounce)
+        assertEquals(MAX_SHOT_SIZE_LEVEL, loadout.shotSizeLevel)
         assertEquals(MAX_ORBS, loadout.orbs)
         assertEquals(MAX_WAKE_LEVEL, loadout.wakeLevel)
         assertEquals(MAX_FROST_LEVEL, loadout.frostLevel)

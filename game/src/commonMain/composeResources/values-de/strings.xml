@@ -156,12 +156,15 @@
 
     <string name="power_up_rapid_fire">Schnellfeuer</string>
     <string name="power_up_rapid_fire_description">Schüsse folgen schneller</string>
+    <string name="power_up_rapid_fire_orbs">Schüsse folgen schneller, Kugeln kreisen schneller</string>
     <string name="power_up_spread_shot">Streuschuss</string>
     <string name="power_up_spread_shot_description">Ein Schuss mehr, aufgefächert</string>
     <string name="power_up_vitality">Vitalität</string>
     <string name="power_up_vitality_description">+%1$d max. Lebenspunkte, geheilt</string>
     <string name="power_up_heavy_rounds">Wuchtgeschosse</string>
-    <string name="power_up_heavy_rounds_description">+%1$d Schaden pro Schuss</string>
+    <string name="power_up_heavy_rounds_description">+%1$d Schaden, größere Schüsse</string>
+    <string name="power_up_heavy_rounds_orbs">+%1$d Schaden, größere Schüsse und Kugeln</string>
+    <string name="power_up_heavy_rounds_full_size">+%1$d Schaden pro Schuss</string>
     <string name="power_up_sharpshooter">Scharfschütze</string>
     <string name="power_up_sharpshooter_description">+%1$d % Chance auf kritische Treffer</string>
     <string name="power_up_armor_plating">Panzerung</string>

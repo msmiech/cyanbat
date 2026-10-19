@@ -162,7 +162,9 @@ boss there is one every six or seven seconds.
 
 Kills earn experience, and every level up offers three power-ups to pick from. Most sharpen the
 bat's gun or toughen its hide; three give it weapons of its own, each working while you dodge.
-Guardian Orbs circle the bat and strike whatever they meet, one more with every pick. A Charged
+Guardian Orbs circle the bat and strike whatever they meet, one more with every pick; Rapid Fire
+turns them faster, and Heavy Rounds, which makes the bat's shots bigger as well as harder, makes the
+orbs bigger too and widens their ring. A Charged
 Trail draws the bat's wake out longer and shocks whatever flies into it. A Frost Beam goes off every
 few seconds at a random enemy and freezes every ordinary one along its line, turning them blue and
 harmless until they thaw - though never a boss or an elite.

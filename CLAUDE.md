@@ -529,7 +529,10 @@ rather than in the menu's view model, which Android makes again for every return
       `ContactWeapon` at most once a rehit time, kept on the target (`ContactCooldownComponent`) so
       it goes with it. A boss part's is its boss's, or a wake the Sand Wyrm pours through would land
       once a plate.
-    - `OrbitSystem` carries the orbs round the bat clockwise, evenly spaced in creation order.
+    - `OrbitSystem` carries the orbs round the bat clockwise, evenly spaced in creation order, at
+      the loadout's `orbRadius` and `orbSecondsPerTurn`. Heavy Rounds makes the bat's shots and
+      orbs bigger as well as harder (`shotScale`, up to `MAX_SHOT_SIZE_LEVEL`) and widens the ring
+      with them; Rapid Fire turns the ring faster, and the orbs' rehit shortens in step.
     - `FrostBeamSystem` freezes ordinary enemies only - never a boss, a part of one or an elite
       (`GameScreen.canFreeze`). A freeze is `FrostSystem` holding the enemy's `PaceComponent` at
       zero, drifting it with the scenery and washing it blue (`TintComponent`, which `RenderSystem`

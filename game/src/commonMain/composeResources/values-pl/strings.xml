@@ -158,12 +158,15 @@
 
     <string name="power_up_rapid_fire">Szybki ogień</string>
     <string name="power_up_rapid_fire_description">Szybsze strzały</string>
+    <string name="power_up_rapid_fire_orbs">Szybsze strzały, kule krążą szybciej</string>
     <string name="power_up_spread_shot">Rozrzut</string>
     <string name="power_up_spread_shot_description">O jeden pocisk więcej, wachlarzem</string>
     <string name="power_up_vitality">Witalność</string>
     <string name="power_up_vitality_description">+%1$d do maks. zdrowia i leczenie</string>
     <string name="power_up_heavy_rounds">Ciężkie kule</string>
-    <string name="power_up_heavy_rounds_description">+%1$d do obrażeń na strzał</string>
+    <string name="power_up_heavy_rounds_description">+%1$d do obrażeń, większe pociski</string>
+    <string name="power_up_heavy_rounds_orbs">+%1$d do obrażeń, większe pociski i kule</string>
+    <string name="power_up_heavy_rounds_full_size">+%1$d do obrażeń na strzał</string>
     <string name="power_up_sharpshooter">Snajper</string>
     <string name="power_up_sharpshooter_description">+%1$d% do szansy na trafienie krytyczne</string>
     <string name="power_up_armor_plating">Opancerzenie</string>

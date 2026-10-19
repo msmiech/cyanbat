@@ -913,6 +913,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * @param speed along its heading, in framebuffer pixels per tick. The bat's are [SHOT_SPEED];
      *   enemy fire is slower, so it can be seen coming.
      * @param variant the colorway of `shot.png` it is drawn in.
+     * @param scale how much bigger than its art it is drawn; [width] and [height] are its box, already
+     *   at that size. Heavy Rounds', for the bat's.
      */
     fun createShot(
         x: Float,
@@ -928,6 +930,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         critical: Boolean = false,
         variant: Int = PLAYER_SHOT_VARIANT,
         speed: Float = SHOT_SPEED,
+        scale: Float = 1f,
     ): EntityId {
         val radians = angleDegrees * PI_OVER_180
         val forward = if (isPlayer) speed else -speed
@@ -951,6 +954,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
                 pixmap,
                 baseSrcX = variant * SHOT_FRAME_WIDTH * SHOT_FRAME_COUNT,
                 srcWidth = SHOT_FRAME_WIDTH,
+                scale = scale,
             )
         )
         // The bolt burns as it flies. A volley's shots start on the same frame, so a spread or ring
@@ -1097,15 +1101,25 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * no light of its own: it is always inside the bat's.
      *
      * @param offset its place on the ring; see [OrbComponent] and [OrbitSystem.shareOf].
+     * @param scale how much bigger than its art it is drawn, and its box with it: Heavy Rounds'.
      */
-    fun createOrb(centerX: Float, centerY: Float, pixmap: Pixmap, offset: Float): EntityId {
-        val size = ORB_FRAME.toFloat()
+    fun createOrb(
+        centerX: Float,
+        centerY: Float,
+        pixmap: Pixmap,
+        offset: Float,
+        scale: Float = 1f,
+    ): EntityId {
+        val size = (ORB_FRAME * scale).roundToInt().toFloat()
         val id = world.createEntity()
         world.addComponent(
             id,
             TransformComponent(Rect.fromLTWH(centerX - size / 2f, centerY - size / 2f, size, size))
         )
-        world.addComponent(id, SpriteComponent(pixmap, srcWidth = ORB_FRAME, srcHeight = ORB_FRAME))
+        world.addComponent(
+            id,
+            SpriteComponent(pixmap, srcWidth = ORB_FRAME, srcHeight = ORB_FRAME, scale = scale)
+        )
         world.addComponent(
             id,
             AnimationComponent(ORB_FRAME, ORB_FRAME, ORB_FRAME_COUNT, ORB_FRAME_SECONDS)
