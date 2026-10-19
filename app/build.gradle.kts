@@ -78,7 +78,14 @@ extensions.configure<ApplicationExtension> {
             // Null when no keystore was supplied, which leaves the build type unsigned rather than
             // failing - the same behavior this module had before signing was wired up at all.
             signingConfig = signingConfigs.findByName("release")
-            isMinifyEnabled = false
+            // R8 shrinks and optimizes the code, Compose's above all; the game reads nothing by
+            // reflection, and the libraries bring their own keep rules.
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
         }
     }
 
