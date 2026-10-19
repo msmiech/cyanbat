@@ -1,5 +1,7 @@
 package at.smiech.cyanbat.util
 
+import kotlin.math.roundToInt
+
 /**
  * The frame every screen draws, in framebuffer pixels: 16:9, the shape of most
  * phones held sideways and most monitors. It is also the playfield, the same on
@@ -497,6 +499,9 @@ const val HEAVY_ROUNDS_DAMAGE = 12
 const val SHOT_SCALE_PER_LEVEL = 0.2f
 const val MAX_SHOT_SIZE_LEVEL = 3
 
+/** How much bigger than its art a bolt or an orb is drawn after [level] Heavy Rounds picks. */
+fun shotScaleAt(level: Int): Float = 1f + level * SHOT_SCALE_PER_LEVEL
+
 /**
  * Armor Plating, as a multiplier on incoming damage, floored well above zero: a bat that cannot be
  * hurt has no run left to play.
@@ -608,14 +613,24 @@ const val ORB_SETTLE_SECONDS = 0.35f
 const val ORB_DAMAGE_FRACTION = 0.6f
 
 /**
- * The orb's sheet: six 14x14 frames of a glint going round it, from
- * tools/generate_orb_sprite.py. It hits with the sphere, not its outline, and gives
+ * The orb's sheet: six 14x14 frames of a sphere of energy swirling, from
+ * tools/generate_orb_sprite.py. It hits with the sphere, not the haze round it, and gives
  * off no light, since it is always inside the bat's.
  */
 const val ORB_FRAME = 14
 const val ORB_FRAME_COUNT = 6
 const val ORB_FRAME_SECONDS = 0.08f
 const val ORB_COLLISION_TOLERANCE = 2f
+
+// `orbHeavy.png` is the orb again at every size Heavy Rounds gives it past the first, drawn at that
+// size rather than stretched, as the bat's bolts are: a band of its frames per size, top to bottom,
+// each frame as wide as the orb's box at that size.
+
+/** The orb's box, square, after [level] Heavy Rounds picks, in whole pixels: drawn and collided. */
+fun orbFrameSize(level: Int): Int = (ORB_FRAME * shotScaleAt(level)).roundToInt()
+
+/** How far down `orbHeavy.png` the band of the orb after [level] Heavy Rounds picks is. */
+fun heavyOrbTop(level: Int): Int = (1 until level).sumOf { orbFrameSize(it) }
 
 /**
  * How soon one orb may hit the same target again, in seconds: longer than an orb takes to sweep
@@ -765,6 +780,20 @@ const val MAX_CRITICAL_CHANCE = 0.5f
 
 /** Width of one bolt frame, which positions a shot on its sheet. */
 const val SHOT_FRAME_WIDTH = 24
+
+/** Height of one bolt frame, and so of `shot.png`. */
+const val SHOT_FRAME_HEIGHT = 12
+
+// `shotHeavy.png` is the bat's bolt again at every size Heavy Rounds gives it past the first, drawn
+// at that size rather than stretched, which made it lumpy: a band of its frames per size, top to
+// bottom, each frame as wide as the bolt's box at that size.
+
+/** The bat's bolt's box after [level] Heavy Rounds picks, in whole pixels: drawn and collided. */
+fun shotFrameWidth(level: Int): Int = (SHOT_FRAME_WIDTH * shotScaleAt(level)).roundToInt()
+fun shotFrameHeight(level: Int): Int = (SHOT_FRAME_HEIGHT * shotScaleAt(level)).roundToInt()
+
+/** How far down `shotHeavy.png` the band of the bat's bolt after [level] Heavy Rounds picks is. */
+fun heavyShotTop(level: Int): Int = (1 until level).sumOf { shotFrameHeight(it) }
 
 /**
  * The bolt's frames, side by side within its colorway: its core throbs and sends a ripple down its

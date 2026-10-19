@@ -2,7 +2,13 @@ package at.smiech.cyanbat.desktop
 
 import at.smiech.cyanbat.ecs.ElitePalette
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
+import at.smiech.cyanbat.util.MAX_SHOT_SIZE_LEVEL
 import at.smiech.cyanbat.util.SHOT_BODY_COLORS
+import at.smiech.cyanbat.util.heavyOrbTop
+import at.smiech.cyanbat.util.heavyShotTop
+import at.smiech.cyanbat.util.orbFrameSize
+import at.smiech.cyanbat.util.shotFrameHeight
+import at.smiech.cyanbat.util.shotFrameWidth
 import java.awt.image.BufferedImage
 import javax.imageio.ImageIO
 import kotlin.test.Test
@@ -47,11 +53,49 @@ class SpriteSheetTest {
         assertEquals(45 * 6 to 40 * WOUND_ROWS, sizeOf("cyanBat.png"))
     }
 
-    /** Six 14x14 frames of an orb, its glint going round it; see `ORB_FRAME` and `ORB_FRAME_COUNT`. */
+    /** Six 14x14 frames of an orb, the energy in it swirling; see `ORB_FRAME` and `ORB_FRAME_COUNT`. */
     @Test
     fun `the orb sheet holds six frames`() {
         assertEquals(14 * 6 to 14, sizeOf("orb.png"))
         assertNoBlankFrames("orb.png", frameWidth = 14, frames = 6)
+    }
+
+    /**
+     * The orb again at each size Heavy Rounds gives it, drawn at that size: a band of six frames per
+     * size, top to bottom, each frame as wide as the orb's box there. The game finds them with
+     * `orbFrameSize` and `heavyOrbTop`.
+     */
+    @Test
+    fun `the heavy orb sheet holds the orb at every bigger size`() {
+        val sizes = listOf(17, 20, 22)
+        assertEquals(22 * 6 to 17 + 20 + 22, sizeOf("orbHeavy.png"))
+        assertEquals(sizes, (1..MAX_SHOT_SIZE_LEVEL).map { orbFrameSize(it) })
+        assertEquals(listOf(0, 17, 37), (1..MAX_SHOT_SIZE_LEVEL).map { heavyOrbTop(it) })
+    }
+
+    /**
+     * A blit paints a column and a row short of its frame, so an orb drawn out to either was cut off
+     * there. Every frame of every size leaves both clear, is drawn, and is in the base orb's colors.
+     */
+    @Test
+    fun `no orb is drawn out to the edges a blit leaves off`() {
+        val orb = javaClass.getResourceAsStream("/orb.png")!!.use { ImageIO.read(it) }
+        val heavy = javaClass.getResourceAsStream("/orbHeavy.png")!!.use { ImageIO.read(it) }
+        val colors = opaqueColors(orb, 0, orb.width)
+        val frames = (0 until 6).map { Triple(orb, it * 14, 0) to 14 } +
+                (1..MAX_SHOT_SIZE_LEVEL).flatMap { level ->
+                    val size = orbFrameSize(level)
+                    (0 until 6).map { Triple(heavy, it * size, heavyOrbTop(level)) to size }
+                }
+        for ((at, size) in frames) {
+            val (image, left, top) = at
+            val drawn = { x: Int, y: Int -> image.getRGB(left + x, top + y) ushr 24 != 0 }
+            val where = "the orb at ($left, $top)"
+            assertTrue((0 until size).none { drawn(size - 1, it) }, "$where is drawn on its last column")
+            assertTrue((0 until size).none { drawn(it, size - 1) }, "$where is drawn on its last row")
+            assertTrue((0 until size).any { y -> (0 until size).any { drawn(it, y) } }, "$where is blank")
+        }
+        assertTrue(colors.containsAll(opaqueColors(heavy, 0, heavy.width)), "a bigger orb strays out of its colors")
     }
 
     /**
@@ -251,6 +295,56 @@ class SpriteSheetTest {
     @Test
     fun `the shot sheet holds a colorway per shooter`() {
         assertEquals(24 * 4 * 14 to 12, sizeOf("shot.png"))
+    }
+
+    /**
+     * The bat's bolt again at each size Heavy Rounds gives it, drawn at that size: a band of four
+     * frames per size, top to bottom, each frame as wide as the bolt's box there. The game finds them
+     * with `shotFrameWidth`, `shotFrameHeight` and `heavyShotTop`.
+     */
+    @Test
+    fun `the heavy shot sheet holds the bat's bolt at every bigger size`() {
+        val bands = listOf(29 to 14, 34 to 17, 38 to 19)
+        assertEquals(38 * 4 to 14 + 17 + 19, sizeOf("shotHeavy.png"))
+        assertEquals(bands.size, MAX_SHOT_SIZE_LEVEL)
+        assertEquals(bands, (1..MAX_SHOT_SIZE_LEVEL).map { shotFrameWidth(it) to shotFrameHeight(it) })
+        assertEquals(listOf(0, 14, 31), (1..MAX_SHOT_SIZE_LEVEL).map { heavyShotTop(it) })
+    }
+
+    /**
+     * A blit paints a column and a row short of its frame, so a bolt drawn out to either was cut off
+     * there - its nose to a straight line. Every frame of every size leaves both clear, and its nose
+     * reaches the column before.
+     */
+    @Test
+    fun `no bolt is drawn out to the edges a blit leaves off`() {
+        val shots = javaClass.getResourceAsStream("/shot.png")!!.use { ImageIO.read(it) }
+        val heavy = javaClass.getResourceAsStream("/shotHeavy.png")!!.use { ImageIO.read(it) }
+        val frames = (0 until 14 * 4).map { Triple(shots, it * 24, 0) to (24 to 12) } +
+                (1..MAX_SHOT_SIZE_LEVEL).flatMap { level ->
+                    (0 until 4).map { frame ->
+                        val width = shotFrameWidth(level)
+                        Triple(heavy, frame * width, heavyShotTop(level)) to (width to shotFrameHeight(level))
+                    }
+                }
+        for ((at, size) in frames) {
+            val (image, left, top) = at
+            val (width, height) = size
+            val drawn = { x: Int, y: Int -> image.getRGB(left + x, top + y) ushr 24 != 0 }
+            val where = "the bolt at ($left, $top)"
+            assertTrue((0 until height).none { drawn(width - 1, it) }, "$where is drawn on its last column")
+            assertTrue((0 until width).none { drawn(it, height - 1) }, "$where is drawn on its last row")
+            assertTrue((0 until height).any { drawn(width - 2, it) }, "$where falls short of its box")
+        }
+    }
+
+    /** The bigger bolts are the bat's, in its colorway's ramp and nothing else. */
+    @Test
+    fun `the bigger bolts are drawn in the bat's ramp`() {
+        val shots = javaClass.getResourceAsStream("/shot.png")!!.use { ImageIO.read(it) }
+        val heavy = javaClass.getResourceAsStream("/shotHeavy.png")!!.use { ImageIO.read(it) }
+        val ramp = opaqueColors(shots, 0, 24 * 4)
+        assertTrue(ramp.containsAll(opaqueColors(heavy, 0, heavy.width)), "a bigger bolt strays out of the bat's colors")
     }
 
     /** The hit, six 21x21 frames of it, in the same fourteen colorways; see `IMPACT_FRAME_*`. */
@@ -654,6 +748,7 @@ class SpriteSheetTest {
             "cyanBatDeath.png",
             "enemies.png",
             "orb.png",
+            "orbHeavy.png",
             "powerUpDrop.png",
             "background.png",
             "explosion.png",

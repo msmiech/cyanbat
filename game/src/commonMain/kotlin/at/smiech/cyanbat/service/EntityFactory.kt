@@ -55,7 +55,6 @@ import at.smiech.cyanbat.util.NAGA_SPLASH_FRAME
 import at.smiech.cyanbat.util.NAGA_SPLASH_FRAMES
 import at.smiech.cyanbat.util.NAGA_SPLASH_FRAME_SECONDS
 import at.smiech.cyanbat.util.ORB_COLLISION_TOLERANCE
-import at.smiech.cyanbat.util.ORB_FRAME
 import at.smiech.cyanbat.util.ORB_FRAME_COUNT
 import at.smiech.cyanbat.util.ORB_FRAME_SECONDS
 import at.smiech.cyanbat.util.PLAYER_IMPACT_LIGHT_RADIUS
@@ -105,6 +104,11 @@ import at.smiech.cyanbat.util.WAKE_CORE_COLOR
 import at.smiech.cyanbat.util.WAKE_MIN_SCALE
 import at.smiech.cyanbat.util.WOUND_MARKS
 import at.smiech.cyanbat.util.WOUND_ROWS
+import at.smiech.cyanbat.util.heavyOrbTop
+import at.smiech.cyanbat.util.heavyShotTop
+import at.smiech.cyanbat.util.orbFrameSize
+import at.smiech.cyanbat.util.shotFrameHeight
+import at.smiech.cyanbat.util.shotFrameWidth
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.AnimationComponent
@@ -913,8 +917,9 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * @param speed along its heading, in framebuffer pixels per tick. The bat's are [SHOT_SPEED];
      *   enemy fire is slower, so it can be seen coming.
      * @param variant the colorway of `shot.png` it is drawn in.
-     * @param scale how much bigger than its art it is drawn; [width] and [height] are its box, already
-     *   at that size. Heavy Rounds', for the bat's.
+     * @param size how many Heavy Rounds picks bigger it is, for the bat's; [width] and [height] are
+     *   its box, already at that size. Past none, [pixmap] is `shotHeavy.png`, which draws the bat's
+     *   bolt at every size rather than stretching it.
      */
     fun createShot(
         x: Float,
@@ -930,7 +935,7 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         critical: Boolean = false,
         variant: Int = PLAYER_SHOT_VARIANT,
         speed: Float = SHOT_SPEED,
-        scale: Float = 1f,
+        size: Int = 0,
     ): EntityId {
         val radians = angleDegrees * PI_OVER_180
         val forward = if (isPlayer) speed else -speed
@@ -948,22 +953,30 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         // by its component.
         if (pierce > 0) world.addComponent(id, PierceComponent(pierce))
         if (bounce > 0) world.addComponent(id, BounceComponent(bounce))
-        world.addComponent(
-            id,
+        // At its own size a bolt is drawn from its colorway's strip of `shot.png`; bigger, from its
+        // size's band of `shotHeavy.png`, which holds the bat's colorway alone.
+        val sprite = if (size == 0) {
             SpriteComponent(
                 pixmap,
                 baseSrcX = variant * SHOT_FRAME_WIDTH * SHOT_FRAME_COUNT,
                 srcWidth = SHOT_FRAME_WIDTH,
-                scale = scale,
             )
-        )
+        } else {
+            SpriteComponent(
+                pixmap,
+                srcY = heavyShotTop(size),
+                srcWidth = shotFrameWidth(size),
+                srcHeight = shotFrameHeight(size),
+            )
+        }
+        world.addComponent(id, sprite)
         // The bolt burns as it flies. A volley's shots start on the same frame, so a spread or ring
         // throbs as one.
         world.addComponent(
             id,
             AnimationComponent(
-                SHOT_FRAME_WIDTH,
-                pixmap.height,
+                sprite.srcWidth,
+                sprite.srcHeight,
                 SHOT_FRAME_COUNT,
                 SHOT_FRAME_SECONDS
             ),
@@ -1101,29 +1114,18 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * no light of its own: it is always inside the bat's.
      *
      * @param offset its place on the ring; see [OrbComponent] and [OrbitSystem.shareOf].
-     * @param scale how much bigger than its art it is drawn, and its box with it: Heavy Rounds'.
+     * @param size how many Heavy Rounds picks bigger it is; see [sizeOrb], which [pixmap] is for.
      */
     fun createOrb(
         centerX: Float,
         centerY: Float,
         pixmap: Pixmap,
         offset: Float,
-        scale: Float = 1f,
+        size: Int = 0,
     ): EntityId {
-        val size = (ORB_FRAME * scale).roundToInt().toFloat()
         val id = world.createEntity()
-        world.addComponent(
-            id,
-            TransformComponent(Rect.fromLTWH(centerX - size / 2f, centerY - size / 2f, size, size))
-        )
-        world.addComponent(
-            id,
-            SpriteComponent(pixmap, srcWidth = ORB_FRAME, srcHeight = ORB_FRAME, scale = scale)
-        )
-        world.addComponent(
-            id,
-            AnimationComponent(ORB_FRAME, ORB_FRAME, ORB_FRAME_COUNT, ORB_FRAME_SECONDS)
-        )
+        world.addComponent(id, TransformComponent(Rect.fromLTWH(centerX, centerY, 0f, 0f)))
+        sizeOrb(id, pixmap, size)
         world.addComponent(id, OrbComponent(offset))
         world.addComponent(id, ContactWeaponComponent(ContactWeapon.ORB))
         world.addComponent(
@@ -1132,6 +1134,38 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
         )
         world.addComponent(id, ZIndexComponent(19))
         return id
+    }
+
+    /**
+     * Draws orb [id] at the size [size] Heavy Rounds picks give it, its box that size about the same
+     * center: at none from `orb.png`, and past that from its size's band of `orbHeavy.png`, which
+     * [pixmap] is then - drawn at each size rather than stretched. Its swirl carries on round from
+     * the frame it is on, so an orb grown mid-flight does not skip.
+     */
+    fun sizeOrb(id: EntityId, pixmap: Pixmap, size: Int) {
+        val side = orbFrameSize(size)
+        val transform = world.getComponent(id, TransformComponent::class) ?: return
+        val center = transform.rect
+        transform.rect = Rect.fromLTWH(
+            center.centerX - side / 2f,
+            center.centerY - side / 2f,
+            side.toFloat(),
+            side.toFloat()
+        )
+        val animation = world.getComponent(id, AnimationComponent::class)
+            ?.copy(frameWidth = side, frameHeight = side)
+            ?: AnimationComponent(side, side, ORB_FRAME_COUNT, ORB_FRAME_SECONDS)
+        world.addComponent(id, animation)
+        world.addComponent(
+            id,
+            SpriteComponent(
+                pixmap,
+                srcX = animation.currentFrame * side,
+                srcY = if (size == 0) 0 else heavyOrbTop(size),
+                srcWidth = side,
+                srcHeight = side,
+            )
+        )
     }
 
     /**

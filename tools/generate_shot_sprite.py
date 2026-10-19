@@ -27,6 +27,9 @@ That matters more than it sounds: the screen can hold the bat's shots and the bo
 travelling in opposite directions, and before this they were the same cyan bolt. Which ones were
 dangerous had to be worked out from which way they were moving.
 
+Heavy Rounds makes the bat's bolts bigger, and `shotHeavy.png` draws its colorway again at each size,
+a band of four frames per size, top to bottom, so that a bigger bolt is drawn rather than stretched.
+
 The hit (`impact.png`) is laid out the same way, six frames a colorway: a star of light where the shot
 struck, opening into a ring that breaks up as it spreads, with sparks thrown out past it. It is round,
 so it needs no turning to match the way the shot came in, and it is a good deal smaller than a death's
@@ -35,58 +38,65 @@ blast: a hit is not a kill, and a tough enemy under fire would be lost behind ef
 
 import pathlib
 import random
-from math import atan2, cos, hypot, pi, sin
+from math import atan2, cos, floor, hypot, pi, sin, sqrt
 
 from PIL import Image
 
 # . transparent   f the tail's wisps   d dim tail   c body   h hot core   w white-hot tip and heart
 #
-# Drawn at 24x12 rather than scaling a smaller map up: a nearest-neighbor 2x would give the
-# bolt 2x2 pixel blocks, visibly coarser than the bat and the enemies it flies past. Same pixel
-# density as the rest of the art, just a bigger object. This is the outline every frame keeps; the
-# frames differ only in what burns inside it.
-SPRITE = [
-    "...........dcccw........",
-    "........dddccccccww.....",
-    ".....ddddccccccccccww...",
-    "...ddddddccccccccccccww.",
-    ".ddddddcccccccccccccccww",
-    "dddddddcccccccccccccccww",
-    "dddddddcccccccccccccccww",
-    ".ddddddcccccccccccccccww",
-    "...ddddddccccccccccccww.",
-    ".....ddddccccccccccww...",
-    "........dddccccccww.....",
-    "...........dcccw........",
-]
+# The bolt is drawn from its outline rather than from a pixel map, so that it can be drawn again at
+# every size Heavy Rounds gives the bat's: stretched nearest-neighbor, a pixel of art came out one
+# pixel wide here and two there, and the bolt went lumpy. Drawn at each size, it keeps the pixel
+# density of the rest of the art, and a clean outline, at all of them.
+#
+# Its box is 24x12 at the base size, but the outline fills a column and a row less: a blit paints one
+# column and one row short of its frame (`ComposeGraphics.drawPixmap`), and a nose drawn out to the
+# last column was cut off there, to a straight line.
+FRAME_WIDTH = 24
+FRAME_HEIGHT = 12
+
+# The outline, as a half-thickness along the bolt from the tail's end (0) to the nose (1), against the
+# widest: a nose rounded as an ellipse from `nose_from` on, and a tail tapering back from it to `tip`,
+# bowed outward by a `curve` under 1.
+BOLT = dict(nose_from=0.6, tip=0.1, curve=0.7)
+# The solid body inside it, from `BODY_FROM` along the bolt to the same nose; behind and around it is
+# the dim tail. It has no tip of its own, so it ends in a curve the tail wraps round.
+BODY_FROM = 0.22
+BODY = dict(nose_from=0.6, tip=0.0, curve=0.5)
+# How thick the white-hot rim round the nose is at its point, in pixels at the base size. It thins to
+# nothing toward the top and the bottom, as light on a rounded nose does.
+RIM = 2.0
 
 FRAMES = 4
 
-# The core at each of its three sizes, as runs of (row, first column, last column): the hot core, and
-# the white heart inside it. It swells toward the back of the bolt, so the throb pushes into the body
-# the ripple then carries off.
+# The core at each of its three sizes, in pixels at the base size: the hot core's half-length and
+# half-height, then the white heart's. Each is an ellipse whose front stays at `CORE_FRONT` of the way
+# along, so the core swells toward the back of the bolt and the throb pushes into the body the ripple
+# then carries off.
 CORES = (
-    # small
-    ([(5, 16, 20), (6, 16, 20)],
-     [(5, 18, 19), (6, 18, 19)]),
-    # middling
-    ([(4, 16, 20), (5, 14, 21), (6, 14, 21), (7, 16, 20)],
-     [(5, 17, 20), (6, 17, 20)]),
-    # large
-    ([(3, 17, 19), (4, 14, 21), (5, 12, 21), (6, 12, 21), (7, 14, 21), (8, 17, 19)],
-     [(4, 18, 19), (5, 15, 20), (6, 15, 20), (7, 18, 19)]),
+    (2.5, 1.0, 1.0, 1.0),  # small
+    (3.5, 2.0, 2.0, 1.0),  # middling
+    (4.5, 3.0, 3.0, 2.0),  # large
 )
+CORE_FRONT = 0.93
 
-# Frame by frame: the core's size, and how far behind the nose the ripple has got. The core is at its
-# largest as the ripple leaves it, and the ripple is two pixels thick and moves three a frame, so it is
-# never in two places at once.
+# Frame by frame: the core's size, and how far behind the nose the ripple has got, in pixels at the
+# base size. The core is at its largest as the ripple leaves it, and the ripple is the rim set back,
+# moving three pixels a frame, so it is never in two places at once.
 CORE_SIZES = (2, 1, 0, 1)
 RIPPLE_BACK = (6, 9, 12, 15)
 
-# The rows of the tail's ragged end that trail a wisp a pixel further back, frame by frame; the others
-# draw theirs in a pixel. It is the end of the tail flickering, as the end of a flame does.
+# The rows of the tail's ragged end, counted down the base size's box, that trail a wisp a pixel
+# further back, frame by frame; the others draw theirs in a pixel. It is the end of the tail
+# flickering, as the end of a flame does. A bigger bolt maps its rows onto these.
 TAIL_ROWS = (4, 5, 6, 7)
 TAIL_WISPS = ((5, 6), (4, 7), (6,), (5, 6))
+
+# The sizes Heavy Rounds draws the bat's bolts at, as `SHOT_SCALE_PER_LEVEL` and `MAX_SHOT_SIZE_LEVEL`
+# in `CyanBatConstants` declare them: the box at each is the base box scaled and rounded, as the game
+# rounds it. Only the bat's bolts grow, so only its colorway is drawn bigger, in `shotHeavy.png`.
+SCALE_PER_LEVEL = 0.2
+MAX_SIZE_LEVEL = 3
 
 # One ramp per colorway: a part-transparent tail, a solid body, and a hot tip. The tip stays near
 # white in every one of them - that is the part which reads as "this is moving fast" - so the hue
@@ -188,33 +198,88 @@ def palette(ramp):
     return {**ramp, "h": hot, "f": ramp["d"][:3] + (WISP_ALPHA,)}
 
 
-def bolt(frame):
-    grid = [list(row) for row in SPRITE]
+def profile(u, nose_from, tip, curve):
+    """The half-thickness of an outline [u] of the way along it, against its widest."""
+    if u >= 1:
+        return 0.0
+    if u > nose_from:
+        along = (u - nose_from) / (1 - nose_from)
+        return sqrt(1 - along * along)
+    return tip + (1 - tip) * (max(u, 0.0) / nose_from) ** curve
 
-    # The ripple: the nose's outline, set back. On the body it is the hot core's color, and on the
-    # tail it lifts the tail to the body's.
-    back = RIPPLE_BACK[frame]
-    for y, row in enumerate(SPRITE):
-        nose = row.index("w")
-        for x in (nose - back, nose - back - 1):
-            if 0 <= x < len(row):
+
+def box(level):
+    """The bolt's box at Heavy Rounds size [level], and its scale: rounded half up, as roundToInt is."""
+    scale = 1 + level * SCALE_PER_LEVEL
+    return floor(FRAME_WIDTH * scale + 0.5), floor(FRAME_HEIGHT * scale + 0.5), scale
+
+
+def bolt(frame, level=0):
+    frame_width, frame_height, scale = box(level)
+    # The outline fills the box less its last column and row, which the blit never paints.
+    width, height = frame_width - 1, frame_height - 1
+    middle = height / 2
+    nose_from = BOLT["nose_from"] * width
+    nose_length = width - nose_from
+    rim = RIM * scale
+
+    def across(y):
+        return abs(y + 0.5 - middle) / middle
+
+    def inside(x, y):
+        return across(y) <= profile((x + 0.5) / width, **BOLT)
+
+    def in_body(x, y):
+        along = ((x + 0.5) / width - BODY_FROM) / (1 - BODY_FROM)
+        return along > 0 and across(y) <= profile(along, **BODY)
+
+    def on_rim(x, y, back=0.0):
+        """Whether ([x], [y]) is on the nose's rim, or on the rim set [back] pixels behind it."""
+        ahead = x + 0.5 + back - nose_from
+        if ahead <= 0 or across(y) >= 1:
+            return False
+        # The row's share of the nose, which the rim's thickness shrinks with.
+        share = sqrt(1 - across(y) ** 2)
+        return (nose_length - rim) * share < ahead <= nose_length * share
+
+    grid = [["." for _ in range(frame_width)] for _ in range(frame_height)]
+    for y in range(height):
+        for x in range(width):
+            if inside(x, y):
+                grid[y][x] = "w" if on_rim(x, y) else "c" if in_body(x, y) else "d"
+
+    # The ripple: the nose's rim, set back. On the body it is the hot core's color, and on the tail
+    # it lifts the tail to the body's.
+    back = RIPPLE_BACK[frame] * scale
+    for y in range(height):
+        for x in range(width):
+            if on_rim(x, y, back):
                 if grid[y][x] == "c":
                     grid[y][x] = "h"
                 elif grid[y][x] == "d":
                     grid[y][x] = "c"
 
-    # The core over it, since the ripple comes out of the core.
-    hot, white = CORES[CORE_SIZES[frame]]
-    for runs, key in ((hot, "h"), (white, "w")):
-        for y, first, last in runs:
-            for x in range(first, last + 1):
-                grid[y][x] = key
+    # The core over it, since the ripple comes out of the core; inside the rim, which stays white.
+    front = CORE_FRONT * width
+    hot_length, hot_height, white_length, white_height = CORES[CORE_SIZES[frame]]
+    for y in range(height):
+        for x in range(width):
+            if grid[y][x] in ".w":
+                continue
+            down = (y + 0.5 - middle) / scale
+            for length, half, key in ((hot_length, hot_height, "h"), (white_length, white_height, "w")):
+                along = (x + 0.5 - front) / scale + length
+                if (along / length) ** 2 + (down / half) ** 2 <= 1:
+                    grid[y][x] = key
 
     # The end of the tail: a wisp a pixel further back on some rows, and drawn in a pixel on the rest.
-    for y in TAIL_ROWS:
+    for y in range(height):
+        row = floor((y + 0.5 - middle) / scale + FRAME_HEIGHT / 2)
+        if row not in TAIL_ROWS:
+            continue
         end = next(x for x, key in enumerate(grid[y]) if key != ".")
-        if y in TAIL_WISPS[frame]:
-            grid[y][end] = "f"
+        if row in TAIL_WISPS[frame]:
+            grid[y][max(end - 1, 0)] = "f"
         else:
             grid[y][end] = "."
             if grid[y][end + 1] == "d":
@@ -289,11 +354,31 @@ def save(name, grids, width, height):
     print(f"{path} ({sheet.width}x{sheet.height}, {len(COLORWAYS)} colorways of {len(grids)} frames of {width}x{height})")
 
 
+def save_heavy(name):
+    """The bat's bolt at every size past the base one: a band of its frames per size, top to bottom,
+    each frame as wide as its box."""
+    bands = [(box(level), [bolt(frame, level) for frame in range(FRAMES)])
+             for level in range(1, MAX_SIZE_LEVEL + 1)]
+    widest = max(width for (width, _, _), _ in bands)
+    tall = sum(height for (_, height, _), _ in bands)
+    sheet = Image.new("RGBA", (widest * FRAMES, tall), TRANSPARENT)
+    colors = palette(COLORWAYS[0])
+    top = 0
+    for (width, height, _), grids in bands:
+        for frame, grid in enumerate(grids):
+            for y, row in enumerate(grid):
+                for x, key in enumerate(row):
+                    if key != ".":
+                        sheet.putpixel((frame * width + x, top + y), colors[key])
+        top += height
+    path = ASSETS / name
+    sheet.save(path)
+    print(f"{path} ({sheet.width}x{sheet.height}, {len(bands)} sizes of {FRAMES} frames)")
+
+
 def main() -> int:
-    width = len(SPRITE[0])
-    if any(len(row) != width for row in SPRITE):
-        raise SystemExit("every row of SPRITE must be the same width")
-    save("shot.png", [bolt(frame) for frame in range(FRAMES)], width, len(SPRITE))
+    save("shot.png", [bolt(frame) for frame in range(FRAMES)], FRAME_WIDTH, FRAME_HEIGHT)
+    save_heavy("shotHeavy.png")
 
     rng = random.Random(SEED)
     sparks = [

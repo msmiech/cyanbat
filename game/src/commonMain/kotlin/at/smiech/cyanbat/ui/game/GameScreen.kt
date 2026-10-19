@@ -116,7 +116,6 @@ import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.cyanbat.util.IMPACT_LEAD
 import at.smiech.cyanbat.util.LETTERBOX_HEIGHT
 import at.smiech.cyanbat.util.LETTERBOX_SECONDS
-import at.smiech.cyanbat.util.ORB_FRAME
 import at.smiech.cyanbat.util.PAUSE_BUTTON_FILL
 import at.smiech.cyanbat.util.PAUSE_BUTTON_RADIUS
 import at.smiech.cyanbat.util.PAUSE_BUTTON_SIGN_COLOR
@@ -163,6 +162,9 @@ import at.smiech.cyanbat.util.WOUNDED_FIRE_RATE
 import at.smiech.cyanbat.util.WOUNDED_PACE
 import at.smiech.cyanbat.util.XP_BAR_HEIGHT
 import at.smiech.cyanbat.util.XP_PER_BOSS
+import at.smiech.cyanbat.util.orbFrameSize
+import at.smiech.cyanbat.util.shotFrameHeight
+import at.smiech.cyanbat.util.shotFrameWidth
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
@@ -723,14 +725,14 @@ class GameScreen(
             fireVolley(shooterId, transform.rect, gun)
             return
         }
-        val shot = env.assets.graphics.shot
-        // Heavy Rounds draws the bat's bolts bigger, and their boxes with them; an enemy's stay as
-        // drawn.
-        val scale = if (isPlayer) loadout.shotScale else 1f
-        // The sheet lays every colorway side by side, so a shot is placed and sized by one frame of
-        // it, not by the pixmap. Whole pixels, as the sprite is drawn.
-        val width = (SHOT_FRAME_WIDTH * scale).roundToInt().toFloat()
-        val height = (shot.height * scale).roundToInt().toFloat()
+        // Heavy Rounds draws the bat's bolts bigger, and their boxes with them, each size from art
+        // drawn at it; an enemy's stay as drawn.
+        val size = if (isPlayer) loadout.shotSizeLevel else 0
+        val shot = if (size == 0) env.assets.graphics.shot else env.assets.graphics.heavyShot
+        // The sheets lay several frames side by side, so a shot is placed and sized by one frame,
+        // not by the pixmap.
+        val width = shotFrameWidth(size).toFloat()
+        val height = shotFrameHeight(size).toFloat()
         val x = if (isPlayer) transform.rect.right else transform.rect.left - width
         val y = transform.rect.centerY - height / 2f
         // A bolt takes its shooter's color; the bat has no style and falls back to its own cyan.
@@ -760,7 +762,7 @@ class GameScreen(
                 // would be a hazard the player cannot read.
                 pierce = if (isPlayer) loadout.shotPierce else 0,
                 bounce = if (isPlayer) loadout.shotBounce else 0,
-                scale = scale,
+                size = size,
             )
         }
 
@@ -1946,22 +1948,13 @@ class GameScreen(
      * size, so a Heavy Rounds pick grows the ones already circling.
      */
     private fun syncOrbs() {
-        val scale = loadout.shotScale
+        val size = loadout.shotSizeLevel
+        val pixmap = if (size == 0) env.assets.graphics.orb else env.assets.graphics.heavyOrb
         val circling = world.query(OrbComponent::class)
         for (id in circling) {
             val sprite = world.getComponent(id, SpriteComponent::class) ?: continue
-            if (sprite.scale == scale) continue
-            sprite.scale = scale
             // Kept centered as it grows; the ring places it by its center.
-            val transform = world.getComponent(id, TransformComponent::class) ?: continue
-            val size = (ORB_FRAME * scale).roundToInt().toFloat()
-            val rect = transform.rect
-            transform.rect = Rect.fromLTWH(
-                rect.centerX - size / 2f,
-                rect.centerY - size / 2f,
-                size,
-                size
-            )
+            if (sprite.srcWidth != orbFrameSize(size)) factory.sizeOrb(id, pixmap, size)
         }
         if (circling.size >= loadout.orbs) return
         val bat = batRect() ?: return
@@ -1969,9 +1962,9 @@ class GameScreen(
             factory.createOrb(
                 bat.centerX,
                 bat.centerY,
-                env.assets.graphics.orb,
+                pixmap,
                 OrbitSystem.shareOf(index, loadout.orbs),
-                scale,
+                size,
             )
         }
         // Placed on the ring now rather than next tick, since the run is drawn under the dialog

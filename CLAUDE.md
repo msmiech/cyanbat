@@ -532,7 +532,10 @@ rather than in the menu's view model, which Android makes again for every return
     - `OrbitSystem` carries the orbs round the bat clockwise, evenly spaced in creation order, at
       the loadout's `orbRadius` and `orbSecondsPerTurn`. Heavy Rounds makes the bat's shots and
       orbs bigger as well as harder (`shotScale`, up to `MAX_SHOT_SIZE_LEVEL`) and widens the ring
-      with them; Rapid Fire turns the ring faster, and the orbs' rehit shortens in step.
+      with them; Rapid Fire turns the ring faster, and the orbs' rehit shortens in step. A bigger
+      bolt or orb is not stretched: `shotHeavy.png` and `orbHeavy.png` draw them at every size, a
+      band per size (`shotFrameWidth`, `heavyShotTop`, `orbFrameSize`, `heavyOrbTop`), and the
+      factory takes the size rather than a scale; `sizeOrb` grows the orbs already circling.
     - `FrostBeamSystem` freezes ordinary enemies only - never a boss, a part of one or an elite
       (`GameScreen.canFreeze`). A freeze is `FrostSystem` holding the enemy's `PaceComponent` at
       zero, drifting it with the scenery and washing it blue (`TintComponent`, which `RenderSystem`
@@ -688,7 +691,8 @@ browser and on iOS. There is no framebuffer bitmap.
   `Raster` only draws them one grid pixel wide. A setting for it would be wired up the way the
   `DisplayMode` is, from the host.
 - The deliberate `- 1` in `drawPixmap` paints a column and a row short, and is why background tiles
-  overlap by one column. A "fix" would shift every sprite by a pixel.
+  overlap by one column. A "fix" would shift every sprite by a pixel. Art drawn out to a frame's
+  last column or row is cut off there, so a sprite leaves both clear, as the shots do.
 - Text is the exception, by choice: laid out in frame pixels, so the game places it as before, but
   drawn at the screen's resolution and antialiased. An outline is a stroke around the glyphs
   (`drawOutlinedString`), not the string stamped around itself. Each platform draws its own
