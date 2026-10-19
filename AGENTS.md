@@ -129,20 +129,25 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
       (`CyanBatEnvironment.pauseButton`; see Input).
     - `AppFocus` tells `GameSurface` whether the player is at the app, from UIKit's active and
       resign-active notifications, and pauses the menu's music when they leave.
-    - The host pads the whole menu to the safe area (`WindowInsets.safeDrawing`), over black, so
-      the Dynamic Island sits over none of it in landscape. That consumes the insets, and the
-      menu's own padding to them (see below) comes to nothing.
+    - The menu is edge to edge, as on Android: the host leaves the safe area to the menu's
+      screens, which keep what is on them clear of the Dynamic Island, the rounded corners and the
+      home indicator (see below), and the main screen's sky runs on under them. Padded by the host,
+      the menu would consume the insets, and the screens' own padding would come to nothing.
     - An iPhone is landscape only, as on Android; an iPad takes every orientation and any window
       size, as iPadOS 26 expects, the frame fitted with bars as in a desktop window.
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.
 - Android draws the menu's window under the status bar, the navigation bar and a display's cutout
-  (edge to edge, which SDK 35 and up enforce), so each menu screen pads what is on it to
+  (edge to edge, which SDK 35 and up enforce), and iOS under the Dynamic Island, the rounded
+  corners and the home indicator, so each menu screen pads what is on it to
   `WindowInsets.safeDrawing` and lets its background, the main screen's sky among them, run on
   under them. The scrolling screens pad inside the scroll, so their rows pass under the bars but
   the last stops clear of them; the main screen's margins give way to an inset rather than add to
-  it, since a phone held landscape has no height to spare. Elsewhere the insets are nothing.
+  it, since a phone held landscape has no height to spare. The way back that a screen draws where
+  the platform has no Back (`SubScreen`) pads to the top and leading insets, the corner an iPhone's
+  Dynamic Island or rounded corner can take. On the desktop and in the browser the insets are
+  nothing.
 - Each host builds a `CyanBatEnvironment` (assets, haptics, highscore, stage unlock and achievement
   stores, audio settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in
   `:game`, backed by DataStore in `:app`, `java.util.prefs` in `:desktop`, and in `:web` and `:ios`

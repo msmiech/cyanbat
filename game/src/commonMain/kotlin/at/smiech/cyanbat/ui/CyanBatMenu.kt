@@ -3,8 +3,14 @@ package at.smiech.cyanbat.ui
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.WindowInsetsSides
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.only
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -259,18 +265,26 @@ private fun SubScreen(
     val back = remember { FocusRequester() }
     if (backIsHome) HomeCursor(back)
     val cursor = rememberCursorMark()
+    // The corner the way back sits in is where an iPhone has its Dynamic Island or a rounded
+    // corner, so the button keeps clear of them. The screen under it is clear of the top's inset
+    // by then, and pads itself to the other sides.
+    val corner = WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Start)
     Surface {
         Column(Modifier.fillMaxSize()) {
             TextButton(
                 onClick = onBack,
                 // Off the corner, so the cursor's ring round it is not cut by the screen's edge.
-                modifier = Modifier.padding(start = BACK_INSET, top = BACK_INSET)
+                modifier = Modifier.windowInsetsPadding(corner)
+                    .padding(start = BACK_INSET, top = BACK_INSET)
                     .focusRequester(back).then(cursor.modifier),
                 border = cursor.border(),
             ) {
                 Text("← " + stringResource(Res.string.button_back))
             }
-            Box(Modifier.weight(1f)) { content() }
+            Box(
+                Modifier.weight(1f)
+                    .consumeWindowInsets(WindowInsets.safeDrawing.only(WindowInsetsSides.Top))
+            ) { content() }
         }
     }
 }

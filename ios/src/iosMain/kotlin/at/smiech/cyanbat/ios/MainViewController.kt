@@ -2,10 +2,7 @@ package at.smiech.cyanbat.ios
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
@@ -157,35 +154,29 @@ private fun CyanBatApp(assets: IosAssets, sound: IosAudioDevice, focus: AppFocus
             // A run on its way: its text is still being read.
             stage != null -> Box(Modifier.fillMaxSize().background(Color.Black))
 
-            // Kept clear of the Dynamic Island, the rounded corners and the home indicator, as the
-            // game's frame is by its bars. What lies under them is black, as the bars are.
-            else -> Box(
-                Modifier
-                    .fillMaxSize()
-                    .background(Color.Black)
-                    .windowInsetsPadding(WindowInsets.safeDrawing)
-            ) {
-                CyanBatMenu(
-                    MenuHost(
-                        settings = settings,
-                        menuMusic = menuMusic,
-                        stageUnlocks = stageUnlocks,
-                        highscores = highscores,
-                        achievements = achievements,
-                        // Cleared on the way in as well as on the way out, so that nothing pressed
-                        // before the run is waiting to act the moment it starts.
-                        onStartGame = { id, chosen ->
-                            controls.releaseAll()
-                            difficulty = chosen
-                            playingStage = id
-                        },
-                        // An iOS app does not quit itself; the player leaves it as they leave
-                        // any other.
-                        onExit = null,
-                    ),
-                    backStack,
-                )
-            }
+            // Edge to edge: each of the menu's screens keeps what is on it clear of the Dynamic
+            // Island, the rounded corners and the home indicator itself, and lets its background,
+            // the main screen's sky among them, run on under them.
+            else -> CyanBatMenu(
+                MenuHost(
+                    settings = settings,
+                    menuMusic = menuMusic,
+                    stageUnlocks = stageUnlocks,
+                    highscores = highscores,
+                    achievements = achievements,
+                    // Cleared on the way in as well as on the way out, so that nothing pressed
+                    // before the run is waiting to act the moment it starts.
+                    onStartGame = { id, chosen ->
+                        controls.releaseAll()
+                        difficulty = chosen
+                        playingStage = id
+                    },
+                    // An iOS app does not quit itself; the player leaves it as they leave any
+                    // other.
+                    onExit = null,
+                ),
+                backStack,
+            )
         }
     }
 }
