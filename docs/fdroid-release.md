@@ -25,9 +25,9 @@ on its own build server, and signs it with its own key. What it needs from this 
 
 The app gets into F-Droid through a merge request to
 [fdroiddata](https://gitlab.com/fdroid/fdroiddata), which needs a GitLab account. The first build is
-the first release made after all of the above is in: 3.6.
+the first release made after all of the above is in: 3.7.
 
-1. Tag 3.6 here, as for any release.
+1. Tag 3.7 here, as for any release.
 2. Fork fdroiddata on GitLab, and on a new branch add `metadata/at.smiech.cyanbat.yml`:
 
    ```yaml
@@ -45,9 +45,9 @@ the first release made after all of the above is in: 3.6.
    Repo: https://github.com/msmiech/cyanbat.git
 
    Builds:
-     - versionName: '3.6'
-       versionCode: 30600
-       commit: '3.6'
+     - versionName: '3.7'
+       versionCode: 30700
+       commit: '3.7'
        subdir: app
        sudo:
          - apt-get update
@@ -60,8 +60,8 @@ the first release made after all of the above is in: 3.6.
    AutoUpdateMode: Version
    UpdateCheckMode: Tags ^\d+\.\d+(\.\d+)?$
    UpdateCheckData: gradle.properties|cyanbat\.versionCode=(\d+)|.|cyanbat\.version=(\S+)
-   CurrentVersion: '3.6'
-   CurrentVersionCode: 30600
+   CurrentVersion: '3.7'
+   CurrentVersionCode: 30700
    ```
 
 3. If you have `fdroidserver` (on Linux, `pip install fdroidserver`), check it from the fdroiddata

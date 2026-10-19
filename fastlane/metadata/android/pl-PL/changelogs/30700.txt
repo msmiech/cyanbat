@@ -1,7 +1,8 @@
+• CyanBat to teraz wolne oprogramowanie na licencji GPL-3.0, i na F-Droid
+
+Nowości w 3.6:
 • Osiągnięcia, każde z obrazem chwili, w której je zdobyto
 • Ciężkie kule powiększają strzały i kule ochronne, Szybki ogień obraca je szybciej, a kula ochronna jest teraz z energii
 • Walki z bossami trzymają intensywną muzykę od wejścia przez każdą fazę
 • Własne symbole przycisków dla padów Xbox i PlayStation
 • Menu omija paski systemowe i wycięcie aparatu
-• Mniejszy APK dzięki R8
-• Teraz wolne oprogramowanie na licencji GPL-3.0, i na F-Droid
