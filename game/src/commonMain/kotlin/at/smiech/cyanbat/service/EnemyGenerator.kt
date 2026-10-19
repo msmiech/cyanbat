@@ -431,7 +431,8 @@ class EnemyGenerator(
             }
 
             BossKind.MOTH_QUEEN -> {
-                val sheet = requireNotNull(bossSheet(BossKind.MOTH_QUEEN)) { "The Moth Queen needs her own sheet" }
+                val sheet =
+                    requireNotNull(bossSheet(BossKind.MOTH_QUEEN)) { "The Moth Queen needs her own sheet" }
                 factory.createMothQueen(
                     x = xSpawnPosition.toFloat(),
                     y = (worldHeight - sheet.height / WOUND_ROWS) / 2f,
@@ -451,7 +452,8 @@ class EnemyGenerator(
             }
 
             BossKind.SAND_WYRM -> {
-                val sheet = requireNotNull(bossSheet(BossKind.SAND_WYRM)) { "The Sand Wyrm needs its own sheet" }
+                val sheet =
+                    requireNotNull(bossSheet(BossKind.SAND_WYRM)) { "The Sand Wyrm needs its own sheet" }
                 val ids = factory.createSandWyrm(
                     // Under the sand to the right of the frame's middle; its brain buries it
                     // properly and picks where it first comes up.
@@ -482,7 +484,8 @@ class EnemyGenerator(
             BossKind.SKY_VIPER -> spawnSkyViper(wave)
 
             BossKind.NAGA -> {
-                val sheet = requireNotNull(bossSheet(BossKind.NAGA)) { "The Naga needs its own sheet" }
+                val sheet =
+                    requireNotNull(bossSheet(BossKind.NAGA)) { "The Naga needs its own sheet" }
                 val ids = factory.createNaga(
                     // Under the water; its brain buries it properly and picks where it first comes up.
                     x = xSpawnPosition * 0.7f,
@@ -534,7 +537,8 @@ class EnemyGenerator(
      * entrance; see [SkyViperBrain].
      */
     private fun spawnSkyViper(wave: EnemyWave): EntityId {
-        val sheet = requireNotNull(bossSheet(BossKind.SKY_VIPER)) { "The Sky Viper needs its own sheet" }
+        val sheet =
+            requireNotNull(bossSheet(BossKind.SKY_VIPER)) { "The Sky Viper needs its own sheet" }
         val ids = factory.createSkyViper(
             x = xSpawnPosition * 0.62f,
             y = -2f * SKY_VIPER_FRAME,

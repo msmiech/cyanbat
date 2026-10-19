@@ -218,7 +218,8 @@ private fun StageSelectContent(
                         cleared = null,
                         stars = false,
                         onClick = { onStartStage(ENDLESS.id) },
-                        modifier = Modifier.fillMaxWidth().focusRequester(cursor.getValue(ENDLESS.id)),
+                        modifier = Modifier.fillMaxWidth()
+                            .focusRequester(cursor.getValue(ENDLESS.id)),
                     )
                 }
             }

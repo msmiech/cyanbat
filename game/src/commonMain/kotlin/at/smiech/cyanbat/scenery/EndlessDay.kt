@@ -1,5 +1,8 @@
 package at.smiech.cyanbat.scenery
 
+import at.smiech.cyanbat.scenery.EndlessDay.HIGHEST
+import at.smiech.cyanbat.scenery.EndlessDay.SKY
+import at.smiech.cyanbat.scenery.EndlessDay.ambient
 import at.smiech.cyanbat.util.ENDLESS_NIGHT_AMBIENT
 import at.smiech.engine.EngineColors
 import at.smiech.engine.ecs.LightingSystem
@@ -54,22 +57,57 @@ object EndlessDay {
         val haze: Float,
     ) {
         /** The sun just up on the right, pink and low. */
-        DAWN(0xFFFFB4A0.toInt(), 0xFF7A6A9A.toInt(), fromLeft = 0.1f, fromRight = 1f, fromAbove = 0.45f, haze = 1.15f),
+        DAWN(
+            0xFFFFB4A0.toInt(),
+            0xFF7A6A9A.toInt(),
+            fromLeft = 0.1f,
+            fromRight = 1f,
+            fromAbove = 0.45f,
+            haze = 1.15f
+        ),
 
         /** The sun high: tops brightest, both sides lit. */
-        NOON(0xFFFFFCF0.toInt(), 0xFF9AA8C0.toInt(), fromLeft = 0.55f, fromRight = 0.6f, fromAbove = 1f, haze = 1f),
+        NOON(
+            0xFFFFFCF0.toInt(),
+            0xFF9AA8C0.toInt(),
+            fromLeft = 0.55f,
+            fromRight = 0.6f,
+            fromAbove = 1f,
+            haze = 1f
+        ),
 
         /** The sun low on the left, gold. */
-        GOLDEN(0xFFFFD08A.toInt(), 0xFF8C88A8.toInt(), fromLeft = 1f, fromRight = 0.15f, fromAbove = 0.5f, haze = 1.1f),
+        GOLDEN(
+            0xFFFFD08A.toInt(),
+            0xFF8C88A8.toInt(),
+            fromLeft = 1f,
+            fromRight = 0.15f,
+            fromAbove = 0.5f,
+            haze = 1.1f
+        ),
 
         /** The sun going down behind the bat, red, under a purple sky. */
-        SUNSET(0xFFFF8A60.toInt(), 0xFF6A5080.toInt(), fromLeft = 1f, fromRight = 0.05f, fromAbove = 0.3f, haze = 1.2f),
+        SUNSET(
+            0xFFFF8A60.toInt(),
+            0xFF6A5080.toInt(),
+            fromLeft = 1f,
+            fromRight = 0.05f,
+            fromAbove = 0.3f,
+            haze = 1.2f
+        ),
 
         /**
          * Moonlight: blue, from above and the left. Brighter than a night really is, since the
          * stage's dark falls over it as well; see [ambient].
          */
-        NIGHT(0xFFA8BCF0.toInt(), 0xFF56628C.toInt(), fromLeft = 0.6f, fromRight = 0.15f, fromAbove = 0.6f, haze = 0.8f),
+        NIGHT(
+            0xFFA8BCF0.toInt(),
+            0xFF56628C.toInt(),
+            fromLeft = 0.6f,
+            fromRight = 0.15f,
+            fromAbove = 0.6f,
+            haze = 0.8f
+        ),
     }
 
     /**
@@ -97,7 +135,8 @@ object EndlessDay {
     fun rowBelow(position: Float): Int = KEYFRAME_TIMES[entryBelow(position)].ordinal
 
     /** The palette row fading in over [rowBelow]. */
-    fun rowAbove(position: Float): Int = KEYFRAME_TIMES[(entryBelow(position) + 1) % KEYFRAMES.size].ordinal
+    fun rowAbove(position: Float): Int =
+        KEYFRAME_TIMES[(entryBelow(position) + 1) % KEYFRAMES.size].ordinal
 
     /** How far the ground has faded from [rowBelow] to [rowAbove], 0..1. */
     fun rowBlend(position: Float): Float {
@@ -114,7 +153,8 @@ object EndlessDay {
     private val SKY_STOPS = floatArrayOf(0f, 0.4f, 0.75f, 1f)
 
     /** Where each of [SKY] is at full strength round the clock; the last wraps into the first. */
-    private val SKY_POSITIONS = floatArrayOf(0f, 0.08f, 0.2f, 0.42f, 0.52f, 0.6f, 0.66f, 0.74f, 0.9f, 0.96f, 1f)
+    private val SKY_POSITIONS =
+        floatArrayOf(0f, 0.08f, 0.2f, 0.42f, 0.52f, 0.6f, 0.66f, 0.74f, 0.9f, 0.96f, 1f)
 
     /**
      * The sky, zenith to horizon, round the clock: a rose dawn under violet, a morning clearing to
@@ -156,7 +196,8 @@ object EndlessDay {
 
     fun sunUp(position: Float): Boolean = position < SUNSET
 
-    fun sunX(position: Float): Float = RISE_X + (SET_X - RISE_X) * sunAlong(position).coerceIn(0f, 1f)
+    fun sunX(position: Float): Float =
+        RISE_X + (SET_X - RISE_X) * sunAlong(position).coerceIn(0f, 1f)
 
     /** On an arc from the [horizonY] up to [HIGHEST] at its noon and down again. */
     fun sunY(position: Float, horizonY: Int): Float {
@@ -196,7 +237,11 @@ object EndlessDay {
 
     /** How much of the moon shows, 0..1. */
     fun moonlight(position: Float): Float =
-        smoothstep(MOONRISE, MOONRISE + 0.05f, position) * (1f - smoothstep(MOONSET - 0.05f, MOONSET, position))
+        smoothstep(MOONRISE, MOONRISE + 0.05f, position) * (1f - smoothstep(
+            MOONSET - 0.05f,
+            MOONSET,
+            position
+        ))
 
     private fun moonAlong(position: Float): Float = fraction(position, MOONRISE, MOONSET)
 

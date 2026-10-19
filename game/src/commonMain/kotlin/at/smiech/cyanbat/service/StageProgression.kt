@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.Difficulty
+import at.smiech.cyanbat.service.StageProgression.Companion.MAX_SPEED_MULTIPLIER
 import at.smiech.cyanbat.util.BOSS_DAMAGE_PER_STAGE
 import at.smiech.cyanbat.util.BOSS_HIT_POINTS_PER_STAGE
 import at.smiech.cyanbat.util.BOSS_WAVE

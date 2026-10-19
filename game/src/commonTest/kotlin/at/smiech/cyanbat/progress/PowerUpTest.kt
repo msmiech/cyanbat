@@ -325,13 +325,17 @@ class PowerUpTest {
     /** Rapid Fire and Heavy Rounds do more once orbs are circling, and their cards say so. */
     @Test
     fun `the gun's upgrades say what they do for the orbs once there are some`() {
-        val before = listOf(PowerUp.RAPID_FIRE, PowerUp.HEAVY_ROUNDS).associateWith { it.describe(loadout) }
+        val before =
+            listOf(PowerUp.RAPID_FIRE, PowerUp.HEAVY_ROUNDS).associateWith { it.describe(loadout) }
         for ((powerUp, card) in before) assertEquals(powerUp.description, card, powerUp.name)
 
         take(PowerUp.GUARDIAN_ORB)
 
         for ((powerUp, card) in before) {
-            assertTrue(powerUp.describe(loadout) != card, "${powerUp.name} reads the same with orbs")
+            assertTrue(
+                powerUp.describe(loadout) != card,
+                "${powerUp.name} reads the same with orbs"
+            )
         }
     }
 

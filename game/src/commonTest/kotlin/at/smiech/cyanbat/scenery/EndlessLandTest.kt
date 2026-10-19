@@ -16,7 +16,8 @@ class EndlessLandTest {
 
     private fun land(biome: Biome) = listOf(Stretch(0, biome))
 
-    private fun cover(cell: Int) = CloudCover(0.3f + 0.1f * (cell % 5), if (cell % 3 == 0) 0.6f else 0f, 0f)
+    private fun cover(cell: Int) =
+        CloudCover(0.3f + 0.1f * (cell % 5), if (cell % 3 == 0) 0.6f else 0f, 0f)
 
     @Test
     fun `the same land is made the same every time`() {
@@ -30,7 +31,12 @@ class EndlessLandTest {
     @Test
     fun `every chunk meets the next without a seam`() {
         for (biome in Biome.entries) for (band in Band.entries) {
-            for (k in 0 until 6) assertJoins(band, k * chunk, land(biome), "$biome's $band at chunk $k")
+            for (k in 0 until 6) assertJoins(
+                band,
+                k * chunk,
+                land(biome),
+                "$biome's $band at chunk $k"
+            )
         }
     }
 
@@ -38,9 +44,15 @@ class EndlessLandTest {
     fun `a land blending into the next meets itself across the blend too`() {
         val biomes = Biome.entries
         for (i in biomes.indices) {
-            val stretches = listOf(Stretch(0, biomes[i]), Stretch(300, biomes[(i + 3) % biomes.size]))
+            val stretches =
+                listOf(Stretch(0, biomes[i]), Stretch(300, biomes[(i + 3) % biomes.size]))
             for (band in grounds) {
-                for (k in 1 until 8) assertJoins(band, k * chunk, stretches, "${biomes[i]} into ${stretches[1].biome}, $band")
+                for (k in 1 until 8) assertJoins(
+                    band,
+                    k * chunk,
+                    stretches,
+                    "${biomes[i]} into ${stretches[1].biome}, $band"
+                )
             }
         }
     }
@@ -50,7 +62,11 @@ class EndlessLandTest {
         val here = EndlessLand.paint(band, left, stretches, seed, ::cover)
         val next = EndlessLand.paint(band, left + chunk, stretches, seed, ::cover)
         for (y in 0 until here.height) {
-            assertEquals(here.codes[y * here.width + chunk], next.codes[y * next.width], "$what, row $y")
+            assertEquals(
+                here.codes[y * here.width + chunk],
+                next.codes[y * next.width],
+                "$what, row $y"
+            )
         }
     }
 
@@ -71,16 +87,33 @@ class EndlessLandTest {
         for (y in frameRows) {
             val row = y - band.top
             for (x in 0 until chunk) {
-                assertTrue(painter.codes[row * painter.width + x] != 0, "$biome's $band is open at frame row $y, column ${left + x}")
+                assertTrue(
+                    painter.codes[row * painter.width + x] != 0,
+                    "$biome's $band is open at frame row $y, column ${left + x}"
+                )
             }
         }
     }
 
     @Test
     fun `volcanoes mark their craters for the smoke`() {
-        val craters = (0 until 30).sumOf { EndlessLand.paint(Band.FAR, it * chunk, land(Biome.VOLCANO), seed).features.size }
+        val craters = (0 until 30).sumOf {
+            EndlessLand.paint(
+                Band.FAR,
+                it * chunk,
+                land(Biome.VOLCANO),
+                seed
+            ).features.size
+        }
         assertTrue(craters > 0, "no volcano in thirty chunks of the far band")
-        val none = (0 until 30).sumOf { EndlessLand.paint(Band.FAR, it * chunk, land(Biome.PEAKS), seed).features.size }
+        val none = (0 until 30).sumOf {
+            EndlessLand.paint(
+                Band.FAR,
+                it * chunk,
+                land(Biome.PEAKS),
+                seed
+            ).features.size
+        }
         assertEquals(0, none)
     }
 
@@ -89,11 +122,20 @@ class EndlessLandTest {
         val openSky = setOf(Biome.DESERT, Biome.COAST, Biome.VOLCANO)
         for (biome in Biome.entries) {
             for (kind in 0 until EndlessLand.GROUND_KINDS) {
-                val art = assertNotNull(EndlessLand.obstacle(biome, hanging = false, kind, seed), "$biome $kind")
-                assertTrue(art.width in 20..100 && art.height in 24..70, "$biome's ground $kind is ${art.width}x${art.height}")
+                val art = assertNotNull(
+                    EndlessLand.obstacle(biome, hanging = false, kind, seed),
+                    "$biome $kind"
+                )
+                assertTrue(
+                    art.width in 20..100 && art.height in 24..70,
+                    "$biome's ground $kind is ${art.width}x${art.height}"
+                )
                 // Standing on the ground: something in its last drawn row.
                 val row = art.height - 2
-                assertTrue((0 until art.width).any { art.codes[row * art.width + it] != 0 }, "$biome's ground $kind floats")
+                assertTrue(
+                    (0 until art.width).any { art.codes[row * art.width + it] != 0 },
+                    "$biome's ground $kind floats"
+                )
             }
             for (kind in 0 until EndlessLand.HANGING_KINDS) {
                 val art = EndlessLand.obstacle(biome, hanging = true, kind, seed)
@@ -101,7 +143,10 @@ class EndlessLandTest {
                     assertNull(art, "$biome has an open sky")
                 } else {
                     assertNotNull(art, "$biome $kind")
-                    assertTrue((0 until art.width).any { art.codes[it] != 0 || art.codes[art.width + it] != 0 }, "$biome's hanging $kind hangs from nothing")
+                    assertTrue(
+                        (0 until art.width).any { art.codes[it] != 0 || art.codes[art.width + it] != 0 },
+                        "$biome's hanging $kind hangs from nothing"
+                    )
                 }
             }
         }
@@ -112,7 +157,11 @@ class EndlessLandTest {
         for (biome in Biome.entries) {
             val first = EndlessLand.obstacle(biome, hanging = false, 1, 1000)!!
             val again = EndlessLand.obstacle(biome, hanging = false, 1, 8919)!!
-            assertTrue(first.width != again.width || first.height != again.height || !first.codes.contentEquals(again.codes), "$biome")
+            assertTrue(
+                first.width != again.width || first.height != again.height || !first.codes.contentEquals(
+                    again.codes
+                ), "$biome"
+            )
         }
     }
 }

@@ -49,8 +49,8 @@ import at.smiech.engine.impl.DesktopAudio
 import at.smiech.engine.impl.GameSurface
 import at.smiech.engine.impl.PadMenuKey
 import at.smiech.engine.impl.PadRouter
-import at.smiech.engine.impl.onComposePointerUse
 import at.smiech.engine.impl.onComposeKeyEvent
+import at.smiech.engine.impl.onComposePointerUse
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -313,7 +313,7 @@ private const val PAD_POLL_MILLIS = 8L
  * class, so the window can tell it from the keyboard's.
  */
 private class PadKeyEvent(source: Component, id: Int, keyCode: Int) :
-    KeyEvent(source, id, System.currentTimeMillis(), 0, keyCode, KeyEvent.CHAR_UNDEFINED)
+    KeyEvent(source, id, System.currentTimeMillis(), 0, keyCode, CHAR_UNDEFINED)
 
 /** Presses [key], or lets it go, in [window]'s menu, as the keyboard would. */
 private fun pressMenuKey(window: ComposeWindow, key: PadMenuKey, pressed: Boolean) {

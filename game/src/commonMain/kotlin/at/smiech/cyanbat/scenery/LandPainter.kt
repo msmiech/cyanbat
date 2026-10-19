@@ -41,7 +41,12 @@ class Feature(val x: Float, val y: Float)
  * start, y down from the band's top. Whatever falls outside the chunk is clipped, so a tree
  * straddling two chunks is painted whole into both and meets itself at the join.
  */
-internal class LandPainter(val band: Band, val left: Int, val width: Int, val height: Int = band.height) {
+internal class LandPainter(
+    val band: Band,
+    val left: Int,
+    val width: Int,
+    val height: Int = band.height
+) {
     val codes = IntArray(width * height)
     val features = ArrayList<Feature>()
 
@@ -67,7 +72,13 @@ internal class LandPainter(val band: Band, val left: Int, val width: Int, val he
      * A filled ellipse round [cx], [cy], each pixel coded by [codeAt] from where in it the pixel
      * is, -1..1 across and down.
      */
-    inline fun ellipse(cx: Float, cy: Float, rx: Float, ry: Float, codeAt: (dx: Float, dy: Float) -> Int) {
+    inline fun ellipse(
+        cx: Float,
+        cy: Float,
+        rx: Float,
+        ry: Float,
+        codeAt: (dx: Float, dy: Float) -> Int
+    ) {
         if (rx <= 0f || ry <= 0f) return
         val x0 = floor(cx - rx).toInt()
         val x1 = ceil(cx + rx).toInt()

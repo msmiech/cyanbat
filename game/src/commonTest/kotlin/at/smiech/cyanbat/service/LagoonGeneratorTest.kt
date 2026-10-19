@@ -458,9 +458,15 @@ class LagoonGeneratorTest {
         assertEquals(BossKind.SKY_VIPER, generator.bossKind)
         assertTrue(!generator.encoreDue, "a third boss is still to come")
         assertEquals(11, viperParts(head).size, "its wings and ten parts")
-        assertNotNull(world.getComponent(head, HealthBarComponent::class)?.pinnedTo, "its bar goes where it goes")
+        assertNotNull(
+            world.getComponent(head, HealthBarComponent::class)?.pinnedTo,
+            "its bar goes where it goes"
+        )
         (viperParts(head) + head).forEach {
-            assertTrue(rectOf(it).bottom <= 0f, "a part of it showed before its dive: ${rectOf(it)}")
+            assertTrue(
+                rectOf(it).bottom <= 0f,
+                "a part of it showed before its dive: ${rectOf(it)}"
+            )
         }
     }
 
@@ -478,7 +484,10 @@ class LagoonGeneratorTest {
             lowest = maxOf(lowest, rectOf(head).top)
             bites > 0
         }
-        assertTrue(gapBetween(head, bat) < 45f, "it bit the air ${gapBetween(head, bat)} from the bat")
+        assertTrue(
+            gapBetween(head, bat) < 45f,
+            "it bit the air ${gapBetween(head, bat)} from the bat"
+        )
         assertEquals(0, arrivals, "its fight began before it bit")
 
         var gone = false
@@ -520,8 +529,10 @@ class LagoonGeneratorTest {
         val health = world.getComponent(head, HealthComponent::class)!!
         val sprite = world.getComponent(head, SpriteComponent::class)!!
         repeat((60f / TICK_INITIAL).toInt()) { tick ->
-            if (tick == (20f / TICK_INITIAL).toInt()) health.hitPoints = (health.maxHitPoints * 0.5f).toInt()
-            if (tick == (40f / TICK_INITIAL).toInt()) health.hitPoints = (health.maxHitPoints * 0.2f).toInt()
+            if (tick == (20f / TICK_INITIAL).toInt()) health.hitPoints =
+                (health.maxHitPoints * 0.5f).toInt()
+            if (tick == (40f / TICK_INITIAL).toInt()) health.hitPoints =
+                (health.maxHitPoints * 0.2f).toInt()
             generator.tick()
             assertTrue(
                 abs(sprite.rotationDegrees) <= 81f,
@@ -539,7 +550,12 @@ class LagoonGeneratorTest {
         generator.run(1.5f)
 
         val chain = listOf(head) + world.query(BossPartComponent::class)
-            .filter { it != head && world.getComponent(it, SpriteComponent::class)!!.baseSrcX >= 6 * SKY_VIPER_FRAME }
+            .filter {
+                it != head && world.getComponent(
+                    it,
+                    SpriteComponent::class
+                )!!.baseSrcX >= 6 * SKY_VIPER_FRAME
+            }
             .sortedBy { rectOf(it).centerX }
         chain.zipWithNext { front, back ->
             assertTrue(
@@ -563,7 +579,10 @@ class LagoonGeneratorTest {
         repeat((3f / TICK_INITIAL).toInt()) {
             generator.tick()
             assertTrue(rectOf(head).centerY < HEIGHT / 4f, "it rained from low down")
-            world.getComponent(head, GunComponent::class)!!.volleys.forEach { patterns += it.pattern }
+            world.getComponent(
+                head,
+                GunComponent::class
+            )!!.volleys.forEach { patterns += it.pattern }
         }
         assertTrue(head in fired, "nothing fell")
         assertTrue(ShotPattern.DOWN in patterns, "it dropped nothing straight down: $patterns")
@@ -580,7 +599,10 @@ class LagoonGeneratorTest {
 
         val patterns = mutableSetOf<ShotPattern>()
         generator.until(seconds = 5f) {
-            world.getComponent(head, GunComponent::class)!!.volleys.forEach { patterns += it.pattern }
+            world.getComponent(
+                head,
+                GunComponent::class
+            )!!.volleys.forEach { patterns += it.pattern }
             generator.viper().act != SkyViperBrain.Act.SWOOP
         }
         generator.run(0.5f)

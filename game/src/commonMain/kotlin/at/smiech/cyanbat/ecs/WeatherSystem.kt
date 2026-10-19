@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.ecs
 
+import at.smiech.cyanbat.ecs.WeatherSystem.Companion.NO_SHADE
 import at.smiech.cyanbat.scenery.Biome
 import at.smiech.cyanbat.scenery.EndlessScenery
 import at.smiech.cyanbat.scenery.Weather
@@ -159,16 +160,19 @@ class WeatherSystem(
                 vy[i] = (300f + random.nextFloat() * 60f) * depth
                 vx[i] = -wind * 52f * depth
             }
+
             Weather.SNOW -> {
                 kind[i] = SNOW
                 vy[i] = (26f + random.nextFloat() * 26f) * depth
                 vx[i] = -wind * 34f * depth
             }
+
             Weather.ASH -> {
                 kind[i] = ASH
                 vy[i] = (20f + random.nextFloat() * 22f) * depth
                 vx[i] = -wind * 30f * depth
             }
+
             Weather.DUST -> {
                 kind[i] = DUST
                 vy[i] = (random.nextFloat() - 0.4f) * 8f
@@ -241,6 +245,7 @@ class WeatherSystem(
                     x[i] += (vx[i] + sin(clock * 2.1f + i * 1.7f) * SWAY[kind[i]]) * deltaTime
                     y[i] += vy[i] * deltaTime
                 }
+
                 FIREFLY -> {
                     vx[i] += (random.nextFloat() - 0.5f) * 40f * deltaTime
                     vy[i] += (random.nextFloat() - 0.5f) * 40f * deltaTime
@@ -249,11 +254,13 @@ class WeatherSystem(
                     x[i] += vx[i] * deltaTime
                     y[i] += vy[i] * deltaTime
                 }
+
                 FALLING -> {
                     vy[i] += GRAVITY * deltaTime
                     x[i] += vx[i] * deltaTime
                     y[i] += vy[i] * deltaTime
                 }
+
                 else -> {
                     x[i] += vx[i] * deltaTime
                     y[i] += vy[i] * deltaTime
@@ -270,8 +277,7 @@ class WeatherSystem(
 
     /** Whether particle [i] has left the frame, burnt out, or hit the ground. */
     private fun gone(i: Int): Boolean {
-        if (x[i] < -20f || x[i] > frameWidth + 80f || y[i] > frameHeight + 4f || y[i] < -60f) return true
-        return when (kind[i]) {
+        return x[i] < -20f || x[i] > frameWidth + 80f || y[i] > frameHeight + 4f || y[i] < -60f || when (kind[i]) {
             EMBER -> life[i] > EMBER_SECONDS
             FIREFLY -> life[i] > FIREFLY_SECONDS
             SPLASH -> life[i] > SPLASH_SECONDS
@@ -279,6 +285,7 @@ class WeatherSystem(
                 splash(x[i], y[i])
                 true
             } else false
+
             else -> false
         }
     }
@@ -304,7 +311,8 @@ class WeatherSystem(
     private fun remove(i: Int) {
         val last = --count
         x[i] = x[last]; y[i] = y[last]; vx[i] = vx[last]; vy[i] = vy[last]
-        life[i] = life[last]; kind[i] = kind[last]; near[i] = near[last]; shedKind[i] = shedKind[last]
+        life[i] = life[last]; kind[i] = kind[last]; near[i] = near[last]; shedKind[i] =
+            shedKind[last]
     }
 
     // --- landing -----------------------------------------------------------------------------------
@@ -415,15 +423,21 @@ class WeatherSystem(
                         worn.depth[m] += RUN_SPEED * deltaTime
                         val column = worn.column[m]
                         val crest = outline?.getOrNull(column) ?: 0
-                        val underside = outline?.getOrNull(sprite.srcWidth + column) ?: sprite.srcHeight
+                        val underside =
+                            outline?.getOrNull(sprite.srcWidth + column) ?: sprite.srcHeight
                         if (crest < 0 || crest + worn.depth[m] > underside) {
                             // Run off the bottom: it drips.
                             val rect = transforms.require(id).rect
-                            shedAt(rect.left + (column + 0.5f) * sprite.scale, rect.top + (underside + 1f) * sprite.scale, MARK_RAIN)
+                            shedAt(
+                                rect.left + (column + 0.5f) * sprite.scale,
+                                rect.top + (underside + 1f) * sprite.scale,
+                                MARK_RAIN
+                            )
                             worn.remove(m)
                             continue
                         }
                     }
+
                     MARK_EMBER -> if (age > EMBER_GLOW_SECONDS) {
                         worn.kind[m] = MARK_SOOT
                         worn.age[m] = 0f
@@ -449,7 +463,11 @@ class WeatherSystem(
         for (m in 0 until worn.count) {
             val column = worn.column[m]
             val crest = (outline?.getOrNull(column) ?: 0).coerceAtLeast(0)
-            shed(rect.left + (column + 0.5f) * sprite.scale, rect.top + (crest + worn.depth[m]) * sprite.scale, worn.kind[m])
+            shed(
+                rect.left + (column + 0.5f) * sprite.scale,
+                rect.top + (crest + worn.depth[m]) * sprite.scale,
+                worn.kind[m]
+            )
         }
         worn.count = 0
     }
@@ -469,7 +487,14 @@ class WeatherSystem(
         val shade = scenery.ambient()
         for (i in 0 until count) if (near[i]) drawParticle(graphics, i, shade)
         world.forEach(transforms, sprites, marks) { id ->
-            drawMarks(graphics, marks.require(id), transforms.require(id).rect.left, transforms.require(id).rect.top, sprites.require(id), shade)
+            drawMarks(
+                graphics,
+                marks.require(id),
+                transforms.require(id).rect.left,
+                transforms.require(id).rect.top,
+                sprites.require(id),
+                shade
+            )
         }
     }
 
@@ -482,31 +507,93 @@ class WeatherSystem(
                 // A streak a pixel wide, upright: a slanted line is two or three rectangles where
                 // this is one, a few hundred times a frame, and at this speed nobody sees the slant.
                 val length = if (isNear) 6 else 3
-                graphics.drawRect(px, py - length, 1, length, lit(EngineColors.withAlpha(RAIN_COLOR, if (isNear) 0.55f else 0.3f), shade))
+                graphics.drawRect(
+                    px,
+                    py - length,
+                    1,
+                    length,
+                    lit(EngineColors.withAlpha(RAIN_COLOR, if (isNear) 0.55f else 0.3f), shade)
+                )
             }
+
             SNOW -> {
                 val size = if (isNear) 2 else 1
-                graphics.drawRect(px, py, size, size, lit(EngineColors.withAlpha(SNOW_COLOR, if (isNear) 0.95f else 0.7f), shade))
+                graphics.drawRect(
+                    px,
+                    py,
+                    size,
+                    size,
+                    lit(EngineColors.withAlpha(SNOW_COLOR, if (isNear) 0.95f else 0.7f), shade)
+                )
             }
-            ASH -> graphics.drawRect(px, py, if (isNear) 2 else 1, 1, lit(EngineColors.withAlpha(ASH_COLOR, if (isNear) 0.9f else 0.6f), shade))
+
+            ASH -> graphics.drawRect(
+                px,
+                py,
+                if (isNear) 2 else 1,
+                1,
+                lit(EngineColors.withAlpha(ASH_COLOR, if (isNear) 0.9f else 0.6f), shade)
+            )
+
             DUST -> {
                 val length = if (isNear) 12 else 6
-                graphics.drawRect(px, py, length, 1, lit(EngineColors.withAlpha(DUST_COLOR, if (isNear) 0.35f else 0.2f), shade))
+                graphics.drawRect(
+                    px,
+                    py,
+                    length,
+                    1,
+                    lit(EngineColors.withAlpha(DUST_COLOR, if (isNear) 0.35f else 0.2f), shade)
+                )
             }
+
             EMBER -> {
                 // Glows: never darkened, flickering, dimming as it climbs and cools.
                 val cool = (life[i] / EMBER_SECONDS).coerceIn(0f, 1f)
                 val flicker = 0.6f + 0.4f * sin(clock * 17f + i * 3.1f)
-                graphics.drawRect(px - 1, py - 1, 3, 3, EngineColors.withAlpha(EMBER_COLOR, 0.18f * flicker * (1f - cool)))
-                graphics.drawRect(px, py, 1, 1, EngineColors.withAlpha(EngineColors.lerp(EMBER_HOT, EMBER_COLOR, cool), flicker * (1f - cool * 0.7f)))
+                graphics.drawRect(
+                    px - 1,
+                    py - 1,
+                    3,
+                    3,
+                    EngineColors.withAlpha(EMBER_COLOR, 0.18f * flicker * (1f - cool))
+                )
+                graphics.drawRect(
+                    px,
+                    py,
+                    1,
+                    1,
+                    EngineColors.withAlpha(
+                        EngineColors.lerp(EMBER_HOT, EMBER_COLOR, cool),
+                        flicker * (1f - cool * 0.7f)
+                    )
+                )
             }
+
             FIREFLY -> {
                 val blink = (0.5f + 0.5f * sin(clock * 3f + i * 2.3f)).let { it * it }
-                val fade = (life[i] / 1f).coerceAtMost(1f) * ((FIREFLY_SECONDS - life[i]) / 1f).coerceIn(0f, 1f)
-                graphics.drawRect(px - 1, py - 1, 3, 3, EngineColors.withAlpha(FIREFLY_COLOR, 0.2f * blink * fade))
+                val fade =
+                    (life[i] / 1f).coerceAtMost(1f) * ((FIREFLY_SECONDS - life[i]) / 1f).coerceIn(
+                        0f,
+                        1f
+                    )
+                graphics.drawRect(
+                    px - 1,
+                    py - 1,
+                    3,
+                    3,
+                    EngineColors.withAlpha(FIREFLY_COLOR, 0.2f * blink * fade)
+                )
                 graphics.drawRect(px, py, 1, 1, EngineColors.withAlpha(FIREFLY_COLOR, blink * fade))
             }
-            SPLASH -> graphics.drawRect(px, py, 1, 1, lit(EngineColors.withAlpha(RAIN_COLOR, 0.7f), shade))
+
+            SPLASH -> graphics.drawRect(
+                px,
+                py,
+                1,
+                1,
+                lit(EngineColors.withAlpha(RAIN_COLOR, 0.7f), shade)
+            )
+
             FALLING -> graphics.drawRect(px, py, 1, 1, lit(MARK_COLORS[shedKind[i]], shade))
         }
     }
@@ -515,7 +602,14 @@ class WeatherSystem(
      * [worn]'s marks over its sprite, placed as [at.smiech.engine.ecs.RenderSystem] places the
      * sprite (at its box's corner, magnified, and turned about its middle).
      */
-    private fun drawMarks(graphics: Graphics, worn: WeatherMarksComponent, left: Float, top: Float, sprite: SpriteComponent, shade: Int) {
+    private fun drawMarks(
+        graphics: Graphics,
+        worn: WeatherMarksComponent,
+        left: Float,
+        top: Float,
+        sprite: SpriteComponent,
+        shade: Int
+    ) {
         val outline = outline(sprite) ?: return
         val scale = sprite.scale
         val size = scale.roundToInt().coerceAtLeast(1)
@@ -547,14 +641,25 @@ class WeatherSystem(
                     // Melting and drying, a mark fades over the last of its time.
                     val left2 = LASTS[worn.kind[m]] - age
                     val fade = (left2 / MARK_FADE_SECONDS).coerceIn(0f, 1f)
-                    lit(EngineColors.withAlpha(MARK_COLORS[worn.kind[m]], fade * MARK_ALPHA[worn.kind[m]]), shade)
+                    lit(
+                        EngineColors.withAlpha(
+                            MARK_COLORS[worn.kind[m]],
+                            fade * MARK_ALPHA[worn.kind[m]]
+                        ), shade
+                    )
                 }
             }
             graphics.drawRect(dx.roundToInt(), dy.roundToInt(), size, size, color)
             // A bead of rain glints, and leaves the creature wet where it has run: a fainter pixel
             // above it, so it reads on any color the creature is.
             if (worn.kind[m] == MARK_RAIN) {
-                graphics.drawRect(dx.roundToInt(), (dy - scale).roundToInt(), size, size, EngineColors.scaleAlpha(color, WET_TRAIL))
+                graphics.drawRect(
+                    dx.roundToInt(),
+                    (dy - scale).roundToInt(),
+                    size,
+                    size,
+                    EngineColors.scaleAlpha(color, WET_TRAIL)
+                )
             }
         }
     }
@@ -592,7 +697,12 @@ class WeatherSystem(
         const val MARK_EMBER = 3
         private val LASTS = floatArrayOf(16f, 6f, 14f, 30f)
         private const val MARK_FADE_SECONDS = 3f
-        private val MARK_COLORS = intArrayOf(0xFFF4F8FF.toInt(), 0xFFEAF6FF.toInt(), 0xFF3A3232.toInt(), 0xFFFFB040.toInt())
+        private val MARK_COLORS = intArrayOf(
+            0xFFF4F8FF.toInt(),
+            0xFFEAF6FF.toInt(),
+            0xFF3A3232.toInt(),
+            0xFFFFB040.toInt()
+        )
 
         /** How much of a raindrop's glint the wet streak above it keeps. */
         private const val WET_TRAIL = 0.45f

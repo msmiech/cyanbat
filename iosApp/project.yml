@@ -16,7 +16,7 @@ targets:
     type: application
     platform: iOS
     # A shared scheme, so xcodebuild finds one in a freshly generated project.
-    scheme: {}
+    scheme: { }
     sources:
       - path: CyanBat
       # The game's asset files, the same ones every platform carries, as a folder: copied into the

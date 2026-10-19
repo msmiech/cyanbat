@@ -1,7 +1,9 @@
 package at.smiech.cyanbat.music
 
+import at.smiech.cyanbat.music.MusicDirector.Companion.BREAK
 import at.smiech.cyanbat.music.MusicDirector.Companion.COMBO_RUNGS
 import at.smiech.cyanbat.music.MusicDirector.Companion.COMBO_STEP
+import at.smiech.cyanbat.music.MusicDirector.Companion.ENDLESS_WAVE_RISE
 import at.smiech.cyanbat.music.MusicDirector.Companion.WAVE_RISE
 import at.smiech.cyanbat.ui.game.ComboHeat
 import at.smiech.engine.LayeredMusic
@@ -106,7 +108,12 @@ class MusicDirector(
         }
         val breaking = breakSeconds > 0f
         val intensity =
-            if (endless) endlessIntensity(waveIndex, comboMultiplier) else intensity(waveIndex, bossWave, comboMultiplier, difficulty)
+            if (endless) endlessIntensity(waveIndex, comboMultiplier) else intensity(
+                waveIndex,
+                bossWave,
+                comboMultiplier,
+                difficulty
+            )
 
         // The highest layer still up that the music no longer calls for, if any.
         var release: MusicLayer? = null
@@ -116,14 +123,21 @@ class MusicDirector(
                 bossFight -> true
                 layer == MusicLayer.FURY ->
                     comboMultiplier >= ComboHeat.SUPERNOVA || endless && waveIndex >= ENDLESS_FURY_WAVE
+
                 else -> intensity >= threshold(layer) - EPSILON
             }
             when {
                 wanted -> {
                     // The heavy layer always comes in on a downbeat, for the boss's slam or a
                     // supernova streak alike.
-                    val quantum = if (slamming || layer == MusicLayer.FURY) Quantum.BAR else Quantum.BEAT
-                    order(layer, 1f, quantum, if (slamming) SLAM_FADE_BEATS else LayeredMusic.DEFAULT_FADE_BEATS)
+                    val quantum =
+                        if (slamming || layer == MusicLayer.FURY) Quantum.BAR else Quantum.BEAT
+                    order(
+                        layer,
+                        1f,
+                        quantum,
+                        if (slamming) SLAM_FADE_BEATS else LayeredMusic.DEFAULT_FADE_BEATS
+                    )
                 }
                 // The break is a cut, all at once on the beat: the gap is what makes the slam land.
                 breaking -> order(layer, 0f, Quantum.BEAT, BREAK_FADE_BEATS)
@@ -175,7 +189,8 @@ class MusicDirector(
          * What plays over the bed through a boss's break: the bass, the tune, the rolling hats and
          * the voices, everything but the drums' weight, so the fight drives on into the slam.
          */
-        private val BREAK = setOf(MusicLayer.PULSE, MusicLayer.LEAD, MusicLayer.ROLL, MusicLayer.CHOP)
+        private val BREAK =
+            setOf(MusicLayer.PULSE, MusicLayer.LEAD, MusicLayer.ROLL, MusicLayer.CHOP)
 
         /**
          * How much is going on, from about 0.1 in stage 1's opening seconds upward, compared

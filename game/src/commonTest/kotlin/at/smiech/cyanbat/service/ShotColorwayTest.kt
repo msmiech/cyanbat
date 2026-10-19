@@ -6,11 +6,11 @@ import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.ENEMY_SHOT_VARIANT_OFFSET
 import at.smiech.cyanbat.util.MOTH_QUEEN_SHOT_VARIANT
 import at.smiech.cyanbat.util.NAGA_SHOT_VARIANT
-import at.smiech.cyanbat.util.SKY_VIPER_SHOT_VARIANT
 import at.smiech.cyanbat.util.PLAYER_SHOT_VARIANT
 import at.smiech.cyanbat.util.SAND_WYRM_SHOT_VARIANT
 import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
 import at.smiech.cyanbat.util.SHOT_FRAME_WIDTH
+import at.smiech.cyanbat.util.SKY_VIPER_SHOT_VARIANT
 import at.smiech.engine.Pixmap
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AnimationSystem

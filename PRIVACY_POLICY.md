@@ -6,8 +6,8 @@ Welcome to CyanBat!
 
 CyanBat is an open source game, playable on Android, on iPhone and iPad, on the desktop (Windows,
 macOS and Linux) and in the browser. The source code is available on GitHub, and the Android and
-desktop builds are distributed as [GitHub releases](https://github.com/msmiech/cyanbat/releases). It is
-no longer published on the Google Play Store.
+desktop builds are distributed as [GitHub releases](https://github.com/msmiech/cyanbat/releases). It
+is no longer published on the Google Play Store.
 
 ### What data the game collects
 
@@ -22,19 +22,19 @@ recorded.
 
 The game keeps only the following, and only on your own device:
 
-| Data                         | Purpose                                                                                           |
-|------------------------------|---------------------------------------------------------------------------------------------------|
-| The highscore of each stage  | Shown on the stage select and after each run, so you have something to beat.                      |
-| Which stages are open        | Keeps a stage open once you have cleared the stage before it.                                     |
-| Each stage's best clear      | Shown as stars on the stage select: the hardest difficulty you have cleared the stage on.          |
-| Difficulty                   | Remembers the difficulty you last chose, to offer it again.                                       |
-| Music and sound effects      | Remembers whether you turned the music or the sound effects off.                                  |
-| Vibration                    | Remembers whether you turned vibration off.                                                       |
-| Touch steering               | Remembers whether you fly the bat by dragging it or with the stick on the screen.                 |
-| Display mode                 | Remembers whether the game is stretched to fill your screen or shown with black or ambient bars.  |
-| Screen (desktop only)        | Remembers whether the game is played in a window, full screen or borderless.                      |
-| Menu theme                   | Remembers whether the menu follows your system's theme or is always dark or always light.         |
-| Language                     | Remembers the language you chose for the game, if you chose one rather than your system's.        |
+| Data                        | Purpose                                                                                          |
+|-----------------------------|--------------------------------------------------------------------------------------------------|
+| The highscore of each stage | Shown on the stage select and after each run, so you have something to beat.                     |
+| Which stages are open       | Keeps a stage open once you have cleared the stage before it.                                    |
+| Each stage's best clear     | Shown as stars on the stage select: the hardest difficulty you have cleared the stage on.        |
+| Difficulty                  | Remembers the difficulty you last chose, to offer it again.                                      |
+| Music and sound effects     | Remembers whether you turned the music or the sound effects off.                                 |
+| Vibration                   | Remembers whether you turned vibration off.                                                      |
+| Touch steering              | Remembers whether you fly the bat by dragging it or with the stick on the screen.                |
+| Display mode                | Remembers whether the game is stretched to fill your screen or shown with black or ambient bars. |
+| Screen (desktop only)       | Remembers whether the game is played in a window, full screen or borderless.                     |
+| Menu theme                  | Remembers whether the menu follows your system's theme or is always dark or always light.        |
+| Language                    | Remembers the language you chose for the game, if you chose one rather than your system's.       |
 
 Where it is kept, and how to erase it:
 
@@ -47,8 +47,8 @@ Where it is kept, and how to erase it:
   backup may include it; this is handled by your device, not by the game. The language is the one
   set for CyanBat in your device's Settings app.
 - **Browser:** in the site's local storage in your browser, under keys starting with `cyanbat.`.
-  Clearing the site's data in your browser erases it; in a private window it is gone when the
-  window closes.
+  Clearing the site's data in your browser erases it; in a private window it is gone when the window
+  closes.
 - **Desktop:** in the Java user preferences under the node `at/smiech/cyanbat`, which the game does
   not remove when you delete it. To erase it, delete:
     - **Windows:** the registry key `HKEY_CURRENT_USER\Software\JavaSoft\Prefs\at\smiech\cyanbat`

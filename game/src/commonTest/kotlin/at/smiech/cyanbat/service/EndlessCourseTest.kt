@@ -12,7 +12,11 @@ import kotlin.test.assertTrue
 /** How [EndlessCourse] deals the endless stage's rounds. */
 class EndlessCourseTest {
 
-    private fun rounds(count: Int, seed: Int = 7, difficulty: Difficulty = Difficulty.HARD): List<StageProgression> {
+    private fun rounds(
+        count: Int,
+        seed: Int = 7,
+        difficulty: Difficulty = Difficulty.HARD
+    ): List<StageProgression> {
         val course = EndlessCourse(Random(seed), difficulty)
         return List(count) { course.next() }
     }
@@ -57,9 +61,13 @@ class EndlessCourseTest {
     fun `a boss keeps the health its own stage gives its longer fight`() {
         val dealt = rounds(BossKind.entries.size * 2)
         for (round in dealt) {
-            val ordinary = round.copy(design = round.design.copy(bossVitality = 1f)).bossWave().hitPoints
+            val ordinary =
+                round.copy(design = round.design.copy(bossVitality = 1f)).bossWave().hitPoints
             val expected = (ordinary * EndlessCourse.vitalityOf(round.design.boss)).toInt()
-            assertTrue(kotlin.math.abs(round.bossWave().hitPoints - expected) <= 2, "${round.design.boss}")
+            assertTrue(
+                kotlin.math.abs(round.bossWave().hitPoints - expected) <= 2,
+                "${round.design.boss}"
+            )
         }
     }
 
@@ -67,9 +75,14 @@ class EndlessCourseTest {
     fun `every boss comes before any comes twice and none twice running`() {
         val bosses = rounds(BossKind.entries.size * 6, seed = 11).map { it.design.boss }
         bosses.chunked(BossKind.entries.size).forEach { bag ->
-            assertEquals(BossKind.entries.toSet(), bag.toSet(), "a bag of bosses repeated one: $bag")
+            assertEquals(
+                BossKind.entries.toSet(),
+                bag.toSet(),
+                "a bag of bosses repeated one: $bag"
+            )
         }
-        bosses.zipWithNext().forEach { (a, b) -> assertNotEquals(a, b, "the same boss came twice running") }
+        bosses.zipWithNext()
+            .forEach { (a, b) -> assertNotEquals(a, b, "the same boss came twice running") }
     }
 
     @Test
@@ -88,11 +101,17 @@ class EndlessCourseTest {
         assertEquals(4, designs.last().species.size)
         val low = setOf(Squad.BURROW, Squad.FROM_BEHIND)
         for (design in designs) {
-            assertEquals(design.species.size, design.species.toSet().size, "a species twice in $design")
+            assertEquals(
+                design.species.size,
+                design.species.toSet().size,
+                "a species twice in $design"
+            )
             for (squad in listOf(Squad.SWARM, Squad.V_FORMATION)) {
-                assertTrue(design.species.count { it.squad == squad } <= 1, "two of $squad in $design")
+                assertTrue(design.species.count { it.squad == squad } <= 1,
+                    "two of $squad in $design")
             }
-            assertTrue(design.species.count { it.squad in low } <= 1, "two from below or behind in $design")
+            assertTrue(design.species.count { it.squad in low } <= 1,
+                "two from below or behind in $design")
         }
     }
 

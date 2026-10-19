@@ -100,7 +100,8 @@ private fun CyanBatPage(
     // How hard it is flown, which the player chose as it started.
     var difficulty by remember { mutableStateOf(Difficulty.DEFAULT) }
     val storage = remember { WebStorage() }
-    val settings = remember { KeyValueSettingsRepository(storage, applyLanguage = WebLocale::apply) }
+    val settings =
+        remember { KeyValueSettingsRepository(storage, applyLanguage = WebLocale::apply) }
     // One of each for the menu and every run, so the menu sees what a run records the moment it
     // records it; see KeyValueStores.
     val stageUnlocks = remember { KeyValueStageUnlockStore(storage) }

@@ -72,8 +72,8 @@ subprojects {
     // because a library's tests cannot.
     tasks.named {
         it == "compileTestKotlinWasmJs" ||
-            it == "compileTestDevelopmentExecutableKotlinWasmJs" ||
-            it == "checkComposeUiTestConfigurationForWasmJs"
+                it == "compileTestDevelopmentExecutableKotlinWasmJs" ||
+                it == "checkComposeUiTestConfigurationForWasmJs"
     }.configureEach { enabled = false }
 }
 

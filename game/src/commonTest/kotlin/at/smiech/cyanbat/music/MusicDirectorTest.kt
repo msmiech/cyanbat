@@ -147,7 +147,8 @@ class MusicDirectorTest {
     }
 
     /** What a boss's break keeps playing: everything but the drums' weight. */
-    private val breakLayers = MusicLayer.entries.toSet() - MusicLayer.DRIVE - MusicLayer.BOOM - MusicLayer.FURY
+    private val breakLayers =
+        MusicLayer.entries.toSet() - MusicLayer.DRIVE - MusicLayer.BOOM - MusicLayer.FURY
 
     /**
      * The boss's entrance: the drums' weight breaks off under the banner while the rest drives on,
@@ -161,7 +162,10 @@ class MusicDirectorTest {
         director.fly(waveIndex = 5, boss = true)
         assertEquals(breakLayers, music.playing(), "the break")
         val cuts = music.orders.filter { it.level == 0f }
-        assertTrue(cuts.all { it.quantum == Quantum.BEAT && it.fadeBeats < 0.1f }, "a cut on the beat: $cuts")
+        assertTrue(
+            cuts.all { it.quantum == Quantum.BEAT && it.fadeBeats < 0.1f },
+            "a cut on the beat: $cuts"
+        )
 
         val broken = music.orders.size
         director.fly(waveIndex = 5, boss = true, seconds = 2.1f)
@@ -187,7 +191,8 @@ class MusicDirectorTest {
     /** A boss's own piece opens on its entrance, rather than on its bed a beat ahead of it. */
     @Test
     fun `a piece opened for the boss starts in the break from its first note`() {
-        val director = MusicDirector(music, grid, bossWave = 5, difficulty = 1f, bossArriving = true)
+        val director =
+            MusicDirector(music, grid, bossWave = 5, difficulty = 1f, bossArriving = true)
         assertEquals(breakLayers, music.playing())
         assertTrue(music.orders.all { it.quantum == Quantum.IMMEDIATE }, "${music.orders}")
 
@@ -342,7 +347,8 @@ class MusicDirectorTest {
 
     // region the endless stage
 
-    private fun endless() = MusicDirector(music, grid, bossWave = 3, difficulty = 1.35f, endless = true)
+    private fun endless() =
+        MusicDirector(music, grid, bossWave = 3, difficulty = 1.35f, endless = true)
 
     @Test
     fun `the endless stage opens with its bass in already`() {
@@ -363,7 +369,11 @@ class MusicDirectorTest {
             before = now
             wave++
         }
-        assertEquals(MusicLayer.entries.toSet() - MusicLayer.FURY, music.playing(), "by wave $wave every layer but the heavy one")
+        assertEquals(
+            MusicLayer.entries.toSet() - MusicLayer.FURY,
+            music.playing(),
+            "by wave $wave every layer but the heavy one"
+        )
         director.fly(waveIndex = MusicDirector.ENDLESS_FURY_WAVE, seconds = 3f)
         assertEquals(MusicLayer.entries.toSet(), music.playing(), "and then the heavy one stays up")
     }

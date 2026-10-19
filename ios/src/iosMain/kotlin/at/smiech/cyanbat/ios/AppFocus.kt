@@ -21,7 +21,7 @@ import platform.UIKit.UIApplicationWillResignActiveNotification
 internal class AppFocus {
     var isFocused by mutableStateOf(
         UIApplication.sharedApplication.applicationState ==
-            UIApplicationState.UIApplicationStateActive
+                UIApplicationState.UIApplicationStateActive
     )
         private set
 

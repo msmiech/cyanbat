@@ -76,7 +76,9 @@ class EndlessCourse(
             species = species,
             shieldChance = (0.04f + 0.03f * number).coerceAtMost(MAX_SHIELD_CHANCE),
             gunChance = (0.03f * number).coerceAtMost(MAX_GUN_CHANCE),
-            eliteChance = if (number == 0) 0f else (0.03f + 0.005f * number).coerceAtMost(MAX_ELITE_CHANCE),
+            eliteChance = if (number == 0) 0f else (0.03f + 0.005f * number).coerceAtMost(
+                MAX_ELITE_CHANCE
+            ),
         )
     }
 

@@ -15,7 +15,11 @@ class EndlessDayTest {
     fun `the day goes round every SECONDS and starts after sunrise`() {
         assertEquals(EndlessDay.START, EndlessDay.position(0f), 1e-5f)
         assertEquals(EndlessDay.position(10f), EndlessDay.position(10f + EndlessDay.SECONDS), 1e-4f)
-        assertEquals(EndlessDay.position(10f), EndlessDay.position(10f + 7 * EndlessDay.SECONDS), 1e-3f)
+        assertEquals(
+            EndlessDay.position(10f),
+            EndlessDay.position(10f + 7 * EndlessDay.SECONDS),
+            1e-3f
+        )
         assertTrue(EndlessDay.sunUp(EndlessDay.position(0f)))
     }
 
@@ -65,7 +69,10 @@ class EndlessDayTest {
             for (shift in listOf(16, 8, 0)) {
                 val a = (late shr shift) and 0xFF
                 val b = (early shr shift) and 0xFF
-                assertTrue(kotlin.math.abs(a - b) <= 2, "the sky jumps at midnight at height $height")
+                assertTrue(
+                    kotlin.math.abs(a - b) <= 2,
+                    "the sky jumps at midnight at height $height"
+                )
             }
         }
     }

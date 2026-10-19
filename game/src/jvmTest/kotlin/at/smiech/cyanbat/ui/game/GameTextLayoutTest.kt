@@ -49,8 +49,8 @@ import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.cyanbat.util.POWER_UP_CARD_PADDING
-import at.smiech.cyanbat.util.QUIT_BUTTON_WIDTH
 import at.smiech.cyanbat.util.POWER_UP_CARD_WIDTH
+import at.smiech.cyanbat.util.QUIT_BUTTON_WIDTH
 import at.smiech.cyanbat.util.STAGE_TIMER_FONT_SIZE
 import at.smiech.engine.InputMethod
 import at.smiech.engine.impl.ComposeGraphics

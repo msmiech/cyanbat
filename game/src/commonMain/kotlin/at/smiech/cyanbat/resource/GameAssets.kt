@@ -12,11 +12,11 @@ import at.smiech.cyanbat.util.CAVE_AMBIENT
 import at.smiech.cyanbat.util.CAVE_GLOW
 import at.smiech.cyanbat.util.ENDLESS_NIGHT_GLOW
 import at.smiech.cyanbat.util.ENDLESS_STAGE_ID
-import at.smiech.engine.ecs.LightingSystem
 import at.smiech.engine.Music
 import at.smiech.engine.MusicGrid
 import at.smiech.engine.Pixmap
 import at.smiech.engine.Sound
+import at.smiech.engine.ecs.LightingSystem
 import at.smiech.engine.Audio as EngineAudio
 import at.smiech.engine.Graphics as EngineGraphics
 
@@ -86,7 +86,8 @@ data class GameAssets(
             fun pixmap(name: String) = g.newPixmap(name)
             val jungleEnemies = pixmap("jungleEnemies.png")
             val lagoonMoon = pixmap("lagoonMoon.png")
-            val endlessTheme = StageMusic("endless", MusicGrid(beatsPerMinute = 126.0, beatsPerBar = 4))
+            val endlessTheme =
+                StageMusic("endless", MusicGrid(beatsPerMinute = 126.0, beatsPerBar = 4))
 
             return GameAssets(
                 graphics = Graphics(
@@ -259,17 +260,35 @@ data class GameAssets(
                         music = endlessTheme,
                         playlist = listOf(
                             endlessTheme,
-                            StageMusic("rush_jungle", MusicGrid(beatsPerMinute = 120.0, beatsPerBar = 4)),
-                            StageMusic("rush_cave", MusicGrid(beatsPerMinute = 75.0, beatsPerBar = 4)),
-                            StageMusic("rush_desert", MusicGrid(beatsPerMinute = 126.0, beatsPerBar = 4)),
-                            StageMusic("rush_lagoon", MusicGrid(beatsPerMinute = 150.0, beatsPerBar = 4)),
-                            StageMusic("rush_naga", MusicGrid(beatsPerMinute = 168.0, beatsPerBar = 4)),
+                            StageMusic(
+                                "rush_jungle",
+                                MusicGrid(beatsPerMinute = 120.0, beatsPerBar = 4)
+                            ),
+                            StageMusic(
+                                "rush_cave",
+                                MusicGrid(beatsPerMinute = 75.0, beatsPerBar = 4)
+                            ),
+                            StageMusic(
+                                "rush_desert",
+                                MusicGrid(beatsPerMinute = 126.0, beatsPerBar = 4)
+                            ),
+                            StageMusic(
+                                "rush_lagoon",
+                                MusicGrid(beatsPerMinute = 150.0, beatsPerBar = 4)
+                            ),
+                            StageMusic(
+                                "rush_naga",
+                                MusicGrid(beatsPerMinute = 168.0, beatsPerBar = 4)
+                            ),
                         ),
                         // Every species is drawn from its own stage's sheet; see EnemySpecies.home.
                         enemySheet = jungleEnemies,
                         // Flown in the dark only by night: the scenery sets the dark as the sky
                         // turns, and in daylight there is none.
-                        lighting = StageLighting(ambient = LightingSystem.DAYLIGHT, glow = ENDLESS_NIGHT_GLOW),
+                        lighting = StageLighting(
+                            ambient = LightingSystem.DAYLIGHT,
+                            glow = ENDLESS_NIGHT_GLOW
+                        ),
                     ),
                 ),
             )

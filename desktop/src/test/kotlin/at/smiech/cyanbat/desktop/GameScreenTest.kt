@@ -51,9 +51,9 @@ import at.smiech.cyanbat.util.NAGA_PLATE_SHARE
 import at.smiech.cyanbat.util.ORB_FRAME
 import at.smiech.cyanbat.util.ORB_RADIUS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
-import at.smiech.cyanbat.util.REGEN_PER_SECOND
 import at.smiech.cyanbat.util.POWER_UP_DROP_LIGHT_COLOR
 import at.smiech.cyanbat.util.POWER_UP_GRACE_SECONDS
+import at.smiech.cyanbat.util.REGEN_PER_SECOND
 import at.smiech.cyanbat.util.RESUME_ARMING_SECONDS
 import at.smiech.cyanbat.util.SAND_WYRM_PLATE_SHARE
 import at.smiech.cyanbat.util.SHOT_FRAME_COUNT
@@ -1440,7 +1440,11 @@ class GameScreenTest {
         // One picked up later comes in at the size, on the wider ring.
         pick(PowerUp.GUARDIAN_ORB)
         val newest = probe.world.query(OrbComponent::class).single { it != orb }
-        assertEquals(size, probe.world.getComponent(newest, TransformComponent::class)!!.rect.width, 0.01f)
+        assertEquals(
+            size,
+            probe.world.getComponent(newest, TransformComponent::class)!!.rect.width,
+            0.01f
+        )
         assertEquals(ORB_RADIUS * scale, distanceFromBat(newest), 0.5f)
     }
 
@@ -1482,7 +1486,10 @@ class GameScreenTest {
         sturdyBat()
         val ownShots = {
             probe.world.query(CollisionComponent::class).filter {
-                probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.PLAYER_PROJECTILE
+                probe.world.getComponent(
+                    it,
+                    CollisionComponent::class
+                )?.group == CollisionGroup.PLAYER_PROJECTILE
             }
         }
 
@@ -1851,11 +1858,19 @@ class GameScreenTest {
         val before = health.hitPoints
         val ownShots = {
             probe.world.query(CollisionComponent::class).count {
-                probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.PLAYER_PROJECTILE
+                probe.world.getComponent(
+                    it,
+                    CollisionComponent::class
+                )?.group == CollisionGroup.PLAYER_PROJECTILE
             }
         }
         probe.world.query(CollisionComponent::class)
-            .filter { probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.PLAYER_PROJECTILE }
+            .filter {
+                probe.world.getComponent(
+                    it,
+                    CollisionComponent::class
+                )?.group == CollisionGroup.PLAYER_PROJECTILE
+            }
             .forEach { probe.world.removeEntity(it) }
         var fired = 0
         var left = (15f / FRAME_SECONDS).toInt()
@@ -1884,25 +1899,39 @@ class GameScreenTest {
      * taken to its mark; given back for the fight, it flies where it is held to.
      */
     @Test
-    fun `the bat is taken to its mark for the bite and given back for the fight`() = flight(LAGOON) {
-        holdFire()
-        sturdyBat()
-        downNaga()
-        game.controlHandler.onDirection(Direction.RIGHT, pressed = true)
-        var left = (10f / FRAME_SECONDS).toInt()
-        while (!probe.poison.poisoned) {
-            assertTrue(left-- > 0, "the bite never landed")
-            if (probe.offer.isNotEmpty()) game.controlHandler.onButtonPress(GameButton.CONFIRM)
-            screen.update(FRAME_SECONDS)
-        }
-        assertEquals(INTERLUDE_MARK_X, batRect().centerX, 2f, "the bat was bitten away from its mark")
-        assertEquals(INTERLUDE_MARK_Y, batRect().centerY, 2f, "the bat was bitten away from its mark")
+    fun `the bat is taken to its mark for the bite and given back for the fight`() =
+        flight(LAGOON) {
+            holdFire()
+            sturdyBat()
+            downNaga()
+            game.controlHandler.onDirection(Direction.RIGHT, pressed = true)
+            var left = (10f / FRAME_SECONDS).toInt()
+            while (!probe.poison.poisoned) {
+                assertTrue(left-- > 0, "the bite never landed")
+                if (probe.offer.isNotEmpty()) game.controlHandler.onButtonPress(GameButton.CONFIRM)
+                screen.update(FRAME_SECONDS)
+            }
+            assertEquals(
+                INTERLUDE_MARK_X,
+                batRect().centerX,
+                2f,
+                "the bat was bitten away from its mark"
+            )
+            assertEquals(
+                INTERLUDE_MARK_Y,
+                batRect().centerY,
+                2f,
+                "the bat was bitten away from its mark"
+            )
 
-        flyToViper()
-        val x = batRect().centerX
-        fly(0.3f)
-        assertTrue(batRect().centerX > x + 40f, "the bat did not take the player's steering back")
-    }
+            flyToViper()
+            val x = batRect().centerX
+            fly(0.3f)
+            assertTrue(
+                batRect().centerX > x + 40f,
+                "the bat did not take the player's steering back"
+            )
+        }
 
     /** Poisoned, the run is washed green: the whole frame is greener than the same moment unpoisoned. */
     @Test
@@ -1983,7 +2012,14 @@ class GameScreenTest {
     @Test
     fun `a drop is left inside the frame`() = flight(JUNGLE) {
         holdFire()
-        shoot(imp(x = 300f, y = FRAME_BUFFER_HEIGHT - 8f, elite = ElitePalette.EMBER, hitPoints = 1))
+        shoot(
+            imp(
+                x = 300f,
+                y = FRAME_BUFFER_HEIGHT - 8f,
+                elite = ElitePalette.EMBER,
+                hitPoints = 1
+            )
+        )
 
         val drop = assertNotNull(drops().singleOrNull(), "the elite left no drop")
         val at = probe.world.getComponent(drop, TransformComponent::class)!!.rect
@@ -2061,7 +2097,14 @@ class GameScreenTest {
     fun `a drop lights the dark around it`() = flight(CAVE) {
         holdFire()
         placeBat()
-        shoot(imp(x = 480f, y = ROCK_ROW - IMP_ROW / 2f, elite = ElitePalette.SCARLET, hitPoints = 1))
+        shoot(
+            imp(
+                x = 480f,
+                y = ROCK_ROW - IMP_ROW / 2f,
+                elite = ElitePalette.SCARLET,
+                hitPoints = 1
+            )
+        )
         val drop = assertNotNull(drops().singleOrNull(), "the elite left no drop")
         val light = assertNotNull(probe.world.getComponent(drop, LightComponent::class))
         assertEquals(POWER_UP_DROP_LIGHT_COLOR, light.color)
@@ -2120,7 +2163,9 @@ class GameScreenTest {
             screen.update(GameLoop.MAX_FRAME_DELTA_SECONDS)
             screen.present(TICK_INITIAL)
 
-            assertEquals(setOf(Achievement.FIRST_FALL), runBlocking { achievements.unlocked.first() })
+            assertEquals(
+                setOf(Achievement.FIRST_FALL),
+                runBlocking { achievements.unlocked.first() })
             val png = assertNotNull(runBlocking { achievements.screenshot(Achievement.FIRST_FALL) })
             val picture = ImageIO.read(ByteArrayInputStream(png))
             assertEquals(FRAME_BUFFER_WIDTH, picture.width)
@@ -2153,7 +2198,11 @@ class GameScreenTest {
             val earned = runBlocking { achievements.unlocked.first() }
             assertTrue(
                 earned.containsAll(
-                    listOf(Achievement.STAGE_1_EASY, Achievement.STAGE_1_NORMAL, Achievement.STAGE_1_HARD)
+                    listOf(
+                        Achievement.STAGE_1_EASY,
+                        Achievement.STAGE_1_NORMAL,
+                        Achievement.STAGE_1_HARD
+                    )
                 ),
                 "earned $earned",
             )

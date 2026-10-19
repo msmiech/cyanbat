@@ -72,7 +72,8 @@ class EndlessScenerySystem(
             starX[i] = random.nextFloat() * frameWidth
             val height = random.nextFloat()
             starY[i] = (4 + height * height * (HORIZON_Y - 40)).toInt()
-            starBrightness[i] = if (random.nextFloat() < 0.08f) 1f else 0.3f + random.nextFloat() * 0.55f
+            starBrightness[i] =
+                if (random.nextFloat() < 0.08f) 1f else 0.3f + random.nextFloat() * 0.55f
             starThreshold[i] = (1f - starBrightness[i]) * 0.8f + random.nextFloat() * 0.2f
             starRate[i] = 1.2f + random.nextFloat() * 2.8f
             starPhase[i] = random.nextFloat() * TWO_PI
@@ -117,7 +118,13 @@ class EndlessScenerySystem(
         drawSun(graphics, position)
         // The flash lights the sky behind everything standing against it.
         if (scenery.flash > 0f) {
-            graphics.drawRect(0, 0, frameWidth, HORIZON_Y, EngineColors.withAlpha(FLASH_COLOR, 0.45f * scenery.flash))
+            graphics.drawRect(
+                0,
+                0,
+                frameWidth,
+                HORIZON_Y,
+                EngineColors.withAlpha(FLASH_COLOR, 0.45f * scenery.flash)
+            )
             drawBolt(graphics)
         }
         drawBand(graphics, Band.CLOUDS, position)
@@ -132,12 +139,24 @@ class EndlessScenerySystem(
 
     /** Banded rather than smooth, like the sprites' shading; the last band runs on under the land. */
     private fun drawSky(graphics: Graphics) {
-        if (sky == null || skyStale && clock - skyPaintedAt >= SKY_REPAINT_SECONDS) paintSky(graphics)
+        if (sky == null || skyStale && clock - skyPaintedAt >= SKY_REPAINT_SECONDS) paintSky(
+            graphics
+        )
         val picture = sky ?: return
         // A blit paints a column and a row short of what it is given (the deliberate `- 1` in
         // ComposeGraphics.drawPixmap), so the picture has a column and a row more than it shows, and
         // the box asks for a pixel more each way than it covers.
-        graphics.drawPixmap(picture, 0, 0, 0, 0, 2, bands.size + 1, frameWidth + 1, bands.size * BAND_HEIGHT + 1)
+        graphics.drawPixmap(
+            picture,
+            0,
+            0,
+            0,
+            0,
+            2,
+            bands.size + 1,
+            frameWidth + 1,
+            bands.size * BAND_HEIGHT + 1
+        )
         val below = bands.size * BAND_HEIGHT
         graphics.drawRect(0, below, frameWidth, frameHeight - below, bands.last())
     }
@@ -201,10 +220,22 @@ class EndlessScenerySystem(
         val color = EndlessDay.sunColor(position)
         val glow = EndlessDay.sunGlow(position) * clear
         for (ring in HALO_RINGS.indices) {
-            circle(graphics, x, y, radius * HALO_RINGS[ring], EngineColors.withAlpha(color, HALO_ALPHA[ring] * glow))
+            circle(
+                graphics,
+                x,
+                y,
+                radius * HALO_RINGS[ring],
+                EngineColors.withAlpha(color, HALO_ALPHA[ring] * glow)
+            )
         }
         circle(graphics, x, y, radius, EngineColors.withAlpha(color, clear))
-        circle(graphics, x, y, radius * 0.72f, EngineColors.withAlpha(EngineColors.lerp(color, EngineColors.WHITE, 0.55f), clear))
+        circle(
+            graphics,
+            x,
+            y,
+            radius * 0.72f,
+            EngineColors.withAlpha(EngineColors.lerp(color, EngineColors.WHITE, 0.55f), clear)
+        )
     }
 
     /** A bolt of lightning from the top of the sky down into the far hills, forking once. */
@@ -216,11 +247,29 @@ class EndlessScenerySystem(
         while (y < BOLT_BOTTOM) {
             val nx = x + (Noise.unit(step, scenery.boltSeed) - 0.5f) * 18f
             val ny = y + 12f + Noise.unit(step, scenery.boltSeed + 1) * 10f
-            graphics.drawLine(x.roundToInt(), y.roundToInt(), nx.roundToInt(), ny.roundToInt(), color)
-            graphics.drawLine(x.roundToInt() + 1, y.roundToInt(), nx.roundToInt() + 1, ny.roundToInt(), color)
+            graphics.drawLine(
+                x.roundToInt(),
+                y.roundToInt(),
+                nx.roundToInt(),
+                ny.roundToInt(),
+                color
+            )
+            graphics.drawLine(
+                x.roundToInt() + 1,
+                y.roundToInt(),
+                nx.roundToInt() + 1,
+                ny.roundToInt(),
+                color
+            )
             if (step == 3) {
                 val fx = nx + (Noise.unit(9, scenery.boltSeed) - 0.5f) * 40f
-                graphics.drawLine(nx.roundToInt(), ny.roundToInt(), fx.roundToInt(), (ny + 30f).roundToInt(), color)
+                graphics.drawLine(
+                    nx.roundToInt(),
+                    ny.roundToInt(),
+                    fx.roundToInt(),
+                    (ny + 30f).roundToInt(),
+                    color
+                )
             }
             x = nx
             y = ny
@@ -244,7 +293,16 @@ class EndlessScenerySystem(
             if (x >= frameWidth || x + width <= 0) continue
             graphics.drawPixmap(chunk.sheet, x, band.top, 0, below * rowHeight, width, rowHeight)
             if (blend > 0f) {
-                graphics.drawPixmapFaded(chunk.sheet, x, band.top, 0, above * rowHeight, width, rowHeight, blend)
+                graphics.drawPixmapFaded(
+                    chunk.sheet,
+                    x,
+                    band.top,
+                    0,
+                    above * rowHeight,
+                    width,
+                    rowHeight,
+                    blend
+                )
             }
         }
     }
@@ -262,15 +320,32 @@ class EndlessScenerySystem(
                 if (x < -120f || x > frameWidth + 40f) continue
                 val y = Band.FAR.top + feature.y
                 val pulse = 0.5f + 0.5f * sin(clock * 2.3f + feature.x)
-                circle(graphics, x, y, 9f + 3f * pulse, EngineColors.withAlpha(CRATER_GLOW, 0.25f + 0.35f * night))
+                circle(
+                    graphics,
+                    x,
+                    y,
+                    9f + 3f * pulse,
+                    EngineColors.withAlpha(CRATER_GLOW, 0.25f + 0.35f * night)
+                )
                 for (puff in 0 until SMOKE_PUFFS) {
-                    val age = ((clock * SMOKE_RISE + puff / SMOKE_PUFFS.toFloat() + feature.x * 0.01f) % 1f)
+                    val age =
+                        ((clock * SMOKE_RISE + puff / SMOKE_PUFFS.toFloat() + feature.x * 0.01f) % 1f)
                     val px = x - age * age * (40f + 30f * scenery.wind) + sin(clock + puff) * 2f
                     val py = y - 4f - age * 110f
                     val radius = 3f + age * 15f
                     val fadeIn = (age / 0.1f).coerceAtMost(1f)
-                    val color = EngineColors.lerp(SMOKE_LIT, SMOKE, (age * 3f).coerceAtMost(1f) * (1f - 0.5f * night))
-                    circle(graphics, px, py, radius, EngineColors.withAlpha(color, 0.5f * (1f - age) * fadeIn))
+                    val color = EngineColors.lerp(
+                        SMOKE_LIT,
+                        SMOKE,
+                        (age * 3f).coerceAtMost(1f) * (1f - 0.5f * night)
+                    )
+                    circle(
+                        graphics,
+                        px,
+                        py,
+                        radius,
+                        EngineColors.withAlpha(color, 0.5f * (1f - age) * fadeIn)
+                    )
                 }
             }
         }
@@ -289,7 +364,13 @@ class EndlessScenerySystem(
             val depth = (y - top).toFloat() / (bottom - top)
             val breath = 0.85f + 0.15f * sin(clock * 0.3f + y * 0.21f)
             val alpha = fog * depth * depth * breath
-            if (alpha > 0.02f) graphics.drawRect(0, y, frameWidth, FOG_ROW, EngineColors.withAlpha(color, alpha))
+            if (alpha > 0.02f) graphics.drawRect(
+                0,
+                y,
+                frameWidth,
+                FOG_ROW,
+                EngineColors.withAlpha(color, alpha)
+            )
             y += FOG_ROW
         }
         val drift = scenery.scroll[band.ordinal] * 1.3f
@@ -298,7 +379,13 @@ class EndlessScenerySystem(
             val bx = ((bank * 197f - drift) % span + span) % span - 120f
             val by = top + (bottom - top) * (0.35f + 0.5f * Noise.unit(bank, band.ordinal))
             val alpha = fog * 0.35f
-            graphics.drawOval((bx - 90f).roundToInt(), (by - 7f).roundToInt(), 180, 14, EngineColors.withAlpha(color, alpha))
+            graphics.drawOval(
+                (bx - 90f).roundToInt(),
+                (by - 7f).roundToInt(),
+                180,
+                14,
+                EngineColors.withAlpha(color, alpha)
+            )
         }
     }
 
@@ -320,8 +407,15 @@ class EndlessScenerySystem(
             if (alpha > 0.04f) {
                 val reach = 26f * (0.35f + near) * strength
                 val sway = sin(clock * 1.3f + index * 1.7f) * reach * 0.5f
-                val length = (22f * (0.6f + near) * (0.4f + 0.6f * shimmer)).roundToInt().coerceAtLeast(1)
-                graphics.drawRect((x + sway - length / 2f).roundToInt(), row, length, 1, EngineColors.withAlpha(color, alpha))
+                val length =
+                    (22f * (0.6f + near) * (0.4f + 0.6f * shimmer)).roundToInt().coerceAtLeast(1)
+                graphics.drawRect(
+                    (x + sway - length / 2f).roundToInt(),
+                    row,
+                    length,
+                    1,
+                    EngineColors.withAlpha(color, alpha)
+                )
             }
             row += 2
             index++
