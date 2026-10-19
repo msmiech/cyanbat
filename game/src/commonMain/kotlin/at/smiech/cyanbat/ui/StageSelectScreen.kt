@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -167,9 +168,10 @@ private fun StageSelectContent(
     val endlessOpen = stageOpen(ENDLESS.id, highestUnlocked, clears)
 
     Surface {
+        // Clear of the system's bars and a display's cutout, as Settings is.
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState())
-                .padding(SCREEN_PADDING),
+                .safeDrawingPadding().padding(SCREEN_PADDING),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(

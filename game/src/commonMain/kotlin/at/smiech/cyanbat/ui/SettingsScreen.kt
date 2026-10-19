@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
@@ -152,10 +153,13 @@ private fun SettingsContent(
         // Scrolls, because a phone held landscape is only about 400dp tall and the display choices
         // alone take most of that. No wider than a column reads well, and in the middle of a
         // screen wider than that, so a switch is never a screen's width from what it switches.
+        // Clear of the system's bars and a display's cutout, which an Android window is drawn
+        // under, from inside the scroll: the rows pass under the bars, but the last stops clear.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .safeDrawingPadding()
                 .padding(horizontal = SCREEN_PADDING - ROW_INSET, vertical = SCREEN_PADDING)
                 .wrapContentWidth()
                 .widthIn(max = CONTENT_WIDTH + ROW_INSET * 2)
