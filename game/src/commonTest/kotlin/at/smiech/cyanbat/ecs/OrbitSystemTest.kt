@@ -18,7 +18,9 @@ import kotlin.test.assertTrue
 class OrbitSystemTest {
 
     private var center: Rect? = Rect.fromLTWH(200f, 150f, 45f, 40f)
-    private val orbit = OrbitSystem { center }
+    private var radius = ORB_RADIUS
+    private var secondsPerTurn = ORB_SECONDS_PER_TURN
+    private val orbit = OrbitSystem({ radius }, { secondsPerTurn }) { center }
     private val world = World().apply { addSystem(orbit) }
 
     private fun orb(offset: Float): EntityId {
@@ -123,6 +125,39 @@ class OrbitSystemTest {
 
         val gap = abs(angleOf(first) - angleOf(second))
         assertEquals(PI.toFloat(), gap, 0.05f)
+    }
+
+    /** A ring that turns faster, as Rapid Fire makes it, goes round once in its new time. */
+    @Test
+    fun `a faster ring goes round in its own time`() {
+        secondsPerTurn = ORB_SECONDS_PER_TURN / 2f
+        val orb = orb(0f)
+        step()
+        val start = angleOf(orb)
+
+        step(secondsPerTurn)
+
+        // Looser than a whole turn's, as the last tick overshoots by as much in half the time.
+        val drift = abs(angleOf(orb) - start)
+        assertTrue(
+            drift < 0.2f || drift > 2 * PI - 0.2f,
+            "a turn later it is ${drift} radians from where it was"
+        )
+    }
+
+    /** Widened, as Heavy Rounds widens it, the ring eases out rather than jumping, and gets there. */
+    @Test
+    fun `a wider ring eases out to its radius`() {
+        val orb = orb(0f)
+        step()
+        radius = ORB_RADIUS * 1.5f
+
+        step()
+        val partway = distanceOf(orb)
+        assertTrue(partway > ORB_RADIUS && partway < radius, "a tick later it is $partway out")
+
+        step(2f)
+        assertEquals(radius, distanceOf(orb), 0.1f)
     }
 
     @Test

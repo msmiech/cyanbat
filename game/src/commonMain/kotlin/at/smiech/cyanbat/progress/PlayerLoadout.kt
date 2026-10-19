@@ -19,12 +19,18 @@ import at.smiech.cyanbat.util.MAX_ORBS
 import at.smiech.cyanbat.util.MAX_REVIVES
 import at.smiech.cyanbat.util.MAX_SHOT_BOUNCE
 import at.smiech.cyanbat.util.MAX_SHOT_PIERCE
+import at.smiech.cyanbat.util.MAX_SHOT_SIZE_LEVEL
 import at.smiech.cyanbat.util.MAX_WAKE_LEVEL
 import at.smiech.cyanbat.util.MIN_SHOT_INTERVAL_SECONDS
 import at.smiech.cyanbat.util.ORB_DAMAGE_FRACTION
+import at.smiech.cyanbat.util.ORB_RADIUS
+import at.smiech.cyanbat.util.ORB_RAPID_FIRE_SHARE
+import at.smiech.cyanbat.util.ORB_REHIT_SECONDS
+import at.smiech.cyanbat.util.ORB_SECONDS_PER_TURN
 import at.smiech.cyanbat.util.PLAYER_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
+import at.smiech.cyanbat.util.SHOT_SCALE_PER_LEVEL
 import at.smiech.cyanbat.util.WAKE_DAMAGE_FRACTION
 import at.smiech.cyanbat.util.WAKE_SECONDS
 import kotlin.math.ceil
@@ -120,6 +126,10 @@ class PlayerLoadout(difficulty: Difficulty = Difficulty.HARD) {
     var shotBounce: Int = 0
         private set
 
+    /** How many times Heavy Rounds has made the shots bigger; zero draws them at their own size. */
+    var shotSizeLevel: Int = 0
+        private set
+
     /** How many orbs circle the bat; see [at.smiech.cyanbat.ecs.OrbitSystem]. */
     var orbs: Int = 0
         private set
@@ -138,6 +148,33 @@ class PlayerLoadout(difficulty: Difficulty = Difficulty.HARD) {
      */
     val orbDamage: Int
         get() = ceil(shotDamage * ORB_DAMAGE_FRACTION).toInt()
+
+    /**
+     * How much bigger than its art the bat's shots and orbs are drawn, and their boxes with them:
+     * a share bigger per Heavy Rounds pick, up to [MAX_SHOT_SIZE_LEVEL] of them.
+     */
+    val shotScale: Float
+        get() = 1f + shotSizeLevel * SHOT_SCALE_PER_LEVEL
+
+    /** How far out the orbs circle the bat: widened with [shotScale], so the bigger orbs stay clear. */
+    val orbRadius: Float
+        get() = ORB_RADIUS * shotScale
+
+    /**
+     * How long the orbs take to go round once. Rapid Fire turns them faster with the gun, by
+     * [ORB_RAPID_FIRE_SHARE] of its speed-up; derived from [shotIntervalSeconds] rather than kept
+     * apart, so the two cannot drift, even where the gun's floor clips a pick.
+     */
+    val orbSecondsPerTurn: Float
+        get() = ORB_SECONDS_PER_TURN *
+                (shotIntervalSeconds / SHOT_INTERVAL_SECONDS).pow(ORB_RAPID_FIRE_SHARE)
+
+    /**
+     * How soon the orbs may hit the same target again, shortened as the ring turns faster: the gap
+     * between two orbs passing shrinks with it, and so does the time one takes to sweep through.
+     */
+    val orbRehitSeconds: Float
+        get() = ORB_REHIT_SECONDS * orbSecondsPerTurn / ORB_SECONDS_PER_TURN
 
     /** What the wake's shock takes off whatever it touches, a share of [shotDamage]; zero uncharged. */
     val wakeDamage: Int
@@ -254,6 +291,11 @@ class PlayerLoadout(difficulty: Difficulty = Difficulty.HARD) {
         shotBounce = (shotBounce + 1).coerceAtMost(MAX_SHOT_BOUNCE)
     }
 
+    /** Makes shots and orbs a size bigger, up to [MAX_SHOT_SIZE_LEVEL]. */
+    fun enlargeShots() {
+        shotSizeLevel = (shotSizeLevel + 1).coerceAtMost(MAX_SHOT_SIZE_LEVEL)
+    }
+
     /** Adds an orb, up to [MAX_ORBS]. */
     fun addOrb() {
         orbs = (orbs + 1).coerceAtMost(MAX_ORBS)
@@ -291,6 +333,7 @@ class PlayerLoadout(difficulty: Difficulty = Difficulty.HARD) {
     val canCounterweight: Boolean get() = flatDamageReduction < MAX_FLAT_DAMAGE_REDUCTION
     val canAddPierce: Boolean get() = shotPierce < MAX_SHOT_PIERCE
     val canAddBounce: Boolean get() = shotBounce < MAX_SHOT_BOUNCE
+    val canEnlargeShots: Boolean get() = shotSizeLevel < MAX_SHOT_SIZE_LEVEL
     val canAddOrb: Boolean get() = orbs < MAX_ORBS
     val canChargeWake: Boolean get() = wakeLevel < MAX_WAKE_LEVEL
     val canBuildFrostBeam: Boolean get() = frostLevel < MAX_FROST_LEVEL

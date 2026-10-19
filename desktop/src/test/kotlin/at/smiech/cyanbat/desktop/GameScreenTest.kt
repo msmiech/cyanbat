@@ -46,6 +46,7 @@ import at.smiech.cyanbat.util.INTERLUDE_MARK_X
 import at.smiech.cyanbat.util.INTERLUDE_MARK_Y
 import at.smiech.cyanbat.util.MAX_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.NAGA_PLATE_SHARE
+import at.smiech.cyanbat.util.ORB_FRAME
 import at.smiech.cyanbat.util.ORB_RADIUS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.REGEN_PER_SECOND
@@ -1399,6 +1400,90 @@ class GameScreenTest {
         )
     }
 
+    /** Heavy Rounds grows the orbs already circling, and their ring widens out to keep them clear. */
+    @Test
+    fun `heavy rounds grow the orbs and widen their ring`() = flight(CAVE) {
+        pick(PowerUp.GUARDIAN_ORB)
+        pick(PowerUp.HEAVY_ROUNDS)
+        holdFire()
+        sturdyBat()
+
+        fly(2f)
+
+        val scale = probe.loadout.shotScale
+        assertTrue(scale > 1f)
+        val orb = probe.world.query(OrbComponent::class).single()
+        val rect = probe.world.getComponent(orb, TransformComponent::class)!!.rect
+        val size = (ORB_FRAME * scale).roundToInt().toFloat()
+        assertEquals(size, rect.width, 0.01f, "the orb's box did not grow")
+        assertEquals(size, rect.height, 0.01f, "the orb's box did not grow")
+        assertEquals(scale, probe.world.getComponent(orb, SpriteComponent::class)!!.scale)
+        assertEquals(ORB_RADIUS * scale, distanceFromBat(orb), 0.5f, "the ring did not widen")
+
+        // One picked up later comes in at the size, on the wider ring.
+        pick(PowerUp.GUARDIAN_ORB)
+        val newest = probe.world.query(OrbComponent::class).single { it != orb }
+        assertEquals(size, probe.world.getComponent(newest, TransformComponent::class)!!.rect.width, 0.01f)
+        assertEquals(ORB_RADIUS * scale, distanceFromBat(newest), 0.5f)
+    }
+
+    /** Rapid Fire turns the ring faster along with the gun. */
+    @Test
+    fun `rapid fire turns the orbs faster`() {
+        val plain = orbSweep(rapidFire = false)
+        val quickened = orbSweep(rapidFire = true)
+        assertTrue(quickened > plain * 1.05f, "the ring swept $quickened rad against $plain")
+    }
+
+    /** How far round the bat, in radians, one orb goes in a fifth of a second. */
+    private fun orbSweep(rapidFire: Boolean): Float {
+        var swept = 0f
+        flight(CAVE) {
+            pick(PowerUp.GUARDIAN_ORB)
+            if (rapidFire) pick(PowerUp.RAPID_FIRE)
+            holdFire()
+            sturdyBat()
+            val orb = probe.world.query(OrbComponent::class).single()
+            val angle = {
+                val rect = probe.world.getComponent(orb, TransformComponent::class)!!.rect
+                val bat = batRect()
+                atan2(rect.centerY - bat.centerY, rect.centerX - bat.centerX)
+            }
+            fly(0.2f)
+            val before = angle()
+            fly(0.2f)
+            swept = (angle() - before).let { if (it < 0f) it + 2 * PI.toFloat() else it }
+        }
+        return swept
+    }
+
+    /** The bat's bolts come out of the gun bigger, their boxes with them. */
+    @Test
+    fun `heavy rounds fire bigger bolts`() = flight(CAVE) {
+        pick(PowerUp.HEAVY_ROUNDS)
+        pick(PowerUp.HEAVY_ROUNDS)
+        sturdyBat()
+        val ownShots = {
+            probe.world.query(CollisionComponent::class).filter {
+                probe.world.getComponent(it, CollisionComponent::class)?.group == CollisionGroup.PLAYER_PROJECTILE
+            }
+        }
+
+        var left = (3f / FRAME_SECONDS).toInt()
+        while (ownShots().isEmpty()) {
+            assertTrue(left-- > 0, "the bat never fired")
+            screen.update(FRAME_SECONDS)
+        }
+
+        val scale = probe.loadout.shotScale
+        val shot = ownShots().first()
+        val rect = probe.world.getComponent(shot, TransformComponent::class)!!.rect
+        assertEquals((SHOT_FRAME_WIDTH * scale).roundToInt().toFloat(), rect.width, 0.01f)
+        assertEquals(scale, probe.world.getComponent(shot, SpriteComponent::class)!!.scale)
+        val bat = batRect()
+        assertEquals(bat.centerY, rect.centerY, 1f, "the bigger bolt left off center")
+    }
+
     /** The wake every run starts with is only a wake; charged, it shocks what lingers in it. */
     @Test
     fun `a charged trail shocks what flies into it, and the plain one does not`() {
@@ -1989,8 +2074,8 @@ class GameScreenTest {
     private fun PlayerLoadout.stats(): List<Any> = listOf(
         shotIntervalSeconds, extraShots, shotDamage, criticalChance, maxHitPoints,
         hitCooldownSeconds, damageTaken, healthRegenPerSecond, experienceMultiplier,
-        scoreMultiplier, revives, flatDamageReduction, shotPierce, shotBounce, orbs, wakeLevel,
-        frostLevel,
+        scoreMultiplier, revives, flatDamageReduction, shotPierce, shotBounce, shotSizeLevel, orbs,
+        wakeLevel, frostLevel,
     )
 
     // endregion

@@ -22,24 +22,34 @@ import kotlin.math.sin
 class OrbComponent(var offset: Float = 0f) : Component
 
 /**
- * Carries every [OrbComponent] clockwise round the box [center] returns (the bat's), [ORB_RADIUS]
- * out, once every [ORB_SECONDS_PER_TURN].
+ * Carries every [OrbComponent] clockwise round the box [center] returns (the bat's), [radius] out,
+ * once every [secondsPerTurn].
  *
  * The orbs share the circle evenly in creation order. A new orb is placed at its share ([shareOf]),
  * and the others ease to their new shares over about [ORB_SETTLE_SECONDS], so the ring spreads out
- * rather than every orb jumping at once.
+ * rather than every orb jumping at once. A wider ring eases out over the same.
  *
  * Add it after the movement that carries the bat, so the ring follows the bat this tick, and before
  * the collisions, so an orb hits what it is drawn over.
  *
+ * @param radius how far out from its center the ring is meant to be, read every tick.
+ * @param secondsPerTurn how long the ring takes to go round once, read every tick.
  * @param center the box the orbs go round, or null to hold them where they are.
  */
-class OrbitSystem(private val center: () -> Rect?) : GameSystem() {
+class OrbitSystem(
+    private val radius: () -> Float = { ORB_RADIUS },
+    private val secondsPerTurn: () -> Float = { ORB_SECONDS_PER_TURN },
+    private val center: () -> Rect?,
+) : GameSystem() {
     private lateinit var orbs: ComponentMapper<OrbComponent>
     private lateinit var transforms: ComponentMapper<TransformComponent>
 
     /** How far round the ring has turned, in radians, clockwise. */
     var turn = 0f
+        private set
+
+    /** How far out the ring is now, easing toward [radius]; NaN until it is first placed. */
+    var ringRadius = Float.NaN
         private set
 
     override fun onAttach(world: World) {
@@ -49,7 +59,7 @@ class OrbitSystem(private val center: () -> Rect?) : GameSystem() {
 
     override fun update(world: World, deltaTime: Float, input: Input?) {
         if (center() == null) return
-        turn = (turn + TWO_PI * deltaTime / ORB_SECONDS_PER_TURN) % TWO_PI
+        turn = (turn + TWO_PI * deltaTime / secondsPerTurn()) % TWO_PI
         arrange(world, settle = (deltaTime / ORB_SETTLE_SECONDS).coerceAtMost(1f))
     }
 
@@ -63,6 +73,9 @@ class OrbitSystem(private val center: () -> Rect?) : GameSystem() {
         val around = center() ?: return
         val count = world.count(orbs, transforms)
         if (count == 0) return
+        // The first ring is put where it belongs; a ring already up eases out with the orbs.
+        val target = radius()
+        ringRadius = if (ringRadius.isNaN()) target else ringRadius + (target - ringRadius) * settle
         var index = 0
         world.forEach(orbs, transforms) { id ->
             val orb = orbs.require(id)
@@ -73,8 +86,8 @@ class OrbitSystem(private val center: () -> Rect?) : GameSystem() {
             val transform = transforms.require(id)
             val rect = transform.rect
             transform.rect = Rect.fromLTWH(
-                around.centerX + ORB_RADIUS * cos(angle) - rect.width / 2f,
-                around.centerY + ORB_RADIUS * sin(angle) - rect.height / 2f,
+                around.centerX + ringRadius * cos(angle) - rect.width / 2f,
+                around.centerY + ringRadius * sin(angle) - rect.height / 2f,
                 rect.width,
                 rect.height,
             )

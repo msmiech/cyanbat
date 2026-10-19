@@ -20,10 +20,13 @@ import at.smiech.cyanbat.resources.power_up_guardian_orb_description
 import at.smiech.cyanbat.resources.power_up_guardian_orb_held
 import at.smiech.cyanbat.resources.power_up_heavy_rounds
 import at.smiech.cyanbat.resources.power_up_heavy_rounds_description
+import at.smiech.cyanbat.resources.power_up_heavy_rounds_full_size
+import at.smiech.cyanbat.resources.power_up_heavy_rounds_orbs
 import at.smiech.cyanbat.resources.power_up_piercing_shot
 import at.smiech.cyanbat.resources.power_up_piercing_shot_description
 import at.smiech.cyanbat.resources.power_up_rapid_fire
 import at.smiech.cyanbat.resources.power_up_rapid_fire_description
+import at.smiech.cyanbat.resources.power_up_rapid_fire_orbs
 import at.smiech.cyanbat.resources.power_up_regeneration
 import at.smiech.cyanbat.resources.power_up_regeneration_description
 import at.smiech.cyanbat.resources.power_up_ricochet
@@ -79,6 +82,10 @@ enum class PowerUp(
     RAPID_FIRE(Res.string.power_up_rapid_fire, Res.string.power_up_rapid_fire_description) {
         override fun applyTo(loadout: PlayerLoadout) = loadout.quickenShots(RAPID_FIRE_FACTOR)
         override fun isAvailable(loadout: PlayerLoadout) = loadout.canQuickenShots
+
+        // The orbs turn with the gun, which is news only to a run that has some.
+        override fun describe(loadout: PlayerLoadout) =
+            if (loadout.orbs > 0) Res.string.power_up_rapid_fire_orbs else description
     },
 
     SPREAD_SHOT(Res.string.power_up_spread_shot, Res.string.power_up_spread_shot_description) {
@@ -99,7 +106,17 @@ enum class PowerUp(
         Res.string.power_up_heavy_rounds_description,
         listOf(HEAVY_ROUNDS_DAMAGE),
     ) {
-        override fun applyTo(loadout: PlayerLoadout) = loadout.addShotDamage(HEAVY_ROUNDS_DAMAGE)
+        // Bigger with the damage, so a harder shot looks it, until the shots are as big as they get.
+        override fun applyTo(loadout: PlayerLoadout) {
+            loadout.addShotDamage(HEAVY_ROUNDS_DAMAGE)
+            loadout.enlargeShots()
+        }
+
+        override fun describe(loadout: PlayerLoadout) = when {
+            !loadout.canEnlargeShots -> Res.string.power_up_heavy_rounds_full_size
+            loadout.orbs > 0 -> Res.string.power_up_heavy_rounds_orbs
+            else -> description
+        }
     },
 
     SHARPSHOOTER(
@@ -214,7 +231,8 @@ enum class PowerUp(
     /**
      * What the card says to a run with [loadout]: its [description], unless picking it again does
      * something different, as for the standalone weapons (a second orb is not the same news as the
-     * first).
+     * first), or does more or less for this run: Rapid Fire and Heavy Rounds speed up and grow
+     * the orbs once there are some, and Heavy Rounds stops growing the shots at their biggest.
      */
     open fun describe(loadout: PlayerLoadout): StringResource = description
 

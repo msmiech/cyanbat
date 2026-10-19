@@ -172,13 +172,16 @@ class GameTextLayoutTest {
     @Test
     fun `every power-up card has room for what it says`() {
         val room = POWER_UP_CARD_WIDTH - 2 * POWER_UP_CARD_PADDING
-        val held =
-            Res.allStringResources.filterKeys { it.startsWith("power_up_") && it.endsWith("_held") }.values
         for ((language, text) in texts) {
             for (powerUp in PowerUp.entries) assertFits(language, text[powerUp.title], 14, room)
-            val descriptions = PowerUp.entries.map {
-                text.format(it.description, *it.numbers.toTypedArray())
-            } + held.map { text[it] }
+            // Every reading of every card: its description, and whatever else it says to a run that
+            // holds it or something it builds on, all named after the description.
+            val descriptions = PowerUp.entries.flatMap { powerUp ->
+                val stem = powerUp.description.key.removeSuffix("_description")
+                Res.allStringResources.filterKeys { it.startsWith("${stem}_") }.values.map {
+                    text.format(it, *powerUp.numbers.toTypedArray())
+                }
+            }
             for (description in descriptions) {
                 val lines = wrapWords(description, room) { g.measureString(it, 11) }
                 assertTrue(

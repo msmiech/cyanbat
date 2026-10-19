@@ -477,6 +477,15 @@ const val VITALITY_HIT_POINTS = 25
 const val HEAVY_ROUNDS_DAMAGE = 12
 
 /**
+ * Heavy Rounds makes the bat's shots bigger with their damage: each pick draws the shots and orbs a
+ * share bigger, and their boxes with them, and widens the orbs' ring by the same share so the bigger
+ * orbs stay clear of the bat. The size stops growing after [MAX_SHOT_SIZE_LEVEL] picks, where a fan
+ * of bolts still reads as bolts rather than as a wall; the damage never does.
+ */
+const val SHOT_SCALE_PER_LEVEL = 0.2f
+const val MAX_SHOT_SIZE_LEVEL = 3
+
+/**
  * Armor Plating, as a multiplier on incoming damage, floored well above zero: a bat that cannot be
  * hurt has no run left to play.
  */
@@ -572,11 +581,17 @@ const val MAX_SHOT_BOUNCE = 3
 /**
  * Guardian Orb: each pick adds an orb, and the orbs share the circle evenly, going round clockwise
  * once every [ORB_SECONDS_PER_TURN] at [ORB_RADIUS], clear of the bat's wings. Capped where the
- * ring is nearly closed. A new orb spreads the ring out over about [ORB_SETTLE_SECONDS].
+ * ring is nearly closed. A new orb spreads the ring out over about [ORB_SETTLE_SECONDS], and a
+ * wider ring settles out over the same.
+ *
+ * Rapid Fire turns the ring faster too, by [ORB_RAPID_FIRE_SHARE] of the gun's speed-up as a power:
+ * at half, the gun's floor of a shot every 0.3 s turns the ring in about 0.9 s, where the whole
+ * speed-up would whirl it round in under half a second, too fast to read as orbs.
  */
 const val MAX_ORBS = 5
 const val ORB_RADIUS = 44f
 const val ORB_SECONDS_PER_TURN = 1.6f
+const val ORB_RAPID_FIRE_SHARE = 0.5f
 const val ORB_SETTLE_SECONDS = 0.35f
 const val ORB_DAMAGE_FRACTION = 0.6f
 
@@ -592,7 +607,8 @@ const val ORB_COLLISION_TOLERANCE = 2f
 
 /**
  * How soon one orb may hit the same target again, in seconds: longer than an orb takes to sweep
- * through an enemy, shorter than the gap between two orbs of a full ring.
+ * through an enemy, shorter than the gap between two orbs of a full ring. A faster ring shortens it
+ * in step ([at.smiech.cyanbat.progress.PlayerLoadout.orbRehitSeconds]), so both still hold.
  */
 const val ORB_REHIT_SECONDS = 0.3f
 

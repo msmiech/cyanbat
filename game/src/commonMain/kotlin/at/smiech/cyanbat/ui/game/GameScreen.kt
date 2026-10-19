@@ -111,7 +111,7 @@ import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.cyanbat.util.IMPACT_LEAD
 import at.smiech.cyanbat.util.LETTERBOX_HEIGHT
 import at.smiech.cyanbat.util.LETTERBOX_SECONDS
-import at.smiech.cyanbat.util.ORB_REHIT_SECONDS
+import at.smiech.cyanbat.util.ORB_FRAME
 import at.smiech.cyanbat.util.PAUSE_BUTTON_FILL
 import at.smiech.cyanbat.util.PAUSE_BUTTON_RADIUS
 import at.smiech.cyanbat.util.PAUSE_BUTTON_SIGN_COLOR
@@ -495,8 +495,15 @@ class GameScreen(
      */
     private var contactClock = 0f
 
-    /** The orbs' ring, kept to place new orbs at once; see [syncOrbs]. */
-    private val orbit = OrbitSystem { batRect() }
+    /**
+     * The orbs' ring, kept to place new orbs at once; see [syncOrbs]. Its size and its speed are
+     * the loadout's, read every tick, so a pick that changes either takes at once.
+     */
+    private val orbit = OrbitSystem(
+        radius = { loadout.orbRadius },
+        secondsPerTurn = { loadout.orbSecondsPerTurn },
+        center = { batRect() },
+    )
 
     /** The collision pass, kept to ask partway through it what else it meets; see [hasAlreadyStruck]. */
     private val collisions = CollisionSystem { id1, id2 -> handleCollision(id1, id2) }
@@ -682,10 +689,15 @@ class GameScreen(
             return
         }
         val shot = env.assets.graphics.shot
+        // Heavy Rounds draws the bat's bolts bigger, and their boxes with them; an enemy's stay as
+        // drawn.
+        val scale = if (isPlayer) loadout.shotScale else 1f
         // The sheet lays every colorway side by side, so a shot is placed and sized by one frame of
-        // it, not by the pixmap.
-        val x = if (isPlayer) transform.rect.right else transform.rect.left - SHOT_FRAME_WIDTH
-        val y = transform.rect.centerY - shot.height / 2f
+        // it, not by the pixmap. Whole pixels, as the sprite is drawn.
+        val width = (SHOT_FRAME_WIDTH * scale).roundToInt().toFloat()
+        val height = (shot.height * scale).roundToInt().toFloat()
+        val x = if (isPlayer) transform.rect.right else transform.rect.left - width
+        val y = transform.rect.centerY - height / 2f
         // A bolt takes its shooter's color; the bat has no style and falls back to its own cyan.
         val variant = world.getComponent(shooterId, ProjectileStyleComponent::class)?.variant
             ?: PLAYER_SHOT_VARIANT
@@ -701,8 +713,8 @@ class GameScreen(
             factory.createShot(
                 x = x,
                 y = y,
-                width = SHOT_FRAME_WIDTH.toFloat(),
-                height = shot.height.toFloat(),
+                width = width,
+                height = height,
                 pixmap = shot,
                 isPlayer = isPlayer,
                 damage = if (critical) loadout.criticalDamage else damage,
@@ -713,6 +725,7 @@ class GameScreen(
                 // would be a hazard the player cannot read.
                 pierce = if (isPlayer) loadout.shotPierce else 0,
                 bounce = if (isPlayer) loadout.shotBounce else 0,
+                scale = scale,
             )
         }
 
@@ -930,7 +943,7 @@ class GameScreen(
         if (world.getComponent(target, HealthComponent::class)?.alive != true) return
 
         val (amount, rehitSeconds) = when (weapon) {
-            ContactWeapon.ORB -> loadout.orbDamage to ORB_REHIT_SECONDS
+            ContactWeapon.ORB -> loadout.orbDamage to loadout.orbRehitSeconds
             ContactWeapon.WAKE -> loadout.wakeDamage to WAKE_REHIT_SECONDS
         }
         val cooldown = world.getComponent(target, ContactCooldownComponent::class)
@@ -1836,18 +1849,36 @@ class GameScreen(
 
     /**
      * Adds orbs until the bat has as many as the loadout says, each made at its share of the full
-     * ring; the orbs already circling ease over to theirs.
+     * ring; the orbs already circling ease over to theirs. Every orb is brought to the loadout's
+     * size, so a Heavy Rounds pick grows the ones already circling.
      */
     private fun syncOrbs() {
-        val circling = world.query(OrbComponent::class).size
-        if (circling >= loadout.orbs) return
+        val scale = loadout.shotScale
+        val circling = world.query(OrbComponent::class)
+        for (id in circling) {
+            val sprite = world.getComponent(id, SpriteComponent::class) ?: continue
+            if (sprite.scale == scale) continue
+            sprite.scale = scale
+            // Kept centered as it grows; the ring places it by its center.
+            val transform = world.getComponent(id, TransformComponent::class) ?: continue
+            val size = (ORB_FRAME * scale).roundToInt().toFloat()
+            val rect = transform.rect
+            transform.rect = Rect.fromLTWH(
+                rect.centerX - size / 2f,
+                rect.centerY - size / 2f,
+                size,
+                size
+            )
+        }
+        if (circling.size >= loadout.orbs) return
         val bat = batRect() ?: return
-        for (index in circling until loadout.orbs) {
+        for (index in circling.size until loadout.orbs) {
             factory.createOrb(
                 bat.centerX,
                 bat.centerY,
                 env.assets.graphics.orb,
-                OrbitSystem.shareOf(index, loadout.orbs)
+                OrbitSystem.shareOf(index, loadout.orbs),
+                scale,
             )
         }
         // Placed on the ring now rather than next tick, since the run is drawn under the dialog
