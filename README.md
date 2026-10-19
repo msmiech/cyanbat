@@ -93,7 +93,7 @@ covers setting it up, signing it, and taking it to the App Store.
 
 There is also a `/run-cyanbat` skill that drives the Android build end to end on an emulator —
 build, install, launch, screenshot, and check persistence. See
-[.claude/skills/run-cyanbat/SKILL.md](.claude/skills/run-cyanbat/SKILL.md).
+[.agents/skills/run-cyanbat/SKILL.md](.agents/skills/run-cyanbat/SKILL.md).
 
 ## 🗺 Stages
 

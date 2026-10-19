@@ -1,7 +1,7 @@
-# CLAUDE.md
+# AGENTS.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this
-repository.
+This file guides coding agents - Claude Code, Codex, Gemini CLI, Copilot and the like - working
+with the code in this repository. Their skills are in `.agents/skills/`; see Agent files.
 
 CyanBat is a side-scrolling shooter that runs on Android, on iPhone and iPad, on the desktop and in
 the browser from one Kotlin Multiplatform codebase. The README covers features, controls and the
@@ -46,7 +46,7 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
   job, or locally with `-Pkotlin.native.enableKlibsCrossCompilation=true`, at the cost of a one-time
   download of about 800 MB. An IDE sync downloads that toolchain regardless.
 - To run, drive and screenshot the app on an emulator, use the `run-cyanbat` skill
-  (`.claude/skills/run-cyanbat/`). Its gotchas cover what trips up device testing: the game activity
+  (`.agents/skills/run-cyanbat/`). Its gotchas cover what trips up device testing: the game activity
   is not exported, `monkey` destroys it, and binary output needs `adb exec-out`.
 - **In a git worktree** (such as `.claude/worktrees/*`) there is no `local.properties`, since it is
   gitignored, so Android tasks fail with "SDK location not found". Run them with
@@ -69,6 +69,8 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
 
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
+  Both are landscape, on a tablet and a foldable too, only because the manifest says the app is a
+  game (`android:appCategory`): from Android 16 a large screen ignores any other app's orientation.
 - Desktop and the browser host a run the same way: a `ComposeGame`, drawn and driven by the engine's
   `GameSurface`, which pauses the run when the player leaves the window. `DesktopGame` is the
   desktop's, which loads its assets off the classpath and can `capture` a frame.
@@ -851,6 +853,16 @@ kept as they were drawn, which `generate_title.py` and `generate_game_over.py` m
 - **Comments explain why, in plain sentences.** Types get KDoc saying what they are for. Non-obvious
   choices - system order, clamps, arming delays - carry their reasoning inline. Match the
   surrounding density.
+- **Formatting is Android Studio's**, as it reformats and optimizes imports out of the box: the
+  Kotlin official style (`kotlin.code.style=official`), wrapped at 100 columns (`.editorconfig`),
+  an argument list too long for its line chopped down one argument a line, a wrapped `&&` or `||`
+  operand indented 8 past its first line, no wildcard imports. Format what you change before
+  committing, in the IDE (Code > Reformat File, with Optimize imports). Without the IDE, Android
+  Studio's `bin/format.bat` (`format.sh` on Linux and a Mac) can check a file with `-dry
+  -allowDefaults <files>`, but run outside the IDE it indents those operands 4, so keep the 8 by
+  hand. It cannot run while the IDE has its settings open; point `STUDIO_PROPERTIES` at an
+  `idea.properties` with an `idea.config.path` and `idea.system.path` of its own. Leave lines you
+  did not change as they are.
 - **Look at the result.** Unit tests cover game logic, not what reaches the screen, device input or
   the activity lifecycle, and draw-call assertions happily pass on output that looks wrong. Check
   visual changes by drawing a frame through `drawGameFrame` into an `ImageBitmap` the size of a
@@ -876,3 +888,16 @@ kept as they were drawn, which `generate_title.py` and `generate_game_over.py` m
     - The iOS app goes to the App Store from a Mac, by `iosApp/archive.sh X.Y` on the tagged commit,
       not from the Release workflow, whose `.ipa` is unsigned; see `docs/ios-release.md`. Both
       scripts take the version from the tag through `iosApp/versions.sh`.
+
+## Agent files
+
+- This file is the one set of instructions for every coding agent. Claude Code reads `AGENTS.md`
+  itself when there is no `CLAUDE.md`, so do not add one; anything only one agent needs goes in
+  that agent's own settings, outside the repository.
+- Skills live in `.agents/skills/<name>/`, a `SKILL.md` and whatever it runs, where agents that
+  follow the shared layout find them. Claude Code looks only in `.claude/skills/`, so each skill
+  has a stub there of the same name and description that sends it on to the real one. A symlink
+  would do the same with no stub, but a Windows checkout without `core.symlinks` turns it into a
+  text file.
+- A new skill is its folder under `.agents/skills/` and its stub under `.claude/skills/`; change a
+  skill's description in both.
