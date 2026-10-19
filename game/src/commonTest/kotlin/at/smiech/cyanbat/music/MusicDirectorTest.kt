@@ -146,33 +146,55 @@ class MusicDirectorTest {
         assertEquals(0f, music.level(MusicLayer.FURY), "and a hit puts it out")
     }
 
-    /** The boss's entrance: the music drops out under the banner and comes back all at once. */
+    /** What a boss's break keeps playing: everything but the drums' weight. */
+    private val breakLayers = MusicLayer.entries.toSet() - MusicLayer.DRIVE - MusicLayer.BOOM - MusicLayer.FURY
+
+    /**
+     * The boss's entrance: the drums' weight breaks off under the banner while the rest drives on,
+     * and everything comes back at once.
+     */
     @Test
-    fun `the boss drops the music to its bed and slams back in on a downbeat`() {
+    fun `the boss breaks the drums off and slams back in on a downbeat`() {
         val director = director()
         director.fly(waveIndex = 4, combo = 3)
         director.onBossArrived()
         director.fly(waveIndex = 5, boss = true)
-        assertEquals(setOf(MusicLayer.BED), music.playing(), "the drop")
+        assertEquals(breakLayers, music.playing(), "the break")
+        val cuts = music.orders.filter { it.level == 0f }
+        assertTrue(cuts.all { it.quantum == Quantum.BEAT && it.fadeBeats < 0.1f }, "a cut on the beat: $cuts")
 
-        val dropped = music.orders.size
+        val broken = music.orders.size
         director.fly(waveIndex = 5, boss = true, seconds = 2.1f)
         assertEquals(MusicLayer.entries.toSet(), music.playing(), "the slam")
-        val slam = music.orders.drop(dropped)
+        val slam = music.orders.drop(broken)
         assertTrue(slam.all { it.quantum == Quantum.BAR }, "on the bar: $slam")
     }
 
+    /** A fight that went down to its bed at every phase sounded as if it had ended. */
     @Test
-    fun `a boss phase gets the same entrance`() {
+    fun `a boss phase breaks the drums off for less than the arrival and never drops to the bed`() {
         val director = director()
         director.fly(waveIndex = 5, boss = true)
         assertEquals(MusicLayer.entries.toSet(), music.playing())
 
         director.onBossPhaseChanged()
         director.fly(waveIndex = 5, boss = true)
-        assertEquals(setOf(MusicLayer.BED), music.playing())
-        director.fly(waveIndex = 5, boss = true, seconds = 2.1f)
-        assertEquals(MusicLayer.entries.toSet(), music.playing())
+        assertEquals(breakLayers, music.playing())
+        director.fly(waveIndex = 5, boss = true, seconds = 1.1f)
+        assertEquals(MusicLayer.entries.toSet(), music.playing(), "half a bar later, the slam")
+    }
+
+    /** A boss's own piece opens on its entrance, rather than on its bed a beat ahead of it. */
+    @Test
+    fun `a piece opened for the boss starts in the break from its first note`() {
+        val director = MusicDirector(music, grid, bossWave = 5, difficulty = 1f, bossArriving = true)
+        assertEquals(breakLayers, music.playing())
+        assertTrue(music.orders.all { it.quantum == Quantum.IMMEDIATE }, "${music.orders}")
+
+        director.fly(waveIndex = 5, boss = true)
+        assertEquals(breakLayers, music.playing(), "and stays there for most of a bar")
+        director.fly(waveIndex = 5, boss = true, seconds = 1.5f)
+        assertEquals(MusicLayer.entries.toSet(), music.playing(), "then slams in")
     }
 
     /** The run holds still for a pick, and the music carries on under a muffle. */
@@ -279,9 +301,12 @@ class MusicDirectorTest {
         assertEquals(MusicLayer.entries.toSet(), music.playing())
     }
 
-    /** A hit takes the streak, and the whole trap beat it had built goes with it. */
+    /**
+     * A hit takes the streak, and the trap beat it had built goes with it: a layer a beat, from the
+     * top down, each fading over its beat, rather than all of it at once.
+     */
     @Test
-    fun `a hit strips the trap beat back to the floor`() {
+    fun `a hit winds the trap beat down to the floor a layer a beat`() {
         val director = director()
         director.fly(waveIndex = 4, combo = 25)
         assertEquals(1f, music.level(MusicLayer.CHOP))
@@ -289,12 +314,30 @@ class MusicDirectorTest {
 
         director.onPlayerHit()
         director.fly(waveIndex = 4, combo = 1)
+        assertEquals(0f, music.level(MusicLayer.CHOP), "the top layer goes first")
+        assertEquals(1f, music.level(MusicLayer.ROLL), "and the rest wait their turn")
+
+        // A beat at 120 is half a second; fly a tick at a time, as the game does.
+        repeat(120) { director.fly(waveIndex = 4, combo = 1) }
         assertEquals(setOf(MusicLayer.BED, MusicLayer.PULSE, MusicLayer.DRIVE), music.playing())
-        val falls = music.orders.drop(beforeHit).filter { it.level == 0f }.map { it.layer }.toSet()
+        val falls = music.orders.drop(beforeHit).filter { it.level == 0f }
         assertEquals(
-            setOf(MusicLayer.LEAD, MusicLayer.BOOM, MusicLayer.ROLL, MusicLayer.CHOP),
-            falls
+            listOf(MusicLayer.CHOP, MusicLayer.ROLL, MusicLayer.BOOM, MusicLayer.LEAD),
+            falls.map { it.layer },
         )
+        assertTrue(falls.all { it.quantum == Quantum.BEAT && it.fadeBeats >= 1f }, "$falls")
+    }
+
+    @Test
+    fun `a streak won back while the music winds down keeps what is left`() {
+        val director = director()
+        director.fly(waveIndex = 4, combo = 25)
+        director.onPlayerHit()
+        director.fly(waveIndex = 4, combo = 1)
+        assertEquals(0f, music.level(MusicLayer.CHOP))
+
+        director.fly(waveIndex = 4, combo = 25, seconds = 1f)
+        assertEquals(MusicLayer.entries.toSet() - MusicLayer.FURY, music.playing())
     }
 
     // region the endless stage

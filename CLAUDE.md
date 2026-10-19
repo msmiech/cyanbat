@@ -576,9 +576,12 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   compared against each layer's threshold. The combo counts in rungs of the HUD's heat ladder
   (`ComboHeat.rung`), not steps of the multiplier, every rung up to SUPERNOVA, so a new title on the
   readout and a new layer land together. Under the tune the thresholds are two rungs apart, over it
-  one; fury is the boss's, or a SUPERNOVA streak's. A hit is a thud (a muffle and a dip), the
-  level-up dialog holds the music under a muffle instead of pausing it, the boss and each boss phase
-  get a one-bar drop and a slam on the downbeat. `GameScreen` feeds it at the very top of `update`,
+  one; fury is the boss's, or a SUPERNOVA streak's. A hit is a thud (a muffle and a dip), and the
+  streak it cost winds the music down a layer a beat, top first, rather than all at once. The
+  level-up dialog holds the music under a muffle instead of pausing it. The boss and each boss phase
+  get a break - the kit, the 808s and fury out, the bass, hats, tune and voices driving on, the
+  phase's shorter - and a slam on the downbeat; a fight never falls back to its bed, which sounded
+  like the fight ending at every phase. `GameScreen` feeds it at the very top of `update`,
   ahead of every early return, because the music carries on under the level-up dialog. Pause pauses
   it; the boss's death stops it dead and hands over to the victory's fanfare, and the bat's death to
   the game over's track.
@@ -600,7 +603,8 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   run with music off never reads the stems and the next stage's run does not play over this one.
 - A stage's boss can be fought to a piece of its own (`StageMusic.boss`; the lagoon's Naga): as it
   arrives the stage's music is disposed and the boss's opened, with a director of its own, which
-  holds it on its bed for a bar and slams everything in. A second boss is fought to the same piece,
+  opens it in the entrance's break, from its first note, and slams everything in on its second
+  bar (`MusicDirector`'s `bossArriving`). A second boss is fought to the same piece,
   disposed as the first falls and opened again from the top as the second's fight begins. Every layer is up for the whole fight, so
   its stems are there for the drops at its phases. `MusicStemTest` holds every piece to its grid.
   The fanfare is the same (`GameAssets.VICTORY_MUSIC`): each won run opens its own, because a track
