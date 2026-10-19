@@ -89,6 +89,14 @@ extensions.configure<ApplicationExtension> {
         }
     }
 
+    // AGP otherwise packs the dependency list into the APK's signing block, encrypted with a key
+    // only Google Play can read. F-Droid refuses an APK carrying a blob nobody else can read, and
+    // the game is not on Play.
+    dependenciesInfo {
+        includeInApk = false
+        includeInBundle = false
+    }
+
     buildFeatures {
         compose = true
     }

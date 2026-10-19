@@ -1,0 +1,26 @@
+<p>CyanBat to pikselowa strzelanka 2D z bocznym przewijaniem. Lecisz małym cyjanowym nietoperzem przez cztery etapy, każdy z własnymi falami wrogów i bossem na końcu, a potem dalej, w tryb nieskończony, który nigdy się nie kończy.</p>
+
+<p><b>Cztery etapy</b></p>
+<ul>
+<li><b>Dżungla</b>: roje os, błędne ogniki, pikujące sowy i chrząszcze za tarczami wśród zarośniętych ruin. Na końcu czeka Królowa Ciem.</li>
+<li><b>Jaskinia</b>: lot w ciemności, tylko przy świetle nietoperza. Każdy strzał oświetla sobie drogę, wszystko w świetle rzuca cień, a Caco-Chochlik potrafi zgasić własne światło.</li>
+<li><b>Pustynia</b>: lot od południa do zmroku, gdy słońce zachodzi nad wydmami, a z piasku coś wyskakuje. Po zmroku wynurza się Piaskowy Czerw.</li>
+<li><b>Laguna</b>: najtrudniejszy etap, lot od nocy do południa nad zatoką wapiennych wysp, a rekiny nadpływają od tyłu. Naga wynurza się z fosy świątyni.</li>
+</ul>
+
+<p><b>Tryb nieskończony</b> otwiera się po ukończeniu laguny: runda za rundą fal i bossów ze wszystkich etapów, z każdą falą trudniej, nad krainą tworzoną w trakcie lotu, ze szczytami, wulkanami, bagnami i mglistymi lasami, dniem i nocą, deszczem, śniegiem, popiołem i burzami.</p>
+
+<p><b>Rozwijaj się w locie.</b> Każde zestrzelenie daje doświadczenie, a każdy nowy poziom oferuje trzy ulepszenia do wyboru: strzał rozproszony albo przebijający, cięższe pociski, kule krążące wokół nietoperza, naładowany ślad, zamrażający promień, więcej zdrowia, drugie życie i więcej. Długa seria daje wyższy mnożnik punktów.</p>
+
+<p><b>Muzyka, która gra razem z tobą.</b> Muzyka każdego etapu jest miksowana na żywo z ośmiu warstw, narasta z falami i twoim combo, i cichnie, gdy pojawia się boss. Cała muzyka i wszystkie dźwięki zostały skomponowane i zsyntetyzowane w kodzie specjalnie dla gry.</p>
+
+<ul>
+<li>Trzy poziomy trudności, łatwy, normalny i trudny, oraz gwiazdki na każdym etapie za najtrudniejszy, na którym go ukończono</li>
+<li>Osiągnięcia, każde z obrazem chwili, w której je zdobyto</li>
+<li>Steruj, przeciągając nietoperza albo gałką na ekranie; klawiatury i pady też działają, z symbolami przycisków Xbox i PlayStation</li>
+<li>Rekord dla każdego etapu</li>
+<li>Po angielsku, niemiecku i polsku</li>
+<li>Bez reklam, bez śledzenia, bez kont i bez uprawnienia do internetu</li>
+</ul>
+
+<p>CyanBat to wolne oprogramowanie na licencji GPL-3.0. Ta sama gra działa też na komputerze (Windows, macOS i Linux), w przeglądarce oraz na iPhonie i iPadzie.</p>
