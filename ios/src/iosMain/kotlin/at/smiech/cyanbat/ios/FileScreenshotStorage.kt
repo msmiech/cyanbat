@@ -31,7 +31,8 @@ internal class FileScreenshotStorage(
             attributes = null,
             error = null,
         )
-        val data = png.usePinned { NSData.create(bytes = it.addressOf(0), length = png.size.toULong()) }
+        val data =
+            png.usePinned { NSData.create(bytes = it.addressOf(0), length = png.size.toULong()) }
         // Atomically: written aside and moved into place, so no half a picture is left under the
         // name.
         check(data.writeToFile("$directory/$name.png", atomically = true)) {

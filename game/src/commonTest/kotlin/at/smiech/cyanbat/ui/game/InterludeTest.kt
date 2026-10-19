@@ -18,7 +18,8 @@ import kotlin.test.assertTrue
 class InterludeTest {
 
     /** On to just past [seconds], so a sum of floats does not land a hair short of a moment. */
-    private fun Interlude.at(seconds: Float): Interlude = apply { advance(seconds - this.seconds + 1e-4f) }
+    private fun Interlude.at(seconds: Float): Interlude =
+        apply { advance(seconds - this.seconds + 1e-4f) }
 
     /** The first boss's wreck goes up with the bat still the player's, and nothing else happens yet. */
     @Test

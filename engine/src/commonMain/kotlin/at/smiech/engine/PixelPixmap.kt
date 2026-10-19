@@ -17,7 +17,12 @@ class PixelPixmap(
 
     override fun readPixels(buffer: IntArray, x: Int, y: Int, width: Int, height: Int): Boolean {
         for (row in 0 until height) {
-            pixels.copyInto(buffer, row * width, (y + row) * this.width + x, (y + row) * this.width + x + width)
+            pixels.copyInto(
+                buffer,
+                row * width,
+                (y + row) * this.width + x,
+                (y + row) * this.width + x + width
+            )
         }
         return true
     }

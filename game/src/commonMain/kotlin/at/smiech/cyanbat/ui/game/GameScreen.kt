@@ -307,7 +307,8 @@ class GameScreen(
 
     /** The endless stage's rounds, dealt one after another; null on a stage. */
     private val course: EndlessCourse? =
-        if (currentStage.endless) EndlessCourse(endlessSeed?.let { Random(it) } ?: Random.Default, difficulty) else null
+        if (currentStage.endless) EndlessCourse(endlessSeed?.let { Random(it) } ?: Random.Default,
+            difficulty) else null
 
     /**
      * The difficulty curve of what is being flown: the stage, or the endless stage's current round;
@@ -352,7 +353,12 @@ class GameScreen(
      * graphics to make it with.
      */
     private val scenery: EndlessScenery? =
-        if (currentStage.endless) game.graphics?.let { EndlessScenery(it, game.frameBufferWidth) } else null
+        if (currentStage.endless) game.graphics?.let {
+            EndlessScenery(
+                it,
+                game.frameBufferWidth
+            )
+        } else null
 
     /** The endless stage's weather, which lands on the bat and its enemies; see [WeatherSystem]. */
     private val weather: WeatherSystem? =
@@ -628,7 +634,14 @@ class GameScreen(
         // moves the land, the day and the weather on by the run's tick.
         if (backdrop is Backdrop.Endless) {
             scenery?.let {
-                world.addSystem(EndlessScenerySystem(it, backdrop.moon, game.frameBufferWidth, game.frameBufferHeight))
+                world.addSystem(
+                    EndlessScenerySystem(
+                        it,
+                        backdrop.moon,
+                        game.frameBufferWidth,
+                        game.frameBufferHeight
+                    )
+                )
             }
         }
         // The weather's far layer, behind every sprite, and so under the night's dark with them.
@@ -674,7 +687,13 @@ class GameScreen(
         world.addSystem(InvulnerabilitySystem())
         // With the height too: aimed and fanned enemy fire leaves through the top and bottom as
         // well as the sides.
-        world.addSystem(LifetimeSystem(game.frameBufferWidth, game.frameBufferHeight, ::onLeftFrame))
+        world.addSystem(
+            LifetimeSystem(
+                game.frameBufferWidth,
+                game.frameBufferHeight,
+                ::onLeftFrame
+            )
+        )
         // The jungle's and the cave's scenery strip, in a pass of its own under every other sprite:
         // drawn in one pass with the rest, it covered every halo.
         world.addSystem(RenderSystem(layers = Int.MIN_VALUE until SPRITE_LAYERS_FROM))
@@ -1814,7 +1833,8 @@ class GameScreen(
             return
         }
         // The interlude's bars slide back out as the fight begins.
-        if (letterbox > 0f) letterbox = (letterbox - deltaTime / LETTERBOX_SECONDS).coerceAtLeast(0f)
+        if (letterbox > 0f) letterbox =
+            (letterbox - deltaTime / LETTERBOX_SECONDS).coerceAtLeast(0f)
 
         // An owed level up is offered before anything moves, so the pick changes the fight the
         // player is in.
@@ -2108,7 +2128,8 @@ class GameScreen(
             playFanfare()
         }
         if (bannerTime > 0) bannerTime -= deltaTime
-        if (letterbox > 0f) letterbox = (letterbox - deltaTime / LETTERBOX_SECONDS).coerceAtLeast(0f)
+        if (letterbox > 0f) letterbox =
+            (letterbox - deltaTime / LETTERBOX_SECONDS).coerceAtLeast(0f)
 
         tickTime += deltaTime
         while (tickTime > tick) {
@@ -2230,7 +2251,13 @@ class GameScreen(
         val bat = batRect() ?: return
         poison.take()
         interlude?.bite()
-        homeSheetOf(BossKind.SKY_VIPER)?.let { factory.createVenomBurst(bat.centerX, bat.centerY, it) }
+        homeSheetOf(BossKind.SKY_VIPER)?.let {
+            factory.createVenomBurst(
+                bat.centerX,
+                bat.centerY,
+                it
+            )
+        }
         world.addComponent(batId, HitFlashComponent(VENOM_FLASH_SECONDS, VENOM_FLASH_COLOR))
         sounds.play(SoundEffect.VENOM_BITE)
         env.haptics.vibrate(HIT_VIBRATION_MILLIS)
@@ -2447,8 +2474,8 @@ class GameScreen(
     private fun onQuitButton(x: Int, y: Int): Boolean {
         val left = quitButtonLeft()
         return x >= left - QUIT_BUTTON_SLOP && x < left + QUIT_BUTTON_WIDTH + QUIT_BUTTON_SLOP &&
-            y >= QUIT_BUTTON_TOP - QUIT_BUTTON_SLOP &&
-            y < QUIT_BUTTON_TOP + QUIT_BUTTON_HEIGHT + QUIT_BUTTON_SLOP
+                y >= QUIT_BUTTON_TOP - QUIT_BUTTON_SLOP &&
+                y < QUIT_BUTTON_TOP + QUIT_BUTTON_HEIGHT + QUIT_BUTTON_SLOP
     }
 
     /** Raises [highscore] to the run's score if it beat it, and stores it. */
@@ -2742,7 +2769,7 @@ class GameScreen(
      */
     private val pauseButtonShown: Boolean
         get() = pauseButton.enabled && letterbox <= 0f &&
-            world.getComponent(batId, HealthComponent::class)?.alive == true
+                world.getComponent(batId, HealthComponent::class)?.alive == true
 
     /**
      * The pause button, where there is no Back to pause with: a dark disc ringed as the stick is,
@@ -2783,7 +2810,13 @@ class GameScreen(
         val height = (LETTERBOX_HEIGHT * t * t * (3f - 2f * t)).roundToInt()
         if (height <= 0) return
         g.drawRect(0, 0, game.frameBufferWidth, height, EngineColors.BLACK)
-        g.drawRect(0, game.frameBufferHeight - height, game.frameBufferWidth, height, EngineColors.BLACK)
+        g.drawRect(
+            0,
+            game.frameBufferHeight - height,
+            game.frameBufferWidth,
+            height,
+            EngineColors.BLACK
+        )
     }
 
     /**
@@ -2826,10 +2859,18 @@ class GameScreen(
      */
     private fun waveLabel(): String = when {
         // Between endless rounds, the wave that is coming.
-        roundBreak > 0f -> text.format(Res.string.hud_wave_endless, progression.wavesBefore + progression.bossWave + 1)
+        roundBreak > 0f -> text.format(
+            Res.string.hud_wave_endless,
+            progression.wavesBefore + progression.bossWave + 1
+        )
+
         enmGen.bossSpawned -> text[Res.string.hud_boss]
         // The endless stage has no last wave to count toward.
-        currentStage.endless -> text.format(Res.string.hud_wave_endless, enmGen.currentWave.index + 1)
+        currentStage.endless -> text.format(
+            Res.string.hud_wave_endless,
+            enmGen.currentWave.index + 1
+        )
+
         else -> text.format(Res.string.hud_wave, enmGen.currentWave.index + 1, progression.bossWave)
     }
 
@@ -2938,7 +2979,10 @@ class GameScreen(
         screenScope.cancel()
         // Earned on a frame that was never drawn, as the run was left: kept all the same, without a
         // picture.
-        if (earnedThisFrame.isNotEmpty()) env.achievements.unlockAsync(earnedThisFrame.toList(), null)
+        if (earnedThisFrame.isNotEmpty()) env.achievements.unlockAsync(
+            earnedThisFrame.toList(),
+            null
+        )
         earnedThisFrame.clear()
         // The next stage's screen opens its own music, so this one's and the fanfare must go, or
         // they would play on over it.

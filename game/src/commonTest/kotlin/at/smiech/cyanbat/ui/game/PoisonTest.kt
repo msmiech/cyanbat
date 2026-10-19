@@ -14,7 +14,8 @@ class PoisonTest {
 
     private val rows = 360
 
-    private fun Poison.run(seconds: Float) = repeat((seconds / TICK_INITIAL).toInt()) { update(TICK_INITIAL) }
+    private fun Poison.run(seconds: Float) =
+        repeat((seconds / TICK_INITIAL).toInt()) { update(TICK_INITIAL) }
 
     private fun Poison.reach(): Int = ripple(rows).maxOf { abs(it) }
 

@@ -51,11 +51,31 @@ enum class Achievement(
     val title: StringResource,
     val description: StringResource,
 ) {
-    LEVEL_10("level_10", Res.string.achievement_level_10, Res.string.achievement_level_10_description),
-    LEVEL_20("level_20", Res.string.achievement_level_20, Res.string.achievement_level_20_description),
-    LEVEL_30("level_30", Res.string.achievement_level_30, Res.string.achievement_level_30_description),
-    LEVEL_40("level_40", Res.string.achievement_level_40, Res.string.achievement_level_40_description),
-    LEVEL_50("level_50", Res.string.achievement_level_50, Res.string.achievement_level_50_description),
+    LEVEL_10(
+        "level_10",
+        Res.string.achievement_level_10,
+        Res.string.achievement_level_10_description
+    ),
+    LEVEL_20(
+        "level_20",
+        Res.string.achievement_level_20,
+        Res.string.achievement_level_20_description
+    ),
+    LEVEL_30(
+        "level_30",
+        Res.string.achievement_level_30,
+        Res.string.achievement_level_30_description
+    ),
+    LEVEL_40(
+        "level_40",
+        Res.string.achievement_level_40,
+        Res.string.achievement_level_40_description
+    ),
+    LEVEL_50(
+        "level_50",
+        Res.string.achievement_level_50,
+        Res.string.achievement_level_50_description
+    ),
     STAGE_1_EASY(
         "stage_1_easy",
         Res.string.achievement_stage_1_easy,

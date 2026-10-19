@@ -280,7 +280,8 @@ class EndlessScenery(
      * a slow noise wanders, so a drizzle builds to a downpour and clears again.
      */
     private fun level(land: Biome): Float {
-        val wander = smoothstep(0.3f, 0.8f, Noise.fbm(seconds / WEATHER_WANDER_SECONDS, seed + 900, 2))
+        val wander =
+            smoothstep(0.3f, 0.8f, Noise.fbm(seconds / WEATHER_WANDER_SECONDS, seed + 900, 2))
         return land.weatherBase + (land.weatherPeak - land.weatherBase) * wander
     }
 
@@ -348,10 +349,16 @@ class EndlessScenery(
         var color = EndlessDay.skyColor(p, height)
         val t = turned
         val tint = EngineColors.lerp(previous.skyTint, biome.skyTint, t)
-        val strength = previous.skyTintStrength + (biome.skyTintStrength - previous.skyTintStrength) * t
+        val strength =
+            previous.skyTintStrength + (biome.skyTintStrength - previous.skyTintStrength) * t
         // A land's own tint shows most by day; the night is the night everywhere.
-        color = EngineColors.lerp(color, tint, strength * (1f - 0.6f * EndlessDay.darkness(p)) * (0.4f + 0.6f * height))
-        val overcast = (if (weather == Weather.RAIN || weather == Weather.SNOW) intensity * 0.35f else 0f) + storm * 0.3f
+        color = EngineColors.lerp(
+            color,
+            tint,
+            strength * (1f - 0.6f * EndlessDay.darkness(p)) * (0.4f + 0.6f * height)
+        )
+        val overcast =
+            (if (weather == Weather.RAIN || weather == Weather.SNOW) intensity * 0.35f else 0f) + storm * 0.3f
         if (overcast > 0f) {
             val gray = EngineColors.lerp(OVERCAST_DAY, OVERCAST_NIGHT, EndlessDay.darkness(p))
             color = EngineColors.lerp(color, gray, overcast)
@@ -360,7 +367,8 @@ class EndlessScenery(
     }
 
     /** The fog's color: the haze of the hour, a little paler. */
-    fun fogColor(): Int = EngineColors.lerp(skyColor(1f), EngineColors.WHITE, 0.25f * (1f - darkness))
+    fun fogColor(): Int =
+        EngineColors.lerp(skyColor(1f), EngineColors.WHITE, 0.25f * (1f - darkness))
 
     /** Whether the land in view is over water, for a low sun's glints; 0..1. */
     val water: Float

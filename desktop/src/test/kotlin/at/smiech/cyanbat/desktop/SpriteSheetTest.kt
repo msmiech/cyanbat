@@ -91,11 +91,23 @@ class SpriteSheetTest {
             val (image, left, top) = at
             val drawn = { x: Int, y: Int -> image.getRGB(left + x, top + y) ushr 24 != 0 }
             val where = "the orb at ($left, $top)"
-            assertTrue((0 until size).none { drawn(size - 1, it) }, "$where is drawn on its last column")
-            assertTrue((0 until size).none { drawn(it, size - 1) }, "$where is drawn on its last row")
-            assertTrue((0 until size).any { y -> (0 until size).any { drawn(it, y) } }, "$where is blank")
+            assertTrue(
+                (0 until size).none { drawn(size - 1, it) },
+                "$where is drawn on its last column"
+            )
+            assertTrue(
+                (0 until size).none { drawn(it, size - 1) },
+                "$where is drawn on its last row"
+            )
+            assertTrue(
+                (0 until size).any { y -> (0 until size).any { drawn(it, y) } },
+                "$where is blank"
+            )
         }
-        assertTrue(colors.containsAll(opaqueColors(heavy, 0, heavy.width)), "a bigger orb strays out of its colors")
+        assertTrue(
+            colors.containsAll(opaqueColors(heavy, 0, heavy.width)),
+            "a bigger orb strays out of its colors"
+        )
     }
 
     /**
@@ -121,6 +133,7 @@ class SpriteSheetTest {
             }
             return columns.size
         }
+
         val widths = (0 until 8).map(::width)
 
         assertTrue(widths[4] < widths[0] / 2, "side on it is not a sliver: $widths")
@@ -307,7 +320,9 @@ class SpriteSheetTest {
         val bands = listOf(29 to 14, 34 to 17, 38 to 19)
         assertEquals(38 * 4 to 14 + 17 + 19, sizeOf("shotHeavy.png"))
         assertEquals(bands.size, MAX_SHOT_SIZE_LEVEL)
-        assertEquals(bands, (1..MAX_SHOT_SIZE_LEVEL).map { shotFrameWidth(it) to shotFrameHeight(it) })
+        assertEquals(
+            bands,
+            (1..MAX_SHOT_SIZE_LEVEL).map { shotFrameWidth(it) to shotFrameHeight(it) })
         assertEquals(listOf(0, 14, 31), (1..MAX_SHOT_SIZE_LEVEL).map { heavyShotTop(it) })
     }
 
@@ -324,7 +339,11 @@ class SpriteSheetTest {
                 (1..MAX_SHOT_SIZE_LEVEL).flatMap { level ->
                     (0 until 4).map { frame ->
                         val width = shotFrameWidth(level)
-                        Triple(heavy, frame * width, heavyShotTop(level)) to (width to shotFrameHeight(level))
+                        Triple(
+                            heavy,
+                            frame * width,
+                            heavyShotTop(level)
+                        ) to (width to shotFrameHeight(level))
                     }
                 }
         for ((at, size) in frames) {
@@ -332,9 +351,18 @@ class SpriteSheetTest {
             val (width, height) = size
             val drawn = { x: Int, y: Int -> image.getRGB(left + x, top + y) ushr 24 != 0 }
             val where = "the bolt at ($left, $top)"
-            assertTrue((0 until height).none { drawn(width - 1, it) }, "$where is drawn on its last column")
-            assertTrue((0 until width).none { drawn(it, height - 1) }, "$where is drawn on its last row")
-            assertTrue((0 until height).any { drawn(width - 2, it) }, "$where falls short of its box")
+            assertTrue(
+                (0 until height).none { drawn(width - 1, it) },
+                "$where is drawn on its last column"
+            )
+            assertTrue(
+                (0 until width).none { drawn(it, height - 1) },
+                "$where is drawn on its last row"
+            )
+            assertTrue(
+                (0 until height).any { drawn(width - 2, it) },
+                "$where falls short of its box"
+            )
         }
     }
 
@@ -344,7 +372,10 @@ class SpriteSheetTest {
         val shots = javaClass.getResourceAsStream("/shot.png")!!.use { ImageIO.read(it) }
         val heavy = javaClass.getResourceAsStream("/shotHeavy.png")!!.use { ImageIO.read(it) }
         val ramp = opaqueColors(shots, 0, 24 * 4)
-        assertTrue(ramp.containsAll(opaqueColors(heavy, 0, heavy.width)), "a bigger bolt strays out of the bat's colors")
+        assertTrue(
+            ramp.containsAll(opaqueColors(heavy, 0, heavy.width)),
+            "a bigger bolt strays out of the bat's colors"
+        )
     }
 
     /** The hit, six 21x21 frames of it, in the same fourteen colorways; see `IMPACT_FRAME_*`. */

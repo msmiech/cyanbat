@@ -63,7 +63,8 @@ class AchievementTest {
 
     @Test
     fun aStageFlownCleanEarnsWhatItWasFlownFor() {
-        val clean = Achievement.forClear(3, Difficulty.EASY, untouched = true, nothingEscaped = true)
+        val clean =
+            Achievement.forClear(3, Difficulty.EASY, untouched = true, nothingEscaped = true)
         assertEquals(
             listOf(Achievement.STAGE_3, Achievement.UNTOUCHABLE, Achievement.NOTHING_GETS_PAST),
             clean,

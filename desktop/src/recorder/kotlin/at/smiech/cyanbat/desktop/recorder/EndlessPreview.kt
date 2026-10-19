@@ -30,7 +30,9 @@ import kotlin.random.Random
  * Its one argument is where to write the picture.
  */
 fun main(args: Array<String>) {
-    val out = File(args.firstOrNull() ?: "game/src/commonMain/composeResources/drawable/stage5_preview.png")
+    val out = File(
+        args.firstOrNull() ?: "game/src/commonMain/composeResources/drawable/stage5_preview.png"
+    )
     val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
     val slices = SLICES.map { (biome, hour) -> render(game, biome, hour) }
 
@@ -39,15 +41,32 @@ fun main(args: Array<String>) {
         for (x in 0 until FRAME_BUFFER_WIDTH) {
             // Slanted cuts, so each land reads as a glimpse rather than a panel.
             val along = x + (y - FRAME_BUFFER_HEIGHT / 2f) * SLANT
-            val slice = (along / (FRAME_BUFFER_WIDTH / SLICES.size.toFloat())).toInt().coerceIn(0, SLICES.lastIndex)
+            val slice = (along / (FRAME_BUFFER_WIDTH / SLICES.size.toFloat())).toInt()
+                .coerceIn(0, SLICES.lastIndex)
             image.setRGB(x, y, slices[slice][y * FRAME_BUFFER_WIDTH + x])
         }
     }
     val graphics = image.createGraphics()
+
     // The bat, flying into it all, and something from every stage coming the other way.
-    fun sprite(sheet: String, x: Int, y: Int, frameX: Int, width: Int, height: Int, scale: Int = 1) {
+    fun sprite(
+        sheet: String,
+        x: Int,
+        y: Int,
+        frameX: Int,
+        width: Int,
+        height: Int,
+        scale: Int = 1
+    ) {
         val art = ImageIO.read(DesktopGame::class.java.getResourceAsStream("/$sheet"))
-        graphics.drawImage(art.getSubimage(frameX, 0, width, height), x, y, width * scale, height * scale, null)
+        graphics.drawImage(
+            art.getSubimage(frameX, 0, width, height),
+            x,
+            y,
+            width * scale,
+            height * scale,
+            null
+        )
     }
     sprite("cyanBat.png", 120, 158, BAT_FRAME_WIDTH, BAT_FRAME_WIDTH, BAT_HEIGHT)
     sprite("jungleEnemies.png", 300, 88, 0, ENEMY_FRAME_WIDTH, ENEMY_HEIGHT)
@@ -85,10 +104,25 @@ private const val ENEMY_HEIGHT = 29
 private fun render(game: DesktopGame, biome: Biome, hour: Float): IntArray {
     val g = game.graphics
     val start = ((hour - EndlessDay.START + 1f) % 1f) * EndlessDay.SECONDS - SETTLE_SECONDS
-    val scenery = EndlessScenery(g, FRAME_BUFFER_WIDTH, Random(biome.ordinal), seed = PREVIEW_SEED, first = biome, startSeconds = start)
+    val scenery = EndlessScenery(
+        g,
+        FRAME_BUFFER_WIDTH,
+        Random(biome.ordinal),
+        seed = PREVIEW_SEED,
+        first = biome,
+        startSeconds = start
+    )
     val world = World()
-    world.addSystem(EndlessScenerySystem(scenery, g.newPixmap("lagoonMoon.png"), FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT))
-    val weather = WeatherSystem(scenery, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, Random(biome.ordinal))
+    world.addSystem(
+        EndlessScenerySystem(
+            scenery,
+            g.newPixmap("lagoonMoon.png"),
+            FRAME_BUFFER_WIDTH,
+            FRAME_BUFFER_HEIGHT
+        )
+    )
+    val weather =
+        WeatherSystem(scenery, FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, Random(biome.ordinal))
     world.addSystem(weather)
     world.addSystem(weather.front)
     var t = 0f

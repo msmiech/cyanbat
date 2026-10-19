@@ -104,17 +104,30 @@ class Poison {
      */
     fun drawWash(g: Graphics, width: Int, height: Int) {
         val breath = 1f + POISON_BREATH * sin(TWO_PI * clock * POISON_BREATHS_PER_SECOND)
-        g.drawRect(0, 0, width, height, EngineColors.withAlpha(POISON_GREEN, strength * POISON_WASH * breath))
+        g.drawRect(
+            0,
+            0,
+            width,
+            height,
+            EngineColors.withAlpha(POISON_GREEN, strength * POISON_WASH * breath)
+        )
         for (band in 0 until POISON_EDGE_BANDS) {
             val share = 1f - band / POISON_EDGE_BANDS.toFloat()
-            val color = EngineColors.withAlpha(POISON_GREEN, strength * POISON_EDGE * share * breath)
+            val color =
+                EngineColors.withAlpha(POISON_GREEN, strength * POISON_EDGE * share * breath)
             val inset = band * POISON_EDGE_BAND
             val across = width - 2 * inset
             val down = height - 2 * inset - 2 * POISON_EDGE_BAND
             g.drawRect(inset, inset, across, POISON_EDGE_BAND, color)
             g.drawRect(inset, height - inset - POISON_EDGE_BAND, across, POISON_EDGE_BAND, color)
             g.drawRect(inset, inset + POISON_EDGE_BAND, POISON_EDGE_BAND, down, color)
-            g.drawRect(width - inset - POISON_EDGE_BAND, inset + POISON_EDGE_BAND, POISON_EDGE_BAND, down, color)
+            g.drawRect(
+                width - inset - POISON_EDGE_BAND,
+                inset + POISON_EDGE_BAND,
+                POISON_EDGE_BAND,
+                down,
+                color
+            )
         }
     }
 

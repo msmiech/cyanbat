@@ -111,7 +111,12 @@ class GameOverScreen(
                 EngineColors.CYAN,
             )
             wave?.let {
-                drawCentered(env.text.format(Res.string.game_over_wave, it), WAVE_BASELINE, 15, EngineColors.YELLOW)
+                drawCentered(
+                    env.text.format(Res.string.game_over_wave, it),
+                    WAVE_BASELINE,
+                    15,
+                    EngineColors.YELLOW
+                )
             }
         }
     }

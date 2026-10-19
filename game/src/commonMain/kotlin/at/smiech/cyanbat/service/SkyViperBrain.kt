@@ -3,6 +3,16 @@ package at.smiech.cyanbat.service
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.ecs.ShotPattern
 import at.smiech.cyanbat.ecs.Volley
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.AWAY_EXIT_HIGHEST
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.AWAY_SECONDS
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.HOVER_EDGE
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.HOVER_HIGHEST
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.HOVER_LEFTMOST
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.HOVER_LOWEST
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.STEEPEST
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.SWOOP_GATHER_SECONDS
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.SWOOP_LAUNCH
+import at.smiech.cyanbat.service.SkyViperBrain.Companion.TURN_PER_TICK
 import at.smiech.cyanbat.util.SKY_VIPER_AWAY_SECONDS
 import at.smiech.cyanbat.util.SKY_VIPER_DROP_DAMAGE
 import at.smiech.cyanbat.util.SKY_VIPER_DROP_SECONDS
@@ -361,7 +371,10 @@ class SkyViperBrain(
     /** In from the right, to cross the frame round the bat's height. */
     private fun startWeave() {
         val batY = batCenter()?.second ?: (frameHeight / 2f)
-        laneY = (batY + (random.nextFloat() * 2f - 1f) * WEAVE_JITTER).coerceIn(WEAVE_HIGHEST, frameHeight - WEAVE_LOWEST)
+        laneY = (batY + (random.nextFloat() * 2f - 1f) * WEAVE_JITTER).coerceIn(
+            WEAVE_HIGHEST,
+            frameHeight - WEAVE_LOWEST
+        )
         startX = frameWidth + FRAME
         headX = startX
         headY = laneY
@@ -420,8 +433,10 @@ class SkyViperBrain(
     /** Puts the head at time [t] along the act's curve. */
     private fun follow(t: Float) {
         val u = 1f - t
-        headX = u * u * u * curveX[0] + 3f * u * u * t * curveX[1] + 3f * u * t * t * curveX[2] + t * t * t * curveX[3]
-        headY = u * u * u * curveY[0] + 3f * u * u * t * curveY[1] + 3f * u * t * t * curveY[2] + t * t * t * curveY[3]
+        headX =
+            u * u * u * curveX[0] + 3f * u * u * t * curveX[1] + 3f * u * t * t * curveX[2] + t * t * t * curveX[3]
+        headY =
+            u * u * u * curveY[0] + 3f * u * u * t * curveY[1] + 3f * u * t * t * curveY[2] + t * t * t * curveY[3]
     }
 
     /**
@@ -436,7 +451,14 @@ class SkyViperBrain(
             } ?: 0f
 
             hypot(headX - lastX, headY - lastY) > MOVING ->
-                normalized(leftward(atan2(headY - lastY, headX - lastX) * DEGREES_PER_RADIAN) - 180f)
+                normalized(
+                    leftward(
+                        atan2(
+                            headY - lastY,
+                            headX - lastX
+                        ) * DEGREES_PER_RADIAN
+                    ) - 180f
+                )
 
             else -> current
         }
@@ -550,7 +572,14 @@ class SkyViperBrain(
     }
 
     /** A part at ([x], [y]), turned to lie along the body toward the point ahead of it. */
-    private fun placePart(id: EntityId, x: Float, y: Float, aheadX: Float, aheadY: Float, woundRow: Int) {
+    private fun placePart(
+        id: EntityId,
+        x: Float,
+        y: Float,
+        aheadX: Float,
+        aheadY: Float,
+        woundRow: Int
+    ) {
         val rotation = if (aheadX != x || aheadY != y) {
             normalized(atan2(aheadY - y, aheadX - x) * DEGREES_PER_RADIAN - 180f)
         } else {
@@ -815,7 +844,12 @@ class SkyViperBrain(
 
         /** The ring it throws where an enraged swoop was aimed. */
         private val RING =
-            Volley(ShotPattern.RADIAL, count = 12, speed = 2.1f, damageFactor = SKY_VIPER_RING_DAMAGE)
+            Volley(
+                ShotPattern.RADIAL,
+                count = 12,
+                speed = 2.1f,
+                damageFactor = SKY_VIPER_RING_DAMAGE
+            )
 
         /** The gun it is built with, which the brain loads with one chosen volley at a time. */
         val GUN = EnemyGun(TRIGGERED_INTERVAL, listOf(FAN))

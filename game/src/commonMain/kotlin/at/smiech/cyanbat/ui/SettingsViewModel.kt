@@ -4,8 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import at.smiech.cyanbat.data.AppLanguage
 import at.smiech.cyanbat.data.SettingsRepository
-import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.data.StickSensitivity
+import at.smiech.cyanbat.data.ThemeMode
 import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.data.WindowMode
 import at.smiech.engine.DisplayMode

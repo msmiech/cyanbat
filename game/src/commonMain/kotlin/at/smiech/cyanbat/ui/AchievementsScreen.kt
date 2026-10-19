@@ -101,7 +101,12 @@ fun AchievementsScreen(viewModel: MainMenuViewModel) {
     var viewing by rememberSaveable { mutableStateOf<Achievement?>(null) }
     AchievementsContent(earned, pictures, onView = { viewing = it })
     viewing?.let { achievement ->
-        pictures[achievement]?.let { PictureDialog(achievement, it, onDismiss = { viewing = null }) }
+        pictures[achievement]?.let {
+            PictureDialog(
+                achievement,
+                it,
+                onDismiss = { viewing = null })
+        }
     }
 }
 

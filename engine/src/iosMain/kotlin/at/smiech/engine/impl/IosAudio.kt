@@ -50,7 +50,7 @@ class IosAudio(
  */
 @OptIn(ExperimentalForeignApi::class)
 internal class IosSound(data: NSData) : Sound {
-    private val player: AVAudioPlayer? = AVAudioPlayer(data = data, error = null)
+    private val player: AVAudioPlayer = AVAudioPlayer(data = data, error = null)
         .also { it.prepareToPlay() }
 
     override fun play(volume: Float) {

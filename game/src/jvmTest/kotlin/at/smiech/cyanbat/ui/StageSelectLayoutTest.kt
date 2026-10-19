@@ -105,7 +105,10 @@ class StageSelectLayoutTest {
                 assertEquals(left.top, right.top, "not side by side: $cards")
                 assertEquals(left.height, right.height, "not as tall: $cards")
             }
-            assertTrue(cards[2].top >= cards[0].bottom, "the second row is not under the first: $cards")
+            assertTrue(
+                cards[2].top >= cards[0].bottom,
+                "the second row is not under the first: $cards"
+            )
         }
 
     private companion object {

@@ -13,7 +13,10 @@ class ScenePalettesTest {
     fun `every code is its own`() {
         val seen = HashSet<Int>()
         for (biome in Biome.entries) for (material in 1 until biome.materials.size) for (shade in 0 until ScenePalettes.SHADES) {
-            assertTrue(seen.add(ScenePalettes.code(biome, material, shade)), "$biome $material $shade")
+            assertTrue(
+                seen.add(ScenePalettes.code(biome, material, shade)),
+                "$biome $material $shade"
+            )
         }
         for (material in 1..ScenePalettes.ASH_DARK) for (shade in 0 until ScenePalettes.SHADES) {
             assertTrue(seen.add(ScenePalettes.cloud(material, shade)))
@@ -50,7 +53,10 @@ class ScenePalettesTest {
             if (biome.glows(material)) {
                 assertEquals(noon[code], night[code], "$biome's glowing $material")
             } else {
-                assertTrue(brightness(night[code]) < brightness(noon[code]), "$biome's $material is no darker at night")
+                assertTrue(
+                    brightness(night[code]) < brightness(noon[code]),
+                    "$biome's $material is no darker at night"
+                )
             }
         }
     }
@@ -61,8 +67,14 @@ class ScenePalettesTest {
         val evening = ScenePalettes.table(ScenePalettes.Depth.NEAR, TimeOfDay.SUNSET)
         val rock = ScenePalettes.code(Biome.PEAKS, 2, ScenePalettes.RIGHT)
         val rockLeft = ScenePalettes.code(Biome.PEAKS, 2, ScenePalettes.LEFT)
-        assertTrue(brightness(morning[rock]) > brightness(morning[rockLeft]), "the dawn comes from the right")
-        assertTrue(brightness(evening[rockLeft]) > brightness(evening[rock]), "the sun sets on the left")
+        assertTrue(
+            brightness(morning[rock]) > brightness(morning[rockLeft]),
+            "the dawn comes from the right"
+        )
+        assertTrue(
+            brightness(evening[rockLeft]) > brightness(evening[rock]),
+            "the sun sets on the left"
+        )
     }
 
     @Test
@@ -74,7 +86,8 @@ class ScenePalettesTest {
         assertTrue(distance(far[code], haze) < distance(near[code], haze))
     }
 
-    private fun brightness(color: Int): Int = ((color shr 16) and 0xFF) + ((color shr 8) and 0xFF) + (color and 0xFF)
+    private fun brightness(color: Int): Int =
+        ((color shr 16) and 0xFF) + ((color shr 8) and 0xFF) + (color and 0xFF)
 
     private fun distance(a: Int, b: Int): Int =
         listOf(16, 8, 0).sumOf { abs(((a shr it) and 0xFF) - ((b shr it) and 0xFF)) }

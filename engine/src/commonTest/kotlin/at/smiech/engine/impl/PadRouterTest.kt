@@ -151,7 +151,10 @@ class PadRouterTest {
     @Test
     fun `a pad is named by its maker or its name`() {
         assertEquals(InputMethod.PLAYSTATION_PAD, InputMethod.padOf("PS5 Controller"))
-        assertEquals(InputMethod.PLAYSTATION_PAD, InputMethod.padOf("DualSense Wireless Controller"))
+        assertEquals(
+            InputMethod.PLAYSTATION_PAD,
+            InputMethod.padOf("DualSense Wireless Controller")
+        )
         assertEquals(
             InputMethod.PLAYSTATION_PAD,
             InputMethod.padOf("Wireless Controller", InputMethod.SONY_VENDOR_ID),

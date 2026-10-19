@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 repository.
 
 CyanBat is a side-scrolling shooter that runs on Android, on iPhone and iPad, on the desktop and in
-the browser from one Kotlin Multiplatform codebase. The README covers features, controls and the release secrets; this file
-covers what you need to change the code.
+the browser from one Kotlin Multiplatform codebase. The README covers features, controls and the
+release secrets; this file covers what you need to change the code.
 
 ## Commands
 
@@ -31,9 +31,9 @@ uv run tools/generate_enemy_sprites.py                   # regenerate an asset; 
   (`iosSimulatorArm64Test`, which needs Xcode; on a Mac `build` runs it too). No Android host tests
   or instrumentation tests are configured. `:app` has plain JVM unit tests of its own
   (`app/src/test`), for its DataStore code.
-- `commonTest` does not run in the browser: the `wasmJs` test tasks are off, because they would
-  need a browser installed (Chrome, by default) and Compose's Skia runtime bundled into each
-  library's tests. `build` still compiles the shared code for Kotlin/Wasm and builds the site.
+- `commonTest` does not run in the browser: the `wasmJs` test tasks are off, because they would need
+  a browser installed (Chrome, by default) and Compose's Skia runtime bundled into each library's
+  tests. `build` still compiles the shared code for Kotlin/Wasm and builds the site.
 - The web build runs Node.js, Yarn and Binaryen, which Gradle downloads on first use from the
   repositories `settings.gradle.kts` declares for them. The Kotlin plugin would add those
   repositories to the projects itself, which `FAIL_ON_PROJECT_REPOS` refuses, so the root build
@@ -69,9 +69,9 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
 
 - Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
   engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
-- Desktop and the browser host a run the same way: a `ComposeGame`, drawn and driven by the
-  engine's `GameSurface`, which pauses the run when the player leaves the window. `DesktopGame` is
-  the desktop's, which loads its assets off the classpath and can `capture` a frame.
+- Desktop and the browser host a run the same way: a `ComposeGame`, drawn and driven by the engine's
+  `GameSurface`, which pauses the run when the player leaves the window. `DesktopGame` is the
+  desktop's, which loads its assets off the classpath and can `capture` a frame.
 - Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`. It takes the
   screen by the player's `WindowMode`: a window, full screen, or borderless (not on a Mac, whose
   full screen already is). Settings offers the modes only on the desktop (`windowModes`); phones
@@ -88,8 +88,8 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
     - So off a Mac every mode is a window of its own: `main` keys its `Window` on
       `WindowModes.windowKey`, and `WindowModes` only sets the shared `WindowState` for the mode the
       next window opens in, as the first one opens in the mode it was left in. Whatever has to
-      outlive a window lives in `main`, above it: the run (`rememberRun`), the menu's back stack
-      and view models (a window clears its own, and the main menu's disposes the menu's music), the
+      outlive a window lives in `main`, above it: the run (`rememberRun`), the menu's back stack and
+      view models (a window clears its own, and the main menu's disposes the menu's music), the
       stores and the menu's music. A switch mid-run pauses it, since the new window starts without
       focus.
     - On a Mac one window does for every mode, and only its placement changes, as the green button
@@ -117,8 +117,8 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
   from `iosApp/project.yml` and not committed; its Swift only puts the controller on screen, hiding
   the status bar and home indicator and deferring edge swipes (`GameViewController`). Its build
   phase runs `:ios:embedAndSignAppleFrameworkForXcode`, and it copies the root's `assets/` into the
-  bundle. Nothing iOS has been tried on a device yet; `docs/ios-release.md` lists what to check,
-  and how to take it to the App Store.
+  bundle. Nothing iOS has been tried on a device yet; `docs/ios-release.md` lists what to check, and
+  how to take it to the App Store.
     - The platform pieces are in `:engine`'s `iosMain`: `IosAudioDevice` is the app's one
       `AVAudioEngine` and its ambient session, restarted after a call or a route change;
       `IosLayeredMusic` feeds the `StemMixer` to a player node from a serial dispatch queue, which
@@ -127,16 +127,17 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
       (`CyanBatEnvironment.pauseButton`; see Input).
     - `AppFocus` tells `GameSurface` whether the player is at the app, from UIKit's active and
       resign-active notifications, and pauses the menu's music when they leave.
-    - The menu is padded to the safe area (`WindowInsets.safeDrawing`), over black: the shared
-      menu does not pad itself, and the Dynamic Island would sit over it in landscape.
+    - The menu is padded to the safe area (`WindowInsets.safeDrawing`), over black: the shared menu
+      does not pad itself, and the Dynamic Island would sit over it in landscape.
     - An iPhone is landscape only, as on Android; an iPad takes every orientation and any window
       size, as iPadOS 26 expects, the frame fitted with bars as in a desktop window.
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.
 - Each host builds a `CyanBatEnvironment` (assets, haptics, highscore, stage unlock and achievement
-  stores, audio settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in `:game`, backed
-  by DataStore in `:app`, `java.util.prefs` in `:desktop`, and in `:web` and `:ios` by the shared
+  stores, audio settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in
+  `:game`, backed by DataStore in `:app`, `java.util.prefs` in `:desktop`, and in `:web` and `:ios`
+  by the shared
   `KeyValueStores` over the page's local storage and the app's user defaults.
 
 **Timing.** The shared `GameLoop` clamps a frame's delta to 50 ms, so a resume cannot fast-forward
@@ -195,12 +196,12 @@ playfield for wide screens; it would change difficulty by device.
 - A stage with a second boss (`StageDesign.encore`; only the lagoon) is not won by its first. The
   first goes up as any does (`wreckBoss`), and the run plays an interlude instead (`Interlude`,
   `playInterlude`), a cutscene on the world's own ticks: the wreck's aftershocks with the bat still
-  flown; any level up the first boss bought, offered there rather than over the second's name;
-  then black bars come in (`letterbox`, which hides the HUD), the bat is taken out of the player's
-  hands to a mark (`holdBat`, input dropped rather than queued), and once the bars are in the
-  second boss comes on (`EnemyGenerator.spawnEncore`). Its brain flies its entrance and calls back
-  for the bite and for its arrival, which begins its fight partway through a frame. Nothing
-  collides in the interlude, the bat fires nothing, and the music is silent until the fight.
+  flown; any level up the first boss bought, offered there rather than over the second's name; then
+  black bars come in (`letterbox`, which hides the HUD), the bat is taken out of the player's hands
+  to a mark (`holdBat`, input dropped rather than queued), and once the bars are in the second boss
+  comes on (`EnemyGenerator.spawnEncore`). Its brain flies its entrance and calls back for the bite
+  and for its arrival, which begins its fight partway through a frame. Nothing collides in the
+  interlude, the bat fires nothing, and the music is silent until the fight.
 - Overlays read taps through `TapDetector` plus an arming delay, so the finger that was steering
   when an overlay opened does not pick something when it lifts.
 - Every way the bat is kept from harm is its `hitCooldown`: the mercy after a hit, which Second Wind
@@ -236,8 +237,8 @@ playfield for wide screens; it would change difficulty by device.
   Android sets the default back to the system's at every configuration change, so both activities
   call
   `AppLocale.reapply()` in `onConfigurationChanged`, before anything reads a string.
-- In a browser Compose reads the language off `navigator.language` and `navigator.languages`,
-  which a page cannot set. `index.html` puts a getter in front of each that answers with
+- In a browser Compose reads the language off `navigator.language` and `navigator.languages`, which
+  a page cannot set. `index.html` puts a getter in front of each that answers with
   `window.cyanbatLanguage` when it is set, and `WebLocale` sets it.
 - On iOS Compose reads it off `NSLocale.preferredLanguages`, which puts the app's own
   `AppleLanguages` first. That is where the system's Settings app keeps an app's language, so
@@ -294,13 +295,13 @@ right)
 and puffers that throw rings. A temple comes into sight on the way to the Naga: three of its bands
 switch to temple strips, and its obstacles to temple stones.
 
-The Naga is not its end, and nothing outside the run gives that away - not the stage select, not
-the README, not the recorder's reel. Once it falls, the Sky Viper, a winged coral-banded serpent,
-comes down out of the sky in the interlude (see A run), bites the bat and poisons it, and the stage
-is won when the viper falls. `SkyViperBrain` flies its entrance and its fight: passes across the
-frame from out of sight - a swoop from a hover, aimed once; a weave round the bat's height; from
-its first wound a rain of venom (`ShotPattern.DOWN`) along the top - out of sight again between
-them. Its fight is the Naga's piece again, from the top; it has no music of its own.
+The Naga is not its end, and nothing outside the run gives that away - not the stage select, not the
+README, not the recorder's reel. Once it falls, the Sky Viper, a winged coral-banded serpent, comes
+down out of the sky in the interlude (see A run), bites the bat and poisons it, and the stage is won
+when the viper falls. `SkyViperBrain` flies its entrance and its fight: passes across the frame from
+out of sight - a swoop from a hover, aimed once; a weave round the bat's height; from its first
+wound a rain of venom (`ShotPattern.DOWN`) along the top - out of sight again between them. Its
+fight is the Naga's piece again, from the top; it has no music of its own.
 
 **Poison.** The bite poisons the bat until the viper falls (`Poison`, on the run's ticks). It costs
 no health: the run's world is drawn rippling, rows shifted sideways by whole frame pixels
@@ -308,18 +309,18 @@ no health: the run's world is drawn rippling, rows shifted sideways by whole fra
 the bite goes in and for a moment after every blow. The HUD is drawn over it, clear. It lifts over
 the victory's seconds.
 
-**The endless stage** (stage 5, `ENDLESS_STAGE_ID`) opens once the lagoon is cleared and never
-ends: round after round of waves and a boss, over country made up as it scrolls, until the bat goes
-down. `Stage.endless` says which stage it is; its `Backdrop` is `Endless`, and a run of it is a
+**The endless stage** (stage 5, `ENDLESS_STAGE_ID`) opens once the lagoon is cleared and never ends:
+round after round of waves and a boss, over country made up as it scrolls, until the bat goes down.
+`Stage.endless` says which stage it is; its `Backdrop` is `Endless`, and a run of it is a
 `GameScreen` like any other, which does what differs itself.
 
 - A stage is open once unlocked or once the stage before it is cleared (`stageOpen`): a store kept
-  before the endless stage existed recorded the lagoon's clear, which unlocked nothing then. Its card
-  sits under the stages', full width, with no stars, since it cannot be cleared; its preview is
+  before the endless stage existed recorded the lagoon's clear, which unlocked nothing then. Its
+  card sits under the stages', full width, with no stars, since it cannot be cleared; its preview is
   rendered by `:desktop:renderEndlessPreview` from the scenery code itself.
 - `EndlessCourse` deals the rounds, each a `StageProgression` like a stage's: three waves of two to
-  four species from every stage, mixed afresh, then a boss from a shuffled bag of all five, never the
-  same twice running. A round's `wavesBefore` numbers its waves on through the run, and their
+  four species from every stage, mixed afresh, then a boss from a shuffled bag of all five, never
+  the same twice running. A round's `wavesBefore` numbers its waves on through the run, and their
   strength follows the number, so every wave is harder than the last; past a stage's boss wave,
   speed, bursts and blows stop growing (`StageProgression`'s caps), and health does not. Each round
   also opens `ENDLESS_DIFFICULTY_PER_ROUND` harder.
@@ -333,27 +334,28 @@ down. `Stage.endless` says which stage it is; its `Backdrop` is `Endless`, and a
   lifts as it falls. The game over screen says which wave the run reached.
 - `EndlessScenery` is the country: the biome (`Biome`, from a shuffled bag every
   `ENDLESS_BIOME_SECONDS`), a cyclic day (`EndlessDay`, every `EndlessDay.SECONDS`), the weather,
-  and four bands (`Band`) of land made a chunk at a time just out of view (`EndlessLand`). A chunk is
-  palette codes (`ScenePalettes`: a biome's material and which way it faces), turned into one picture
-  per `TimeOfDay` and crossfaded like the stages' scenery. Land is a pure function of band-x, seed and
-  biome, so chunks meet without a seam; a new biome blends into each band from its next chunk, over
+  and four bands (`Band`) of land made a chunk at a time just out of view (`EndlessLand`). A chunk
+  is palette codes (`ScenePalettes`: a biome's material and which way it faces), turned into one
+  picture per `TimeOfDay` and crossfaded like the stages' scenery. Land is a pure function of
+  band-x, seed and biome, so chunks meet without a seam; a new biome blends into each band from its
+  next chunk, over
   `EndlessLand.transition`, the near band first and the far one last. Obstacles are generated per
-  biome on each visit, in the same palettes. `EndlessScenerySystem` draws it all, first in the order,
-  and lights the obstacles as `SkySystem` does.
+  biome on each visit, in the same palettes. `EndlessScenerySystem` draws it all, first in the
+  order, and lights the obstacles as `SkySystem` does.
 - The night is dark: the stage is `lit`, and the scenery sets the `LightingSystem`'s ambient every
   tick, `DAYLIGHT` by day, storm or none (when the dark costs nothing, and a shot's colored light
   would read as a balloon in a bright land), down to `ENDLESS_NIGHT_AMBIENT` at the dead of night,
   lit up for a moment by a storm's lightning.
-- `WeatherSystem` is rain, snow, ash with embers, dust, and fireflies at night, in a far layer behind
-  every sprite and a near one (`front`) after them. Only the near one lands, on the bat and anything
-  hostile, read against the outline of the frame each shows: snow settles and piles, rain beads and
-  runs down, ash leaves soot (`WeatherMarksComponent`). A blow shakes it off (`shake`). A storm's
-  thunder (`SoundEffect.THUNDER`) comes a moment after its flash.
-- Its music is `Stage.playlist`: its own theme (`tools/generate_endless_music.py`) on the first round
-  and every third, and between them remixes of the stages' and the Naga's pieces
-  (`tools/generate_endless_remixes.py`: each score re-rendered faster, higher and over a house beat).
-  Its `MusicDirector` is `endless`: the floor rises with every wave of the run rather than across a
-  stage, and from `ENDLESS_FURY_WAVE` the heavy layer stays up.
+- `WeatherSystem` is rain, snow, ash with embers, dust, and fireflies at night, in a far layer
+  behind every sprite and a near one (`front`) after them. Only the near one lands, on the bat and
+  anything hostile, read against the outline of the frame each shows: snow settles and piles, rain
+  beads and runs down, ash leaves soot (`WeatherMarksComponent`). A blow shakes it off (`shake`). A
+  storm's thunder (`SoundEffect.THUNDER`) comes a moment after its flash.
+- Its music is `Stage.playlist`: its own theme (`tools/generate_endless_music.py`) on the first
+  round and every third, and between them remixes of the stages' and the Naga's pieces
+  (`tools/generate_endless_remixes.py`: each score re-rendered faster, higher and over a house
+  beat). Its `MusicDirector` is `endless`: the floor rises with every wave of the run rather than
+  across a stage, and from `ENDLESS_FURY_WAVE` the heavy layer stays up.
 
 **The sky's day.** A `Day` is a pure function of how far through its day the stage is -
 `Day.position`, elapsed time over the boss's arrival - and says what the sky, sun, moon and stars
@@ -477,13 +479,13 @@ swarm, or a formation's leader.
   `SpriteSheetTest` holds each colorway's body to its palette's rim.
 - `GameScreen` reads its `EliteComponent` as it dies, to pay `ELITE_SCORE_FACTOR` and
   `ELITE_EXPERIENCE_FACTOR` kills' worth; it is still one kill to the streak.
-- Shot down by the bat's weapons, it also drops a power-up (`GameScreen.dropPowerUp`): a silver
-  plus spinning on the spot, drifting with the scenery from inside the frame. It collides as
+- Shot down by the bat's weapons, it also drops a power-up (`GameScreen.dropPowerUp`): a silver plus
+  spinning on the spot, drifting with the scenery from inside the frame. It collides as
   `CollisionGroup.PICKUP`, which meets the bat and nothing else, and holds nothing: flying into it
   draws `PowerUp.roll` from what the run can still use, then and there, and takes it as a pick is
-  taken (`takePowerUp`), banner and all, with a chime of its own (`SoundEffect.POWER_UP`), but
-  with no dialog and so no grace. In the dark it is a light, at z 16 over the dark. Nothing drops
-  once the stage is won, and nothing is taken.
+  taken (`takePowerUp`), banner and all, with a chime of its own (`SoundEffect.POWER_UP`), but with
+  no dialog and so no grace. In the dark it is a light, at z 16 over the dark. Nothing drops once
+  the stage is won, and nothing is taken.
 - An aura's halo is drawn between two `RenderSystem` passes: the scenery strip (below z 0), then
   every other sprite. In one pass the strip covered every halo in the jungle and the cave.
 
@@ -499,8 +501,8 @@ rather than in the menu's view model, which Android makes again for every return
   stretches the gap between spawns (the waves' species, health and damage are unchanged, and so is
   every boss), and the bat's start, in `PlayerLoadout`: its `maxHitPoints`, `shotDamage` and
   `experienceMultiplier`, and its `startingPowerUps` (Regeneration on Normal, Regeneration and
-  Second Life on Easy, none on Hard), each applied as a pick is. Picks build on that start as
-  they would on Hard's, so a power-up held from the start is still offered if it stacks.
+  Second Life on Easy, none on Hard), each applied as a pick is. Picks build on that start as they
+  would on Hard's, so a power-up held from the start is still offered if it stacks.
 - A run keeps its difficulty: the stage complete overlay flies on to the next stage on the same, and
   Android hands it to the game activity as the `at.smiech.cyanbat.DIFFICULTY` extra, by name.
 - A won stage records its clear on the run's difficulty (`StageUnlockStore.recordClearAsync`), next
@@ -530,12 +532,12 @@ rather than in the menu's view model, which Android makes again for every return
       it goes with it. A boss part's is its boss's, or a wake the Sand Wyrm pours through would land
       once a plate.
     - `OrbitSystem` carries the orbs round the bat clockwise, evenly spaced in creation order, at
-      the loadout's `orbRadius` and `orbSecondsPerTurn`. Heavy Rounds makes the bat's shots and
-      orbs bigger as well as harder (`shotScale`, up to `MAX_SHOT_SIZE_LEVEL`) and widens the ring
-      with them; Rapid Fire turns the ring faster, and the orbs' rehit shortens in step. A bigger
-      bolt or orb is not stretched: `shotHeavy.png` and `orbHeavy.png` draw them at every size, a
-      band per size (`shotFrameWidth`, `heavyShotTop`, `orbFrameSize`, `heavyOrbTop`), and the
-      factory takes the size rather than a scale; `sizeOrb` grows the orbs already circling.
+      the loadout's `orbRadius` and `orbSecondsPerTurn`. Heavy Rounds makes the bat's shots and orbs
+      bigger as well as harder (`shotScale`, up to `MAX_SHOT_SIZE_LEVEL`) and widens the ring with
+      them; Rapid Fire turns the ring faster, and the orbs' rehit shortens in step. A bigger bolt or
+      orb is not stretched: `shotHeavy.png` and `orbHeavy.png` draw them at every size, a band per
+      size (`shotFrameWidth`, `heavyShotTop`, `orbFrameSize`, `heavyOrbTop`), and the factory takes
+      the size rather than a scale; `sizeOrb` grows the orbs already circling.
     - `FrostBeamSystem` freezes ordinary enemies only - never a boss, a part of one or an elite
       (`GameScreen.canFreeze`). A freeze is `FrostSystem` holding the enemy's `PaceComponent` at
       zero, drifting it with the scenery and washing it blue (`TintComponent`, which `RenderSystem`
@@ -549,20 +551,21 @@ screen's Achievements opens them (`AchievementsScreen`): one column of cards tha
 down, a card's picture opening full size.
 
 - A run earns them as they happen (`GameScreen.earn`): a level reached on every award of experience,
-  a stage's clear in `completeStage` (`Achievement.forClear`, where the jungle on Hard earns its Easy
-  and Normal too), a power-up maxed in `takePowerUp`, the first fall as the bat dies. Untouchable is
-  no hit landing on the bat all stage (`batHit`, set where a hit starts its mercy); nothing getting
-  past is no enemy culled out of the frame alive (`LifetimeSystem`'s `onLeave`, `onLeftFrame`), not
-  counting one culled past the right edge on its way in.
+  a stage's clear in `completeStage` (`Achievement.forClear`, where the jungle on Hard earns its
+  Easy and Normal too), a power-up maxed in `takePowerUp`, the first fall as the bat dies.
+  Untouchable is no hit landing on the bat all stage (`batHit`, set where a hit starts its mercy);
+  nothing getting past is no enemy culled out of the frame alive (`LifetimeSystem`'s `onLeave`,
+  `onLeftFrame`), not counting one culled past the right edge on its way in.
 - They are earned partway through a tick, and the frame presented after it is their picture:
-  `keepAchievements`, last in `present`, takes it with `Graphics.capture` (`ComposeGraphics` draws the
-  recording into a bitmap of its own at frame size, as `drawInto` does for the recorder) and hands the
+  `keepAchievements`, last in `present`, takes it with `Graphics.capture` (`ComposeGraphics` draws
+  the recording into a bitmap of its own at frame size, as `drawInto` does for the recorder) and
+  hands the
   `FrameCapture` to the store. The notice along the bottom of the frame is drawn after it, so it is
   not in the picture. A run left before its frame was drawn keeps them without one.
 - The store makes the PNG (`FrameCapture.encodePng`: Android's `Bitmap.compress`, Skia's encoder
-  elsewhere) off the game's thread. A picture is 25 to 50 KB. Achievements earned together share one,
-  kept once under the first one's key; each achievement's value is its picture's name, empty for
-  none, and one already earned keeps its first. `KeyValueAchievementStore` keeps them on the
+  elsewhere) off the game's thread. A picture is 25 to 50 KB. Achievements earned together share
+  one, kept once under the first one's key; each achievement's value is its picture's name, empty
+  for none, and one already earned keeps its first. `KeyValueAchievementStore` keeps them on the
   desktop (the preferences, and files in `gameDataDirectory`), in a browser (local storage, the
   pictures as Base64) and on iOS (the user defaults, and files in Application Support);
   `DataStoreAchievementStore` on Android (files in `filesDir/achievements`).
@@ -584,10 +587,10 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   level-up dialog holds the music under a muffle instead of pausing it. The boss and each boss phase
   get a break - the kit, the 808s and fury out, the bass, hats, tune and voices driving on, the
   phase's shorter - and a slam on the downbeat; a fight never falls back to its bed, which sounded
-  like the fight ending at every phase. `GameScreen` feeds it at the very top of `update`,
-  ahead of every early return, because the music carries on under the level-up dialog. Pause pauses
-  it; the boss's death stops it dead and hands over to the victory's fanfare, and the bat's death to
-  the game over's track.
+  like the fight ending at every phase. `GameScreen` feeds it at the very top of `update`, ahead of
+  every early return, because the music carries on under the level-up dialog. Pause pauses it; the
+  boss's death stops it dead and hands over to the victory's fanfare, and the bat's death to the
+  game over's track.
 - `StemMixer` (`:engine`, common) decodes the stems as it mixes and lands every change on the
   music's grid (`MusicGrid`, `Quantum`): a layer coming in is all the way up on the beat, one going
   out plays out its beat first. It also runs the muffle, a swept low-pass.
@@ -614,12 +617,12 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   run with music off never reads the stems and the next stage's run does not play over this one.
 - A stage's boss can be fought to a piece of its own (`StageMusic.boss`; the lagoon's Naga): as it
   arrives the stage's music is disposed and the boss's opened, with a director of its own, which
-  opens it in the entrance's break, from its first note, and slams everything in on its second
-  bar (`MusicDirector`'s `bossArriving`). A second boss is fought to the same piece,
-  disposed as the first falls and opened again from the top as the second's fight begins. Every layer is up for the whole fight, so
-  its stems are there for the drops at its phases. `MusicStemTest` holds every piece to its grid.
-  The fanfare is the same (`GameAssets.VICTORY_MUSIC`): each won run opens its own, because a track
-  paused partway resumes from there, and a fanfare has to start from the top.
+  opens it in the entrance's break, from its first note, and slams everything in on its second bar
+  (`MusicDirector`'s `bossArriving`). A second boss is fought to the same piece, disposed as the
+  first falls and opened again from the top as the second's fight begins. Every layer is up for the
+  whole fight, so its stems are there for the drops at its phases. `MusicStemTest` holds every piece
+  to its grid. The fanfare is the same (`GameAssets.VICTORY_MUSIC`): each won run opens its own,
+  because a track paused partway resumes from there, and a fanfare has to start from the top.
 - The grid is declared twice, in the stage's generator and in its `StageMusic` in `GameAssets`.
   `MusicStemTest` holds them together: every stem whole bars at the declared tempo, and every stem's
   length dividing the longest, so the layers stay in step however long the run goes. It reads every
@@ -629,11 +632,11 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
 
 - `PointerTouchHandler` handles touch. On desktop, mouse motion counts as a drag.
 - A finger flies the bat one of two ways, the player's `TouchSteering`: dragging it, or a stick
-  (`VirtualStick`, which `PlayerInputSystem` reads as a pad's stick). The stick is not there until
-  a thumb is: wherever the first finger goes down becomes its center, `GameScreen.drawStick` draws
-  it in the HUD only while it is held, and lifting the thumb takes it away. Its radius, which the
-  thumb travels most of for full speed, is the player's `StickSensitivity`. With the stick on,
-  nothing drags the bat, and keys and pads still beat it. The stick reads its thumb's place off
+  (`VirtualStick`, which `PlayerInputSystem` reads as a pad's stick). The stick is not there until a
+  thumb is: wherever the first finger goes down becomes its center, `GameScreen.drawStick` draws it
+  in the HUD only while it is held, and lifting the thumb takes it away. Its radius, which the thumb
+  travels most of for full speed, is the player's `StickSensitivity`. With the stick on, nothing
+  drags the bat, and keys and pads still beat it. The stick reads its thumb's place off
   `Input.getTouchX` rather than the events, which an overlay may have read meanwhile. A run reads
   both settings every update, through `SteeringSettings` in its environment, as it reads the
   sound's.
@@ -657,27 +660,27 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   whatever window is in front. SDL 3 rather than Jamepad's SDL 2, whose Windows build has no HIDAPI
   drivers, without which a DualSense cannot rumble. The build takes LWJGL's natives for the system
   it runs on (`lwjglNatives`), as Compose's `currentOs` does Skia's, and LWJGL is told to reach
-  native memory through FFM rather than `sun.misc.Unsafe`, which Java 25 warns of. Every
-  connected pad counts, merged. `PadRouter` turns each poll into the run's controls, or in the menu,
-  which reads nothing but keys, into the keys a keyboard would press: arrows that repeat while
-  held, Enter and Escape, dispatched to the window as AWT events (`PadKeyEvent`). Whatever is held
-  as the run and the menu hand over stays with the side it was pressed on. The browser does not
-  read pads yet, and iOS has not been given them.
+  native memory through FFM rather than `sun.misc.Unsafe`, which Java 25 warns of. Every connected
+  pad counts, merged. `PadRouter` turns each poll into the run's controls, or in the menu, which
+  reads nothing but keys, into the keys a keyboard would press: arrows that repeat while held, Enter
+  and Escape, dispatched to the window as AWT events (`PadKeyEvent`). Whatever is held as the run
+  and the menu hand over stays with the side it was pressed on. The browser does not read pads yet,
+  and iOS has not been given them.
 - The prompts follow what the player last played with, `Controls.inputMethod`: touch, keyboard and
   mouse, an Xbox pad or a PlayStation pad, told apart by maker or name (`InputMethod.padOf`). Every
   adapter reports what it was fed (`ControlHandler.use`; a mouse or a touch through
   `onComposePointerUse`), and it is snapshot state, so the menu's help follows it as the run's
   overlays do. Touch keeps the overlays' sentences; the others draw the buttons beside short words
   (`ButtonPrompts`): key caps and a mouse, an Xbox pad's colored letters, a PlayStation pad's
-  shapes, as pixel art, since not every font has the shapes. On Android the menu hands its method
-  to the run (`EXTRA_INPUT_METHOD`), so a run started with a pad prompts for it from the start.
+  shapes, as pixel art, since not every font has the shapes. On Android the menu hands its method to
+  the run (`EXTRA_INPUT_METHOD`), so a run started with a pad prompts for it from the start.
 - Android's Back arrives as `GameButton.BACK` from the back-pressed dispatcher, because gesture
   navigation raises no key event.
-- iOS has no Back, so a run there draws a pause button at the top right (`TouchButton`, on where
-  the host sets `CyanBatEnvironment.pauseButton`), and the pause screen a Quit button where the
-  others say how to quit. `PlayerInputSystem` feeds the run's buttons first: a finger put down on
-  one is the button's until it lifts, and neither drags the bat nor takes the stick. Only a finger
-  put down on it presses it, so a steering finger sliding into the corner does not pause.
+- iOS has no Back, so a run there draws a pause button at the top right (`TouchButton`, on where the
+  host sets `CyanBatEnvironment.pauseButton`), and the pause screen a Quit button where the others
+  say how to quit. `PlayerInputSystem` feeds the run's buttons first: a finger put down on one is
+  the button's until it lifts, and neither drags the bat nor takes the stick. Only a finger put down
+  on it presses it, so a steering finger sliding into the corner does not pause.
 - The back *gesture* starts as a touch on the game, which the system cancels once it claims the
   swipe. The cancel reaches the game as a `TOUCH_UP` marked `canceled` (Compose's made-up release,
   already consumed; see `ComposePointerAdapter`), and `TapDetector` never counts one as a tap: read
@@ -745,10 +748,10 @@ browser and on iOS. There is no framebuffer bitmap.
 - The desktop decodes assets with Skia and marks them immutable (`DesktopGame.loadImage`). Compose's
   desktop canvas wraps a bitmap in a new Skia image every time it draws it, and copies one that
   could still change: the desert's ground was a copy of its whole sheet for every strip.
-- A picture can be made from pixels as the game runs (`Graphics.newPixmap(width, height, pixels)`), as
-  the endless stage's land is. Each host hands `ComposeGraphics` its platform's own way of wrapping
-  pixels in an immutable bitmap (`makeImage`); without one, `paintImage` paints them in run by run on
-  the CPU, and a test double keeps them as a `PixelPixmap`.
+- A picture can be made from pixels as the game runs (`Graphics.newPixmap(width, height, pixels)`),
+  as the endless stage's land is. Each host hands `ComposeGraphics` its platform's own way of
+  wrapping pixels in an immutable bitmap (`makeImage`); without one, `paintImage` paints them in run
+  by run on the CPU, and a test double keeps them as a `PixelPixmap`.
 - A new `Graphics` primitive needs a default implementation or a `ComposeGraphics` override, and the
   test fakes need updating.
 
@@ -777,8 +780,8 @@ browser and on iOS. There is no framebuffer bitmap.
   middle layers, on a full-range speaker and through a phone's.
 - The launcher icon is adaptive: `mipmap-anydpi/ic_launcher.xml` over three vector layers in
   `app/src/main/res/drawable`, which redraw the pixel art crisply at any size a launcher picks.
-- The iOS app's icon is one opaque 1024px PNG in `iosApp/CyanBat/Assets.xcassets`, which iOS
-  masks and scales itself.
+- The iOS app's icon is one opaque 1024px PNG in `iosApp/CyanBat/Assets.xcassets`, which iOS masks
+  and scales itself.
 - The desktop installers take `desktop/icons/cyanbat.{icns,ico,png}` through `nativeDistributions`.
   The window hands the OS every size in `desktop/src/main/resources/icons` itself (`WindowIcon`),
   because Compose's `icon` parameter renders one image and Windows shrinks it into noise.
@@ -793,8 +796,8 @@ kept as they were drawn, which `generate_title.py` and `generate_game_over.py` m
 
 - To change art, change the script and re-run it; never edit its output, the icons' vector XML
   included.
-- The endless stage's land, its obstacles and its card are the exception: generated by the game's own
-  code (`EndlessLand`), at run time, and the card by `:desktop:renderEndlessPreview`.
+- The endless stage's land, its obstacles and its card are the exception: generated by the game's
+  own code (`EndlessLand`), at run time, and the card by `:desktop:renderEndlessPreview`.
 - The scripts are deterministic: re-running an unchanged one must reproduce the committed file byte
   for byte.
 - `SpriteSheetTest` pins each sheet's dimensions and color ceiling.
@@ -831,8 +834,8 @@ kept as they were drawn, which `generate_title.py` and `generate_game_over.py` m
 - The endless stage is never in the reel; it has no `STAGE_COVERAGE`.
 - `RunProbe` reads a handful of `GameScreen`'s private fields by reflection (`world`, `batId`,
   `offer`, `stageComplete`, `progress`, `loadout`, `scoring`, `bannerText`, `bannerTime`,
-  `interlude`, `poison`).
-  Renaming one still compiles; `RunProbeTest`, which flies a few seconds of the cave, is what fails.
+  `interlude`, `poison`). Renaming one still compiles; `RunProbeTest`, which flies a few seconds of
+  the cave, is what fails.
 - The same hosting tests `GameScreen` itself: `GameScreenTest` builds a run on a `DesktopGame`, sets
   up a moment through `RunProbe` and the public `enmGen`, and steps it with `update`.
 
@@ -865,11 +868,11 @@ kept as they were drawn, which `generate_title.py` and `generate_game_over.py` m
       derives `versionCode` as `major * 10000 + minor * 100 + patch`.
     - Pushing a bare tag (`git tag 2.4 && git push origin 2.4`) makes the Release workflow build and
       publish the APK, the desktop installers and an unsigned iOS `.ipa` for sideloading
-      (`iosApp/build_ipa.sh`). A `-rcN` suffix publishes a pre-release. Running
-      the workflow by hand is a rehearsal that publishes nothing.
+      (`iosApp/build_ipa.sh`). A `-rcN` suffix publishes a pre-release. Running the workflow by hand
+      is a rehearsal that publishes nothing.
     - Keep `cyanbat.version` in step with the newest tag, through a `chore/bump-version-X.Y` PR
       titled "Stamp untagged builds X.Y". The same PR bumps the iOS app's `MARKETING_VERSION` and
       `CURRENT_PROJECT_VERSION` in `iosApp/Configuration/Config.xcconfig`.
-    - The iOS app goes to the App Store from a Mac, by `iosApp/archive.sh X.Y` on the tagged
-      commit, not from the Release workflow, whose `.ipa` is unsigned; see `docs/ios-release.md`.
-      Both scripts take the version from the tag through `iosApp/versions.sh`.
+    - The iOS app goes to the App Store from a Mac, by `iosApp/archive.sh X.Y` on the tagged commit,
+      not from the Release workflow, whose `.ipa` is unsigned; see `docs/ios-release.md`. Both
+      scripts take the version from the tag through `iosApp/versions.sh`.

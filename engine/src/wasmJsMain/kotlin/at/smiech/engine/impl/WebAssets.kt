@@ -2,9 +2,9 @@ package at.smiech.engine.impl
 
 import kotlinx.browser.window
 import kotlinx.coroutines.async
+import kotlinx.coroutines.await
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
-import kotlinx.coroutines.await
 import org.khronos.webgl.ArrayBuffer
 import org.khronos.webgl.Int8Array
 import org.khronos.webgl.toByteArray

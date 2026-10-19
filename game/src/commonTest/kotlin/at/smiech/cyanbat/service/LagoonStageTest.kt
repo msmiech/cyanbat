@@ -178,8 +178,14 @@ class LagoonStageTest {
     fun `the Sky Viper hits as hard as the Naga for well under its length`() {
         val viper = lagoon.encoreWave()
         val naga = lagoon.bossWave()
-        assertTrue(viper.hitPoints < naga.hitPoints * 2 / 3, "the viper's ${viper.hitPoints} against the Naga's ${naga.hitPoints}")
-        assertTrue(viper.hitPoints > StageProgression.forStage(3).bossWave().hitPoints, "the viper is easier than the desert's boss")
+        assertTrue(
+            viper.hitPoints < naga.hitPoints * 2 / 3,
+            "the viper's ${viper.hitPoints} against the Naga's ${naga.hitPoints}"
+        )
+        assertTrue(
+            viper.hitPoints > StageProgression.forStage(3).bossWave().hitPoints,
+            "the viper is easier than the desert's boss"
+        )
         assertEquals(naga.damage, viper.damage)
     }
 

@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.scenery
 
 import at.smiech.cyanbat.scenery.EndlessDay.TimeOfDay
+import at.smiech.cyanbat.scenery.ScenePalettes.code
 import at.smiech.engine.EngineColors
 import kotlin.math.max
 import kotlin.math.roundToInt
@@ -45,8 +46,9 @@ internal object ScenePalettes {
     const val STORM_DARK = 5
     const val ASH_CLOUD = 6
     const val ASH_DARK = 7
-    private val CLOUD_COLORS = intArrayOf(0, 0xF4F6FA, 0xDCE2EC, 0xA8B2C8, 0x707884, 0x4E5664, 0x4A403E, 0x302826)
-        .map { if (it == 0) 0 else it or OPAQUE }.toIntArray()
+    private val CLOUD_COLORS =
+        intArrayOf(0, 0xF4F6FA, 0xDCE2EC, 0xA8B2C8, 0x707884, 0x4E5664, 0x4A403E, 0x302826)
+            .map { if (it == 0) 0 else it or OPAQUE }.toIntArray()
 
     /** How far off a band is, and so how much of it fades into the haze. */
     enum class Depth(val haze: Float) {
@@ -106,10 +108,33 @@ internal object ScenePalettes {
      * [base], a material's color at noon, as it looks facing [shade] in [time]'s light, faded
      * [haze] of the way into [hazeColor].
      */
-    private fun color(base: Int, glows: Boolean, shade: Int, time: TimeOfDay, haze: Float, hazeColor: Int): Int {
+    private fun color(
+        base: Int,
+        glows: Boolean,
+        shade: Int,
+        time: TimeOfDay,
+        haze: Float,
+        hazeColor: Int
+    ): Int {
         if (glows) return EngineColors.lerp(base, hazeColor, haze * 0.35f)
-        val r = channel(base shr 16, time.light shr 16, time.ambient shr 16, NOON.light shr 16, NOON.ambient shr 16, shade, time)
-        val g = channel(base shr 8, time.light shr 8, time.ambient shr 8, NOON.light shr 8, NOON.ambient shr 8, shade, time)
+        val r = channel(
+            base shr 16,
+            time.light shr 16,
+            time.ambient shr 16,
+            NOON.light shr 16,
+            NOON.ambient shr 16,
+            shade,
+            time
+        )
+        val g = channel(
+            base shr 8,
+            time.light shr 8,
+            time.ambient shr 8,
+            NOON.light shr 8,
+            NOON.ambient shr 8,
+            shade,
+            time
+        )
         val b = channel(base, time.light, time.ambient, NOON.light, NOON.ambient, shade, time)
         val lit = OPAQUE or (r shl 16) or (g shl 8) or b
         return EngineColors.lerp(lit, hazeColor, haze.coerceIn(0f, 1f))
@@ -127,11 +152,25 @@ internal object ScenePalettes {
     }
 
     private fun channel(
-        base: Int, light: Int, ambient: Int, noonLight: Int, noonAmbient: Int, shade: Int, time: TimeOfDay,
+        base: Int,
+        light: Int,
+        ambient: Int,
+        noonLight: Int,
+        noonAmbient: Int,
+        shade: Int,
+        time: TimeOfDay,
     ): Int {
         val shadow = if (shade == DEEP) DEEP_SHADOW else 1f
-        val lit = (ambient and 0xFF) / 255f * AMBIENT_SHARE * shadow + (light and 0xFF) / 255f * direct(shade, time) * DIRECT_SHARE
-        val noon = (noonAmbient and 0xFF) / 255f * AMBIENT_SHARE + (noonLight and 0xFF) / 255f * direct(BODY, NOON) * DIRECT_SHARE
+        val lit =
+            (ambient and 0xFF) / 255f * AMBIENT_SHARE * shadow + (light and 0xFF) / 255f * direct(
+                shade,
+                time
+            ) * DIRECT_SHARE
+        val noon =
+            (noonAmbient and 0xFF) / 255f * AMBIENT_SHARE + (noonLight and 0xFF) / 255f * direct(
+                BODY,
+                NOON
+            ) * DIRECT_SHARE
         return ((base and 0xFF) * lit / noon).roundToInt().coerceIn(0, 255)
     }
 

@@ -474,13 +474,20 @@ class ComposeGraphicsTest {
 
         for ((x, y) in small.pixels()) {
             val offset = offsets.getOrElse(y) { 0 }
-            assertEquals(plain[(x - offset).mod(64), y], small[x, y], "pixel ($x, $y), shifted $offset")
+            assertEquals(
+                plain[(x - offset).mod(64), y],
+                small[x, y],
+                "pixel ($x, $y), shifted $offset"
+            )
         }
         val large = warped.render(3f)
         for (y in 0 until large.height) for (x in 0 until large.width) {
             val block = large[x - x % 3, y - y % 3]
             assertEquals(block, large[x, y], "view pixel ($x, $y) is not its block's color")
-            assertTrue(near(block, small[x / 3, y / 3]), "view pixel ($x, $y) against its frame pixel")
+            assertTrue(
+                near(block, small[x / 3, y / 3]),
+                "view pixel ($x, $y) against its frame pixel"
+            )
         }
     }
 

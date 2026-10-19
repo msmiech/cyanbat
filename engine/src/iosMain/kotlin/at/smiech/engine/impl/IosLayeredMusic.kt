@@ -54,7 +54,12 @@ class IosLayeredMusic(
 
     init {
         repeat(CHUNKS) {
-            free.addLast(AVAudioPCMBuffer(pCMFormat = format, frameCapacity = CHUNK_FRAMES.toUInt()))
+            free.addLast(
+                AVAudioPCMBuffer(
+                    pCMFormat = format,
+                    frameCapacity = CHUNK_FRAMES.toUInt()
+                )
+            )
         }
         device.attach(this, player, format)
     }

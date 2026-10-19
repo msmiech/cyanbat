@@ -102,14 +102,21 @@ internal object EndlessLand {
 
         /** How far into its stretch's blend [x] is, 0 at its start, 1 once the blend is done. */
         private fun amount(x: Int, index: Int): Float =
-            if (index == 0) 1f else smoothstep(0f, width.toFloat(), (x - stretches[index].from).toFloat())
+            if (index == 0) 1f else smoothstep(
+                0f,
+                width.toFloat(),
+                (x - stretches[index].from).toFloat()
+            )
 
         fun biomeAt(x: Int): Biome {
             val index = stretchAt(x)
             val amount = amount(x, index)
             if (amount >= 1f || index == 0) return stretches[index].biome
             // A ragged edge, so the new land creeps in in clumps of columns rather than along a line.
-            val edge = 0.1f + 0.8f * (0.55f * Noise.value(x / 6f, seed + 77) + 0.45f * Noise.unit(x / 2, seed + 78))
+            val edge = 0.1f + 0.8f * (0.55f * Noise.value(x / 6f, seed + 77) + 0.45f * Noise.unit(
+                x / 2,
+                seed + 78
+            ))
             return if (amount > edge) stretches[index].biome else stretches[index - 1].biome
         }
 
@@ -130,7 +137,8 @@ internal object EndlessLand {
             val set = LinkedHashSet<Biome>()
             for (i in stretches.indices) {
                 val start = if (i == 0) Int.MIN_VALUE else stretches[i].from
-                val end = if (i + 1 < stretches.size) stretches[i + 1].from + width else Int.MAX_VALUE
+                val end =
+                    if (i + 1 < stretches.size) stretches[i + 1].from + width else Int.MAX_VALUE
                 if (end >= from && start <= to) set += stretches[i].biome
             }
             return set
@@ -184,16 +192,33 @@ internal object EndlessLand {
             val span = 36f + Noise.unit(c, seed + 504) * (60f + 50f * cover.cloudiness)
             val tall = 12f + Noise.unit(c, seed + 505) * (12f + 14f * cover.storm)
             val (light, body, shade) = when {
-                cover.ash > Noise.unit(c, seed + 506) -> Triple(ScenePalettes.ASH_CLOUD, ScenePalettes.ASH_CLOUD, ScenePalettes.ASH_DARK)
-                cover.storm > Noise.unit(c, seed + 507) -> Triple(ScenePalettes.STORM, ScenePalettes.STORM, ScenePalettes.STORM_DARK)
-                else -> Triple(ScenePalettes.CLOUD_LIGHT, ScenePalettes.CLOUD, ScenePalettes.CLOUD_SHADE)
+                cover.ash > Noise.unit(c, seed + 506) -> Triple(
+                    ScenePalettes.ASH_CLOUD,
+                    ScenePalettes.ASH_CLOUD,
+                    ScenePalettes.ASH_DARK
+                )
+
+                cover.storm > Noise.unit(c, seed + 507) -> Triple(
+                    ScenePalettes.STORM,
+                    ScenePalettes.STORM,
+                    ScenePalettes.STORM_DARK
+                )
+
+                else -> Triple(
+                    ScenePalettes.CLOUD_LIGHT,
+                    ScenePalettes.CLOUD,
+                    ScenePalettes.CLOUD_SHADE
+                )
             }
             val puffs = 3 + (Noise.unit(c, seed + 508) * 3).toInt()
             for (i in 0 until puffs) {
                 val along = if (puffs == 1) 0.5f else i / (puffs - 1f)
                 val px = cx - span / 2f + span * along
                 // The middle puffs stand tallest, so the cloud has a crown.
-                val rise = tall * (0.55f + 0.45f * sin(along * PI_F)) * (0.75f + 0.5f * Noise.unit(c * 7 + i, seed + 509))
+                val rise = tall * (0.55f + 0.45f * sin(along * PI_F)) * (0.75f + 0.5f * Noise.unit(
+                    c * 7 + i,
+                    seed + 509
+                ))
                 val rx = span / puffs * 0.9f + rise * 0.4f
                 p.ellipse(px, bottom - rise * 0.5f, rx, rise) { dx, dy ->
                     // Flat across the bottom, as a cloud is.
@@ -286,19 +311,35 @@ private abstract class Land(val biome: Biome) {
         for (y in surface until bottom) {
             val depth = y - surface
             // Ripples: short bright dashes across the water, sparser the deeper they lie.
-            val ripple = depth > 1 && depth % 4 == 1 && Noise.unit(x / 5, y, seed + 31) < 0.22f - depth * 0.004f
+            val ripple = depth > 1 && depth % 4 == 1 && Noise.unit(
+                x / 5,
+                y,
+                seed + 31
+            ) < 0.22f - depth * 0.004f
             val (material, shade) = when {
                 depth == 0 -> liquidTop to TOP
                 ripple -> liquidTop to BODY
                 depth < 6 -> liquidBody to BODY
                 else -> liquidBody to DEEP
             }
-            p.set(x, y, code(if (depth > 14 && !ripple && liquidDeep != 0) liquidDeep else material, shade))
+            p.set(
+                x,
+                y,
+                code(if (depth > 14 && !ripple && liquidDeep != 0) liquidDeep else material, shade)
+            )
         }
     }
 
     /** Every cell of [size] whose anchor could reach into [p], with its index and anchor x. */
-    inline fun cells(p: LandPainter, size: Int, reach: Int, salt: Int, seed: Int, chance: Float, each: (cell: Int, x: Int) -> Unit) {
+    inline fun cells(
+        p: LandPainter,
+        size: Int,
+        reach: Int,
+        salt: Int,
+        seed: Int,
+        chance: Float,
+        each: (cell: Int, x: Int) -> Unit
+    ) {
         val first = floor((p.left - reach).toFloat() / size).toInt()
         val last = floor((p.left + p.width + reach).toFloat() / size).toInt()
         for (cell in first..last) {
@@ -317,7 +358,16 @@ private abstract class Land(val biome: Biome) {
     // --- what stands on the ground -----------------------------------------------------------------
 
     /** A conifer [tall] pixels high on [baseY], in tiers, its edges catching the light. */
-    fun pine(p: LandPainter, cx: Int, baseY: Float, tall: Float, dark: Int, mid: Int, trunk: Int, snow: Int = 0) {
+    fun pine(
+        p: LandPainter,
+        cx: Int,
+        baseY: Float,
+        tall: Float,
+        dark: Int,
+        mid: Int,
+        trunk: Int,
+        snow: Int = 0
+    ) {
         val trunkRows = (tall * 0.12f).roundToInt().coerceAtLeast(1)
         for (y in 0 until trunkRows) p.set(cx, (baseY - y).roundToInt(), code(trunk, DEEP))
         val crownBottom = baseY - trunkRows
@@ -352,9 +402,22 @@ private abstract class Land(val biome: Biome) {
     }
 
     /** A round mass of leaves at [cx], [cy], speckled darker, lit on the side it turns to. */
-    fun crown(p: LandPainter, cx: Float, cy: Float, rx: Float, ry: Float, leaf: Int, dark: Int, seed: Int) {
+    fun crown(
+        p: LandPainter,
+        cx: Float,
+        cy: Float,
+        rx: Float,
+        ry: Float,
+        leaf: Int,
+        dark: Int,
+        seed: Int
+    ) {
         p.ellipse(cx, cy, rx, ry) { dx, dy ->
-            val speckle = Noise.unit(((cx + dx * rx) / 2f).toInt(), ((cy + dy * ry) / 2f).toInt(), seed + 91) < 0.22f
+            val speckle = Noise.unit(
+                ((cx + dx * rx) / 2f).toInt(),
+                ((cy + dy * ry) / 2f).toInt(),
+                seed + 91
+            ) < 0.22f
             code(if (speckle && dy > -0.6f) dark else leaf, LandPainter.roundShade(dx, dy))
         }
     }
@@ -364,12 +427,24 @@ private abstract class Land(val biome: Biome) {
         val half = width / 2f
         for (x in (cx - half).roundToInt() until (cx - half).roundToInt() + width) {
             val dx = (x + 0.5f - cx) / half.coerceAtLeast(0.5f)
-            for (y in y0.roundToInt()..y1.roundToInt()) p.set(x, y, code(material, LandPainter.sideShade(dx)))
+            for (y in y0.roundToInt()..y1.roundToInt()) p.set(
+                x,
+                y,
+                code(material, LandPainter.sideShade(dx))
+            )
         }
     }
 
     /** A rock half sunk in the ground at [cx], its top catching the light. */
-    fun rock(p: LandPainter, cx: Float, baseY: Float, rx: Float, ry: Float, stone: Int, cap: Int = 0) {
+    fun rock(
+        p: LandPainter,
+        cx: Float,
+        baseY: Float,
+        rx: Float,
+        ry: Float,
+        stone: Int,
+        cap: Int = 0
+    ) {
         p.ellipse(cx, baseY, rx, ry) { dx, dy ->
             if (dy > 0.4f) return@ellipse 0
             val material = if (cap != 0 && dy < -0.55f) cap else stone
@@ -378,14 +453,29 @@ private abstract class Land(val biome: Biome) {
     }
 
     /** Fronds fanning up from [cx], [baseY]. */
-    fun fern(p: LandPainter, cx: Int, baseY: Float, tall: Float, light: Int, dark: Int, cell: Int, seed: Int) {
+    fun fern(
+        p: LandPainter,
+        cx: Int,
+        baseY: Float,
+        tall: Float,
+        light: Int,
+        dark: Int,
+        cell: Int,
+        seed: Int
+    ) {
         val fronds = 3 + (roll(cell, 61, seed) * 3).toInt()
         for (f in 0 until fronds) {
             val spread = (f - (fronds - 1) / 2f) / fronds
             val length = tall * (0.6f + 0.4f * roll(cell * 5 + f, 62, seed))
             val tipX = cx + spread * length * 1.6f
             val tipY = baseY - length * (1f - abs(spread) * 0.8f)
-            p.line(cx.toFloat(), baseY, tipX, tipY, code(if (f % 2 == 0) light else dark, if (spread < 0) LEFT else RIGHT))
+            p.line(
+                cx.toFloat(),
+                baseY,
+                tipX,
+                tipY,
+                code(if (f % 2 == 0) light else dark, if (spread < 0) LEFT else RIGHT)
+            )
         }
     }
 }
@@ -393,9 +483,16 @@ private abstract class Land(val biome: Biome) {
 // --- the biomes --------------------------------------------------------------------------------------
 
 private object JungleLand : Land(Biome.JUNGLE) {
-    const val SOIL = 1; const val LEAF_DARK = 2; const val LEAF = 3; const val LEAF_LIGHT = 4
-    const val STONE = 5; const val STONE_MOSS = 6; const val TRUNK = 7; const val PALM = 8
-    const val KARST = 9; const val KARST_DARK = 10
+    const val SOIL = 1
+    const val LEAF_DARK = 2
+    const val LEAF = 3
+    const val LEAF_LIGHT = 4
+    const val STONE = 5
+    const val STONE_MOSS = 6
+    const val TRUNK = 7
+    const val PALM = 8
+    const val KARST = 9
+    const val KARST_DARK = 10
 
     override fun surface(band: Band, x: Int, seed: Int): Float = when (band) {
         Band.FAR -> {
@@ -412,15 +509,23 @@ private object JungleLand : Land(Biome.JUNGLE) {
             }
             h
         }
+
         Band.MID -> 58f + 22f * Noise.fbm(x / 90f, seed + 5)
         else -> 22f + 6f * Noise.fbm(x / 26f, seed + 6)
     }
 
-    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int = when (band) {
-        Band.FAR -> if (Noise.unit(x / 3, y / 3, seed + 7) < 0.25f) KARST_DARK else KARST
-        Band.MID -> if (depth < 3) LEAF_DARK else if (Noise.unit(x / 2, y / 2, seed + 8) < 0.2f) LEAF else LEAF_DARK
-        else -> if (depth < 3) LEAF_DARK else SOIL
-    }
+    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int =
+        when (band) {
+            Band.FAR -> if (Noise.unit(x / 3, y / 3, seed + 7) < 0.25f) KARST_DARK else KARST
+            Band.MID -> if (depth < 3) LEAF_DARK else if (Noise.unit(
+                    x / 2,
+                    y / 2,
+                    seed + 8
+                ) < 0.2f
+            ) LEAF else LEAF_DARK
+
+            else -> if (depth < 3) LEAF_DARK else SOIL
+        }
 
     override fun dress(p: LandPainter, seed: Int, surface: (Int) -> Float, own: (Int) -> Boolean) {
         when (p.band) {
@@ -434,10 +539,18 @@ private object JungleLand : Land(Biome.JUNGLE) {
                     for (t in 0 until tiers) {
                         val half = 46 - t * 8
                         val bottom = ground - 6 - t * 12
-                        p.rect(x - half, (bottom - 12).roundToInt(), x + half, bottom.roundToInt()) { px, py ->
+                        p.rect(
+                            x - half,
+                            (bottom - 12).roundToInt(),
+                            x + half,
+                            bottom.roundToInt()
+                        ) { px, py ->
                             val dx = (px - x) / half.toFloat()
                             val moss = Noise.unit(px / 2, py / 2, seed + 112) < 0.3f
-                            val shade = if (py.toFloat() >= bottom - 1) DEEP else if (py.toFloat() <= bottom - 11) TOP else LandPainter.sideShade(dx)
+                            val shade =
+                                if (py.toFloat() >= bottom - 1) DEEP else if (py.toFloat() <= bottom - 11) TOP else LandPainter.sideShade(
+                                    dx
+                                )
                             code(if (moss) STONE_MOSS else STONE, shade)
                         }
                     }
@@ -448,7 +561,16 @@ private object JungleLand : Land(Biome.JUNGLE) {
                     val ground = groundRow(p, surface, x)
                     val r = 11f + roll(cell, 121, seed) * 9f
                     val cy = ground - r * 0.3f - roll(cell, 122, seed) * 16f
-                    crown(p, x.toFloat(), cy, r * 1.15f, r, if (roll(cell, 123, seed) < 0.3f) LEAF_LIGHT else LEAF, LEAF_DARK, seed)
+                    crown(
+                        p,
+                        x.toFloat(),
+                        cy,
+                        r * 1.15f,
+                        r,
+                        if (roll(cell, 123, seed) < 0.3f) LEAF_LIGHT else LEAF,
+                        LEAF_DARK,
+                        seed
+                    )
                 }
                 cells(p, 140, 40, 130, seed, 0.45f) { cell, x ->
                     if (!own(x)) return@cells
@@ -457,18 +579,43 @@ private object JungleLand : Land(Biome.JUNGLE) {
                     palm(p, x, ground - 10f, tall, cell, seed)
                 }
             }
+
             else -> {
                 cells(p, 11, 20, 140, seed, 0.6f) { cell, x ->
                     if (!own(x)) return@cells
-                    fern(p, x, groundRow(p, surface, x) + 1f, 7f + roll(cell, 141, seed) * 10f, LEAF_LIGHT, LEAF, cell, seed)
+                    fern(
+                        p,
+                        x,
+                        groundRow(p, surface, x) + 1f,
+                        7f + roll(cell, 141, seed) * 10f,
+                        LEAF_LIGHT,
+                        LEAF,
+                        cell,
+                        seed
+                    )
                 }
                 cells(p, 90, 30, 150, seed, 0.35f) { cell, x ->
                     if (!own(x)) return@cells
-                    palm(p, x, groundRow(p, surface, x) + 1f, 30f + roll(cell, 151, seed) * 12f, cell, seed)
+                    palm(
+                        p,
+                        x,
+                        groundRow(p, surface, x) + 1f,
+                        30f + roll(cell, 151, seed) * 12f,
+                        cell,
+                        seed
+                    )
                 }
                 cells(p, 60, 20, 160, seed, 0.35f) { cell, x ->
                     if (!own(x)) return@cells
-                    rock(p, x.toFloat(), groundRow(p, surface, x) + 2f, 6f + roll(cell, 161, seed) * 6f, 5f, STONE, STONE_MOSS)
+                    rock(
+                        p,
+                        x.toFloat(),
+                        groundRow(p, surface, x) + 2f,
+                        6f + roll(cell, 161, seed) * 6f,
+                        5f,
+                        STONE,
+                        STONE_MOSS
+                    )
                 }
             }
         }
@@ -491,7 +638,7 @@ private object JungleLand : Land(Biome.JUNGLE) {
             val angle = -PI_HALF * 0.15f + f * 0.45f + roll(cell * 7 + f, 172, seed) * 0.2f
             val length = 9f + roll(cell * 7 + f, 173, seed) * 7f
             val dx = kotlin.math.cos(angle + PI_HALF * 1.2f) * length * if (f % 2 == 0) 1f else -1f
-            val dy = -kotlin.math.sin(angle) * length * 0.4f + length * 0.25f
+            val dy = -sin(angle) * length * 0.4f + length * 0.25f
             p.line(topX, topY, topX + dx, topY + dy, code(PALM, if (dx < 0) LEFT else RIGHT))
             p.line(topX, topY + 1, topX + dx * 0.8f, topY + dy + 1, code(LEAF, DEEP))
         }
@@ -501,35 +648,48 @@ private object JungleLand : Land(Biome.JUNGLE) {
 }
 
 private object DesertLand : Land(Biome.DESERT) {
-    const val SAND = 1; const val SAND_SHADE = 2; const val ROCK = 3; const val ROCK_DARK = 4
-    const val MESA_TOP = 5; const val CACTUS = 6; const val CACTUS_LIGHT = 7; const val DUNE_FAR = 8
+    const val SAND = 1
+    const val SAND_SHADE = 2
+    const val ROCK = 3
+    const val ROCK_DARK = 4
+    const val MESA_TOP = 5
+    const val CACTUS = 6
+    const val CACTUS_LIGHT = 7
+    const val DUNE_FAR = 8
     const val ROCK_RED = 9
 
     override fun surface(band: Band, x: Int, seed: Int): Float = when (band) {
         Band.FAR -> {
             // Mesas: the ground's noise cut into flat-topped steps with sheer sides.
             val q = Noise.fbm(x / 260f, seed + 11, 3)
-            28f + 10f * Noise.fbm(x / 40f, seed + 12) + 72f * smoothstep(0.48f, 0.51f, q) + 38f * smoothstep(0.6f, 0.62f, q)
+            28f + 10f * Noise.fbm(x / 40f, seed + 12) + 72f * smoothstep(
+                0.48f,
+                0.51f,
+                q
+            ) + 38f * smoothstep(0.6f, 0.62f, q)
         }
+
         Band.MID -> 46f + 38f * (0.5f + 0.5f * sin(x / 70f + 3f * Noise.fbm(x / 240f, seed + 13)))
         else -> 26f + 5f * Noise.fbm(x / 50f, seed + 14)
     }
 
     override val rim: Int get() = 2
 
-    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int = when (band) {
-        Band.FAR -> when {
-            height < 44f -> DUNE_FAR
-            depth < 3 -> MESA_TOP
-            (y + (Noise.value(x / 30f, seed + 15) * 4).toInt()) % 9 < 3 -> ROCK_DARK
-            else -> ROCK_RED
+    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int =
+        when (band) {
+            Band.FAR -> when {
+                height < 44f -> DUNE_FAR
+                depth < 3 -> MESA_TOP
+                (y + (Noise.value(x / 30f, seed + 15) * 4).toInt()) % 9 < 3 -> ROCK_DARK
+                else -> ROCK_RED
+            }
+
+            else -> {
+                // Ripples in the sand, wavering across it.
+                val wave = (y + (3f * sin(x / 11f + y * 0.7f)).roundToInt()) % 6
+                if (depth > 2 && wave == 0) SAND_SHADE else SAND
+            }
         }
-        else -> {
-            // Ripples in the sand, wavering across it.
-            val wave = (y + (3f * sin(x / 11f + y * 0.7f)).roundToInt()) % 6
-            if (depth > 2 && wave == 0) SAND_SHADE else SAND
-        }
-    }
 
     override fun dress(p: LandPainter, seed: Int, surface: (Int) -> Float, own: (Int) -> Boolean) {
         if (p.band != Band.NEAR && p.band != Band.MID) return
@@ -537,11 +697,26 @@ private object DesertLand : Land(Biome.DESERT) {
         cells(p, if (near) 64 else 110, 20, 210, seed, if (near) 0.4f else 0.3f) { cell, x ->
             if (!own(x)) return@cells
             val ground = groundRow(p, surface, x) + 1f
-            cactus(p, x, ground, (if (near) 22f else 14f) + roll(cell, 211, seed) * (if (near) 18f else 10f), cell, seed)
+            cactus(
+                p,
+                x,
+                ground,
+                (if (near) 22f else 14f) + roll(cell, 211, seed) * (if (near) 18f else 10f),
+                cell,
+                seed
+            )
         }
         cells(p, 48, 20, 220, seed, 0.3f) { cell, x ->
             if (!own(x)) return@cells
-            rock(p, x.toFloat(), groundRow(p, surface, x) + 2f, 4f + roll(cell, 221, seed) * 7f, 3f + roll(cell, 222, seed) * 3f, ROCK, 0)
+            rock(
+                p,
+                x.toFloat(),
+                groundRow(p, surface, x) + 2f,
+                4f + roll(cell, 221, seed) * 7f,
+                3f + roll(cell, 222, seed) * 3f,
+                ROCK,
+                0
+            )
         }
     }
 
@@ -551,8 +726,14 @@ private object DesertLand : Land(Biome.DESERT) {
         for (y in 0 until tall.roundToInt()) {
             val row = (baseY - y).roundToInt()
             for (i in 0 until width) {
-                val shade = when (i) { 0 -> LEFT; width - 1 -> RIGHT; else -> BODY }
-                p.set(x - width / 2 + i, row, code(if (i == 1 && y % 3 != 0) CACTUS_LIGHT else CACTUS, shade))
+                val shade = when (i) {
+                    0 -> LEFT; width - 1 -> RIGHT; else -> BODY
+                }
+                p.set(
+                    x - width / 2 + i,
+                    row,
+                    code(if (i == 1 && y % 3 != 0) CACTUS_LIGHT else CACTUS, shade)
+                )
             }
         }
         // The top, rounded.
@@ -563,15 +744,26 @@ private object DesertLand : Land(Biome.DESERT) {
             val reach = width / 2 + 3
             for (i in 1..reach) p.set(x + side * i, armAt.roundToInt(), code(CACTUS, BODY))
             val up = tall * 0.3f
-            for (y in 0..up.roundToInt()) p.set(x + side * reach, (armAt - y).roundToInt(), code(CACTUS, if (side < 0) LEFT else RIGHT))
+            for (y in 0..up.roundToInt()) p.set(
+                x + side * reach,
+                (armAt - y).roundToInt(),
+                code(CACTUS, if (side < 0) LEFT else RIGHT)
+            )
         }
     }
 }
 
 private object CoastLand : Land(Biome.COAST) {
-    const val SEA_DEEP = 1; const val SEA = 2; const val SEA_LIGHT = 3; const val FOAM = 4
-    const val SAND = 5; const val LIMESTONE = 6; const val LIMESTONE_DARK = 7; const val GREENERY = 8
-    const val PALM = 9; const val TRUNK = 10
+    const val SEA_DEEP = 1
+    const val SEA = 2
+    const val SEA_LIGHT = 3
+    const val FOAM = 4
+    const val SAND = 5
+    const val LIMESTONE = 6
+    const val LIMESTONE_DARK = 7
+    const val GREENERY = 8
+    const val PALM = 9
+    const val TRUNK = 10
 
     override fun waterline(band: Band): Float = when (band) {
         Band.FAR -> 14f
@@ -590,7 +782,17 @@ private object CoastLand : Land(Biome.COAST) {
     }
 
     /** Karst islands standing steep out of the sea, one to a cell when the dice say so. */
-    private fun islands(x: Int, seed: Int, cell: Int, chance: Float, width: Float, widthSpread: Float, tall: Float, tallSpread: Float, base: Float): Float {
+    private fun islands(
+        x: Int,
+        seed: Int,
+        cell: Int,
+        chance: Float,
+        width: Float,
+        widthSpread: Float,
+        tall: Float,
+        tallSpread: Float,
+        base: Float
+    ): Float {
         var h = base
         val c = floor(x / cell.toFloat()).toInt()
         for (k in c - 1..c + 1) {
@@ -604,12 +806,13 @@ private object CoastLand : Land(Biome.COAST) {
         return h
     }
 
-    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int = when {
-        band == Band.NEAR -> if (height < liquid(band) + 3f && depth < 2) SEA_LIGHT else SAND
-        depth < 4 + (Noise.value(x / 6f, seed + 24) * 4).toInt() -> GREENERY
-        Noise.unit(x / 2, 0, seed + 25) < 0.3f -> LIMESTONE_DARK
-        else -> LIMESTONE
-    }
+    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int =
+        when {
+            band == Band.NEAR -> if (height < liquid(band) + 3f && depth < 2) SEA_LIGHT else SAND
+            depth < 4 + (Noise.value(x / 6f, seed + 24) * 4).toInt() -> GREENERY
+            Noise.unit(x / 2, 0, seed + 25) < 0.3f -> LIMESTONE_DARK
+            else -> LIMESTONE
+        }
 
     override fun dress(p: LandPainter, seed: Int, surface: (Int) -> Float, own: (Int) -> Boolean) {
         val level = liquid(p.band)
@@ -624,37 +827,78 @@ private object CoastLand : Land(Biome.COAST) {
         if (p.band == Band.NEAR) {
             cells(p, 80, 30, 310, seed, 0.4f) { cell, x ->
                 if (!own(x) || surface(x) < level + 2f) return@cells
-                JungleLandPalm.draw(this, p, x, groundRow(p, surface, x) + 1f, 30f + roll(cell, 311, seed) * 10f, cell, seed)
+                JungleLandPalm.draw(
+                    this,
+                    p,
+                    x,
+                    groundRow(p, surface, x) + 1f,
+                    30f + roll(cell, 311, seed) * 10f,
+                    cell,
+                    seed
+                )
             }
             cells(p, 50, 20, 320, seed, 0.35f) { cell, x ->
                 if (!own(x)) return@cells
-                rock(p, x.toFloat(), maxOf(groundRow(p, surface, x), p.height - level) + 2f, 5f + roll(cell, 321, seed) * 7f, 5f, LIMESTONE_DARK, LIMESTONE)
+                rock(
+                    p,
+                    x.toFloat(),
+                    maxOf(groundRow(p, surface, x), p.height - level) + 2f,
+                    5f + roll(cell, 321, seed) * 7f,
+                    5f,
+                    LIMESTONE_DARK,
+                    LIMESTONE
+                )
             }
         }
     }
 
     /** A palm in the coast's own colors. */
     private object JungleLandPalm {
-        fun draw(land: Land, p: LandPainter, x: Int, baseY: Float, tall: Float, cell: Int, seed: Int) {
+        fun draw(
+            land: Land,
+            p: LandPainter,
+            x: Int,
+            baseY: Float,
+            tall: Float,
+            cell: Int,
+            seed: Int
+        ) {
             for (i in 0 until tall.roundToInt()) {
                 val along = i / tall
                 val px = (x + 4f * along * along).roundToInt()
-                p.set(px, (baseY - i).roundToInt(), land.code(TRUNK, if (i % 3 == 0) DEEP else LEFT))
+                p.set(
+                    px,
+                    (baseY - i).roundToInt(),
+                    land.code(TRUNK, if (i % 3 == 0) DEEP else LEFT)
+                )
             }
             val topX = x + 4f
             val topY = baseY - tall
             for (f in 0 until 6) {
                 val dir = if (f % 2 == 0) 1f else -1f
                 val length = 8f + land.roll(cell * 6 + f, 330, seed) * 6f
-                p.line(topX, topY, topX + dir * length, topY + 2f + f, land.code(PALM, if (dir < 0) LEFT else RIGHT))
+                p.line(
+                    topX,
+                    topY,
+                    topX + dir * length,
+                    topY + 2f + f,
+                    land.code(PALM, if (dir < 0) LEFT else RIGHT)
+                )
             }
         }
     }
 }
 
 private object PeaksLand : Land(Biome.PEAKS) {
-    const val ROCK_DARK = 1; const val ROCK = 2; const val SNOW = 3; const val SNOW_SHADE = 4
-    const val PINE_DARK = 5; const val PINE = 6; const val ICE = 7; const val TRUNK = 8; const val ROCK_LIGHT = 9
+    const val ROCK_DARK = 1
+    const val ROCK = 2
+    const val SNOW = 3
+    const val SNOW_SHADE = 4
+    const val PINE_DARK = 5
+    const val PINE = 6
+    const val ICE = 7
+    const val TRUNK = 8
+    const val ROCK_LIGHT = 9
 
     override fun surface(band: Band, x: Int, seed: Int): Float = when (band) {
         Band.FAR -> 36f + 146f * Noise.ridged(x / 240f, seed + 41, 5).pow(1.25f)
@@ -664,35 +908,75 @@ private object PeaksLand : Land(Biome.PEAKS) {
 
     override val body: Int get() = 10
 
-    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int = when (band) {
-        Band.FAR -> {
-            val above = height - depth
-            val snowline = 92f + 22f * Noise.value(x / 26f, seed + 44)
-            when {
-                above > snowline -> if (depth > 8 && Noise.unit(x / 2, y / 3, seed + 45) < 0.25f) SNOW_SHADE else SNOW
-                depth < 2 && above > snowline - 30f -> SNOW
-                Noise.unit(x / 3, y / 5, seed + 46) < 0.35f -> ROCK_DARK
-                else -> ROCK
+    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int =
+        when (band) {
+            Band.FAR -> {
+                val above = height - depth
+                val snowline = 92f + 22f * Noise.value(x / 26f, seed + 44)
+                when {
+                    above > snowline -> if (depth > 8 && Noise.unit(
+                            x / 2,
+                            y / 3,
+                            seed + 45
+                        ) < 0.25f
+                    ) SNOW_SHADE else SNOW
+
+                    depth < 2 && above > snowline - 30f -> SNOW
+                    Noise.unit(x / 3, y / 5, seed + 46) < 0.35f -> ROCK_DARK
+                    else -> ROCK
+                }
             }
+
+            else -> if (depth < 6 || Noise.unit(
+                    x / 3,
+                    y / 2,
+                    seed + 47
+                ) < 0.7f
+            ) SNOW else SNOW_SHADE
         }
-        else -> if (depth < 6 || Noise.unit(x / 3, y / 2, seed + 47) < 0.7f) SNOW else SNOW_SHADE
-    }
 
     override fun dress(p: LandPainter, seed: Int, surface: (Int) -> Float, own: (Int) -> Boolean) {
         when (p.band) {
             Band.FAR -> Unit
             Band.MID -> cells(p, 12, 20, 410, seed, 0.62f) { cell, x ->
                 if (!own(x)) return@cells
-                pine(p, x, groundRow(p, surface, x) + 2f, 18f + roll(cell, 411, seed) * 24f, PINE_DARK, PINE, TRUNK, SNOW)
+                pine(
+                    p,
+                    x,
+                    groundRow(p, surface, x) + 2f,
+                    18f + roll(cell, 411, seed) * 24f,
+                    PINE_DARK,
+                    PINE,
+                    TRUNK,
+                    SNOW
+                )
             }
+
             else -> {
                 cells(p, 46, 20, 420, seed, 0.4f) { cell, x ->
                     if (!own(x)) return@cells
-                    pine(p, x, groundRow(p, surface, x) + 2f, 22f + roll(cell, 421, seed) * 14f, PINE_DARK, PINE, TRUNK, SNOW)
+                    pine(
+                        p,
+                        x,
+                        groundRow(p, surface, x) + 2f,
+                        22f + roll(cell, 421, seed) * 14f,
+                        PINE_DARK,
+                        PINE,
+                        TRUNK,
+                        SNOW
+                    )
                 }
                 cells(p, 40, 20, 430, seed, 0.35f) { cell, x ->
                     if (!own(x)) return@cells
-                    rock(p, x.toFloat(), groundRow(p, surface, x) + 2f, 5f + roll(cell, 431, seed) * 8f, 4f + roll(cell, 432, seed) * 3f, ROCK, SNOW)
+                    rock(
+                        p,
+                        x.toFloat(),
+                        groundRow(p, surface, x) + 2f,
+                        5f + roll(cell, 431, seed) * 8f,
+                        4f + roll(cell, 432, seed) * 3f,
+                        ROCK,
+                        SNOW
+                    )
                 }
             }
         }
@@ -700,8 +984,15 @@ private object PeaksLand : Land(Biome.PEAKS) {
 }
 
 private object VolcanoLand : Land(Biome.VOLCANO) {
-    const val BASALT_DARK = 1; const val BASALT = 2; const val ASH = 3; const val ASH_LIGHT = 4
-    const val LAVA = 5; const val LAVA_HOT = 6; const val EMBER = 7; const val OBSIDIAN = 8; const val SCORCHED = 9
+    const val BASALT_DARK = 1
+    const val BASALT = 2
+    const val ASH = 3
+    const val ASH_LIGHT = 4
+    const val LAVA = 5
+    const val LAVA_HOT = 6
+    const val EMBER = 7
+    const val OBSIDIAN = 8
+    const val SCORCHED = 9
 
     /** How far apart volcanoes stand along the far band, at most one to a stretch this wide. */
     const val CONE_CELL = 560
@@ -739,33 +1030,37 @@ private object VolcanoLand : Land(Biome.VOLCANO) {
             }
             h
         }
+
         Band.MID -> 38f + 76f * Noise.ridged(x / 110f, seed + 56, 4)
         else -> 24f + 7f * Noise.fbm(x / 40f, seed + 57)
     }
 
-    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int = when (band) {
-        Band.FAR -> {
-            // Lava running down from the craters in streaks, on the surface of the slopes.
-            val streak = Noise.value(x / 9f + y / 23f, seed + 58)
-            when {
-                height > 100f && depth < 3 && streak > 0.72f -> if (depth == 0) LAVA_HOT else LAVA
-                height > 100f && depth < 4 && streak > 0.66f -> EMBER
-                depth < 3 -> ASH_LIGHT
-                Noise.unit(x / 3, y / 4, seed + 59) < 0.3f -> BASALT_DARK
+    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int =
+        when (band) {
+            Band.FAR -> {
+                // Lava running down from the craters in streaks, on the surface of the slopes.
+                val streak = Noise.value(x / 9f + y / 23f, seed + 58)
+                when {
+                    height > 100f && depth < 3 && streak > 0.72f -> if (depth == 0) LAVA_HOT else LAVA
+                    height > 100f && depth < 4 && streak > 0.66f -> EMBER
+                    depth < 3 -> ASH_LIGHT
+                    Noise.unit(x / 3, y / 4, seed + 59) < 0.3f -> BASALT_DARK
+                    else -> BASALT
+                }
+            }
+
+            Band.MID -> when {
+                depth < 2 -> ASH
+                Noise.unit(x / 2, y / 3, seed + 60) < 0.3f -> BASALT_DARK
                 else -> BASALT
             }
+
+            else -> when {
+                depth < 2 -> ASH_LIGHT
+                depth < 5 -> ASH
+                else -> SCORCHED
+            }
         }
-        Band.MID -> when {
-            depth < 2 -> ASH
-            Noise.unit(x / 2, y / 3, seed + 60) < 0.3f -> BASALT_DARK
-            else -> BASALT
-        }
-        else -> when {
-            depth < 2 -> ASH_LIGHT
-            depth < 5 -> ASH
-            else -> SCORCHED
-        }
-    }
 
     override fun dress(p: LandPainter, seed: Int, surface: (Int) -> Float, own: (Int) -> Boolean) {
         when (p.band) {
@@ -785,10 +1080,12 @@ private object VolcanoLand : Land(Biome.VOLCANO) {
                     if (x in p) p.features += Feature(x.toFloat(), top)
                 }
             }
+
             Band.MID -> cells(p, 70, 20, 510, seed, 0.4f) { cell, x ->
                 if (!own(x) || surface(x) < liquid(p.band)) return@cells
                 spire(p, x, groundRow(p, surface, x) + 2f, 12f + roll(cell, 511, seed) * 20f)
             }
+
             else -> {
                 // Cracks in the crust glowing from underneath.
                 cells(p, 34, 30, 520, seed, 0.55f) { cell, x ->
@@ -799,14 +1096,28 @@ private object VolcanoLand : Land(Biome.VOLCANO) {
                     for (s in 0 until steps) {
                         val nx = cx + 2f + roll(cell * 9 + s, 522, seed) * 4f
                         val ny = cy + (roll(cell * 9 + s, 523, seed) - 0.3f) * 5f
-                        p.line(cx, cy, nx, ny.coerceAtMost(p.height - 2f), code(if (s % 3 == 1) LAVA_HOT else LAVA, BODY))
+                        p.line(
+                            cx,
+                            cy,
+                            nx,
+                            ny.coerceAtMost(p.height - 2f),
+                            code(if (s % 3 == 1) LAVA_HOT else LAVA, BODY)
+                        )
                         cx = nx
                         cy = ny.coerceAtMost(p.height - 2f)
                     }
                 }
                 cells(p, 52, 20, 530, seed, 0.35f) { cell, x ->
                     if (!own(x)) return@cells
-                    rock(p, x.toFloat(), groundRow(p, surface, x) + 2f, 5f + roll(cell, 531, seed) * 6f, 5f + roll(cell, 532, seed) * 4f, OBSIDIAN, 0)
+                    rock(
+                        p,
+                        x.toFloat(),
+                        groundRow(p, surface, x) + 2f,
+                        5f + roll(cell, 531, seed) * 6f,
+                        5f + roll(cell, 532, seed) * 4f,
+                        OBSIDIAN,
+                        0
+                    )
                 }
             }
         }
@@ -827,9 +1138,17 @@ private object VolcanoLand : Land(Biome.VOLCANO) {
 }
 
 private object SwampLand : Land(Biome.SWAMP) {
-    const val MUD = 1; const val MOSS = 2; const val MOSS_LIGHT = 3; const val WATER = 4
-    const val WATER_LIGHT = 5; const val BARK = 6; const val BARK_LIGHT = 7; const val REED = 8
-    const val LILY = 9; const val HANGING_MOSS = 10; const val CYPRESS = 11
+    const val MUD = 1
+    const val MOSS = 2
+    const val MOSS_LIGHT = 3
+    const val WATER = 4
+    const val WATER_LIGHT = 5
+    const val BARK = 6
+    const val BARK_LIGHT = 7
+    const val REED = 8
+    const val LILY = 9
+    const val HANGING_MOSS = 10
+    const val CYPRESS = 11
 
     override fun waterline(band: Band): Float = when (band) {
         Band.FAR -> 14f
@@ -857,17 +1176,19 @@ private object SwampLand : Land(Biome.SWAMP) {
             }
             h
         }
+
         Band.MID -> 34f + 34f * Noise.fbm(x / 100f, seed + 66)
         else -> 18f + 24f * Noise.fbm(x / 70f, seed + 67)
     }
 
-    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int = when (band) {
-        Band.FAR -> if (Noise.unit(x / 2, y / 3, seed + 68) < 0.3f) MOSS else CYPRESS
-        else -> when {
-            depth < 2 -> if (Noise.unit(x, 0, seed + 69) < 0.5f) MOSS_LIGHT else MOSS
-            else -> MUD
+    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int =
+        when (band) {
+            Band.FAR -> if (Noise.unit(x / 2, y / 3, seed + 68) < 0.3f) MOSS else CYPRESS
+            else -> when {
+                depth < 2 -> if (Noise.unit(x, 0, seed + 69) < 0.5f) MOSS_LIGHT else MOSS
+                else -> MUD
+            }
         }
-    }
 
     override fun dress(p: LandPainter, seed: Int, surface: (Int) -> Float, own: (Int) -> Boolean) {
         val level = liquid(p.band)
@@ -881,12 +1202,18 @@ private object SwampLand : Land(Biome.SWAMP) {
                 }
                 reeds(p, seed, surface, own, level, 9, 14f, 620)
             }
+
             else -> {
                 reeds(p, seed, surface, own, level, 6, 18f, 630)
                 cells(p, 22, 10, 640, seed, 0.5f) { cell, x ->
                     if (!own(x) || surface(x) > level - 1f) return@cells
                     val y = p.height - level
-                    p.ellipse(x.toFloat(), y + 0.5f, 3f + roll(cell, 641, seed) * 4f, 1.4f) { dx, dy ->
+                    p.ellipse(
+                        x.toFloat(),
+                        y + 0.5f,
+                        3f + roll(cell, 641, seed) * 4f,
+                        1.4f
+                    ) { dx, dy ->
                         code(LILY, if (dy < 0f) TOP else BODY)
                     }
                 }
@@ -900,7 +1227,16 @@ private object SwampLand : Land(Biome.SWAMP) {
     }
 
     /** Reeds standing in the shallows and on the banks, a seed head on each. */
-    private fun reeds(p: LandPainter, seed: Int, surface: (Int) -> Float, own: (Int) -> Boolean, level: Float, cell: Int, tall: Float, salt: Int) {
+    private fun reeds(
+        p: LandPainter,
+        seed: Int,
+        surface: (Int) -> Float,
+        own: (Int) -> Boolean,
+        level: Float,
+        cell: Int,
+        tall: Float,
+        salt: Int
+    ) {
         cells(p, cell, 6, salt, seed, 0.5f) { c, x ->
             if (!own(x)) return@cells
             val h = surface(x)
@@ -910,7 +1246,11 @@ private object SwampLand : Land(Biome.SWAMP) {
             for (s in 0 until stalks) {
                 val sx = x + s * 2 - stalks
                 val length = tall * (0.5f + 0.5f * roll(c * 5 + s, salt + 2, seed))
-                for (y in 0 until length.roundToInt()) p.set(sx, (base - y).roundToInt(), code(REED, if (s % 2 == 0) LEFT else RIGHT))
+                for (y in 0 until length.roundToInt()) p.set(
+                    sx,
+                    (base - y).roundToInt(),
+                    code(REED, if (s % 2 == 0) LEFT else RIGHT)
+                )
                 p.set(sx, (base - length).roundToInt(), code(BARK, DEEP))
                 p.set(sx, (base - length).roundToInt() + 1, code(BARK, DEEP))
             }
@@ -922,7 +1262,13 @@ private object SwampLand : Land(Biome.SWAMP) {
         val width = if (tall > 60f) 5 else 3
         trunk(p, x, baseY - tall, baseY, width, BARK)
         // The roots flaring into the water.
-        for (side in listOf(-1, 1)) p.line(x.toFloat(), baseY - 3f, x + side * (width + 2f), baseY + 1f, code(BARK, DEEP))
+        for (side in listOf(-1, 1)) p.line(
+            x.toFloat(),
+            baseY - 3f,
+            x + side * (width + 2f),
+            baseY + 1f,
+            code(BARK, DEEP)
+        )
         val branches = 2 + (roll(cell, 661, seed) * 3).toInt()
         for (b in 0 until branches) {
             val side = if ((b + cell) % 2 == 0) 1f else -1f
@@ -945,8 +1291,15 @@ private object SwampLand : Land(Biome.SWAMP) {
 }
 
 private object ForestLand : Land(Biome.FOGGY_FOREST) {
-    const val SOIL = 1; const val MOSS = 2; const val FERN = 3; const val PINE_DARK = 4
-    const val PINE = 5; const val PINE_LIGHT = 6; const val TRUNK = 7; const val ROCK = 8; const val MUSHROOM = 9
+    const val SOIL = 1
+    const val MOSS = 2
+    const val FERN = 3
+    const val PINE_DARK = 4
+    const val PINE = 5
+    const val PINE_LIGHT = 6
+    const val TRUNK = 7
+    const val ROCK = 8
+    const val MUSHROOM = 9
 
     override fun surface(band: Band, x: Int, seed: Int): Float = when (band) {
         Band.FAR -> {
@@ -963,14 +1316,16 @@ private object ForestLand : Land(Biome.FOGGY_FOREST) {
             }
             ridge + trees
         }
+
         Band.MID -> 30f + 16f * Noise.fbm(x / 90f, seed + 74)
         else -> 22f + 6f * Noise.fbm(x / 35f, seed + 75)
     }
 
-    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int = when (band) {
-        Band.FAR -> PINE_DARK
-        else -> if (depth < 3) MOSS else SOIL
-    }
+    override fun material(band: Band, x: Int, y: Int, depth: Int, height: Float, seed: Int): Int =
+        when (band) {
+            Band.FAR -> PINE_DARK
+            else -> if (depth < 3) MOSS else SOIL
+        }
 
     override fun dress(p: LandPainter, seed: Int, surface: (Int) -> Float, own: (Int) -> Boolean) {
         when (p.band) {
@@ -978,23 +1333,54 @@ private object ForestLand : Land(Biome.FOGGY_FOREST) {
             Band.MID -> cells(p, 14, 40, 710, seed, 0.78f) { cell, x ->
                 if (!own(x)) return@cells
                 val tall = 52f + roll(cell, 711, seed) * 74f
-                pine(p, x, groundRow(p, surface, x) + 2f, tall, PINE_DARK, if (roll(cell, 712, seed) < 0.3f) PINE_LIGHT else PINE, TRUNK)
+                pine(
+                    p,
+                    x,
+                    groundRow(p, surface, x) + 2f,
+                    tall,
+                    PINE_DARK,
+                    if (roll(cell, 712, seed) < 0.3f) PINE_LIGHT else PINE,
+                    TRUNK
+                )
             }
+
             else -> {
                 cells(p, 12, 20, 720, seed, 0.5f) { cell, x ->
                     if (!own(x)) return@cells
-                    fern(p, x, groundRow(p, surface, x) + 1f, 6f + roll(cell, 721, seed) * 9f, FERN, MOSS, cell, seed)
+                    fern(
+                        p,
+                        x,
+                        groundRow(p, surface, x) + 1f,
+                        6f + roll(cell, 721, seed) * 9f,
+                        FERN,
+                        MOSS,
+                        cell,
+                        seed
+                    )
                 }
                 cells(p, 40, 10, 730, seed, 0.25f) { cell, x ->
                     if (!own(x)) return@cells
                     val ground = groundRow(p, surface, x)
                     p.set(x, (ground - 1).roundToInt(), code(TRUNK, BODY))
                     p.set(x, (ground - 2).roundToInt(), code(TRUNK, BODY))
-                    p.ellipse(x.toFloat(), ground - 3f, 3f, 1.6f) { dx, dy -> code(MUSHROOM, LandPainter.roundShade(dx, dy)) }
+                    p.ellipse(x.toFloat(), ground - 3f, 3f, 1.6f) { dx, dy ->
+                        code(
+                            MUSHROOM,
+                            LandPainter.roundShade(dx, dy)
+                        )
+                    }
                 }
                 cells(p, 56, 20, 740, seed, 0.3f) { cell, x ->
                     if (!own(x)) return@cells
-                    rock(p, x.toFloat(), groundRow(p, surface, x) + 2f, 6f + roll(cell, 741, seed) * 8f, 5f + roll(cell, 742, seed) * 3f, ROCK, MOSS)
+                    rock(
+                        p,
+                        x.toFloat(),
+                        groundRow(p, surface, x) + 2f,
+                        6f + roll(cell, 741, seed) * 8f,
+                        5f + roll(cell, 742, seed) * 3f,
+                        ROCK,
+                        MOSS
+                    )
                 }
             }
         }
@@ -1007,22 +1393,24 @@ private object ForestLand : Land(Biome.FOGGY_FOREST) {
 private fun canvas(width: Int, height: Int) = LandPainter(Band.NEAR, 0, width, height)
 
 /** A size between [least] and [least] + [spread], by [seed]'s dice. */
-private fun size(least: Int, spread: Int, seed: Int, salt: Int): Int = least + (Noise.unit(salt, seed) * spread).toInt()
+private fun size(least: Int, spread: Int, seed: Int, salt: Int): Int =
+    least + (Noise.unit(salt, seed) * spread).toInt()
 
 /**
  * An obstacle of [land]'s biome: on the ground, its bottom row is the frame's (a blit leaves it
  * undrawn, as every obstacle's); hanging, its top row is the frame's top.
  */
-private fun obstacleArt(land: Land, hanging: Boolean, kind: Int, seed: Int): LandPainter? = when (land) {
-    is JungleLand -> if (hanging) jungleHanging(kind, seed) else jungleGround(kind, seed)
-    is DesertLand -> if (hanging) null else desertGround(kind, seed)
-    is CoastLand -> if (hanging) null else coastGround(kind, seed)
-    is PeaksLand -> if (hanging) peaksHanging(kind, seed) else peaksGround(kind, seed)
-    is VolcanoLand -> if (hanging) null else volcanoGround(kind, seed)
-    is SwampLand -> if (hanging) swampHanging(kind, seed) else swampGround(kind, seed)
-    is ForestLand -> if (hanging) forestHanging(kind, seed) else forestGround(kind, seed)
-    else -> null
-}
+private fun obstacleArt(land: Land, hanging: Boolean, kind: Int, seed: Int): LandPainter? =
+    when (land) {
+        is JungleLand -> if (hanging) jungleHanging(kind, seed) else jungleGround(kind, seed)
+        is DesertLand -> if (hanging) null else desertGround(kind, seed)
+        is CoastLand -> if (hanging) null else coastGround(kind, seed)
+        is PeaksLand -> if (hanging) peaksHanging(kind, seed) else peaksGround(kind, seed)
+        is VolcanoLand -> if (hanging) null else volcanoGround(kind, seed)
+        is SwampLand -> if (hanging) swampHanging(kind, seed) else swampGround(kind, seed)
+        is ForestLand -> if (hanging) forestHanging(kind, seed) else forestGround(kind, seed)
+        else -> null
+    }
 
 private fun jungleGround(kind: Int, seed: Int): LandPainter = with(JungleLand) {
     when (kind) {
@@ -1033,13 +1421,26 @@ private fun jungleGround(kind: Int, seed: Int): LandPainter = with(JungleLand) {
             canvas(w, h).also { p ->
                 p.rect(1, 3, w - 2, h - 1) { x, y ->
                     val dx = (x - w / 2f) / (w / 2f)
-                    val glyph = (y - 6) % 8 in 0..1 && x in 4..w - 5 && Noise.unit(x / 3, y / 8, seed) < 0.6f
+                    val glyph = (y - 6) % 8 in 0..1 && x in 4..w - 5 && Noise.unit(
+                        x / 3,
+                        y / 8,
+                        seed
+                    ) < 0.6f
                     val moss = Noise.unit(x / 2, y / 2, seed + 1) < 0.18f + 0.3f * (y.toFloat() / h)
-                    code(if (moss) STONE_MOSS else STONE, if (glyph) DEEP else LandPainter.sideShade(dx))
+                    code(
+                        if (moss) STONE_MOSS else STONE,
+                        if (glyph) DEEP else LandPainter.sideShade(dx)
+                    )
                 }
-                p.ellipse(w / 2f, 4f, w / 2f - 1f, 3f) { dx, dy -> code(STONE, LandPainter.roundShade(dx, dy)) }
+                p.ellipse(w / 2f, 4f, w / 2f - 1f, 3f) { dx, dy ->
+                    code(
+                        STONE,
+                        LandPainter.roundShade(dx, dy)
+                    )
+                }
             }
         }
+
         1 -> {
             val w = size(58, 10, seed, 3)
             val h = size(38, 8, seed, 4)
@@ -1049,6 +1450,7 @@ private fun jungleGround(kind: Int, seed: Int): LandPainter = with(JungleLand) {
                 fern(p, w - 7, h - 2f, 10f, LEAF_LIGHT, LEAF, seed + 1, seed)
             }
         }
+
         else -> {
             val h = size(52, 8, seed, 5)
             canvas(40, h).also { p -> palm(p, 18, h - 1f, h - 8f, seed, seed) }
@@ -1061,7 +1463,12 @@ private fun jungleHanging(kind: Int, seed: Int): LandPainter = with(JungleLand) 
     val h = size(44, 12, seed, 8 + kind)
     canvas(w, h).also { p ->
         // Foliage along the top, vines trailing from it, leaves on the vines.
-        p.ellipse(w / 2f, 0f, w / 2f, 7f) { dx, dy -> code(if (dy > 0.3f) LEAF_DARK else LEAF, LandPainter.roundShade(dx, dy)) }
+        p.ellipse(w / 2f, 0f, w / 2f, 7f) { dx, dy ->
+            code(
+                if (dy > 0.3f) LEAF_DARK else LEAF,
+                LandPainter.roundShade(dx, dy)
+            )
+        }
         val strands = 4 + kind
         for (s in 0 until strands) {
             val x0 = 3f + (w - 6f) * s / (strands - 1)
@@ -1069,8 +1476,16 @@ private fun jungleHanging(kind: Int, seed: Int): LandPainter = with(JungleLand) 
             var x = x0
             for (y in 4 until length.toInt()) {
                 x += (Noise.unit(s * 97 + y / 4, seed + 11) - 0.5f) * 0.6f
-                p.set(x.roundToInt(), y, code(if (kind == 0) LEAF else TRUNK, if (s % 2 == 0) LEFT else RIGHT))
-                if (y % 5 == 2) p.set(x.roundToInt() + if (s % 2 == 0) -1 else 1, y, code(LEAF_LIGHT, TOP))
+                p.set(
+                    x.roundToInt(),
+                    y,
+                    code(if (kind == 0) LEAF else TRUNK, if (s % 2 == 0) LEFT else RIGHT)
+                )
+                if (y % 5 == 2) p.set(
+                    x.roundToInt() + if (s % 2 == 0) -1 else 1,
+                    y,
+                    code(LEAF_LIGHT, TOP)
+                )
             }
         }
     }
@@ -1082,6 +1497,7 @@ private fun desertGround(kind: Int, seed: Int): LandPainter = with(DesertLand) {
             val h = size(52, 8, seed, 1)
             canvas(30, h).also { p -> cactus(p, 15, h - 1f, h - 3f, seed, seed) }
         }
+
         1 -> {
             // A hoodoo: a striped pillar under a wider cap of harder rock.
             val w = size(30, 10, seed, 2)
@@ -1092,12 +1508,25 @@ private fun desertGround(kind: Int, seed: Int): LandPainter = with(DesertLand) {
                     val half = waist + (w / 2f - 2f - waist) * ((y - 6f) / (h - 6f)).pow(2f)
                     for (x in (w / 2f - half).roundToInt()..(w / 2f + half).roundToInt()) {
                         val band = (y + (Noise.value(x / 5f, seed) * 3).toInt()) % 7 < 2
-                        p.set(x, y, code(if (band) ROCK_DARK else ROCK_RED, LandPainter.sideShade((x - w / 2f) / half)))
+                        p.set(
+                            x,
+                            y,
+                            code(
+                                if (band) ROCK_DARK else ROCK_RED,
+                                LandPainter.sideShade((x - w / 2f) / half)
+                            )
+                        )
                     }
                 }
-                p.ellipse(w / 2f, 5f, w / 2f - 1f, 4.5f) { dx, dy -> code(MESA_TOP, LandPainter.roundShade(dx, dy)) }
+                p.ellipse(w / 2f, 5f, w / 2f - 1f, 4.5f) { dx, dy ->
+                    code(
+                        MESA_TOP,
+                        LandPainter.roundShade(dx, dy)
+                    )
+                }
             }
         }
+
         else -> {
             val w = size(64, 10, seed, 4)
             val h = size(38, 8, seed, 5)
@@ -1120,12 +1549,25 @@ private fun coastGround(kind: Int, seed: Int): LandPainter = with(CoastLand) {
                     val half = (w / 2f - 1f) * (0.55f + 0.45f * (y.toFloat() / h))
                     for (x in (w / 2f - half).roundToInt()..(w / 2f + half).roundToInt()) {
                         val streak = Noise.unit(x / 2, 0, seed) < 0.3f
-                        p.set(x, y, code(if (streak) LIMESTONE_DARK else LIMESTONE, LandPainter.sideShade((x - w / 2f) / half)))
+                        p.set(
+                            x,
+                            y,
+                            code(
+                                if (streak) LIMESTONE_DARK else LIMESTONE,
+                                LandPainter.sideShade((x - w / 2f) / half)
+                            )
+                        )
                     }
                 }
-                p.ellipse(w / 2f, 5f, w * 0.38f, 5f) { dx, dy -> code(GREENERY, LandPainter.roundShade(dx, dy)) }
+                p.ellipse(w / 2f, 5f, w * 0.38f, 5f) { dx, dy ->
+                    code(
+                        GREENERY,
+                        LandPainter.roundShade(dx, dy)
+                    )
+                }
             }
         }
+
         1 -> {
             val w = size(64, 10, seed, 3)
             val h = size(36, 8, seed, 4)
@@ -1134,6 +1576,7 @@ private fun coastGround(kind: Int, seed: Int): LandPainter = with(CoastLand) {
                 rock(p, w * 0.75f, h.toFloat(), w * 0.22f, h * 0.6f, LIMESTONE, 0)
             }
         }
+
         else -> {
             val w = size(64, 10, seed, 5)
             val h = size(30, 6, seed, 6)
@@ -1150,11 +1593,13 @@ private fun peaksGround(kind: Int, seed: Int): LandPainter = with(PeaksLand) {
             val h = size(56, 8, seed, 1)
             canvas(36, h).also { p -> pine(p, 18, h - 1f, h - 2f, PINE_DARK, PINE, TRUNK, SNOW) }
         }
+
         1 -> {
             val w = size(62, 12, seed, 2)
             val h = size(38, 8, seed, 3)
             canvas(w, h).also { p -> rock(p, w / 2f, h.toFloat(), w / 2f - 1f, h - 2f, ROCK, SNOW) }
         }
+
         else -> {
             // A shard of ice, paler down its lit edge.
             val w = size(26, 8, seed, 4)
@@ -1167,7 +1612,11 @@ private fun peaksGround(kind: Int, seed: Int): LandPainter = with(PeaksLand) {
                     val cx = w / 2f + lean * (1f - along)
                     for (x in (cx - half).roundToInt()..(cx + half).roundToInt()) {
                         val dx = if (half < 0.5f) 0f else (x - cx) / half
-                        p.set(x, y, code(if (dx < -0.3f) SNOW_SHADE else ICE, LandPainter.sideShade(dx)))
+                        p.set(
+                            x,
+                            y,
+                            code(if (dx < -0.3f) SNOW_SHADE else ICE, LandPainter.sideShade(dx))
+                        )
                     }
                 }
             }
@@ -1180,7 +1629,12 @@ private fun peaksHanging(kind: Int, seed: Int): LandPainter = with(PeaksLand) {
     val h = size(36, 12, seed, 8 + kind)
     canvas(w, h).also { p ->
         // A ledge of snow, icicles hanging from it.
-        p.ellipse(w / 2f, 0f, w / 2f, 7f) { dx, dy -> code(if (dy > 0.2f) SNOW_SHADE else SNOW, LandPainter.roundShade(dx, dy)) }
+        p.ellipse(w / 2f, 0f, w / 2f, 7f) { dx, dy ->
+            code(
+                if (dy > 0.2f) SNOW_SHADE else SNOW,
+                LandPainter.roundShade(dx, dy)
+            )
+        }
         var x = 2
         while (x < w - 2) {
             val length = 6f + Noise.unit(x, seed + 9) * (h - 8f)
@@ -1205,11 +1659,19 @@ private fun volcanoGround(kind: Int, seed: Int): LandPainter = with(VolcanoLand)
                     val half = 15f * (y.toFloat() / h).pow(0.7f) + 1f
                     for (x in (17 - half).roundToInt()..(17 + half).roundToInt()) {
                         val crack = abs(x - 17 - 4f * sin(y / 5f + seed)) < 0.8f && y > h / 3
-                        p.set(x, y, code(if (crack) LAVA else OBSIDIAN, if (crack) BODY else LandPainter.sideShade((x - 17) / half)))
+                        p.set(
+                            x,
+                            y,
+                            code(
+                                if (crack) LAVA else OBSIDIAN,
+                                if (crack) BODY else LandPainter.sideShade((x - 17) / half)
+                            )
+                        )
                     }
                 }
             }
         }
+
         1 -> {
             val w = size(64, 12, seed, 2)
             val h = size(36, 8, seed, 3)
@@ -1219,13 +1681,17 @@ private fun volcanoGround(kind: Int, seed: Int): LandPainter = with(VolcanoLand)
                 var cy = h * 0.55f
                 while (cx < w * 0.8f) {
                     val nx = cx + 3f + Noise.unit(cx.toInt(), seed) * 4f
-                    val ny = (cy + (Noise.unit(cx.toInt(), seed + 1) - 0.5f) * 6f).coerceIn(h * 0.35f, h - 2f)
+                    val ny = (cy + (Noise.unit(cx.toInt(), seed + 1) - 0.5f) * 6f).coerceIn(
+                        h * 0.35f,
+                        h - 2f
+                    )
                     p.line(cx, cy, nx, ny, code(LAVA_HOT, BODY))
                     cx = nx
                     cy = ny
                 }
             }
         }
+
         else -> {
             val w = size(46, 8, seed, 4)
             val h = size(44, 10, seed, 5)
@@ -1236,7 +1702,14 @@ private fun volcanoGround(kind: Int, seed: Int): LandPainter = with(VolcanoLand)
                     for (y in 0 until tall.toInt()) {
                         val half = 6f * (y / tall)
                         for (x in (cx - half).roundToInt()..(cx + half).roundToInt()) {
-                            p.set(x, h - 1 - tall.toInt() + y, code(OBSIDIAN, LandPainter.sideShade(if (half < 0.5f) 0f else (x - cx) / half)))
+                            p.set(
+                                x,
+                                h - 1 - tall.toInt() + y,
+                                code(
+                                    OBSIDIAN,
+                                    LandPainter.sideShade(if (half < 0.5f) 0f else (x - cx) / half)
+                                )
+                            )
                         }
                     }
                 }
@@ -1252,6 +1725,7 @@ private fun swampGround(kind: Int, seed: Int): LandPainter = with(SwampLand) {
             val h = size(52, 8, seed, 1)
             canvas(40, h).also { p -> deadTree(p, 20, h - 1f, h - 4f, seed, seed) }
         }
+
         1 -> {
             // Cypress knees, knobbly stumps of root standing up out of the mud.
             val w = size(60, 12, seed, 2)
@@ -1260,12 +1734,18 @@ private fun swampGround(kind: Int, seed: Int): LandPainter = with(SwampLand) {
                 for (k in 0 until 5) {
                     val cx = w * (0.12f + 0.19f * k)
                     val tall = h * (0.4f + 0.6f * Noise.unit(k, seed + 4))
-                    p.ellipse(cx, h - tall / 2f, 3.5f + Noise.unit(k, seed + 5) * 2f, tall / 2f) { dx, dy ->
+                    p.ellipse(
+                        cx,
+                        h - tall / 2f,
+                        3.5f + Noise.unit(k, seed + 5) * 2f,
+                        tall / 2f
+                    ) { dx, dy ->
                         code(if (dy < -0.6f) MOSS else BARK, LandPainter.roundShade(dx, dy))
                     }
                 }
             }
         }
+
         else -> {
             val w = size(36, 8, seed, 6)
             val h = size(40, 8, seed, 7)
@@ -1273,7 +1753,11 @@ private fun swampGround(kind: Int, seed: Int): LandPainter = with(SwampLand) {
                 for (s in 0 until w / 2) {
                     val x = 1 + s * 2 + (Noise.unit(s, seed + 8) * 2).toInt()
                     val tall = h * (0.5f + 0.5f * Noise.unit(s, seed + 9))
-                    for (y in 0 until tall.toInt()) p.set(x, h - 1 - y, code(REED, if (s % 2 == 0) LEFT else RIGHT))
+                    for (y in 0 until tall.toInt()) p.set(
+                        x,
+                        h - 1 - y,
+                        code(REED, if (s % 2 == 0) LEFT else RIGHT)
+                    )
                     p.set(x, h - 1 - tall.toInt(), code(BARK, DEEP))
                 }
             }
@@ -1291,7 +1775,11 @@ private fun swampHanging(kind: Int, seed: Int): LandPainter = with(SwampLand) {
         for (x in 1 until w - 1) {
             if (Noise.unit(x, seed + 14) < 0.35f) continue
             val length = 6f + Noise.unit(x, seed + 15) * (h - 10f)
-            for (y in 4 until (4 + length).toInt()) p.set(x, y + kind, code(HANGING_MOSS, if (x % 2 == 0) BODY else DEEP))
+            for (y in 4 until (4 + length).toInt()) p.set(
+                x,
+                y + kind,
+                code(HANGING_MOSS, if (x % 2 == 0) BODY else DEEP)
+            )
         }
     }
 }
@@ -1302,6 +1790,7 @@ private fun forestGround(kind: Int, seed: Int): LandPainter = with(ForestLand) {
             val h = size(56, 8, seed, 1)
             canvas(36, h).also { p -> pine(p, 18, h - 1f, h - 2f, PINE_DARK, PINE, TRUNK) }
         }
+
         1 -> {
             val w = size(60, 10, seed, 2)
             val h = size(38, 8, seed, 3)
@@ -1310,6 +1799,7 @@ private fun forestGround(kind: Int, seed: Int): LandPainter = with(ForestLand) {
                 fern(p, 5, h - 2f, 10f, FERN, MOSS, seed, seed)
             }
         }
+
         else -> {
             // A fallen trunk, moss along its back, its broken end showing its rings.
             val w = size(80, 14, seed, 4)
@@ -1320,11 +1810,18 @@ private fun forestGround(kind: Int, seed: Int): LandPainter = with(ForestLand) {
                     for (y in (h - 1 - 2 * radius).roundToInt() until h) {
                         val dy = (y - (h - 1 - radius)) / radius
                         val material = if (dy < -0.6f) MOSS else TRUNK
-                        p.set(x, y, code(material, if (dy < -0.6f) TOP else if (dy > 0.5f) DEEP else BODY))
+                        p.set(
+                            x,
+                            y,
+                            code(material, if (dy < -0.6f) TOP else if (dy > 0.5f) DEEP else BODY)
+                        )
                     }
                 }
                 p.ellipse(w - 4f, h - 1f - radius, radius * 0.6f, radius) { dx, dy ->
-                    code(if ((dx * dx + dy * dy) * 4f % 1f < 0.4f) TRUNK else MUSHROOM, LandPainter.roundShade(dx, dy))
+                    code(
+                        if ((dx * dx + dy * dy) * 4f % 1f < 0.4f) TRUNK else MUSHROOM,
+                        LandPainter.roundShade(dx, dy)
+                    )
                 }
             }
         }

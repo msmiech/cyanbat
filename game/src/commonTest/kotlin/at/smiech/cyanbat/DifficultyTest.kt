@@ -76,7 +76,9 @@ class DifficultyTest {
     /** One more hit than Hard's three on Normal, and two more on Easy. */
     @Test
     fun `an easier bat takes more of the last wave's hits`() {
-        val hit = StageProgression.forStage(1).waveAt((BOSS_WAVE - 1) * WAVE_DURATION_SECONDS).damage
+        val hit =
+            StageProgression.forStage(1).waveAt((BOSS_WAVE - 1) * WAVE_DURATION_SECONDS).damage
+
         fun hitsToFall(difficulty: Difficulty) =
             (PlayerLoadout(difficulty).maxHitPoints + hit - 1) / hit
         assertEquals(3, hitsToFall(Difficulty.HARD))

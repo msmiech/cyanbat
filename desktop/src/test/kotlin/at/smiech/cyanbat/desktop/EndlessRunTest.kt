@@ -129,25 +129,26 @@ class EndlessRunTest {
     }
 
     @Test
-    fun `a round's boss going down is banked and the next round follows its breather`() = endless(BossKind.CACO_IMP) {
-        sturdy()
-        val before = probe.score
-        downTheBoss()
+    fun `a round's boss going down is banked and the next round follows its breather`() =
+        endless(BossKind.CACO_IMP) {
+            sturdy()
+            val before = probe.score
+            downTheBoss()
 
-        assertFalse(probe.stageComplete, "the endless stage was won")
-        assertTrue(probe.score - before >= STAGE_COMPLETE_BONUS, "the boss was not banked")
-        assertEquals("THE CACO IMP FALLS", probe.banner)
-        assertTrue(screen.enmGen.bossSpawned)
+            assertFalse(probe.stageComplete, "the endless stage was won")
+            assertTrue(probe.score - before >= STAGE_COMPLETE_BONUS, "the boss was not banked")
+            assertEquals("THE CACO IMP FALLS", probe.banner)
+            assertTrue(screen.enmGen.bossSpawned)
 
-        fly(ENDLESS_ROUND_BREAK_SECONDS + 0.5f)
+            fly(ENDLESS_ROUND_BREAK_SECONDS + 0.5f)
 
-        val generator = screen.enmGen
-        assertFalse(generator.bossSpawned, "the next round did not begin")
-        assertEquals(ENDLESS_ROUND_WAVES, generator.progression.wavesBefore)
-        assertEquals(ENDLESS_ROUND_WAVES, generator.currentWave.index)
-        assertTrue(generator.roundSeconds < 1f)
-        assertFalse(probe.stageComplete)
-    }
+            val generator = screen.enmGen
+            assertFalse(generator.bossSpawned, "the next round did not begin")
+            assertEquals(ENDLESS_ROUND_WAVES, generator.progression.wavesBefore)
+            assertEquals(ENDLESS_ROUND_WAVES, generator.currentWave.index)
+            assertTrue(generator.roundSeconds < 1f)
+            assertFalse(probe.stageComplete)
+        }
 
     @Test
     fun `a second round's waves are tougher than the first round's`() = endless(BossKind.CACO_IMP) {
@@ -160,22 +161,23 @@ class EndlessRunTest {
 
     /** Its entrance is a cutscene wherever it comes, and its venom lifts as it falls. */
     @Test
-    fun `the sky viper bites without a blow and its venom lifts with it`() = endless(BossKind.SKY_VIPER) {
-        sturdy()
-        val health = probe.world.getComponent(probe.batId, HealthComponent::class)!!
-        screen.enmGen.update(screen.enmGen.progression.bossTimeSeconds - screen.enmGen.roundSeconds)
-        val brain = screen.enmGen.bossBrain as SkyViperBrain
-        var left = (20f / TICK_INITIAL).toInt()
-        while (!brain.arrived) {
-            assertTrue(left-- > 0, "the viper never came into its fight")
-            val hitPoints = health.hitPoints
-            screen.update(TICK_INITIAL)
-            assertEquals(hitPoints, health.hitPoints, "the viper's entrance hurt the bat")
-        }
-        assertTrue(probe.poison.poisoned, "the bite did not poison the bat")
+    fun `the sky viper bites without a blow and its venom lifts with it`() =
+        endless(BossKind.SKY_VIPER) {
+            sturdy()
+            val health = probe.world.getComponent(probe.batId, HealthComponent::class)!!
+            screen.enmGen.update(screen.enmGen.progression.bossTimeSeconds - screen.enmGen.roundSeconds)
+            val brain = screen.enmGen.bossBrain as SkyViperBrain
+            var left = (20f / TICK_INITIAL).toInt()
+            while (!brain.arrived) {
+                assertTrue(left-- > 0, "the viper never came into its fight")
+                val hitPoints = health.hitPoints
+                screen.update(TICK_INITIAL)
+                assertEquals(hitPoints, health.hitPoints, "the viper's entrance hurt the bat")
+            }
+            assertTrue(probe.poison.poisoned, "the bite did not poison the bat")
 
-        downTheBoss()
-        fly(3f)
-        assertFalse(probe.poison.poisoned, "the venom stayed with the viper down")
-    }
+            downTheBoss()
+            fly(3f)
+            assertFalse(probe.poison.poisoned, "the venom stayed with the viper down")
+        }
 }

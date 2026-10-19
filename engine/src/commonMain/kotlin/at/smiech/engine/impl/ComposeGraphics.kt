@@ -663,7 +663,17 @@ class ComposeGraphics(
         while (i < to) {
             when (ints[i]) {
                 RECT -> {
-                    if (meets(ints[i + 1], ints[i + 2], ints[i + 3], ints[i + 4], left, top, right, bottom)) {
+                    if (meets(
+                            ints[i + 1],
+                            ints[i + 2],
+                            ints[i + 3],
+                            ints[i + 4],
+                            left,
+                            top,
+                            right,
+                            bottom
+                        )
+                    ) {
                         shapePaint.color = Color(ints[i + 5])
                         val x = ints[i + 1].toFloat()
                         val y = ints[i + 2].toFloat()
@@ -682,7 +692,17 @@ class ComposeGraphics(
                 }
 
                 OVAL, OUTLINE -> {
-                    if (meets(ints[i + 1], ints[i + 2], ints[i + 3], ints[i + 4], left, top, right, bottom)) {
+                    if (meets(
+                            ints[i + 1],
+                            ints[i + 2],
+                            ints[i + 3],
+                            ints[i + 4],
+                            left,
+                            top,
+                            right,
+                            bottom
+                        )
+                    ) {
                         drawOval(canvas, i)
                     }
                     i += SHAPE_LENGTH
@@ -690,7 +710,12 @@ class ComposeGraphics(
 
                 IMAGE -> {
                     val image = refs[refAt++] as ImageBitmap
-                    if (blitMeets(i, left, top, right, bottom)) drawImage(canvas, image, i, imagePaint)
+                    if (blitMeets(i, left, top, right, bottom)) drawImage(
+                        canvas,
+                        image,
+                        i,
+                        imagePaint
+                    )
                     i += IMAGE_LENGTH
                 }
 
@@ -713,7 +738,8 @@ class ComposeGraphics(
                             silhouetteRgb = rgb
                             // Keeps the picture's alpha and replaces its colors, leaving its shape in
                             // one color; the paint's alpha sets the strength.
-                            silhouettePaint.colorFilter = ColorFilter.tint(Color(rgb), BlendMode.SrcIn)
+                            silhouettePaint.colorFilter =
+                                ColorFilter.tint(Color(rgb), BlendMode.SrcIn)
                         }
                         silhouettePaint.alpha = (color ushr 24) / 255f
                         drawImage(canvas, image, i, silhouettePaint)
@@ -727,7 +753,17 @@ class ComposeGraphics(
                     // its rows, from above the tallest glyph to below the deepest, and its outline.
                     val size = ints[i + 3]
                     val y = ints[i + 2] - size - 2
-                    if (meets(ints[i + 1] - 2, y, Int.MAX_VALUE / 2, size * 3 / 2 + 4, left, top, right, bottom)) {
+                    if (meets(
+                            ints[i + 1] - 2,
+                            y,
+                            Int.MAX_VALUE / 2,
+                            size * 3 / 2 + 4,
+                            left,
+                            top,
+                            right,
+                            bottom
+                        )
+                    ) {
                         drawText(scope, text, i)
                     }
                     i += TEXT_LENGTH

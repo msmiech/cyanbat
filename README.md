@@ -17,8 +17,8 @@ codebase.
 - **Kotlin Multiplatform**: the engine and the whole game — rules, screens, rendering and menu UI —
   are common code. The platform modules only supply platform pieces: asset decoding, input, audio,
   haptics and persistence.
-- **Compose Multiplatform**: one set of menu, settings and credits screens renders on Android,
-  iOS, the desktop and the web, from shared string and drawable resources. The game itself is drawn
+- **Compose Multiplatform**: one set of menu, settings and credits screens renders on Android, iOS,
+  the desktop and the web, from shared string and drawable resources. The game itself is drawn
   through Compose's Canvas too — on the GPU through HWUI on Android, through Skia on iOS, on the
   desktop and in the browser, where Kotlin/Wasm runs it — as pixel art on a 640x360 grid at any
   screen size, with the HUD's text smooth over it.
@@ -38,20 +38,20 @@ codebase.
   in on the beat: past the tune, a trap beat grows under the stage's own instruments - 808s, then
   rolling hi-hats, then chopped voices - and a streak gone SUPERNOVA brings in the boss's own layer
   as well. A hit knocks the music back with a thud, the level-up dialog holds it under a muffle, and
-  the boss arrives on a break, the drums' weight dropping out under the tune, and a slam back in
-  on the downbeat. The stems are IMA ADPCM,
-  decoded by the shared engine, so they line up to the sample on every platform.
+  the boss arrives on a break, the drums' weight dropping out under the tune, and a slam back in on
+  the downbeat. The stems are IMA ADPCM, decoded by the shared engine, so they line up to the sample
+  on every platform.
 
 ## 📁 Project structure
 
-| Module     | What it is                                                                                                                                                                                                                           |
-|------------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
+| Module     | What it is                                                                                                                                                                                                                                                    |
+|------------|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | `:engine`  | Platform-agnostic engine: `Game`/`Screen`/`Graphics`/`Audio` interfaces, the ECS (`at.smiech.engine.ecs`), math (`at.smiech.engine.math`), and the shared `GameLoop`. `androidMain`, `jvmMain`, `wasmJsMain` and `iosMain` hold the platform implementations. |
-| `:game`    | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI, for Android, the JVM, the browser and iOS.                                                                                                                      |
-| `:app`     | Android application — activities, DataStore, and Android asset wiring.                                                                                                                                                                             |
-| `:desktop` | Compose Desktop application — window, JVM asset wiring, and preferences-backed storage.                                                                                                                                                            |
-| `:web`     | The browser's page — Kotlin/Wasm and Compose, assets fetched beside the page, and storage in the browser's local storage.                                                                                                                         |
-| `:ios`     | The iPhone and iPad app's Kotlin half — the view controller that shows the menu and the runs, and storage in the app's user defaults — built into the framework the Xcode project in `iosApp/` links.                                            |
+| `:game`    | CyanBat itself: game screens, entity factory, spawners, and the shared Compose UI, for Android, the JVM, the browser and iOS.                                                                                                                                 |
+| `:app`     | Android application — activities, DataStore, and Android asset wiring.                                                                                                                                                                                        |
+| `:desktop` | Compose Desktop application — window, JVM asset wiring, and preferences-backed storage.                                                                                                                                                                       |
+| `:web`     | The browser's page — Kotlin/Wasm and Compose, assets fetched beside the page, and storage in the browser's local storage.                                                                                                                                     |
+| `:ios`     | The iPhone and iPad app's Kotlin half — the view controller that shows the menu and the runs, and storage in the app's user defaults — built into the framework the Xcode project in `iosApp/` links.                                                         |
 
 Game assets live once at the repo root in `assets/`, packaged as Android assets by `:app`, as
 classpath resources by `:desktop`, served beside the page by `:web`, and copied into the iOS app's
@@ -108,35 +108,35 @@ Beating a stage unlocks the next, and from then on Start Game opens a stage sele
 flown from a standing start: score, experience and power-ups reset when it begins. Each stage keeps
 its own highscore, shown on its card in the stage select and at the end of every run.
 
-Beating the lagoon opens **Endless Mode**, under the four stages on the stage select. It never
-ends: round after round of three waves and a boss, the waves mixed afresh from every stage's
-enemies and the bosses drawn from every stage's, in a new order every run, and every wave harder
-than the last. It is flown over country the game makes up as it scrolls in - snowy peaks,
-volcanoes, swamps and foggy forests, and a jungle, a desert and a coast - under a sky that goes round
-the clock, dark at night but for the bat's own light, with rain, snow, ash and blowing dust that
-settle on the bat and everything it fights, and storms that flash with lightning. Its music is a
-theme of its own, a Mediterranean dance number, taking turns with faster, brighter remixes of the
-stages' pieces, and it builds with every wave as well as with the combo. Score and power-ups carry
-on from round to round, and the run ends on how far it got.
+Beating the lagoon opens **Endless Mode**, under the four stages on the stage select. It never ends:
+round after round of three waves and a boss, the waves mixed afresh from every stage's enemies and
+the bosses drawn from every stage's, in a new order every run, and every wave harder than the last.
+It is flown over country the game makes up as it scrolls in - snowy peaks, volcanoes, swamps and
+foggy forests, and a jungle, a desert and a coast - under a sky that goes round the clock, dark at
+night but for the bat's own light, with rain, snow, ash and blowing dust that settle on the bat and
+everything it fights, and storms that flash with lightning. Its music is a theme of its own, a
+Mediterranean dance number, taking turns with faster, brighter remixes of the stages' pieces, and it
+builds with every wave as well as with the combo. Score and power-ups carry on from round to round,
+and the run ends on how far it got.
 
 Starting a stage from the menu asks how hard to fly it. Hard is the game as it was tuned, with no
-power-ups until the bat earns them. Normal sends 15% fewer enemies, pays a quarter more experience
-a kill, and starts the bat with a quarter more health, 15% more damage to its shot and Regeneration;
+power-ups until the bat earns them. Normal sends 15% fewer enemies, pays a quarter more experience a
+kill, and starts the bat with a quarter more health, 15% more damage to its shot and Regeneration;
 Easy sends 30% fewer, pays half as much again, and gives the bat half as much health again, 30% more
-damage, Regeneration and a Second Life. The enemies and the bosses are as tough on every
-difficulty, and a stage won flies on to the next one on the same. Each stage's card shows the
-hardest difficulty it has been beaten on: one star for Easy, two for Normal, three for Hard.
+damage, Regeneration and a Second Life. The enemies and the bosses are as tough on every difficulty,
+and a stage won flies on to the next one on the same. Each stage's card shows the hardest difficulty
+it has been beaten on: one star for Easy, two for Normal, three for Hard.
 
 The game keeps **achievements** of its own, since most of the platforms it runs on have none to
-report to: levels 10, 20, 30, 40 and 50 reached, the jungle beaten on each difficulty (Hard counts for
-Easy and Normal too) and every other stage beaten, a stage beaten without a hit or without letting a
-single enemy get away, a power-up maxed out, and the first fall. Each is named along the bottom of the
-frame as it is earned, and kept with a picture of that moment, which its card on the main screen's
-Achievements list opens full size. Stages beaten before there were achievements count, pictured by
-their stage's card.
+report to: levels 10, 20, 30, 40 and 50 reached, the jungle beaten on each difficulty (Hard counts
+for Easy and Normal too) and every other stage beaten, a stage beaten without a hit or without
+letting a single enemy get away, a power-up maxed out, and the first fall. Each is named along the
+bottom of the frame as it is earned, and kept with a picture of that moment, which its card on the
+main screen's Achievements list opens full size. Stages beaten before there were achievements count,
+pictured by their stage's card.
 
-The art and the music for all of them are generated by the scripts in `tools/`; the desert's and
-the lagoon's skies are drawn by the game itself, from the stage clock. Each stage has a score of its
+The art and the music for all of them are generated by the scripts in `tools/`; the desert's and the
+lagoon's skies are drawn by the game itself, from the stage clock. Each stage has a score of its
 own - wooden drums and a bamboo flute in the jungle, a campfire guitar in the cave, an oud and a ney
 in the desert, a gong circle, a reed, tribal toms and whooping voices in the lagoon - that starts
 out quiet and builds as the fight does. The Naga is fought to a piece of its own, faster and wilder,
@@ -165,10 +165,10 @@ Kills earn experience, and every level up offers three power-ups to pick from. M
 bat's gun or toughen its hide; three give it weapons of its own, each working while you dodge.
 Guardian Orbs circle the bat and strike whatever they meet, one more with every pick; Rapid Fire
 turns them faster, and Heavy Rounds, which makes the bat's shots bigger as well as harder, makes the
-orbs bigger too and widens their ring. A Charged
-Trail draws the bat's wake out longer and shocks whatever flies into it. A Frost Beam goes off every
-few seconds at a random enemy and freezes every ordinary one along its line, turning them blue and
-harmless until they thaw - though never a boss or an elite.
+orbs bigger too and widens their ring. A Charged Trail draws the bat's wake out longer and shocks
+whatever flies into it. A Frost Beam goes off every few seconds at a random enemy and freezes every
+ordinary one along its line, turning them blue and harmless until they thaw - though never a boss or
+an elite.
 
 ## 🎮 Controls
 
@@ -205,8 +205,8 @@ you straight back into a dodge.
 In a browser the game fills the page, and the browser's own full screen (`F11`) takes it from there;
 Settings offers no window modes, and the main screen has no Exit, since a page cannot close its own
 tab. The page fetches the pictures and sounds a run is built from while you are in the menu, and
-each piece of music as it is first played. Settings, highscores, the stages you have opened and
-your achievements, pictures and all, are kept in the browser's storage for the site.
+each piece of music as it is first played. Settings, highscores, the stages you have opened and your
+achievements, pictures and all, are kept in the browser's storage for the site.
 
 On desktop, Settings → Display → Screen puts the game in a window, in full screen, or borderless:
 a window without a frame over the whole screen, which other windows can come over and which stays
@@ -223,14 +223,14 @@ button you left from.
 
 A controller works on Android and on desktop: an Xbox pad, a DualSense or DualShock, or most others.
 Android reports pads to the game itself; the desktop reads them through SDL. `A` (Cross on a
-PlayStation pad) takes what is offered, `B` (Circle) goes back or says no, and the d-pad or the
-left stick flies the bat - and on the level up, moves a cursor between the cards. The browser build
-does not read the browser's pads yet.
+PlayStation pad) takes what is offered, `B` (Circle) goes back or says no, and the d-pad or the left
+stick flies the bat - and on the level up, moves a cursor between the cards. The browser build does
+not read the browser's pads yet.
 
-The prompts the game shows follow whatever you last played with. Pick up a pad and the pause
-screen, the level up, the stage complete and game over screens draw its buttons, an Xbox pad's
-letters or a PlayStation pad's shapes; press a key or move the mouse and they show the keys
-instead; touch the screen and they say it in words. The help's controls follow along.
+The prompts the game shows follow whatever you last played with. Pick up a pad and the pause screen,
+the level up, the stage complete and game over screens draw its buttons, an Xbox pad's letters or a
+PlayStation pad's shapes; press a key or move the mouse and they show the keys instead; touch the
+screen and they say it in words. The help's controls follow along.
 
 A hit buzzes whatever you are playing with. That is the controller, if it can rumble: a DualSense, a
 DualShock 4, or an Xbox One or Series pad over Bluetooth. Android's own kernels carry the drivers
@@ -250,8 +250,8 @@ Assembles every module, runs lint, and runs the unit tests — ECS, math, spawn 
 mixer's timing, a check that every stage's music stems fit the grid the game plays them on, and one
 that every sound effect is a plain PCM WAV that each platform plays without a codec of its own.
 
-`build` also compiles the shared code for the browser and builds the web site. The tests are not
-run in a browser: they run on the JVM, and on iOS as below.
+`build` also compiles the shared code for the browser and builds the web site. The tests are not run
+in a browser: they run on the JVM, and on iOS as below.
 
 `:engine`, `:game` and `:ios` are built for iOS only on a Mac: there `build` also compiles the
 shared code for iOS and runs its tests on the simulator, as CI's `ios` job does, which also builds
@@ -291,7 +291,8 @@ git tag 2.0 && git push origin 2.0
 ```
 
 That produces a signed Android APK, Windows, macOS and Linux desktop installers, and an unsigned
-iPhone and iPad app (`ios-arm64.ipa`) for sideloading, and attaches them to a GitHub release. Tags work with or without a leading `v`; a suffixed tag such as `2.1-rc1`
+iPhone and iPad app (`ios-arm64.ipa`) for sideloading, and attaches them to a GitHub release. Tags
+work with or without a leading `v`; a suffixed tag such as `2.1-rc1`
 publishes as a pre-release. To rehearse without spending a tag, run the **Release** workflow
 manually from the Actions tab — it builds and uploads the same artifacts to the run, and publishes
 nothing.
