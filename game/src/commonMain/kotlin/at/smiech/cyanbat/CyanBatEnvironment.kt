@@ -18,6 +18,8 @@ class CyanBatEnvironment(
     val highscores: HighscoreStore,
     /** Which stages are open; clearing one opens the next. */
     val stageUnlocks: StageUnlockStore,
+    /** What the player has achieved, which a run adds to, each with a picture of the moment. */
+    val achievements: AchievementStore,
     /** Leave the game and go back to the menu. */
     val onExitToMenu: () -> Unit,
     /** Consulted each time a track or effect would start, so setting changes apply immediately. */

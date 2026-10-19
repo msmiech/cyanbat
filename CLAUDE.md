@@ -134,8 +134,8 @@ through the engine's `Graphics`, and the host draws that into a Compose `Canvas`
 - The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
   `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
   stay light over it (`SystemBarIcons`). The game's frame is not themed.
-- Each host builds a `CyanBatEnvironment` (assets, haptics, highscore and stage unlock stores, audio
-  settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in `:game`, backed
+- Each host builds a `CyanBatEnvironment` (assets, haptics, highscore, stage unlock and achievement
+  stores, audio settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in `:game`, backed
   by DataStore in `:app`, `java.util.prefs` in `:desktop`, and in `:web` and `:ios` by the shared
   `KeyValueStores` over the page's local storage and the app's user defaults.
 
@@ -536,6 +536,33 @@ rather than in the menu's view model, which Android makes again for every return
       draws like a flash). `slowWounded` leaves a frozen enemy's pace alone; the thaw hands back its
       wound's pace. Frozen, it is harmless: `handleCollision` lets the bat through it with no hit
       either way, while the bat's weapons still land.
+
+**Achievements** (`Achievement`) are the game's own, since most of the platforms it runs on have
+none to report to, and kept for good, each with a picture of the moment it was earned. The main
+screen's Achievements opens them (`AchievementsScreen`): one column of cards that scrolls up and
+down, a card's picture opening full size.
+
+- A run earns them as they happen (`GameScreen.earn`): a level reached on every award of experience,
+  a stage's clear in `completeStage` (`Achievement.forClear`, where the jungle on Hard earns its Easy
+  and Normal too), a power-up maxed in `takePowerUp`, the first fall as the bat dies. Untouchable is
+  no hit landing on the bat all stage (`batHit`, set where a hit starts its mercy); nothing getting
+  past is no enemy culled out of the frame alive (`LifetimeSystem`'s `onLeave`, `onLeftFrame`), not
+  counting one culled past the right edge on its way in.
+- They are earned partway through a tick, and the frame presented after it is their picture:
+  `keepAchievements`, last in `present`, takes it with `Graphics.capture` (`ComposeGraphics` draws the
+  recording into a bitmap of its own at frame size, as `drawInto` does for the recorder) and hands the
+  `FrameCapture` to the store. The notice along the bottom of the frame is drawn after it, so it is
+  not in the picture. A run left before its frame was drawn keeps them without one.
+- The store makes the PNG (`FrameCapture.encodePng`: Android's `Bitmap.compress`, Skia's encoder
+  elsewhere) off the game's thread. A picture is 25 to 50 KB. Achievements earned together share one,
+  kept once under the first one's key; each achievement's value is its picture's name, empty for
+  none, and one already earned keeps its first. `KeyValueAchievementStore` keeps them on the
+  desktop (the preferences, and files in `gameDataDirectory`), in a browser (local storage, the
+  pictures as Base64) and on iOS (the user defaults, and files in Application Support);
+  `DataStoreAchievementStore` on Android (files in `filesDir/achievements`).
+- Stages cleared before there were achievements earn their clears once the menu opens
+  (`achievementsOfClears`), without a picture; their cards show the stage's preview instead.
+- Stored by `Achievement.key`, so the entries can be renamed or reordered; never change a key.
 
 **Layered music.** A stage's music is one piece cut into eight stems, one per `MusicLayer` (bed,
 pulse, drive, lead, boom, roll, chop, fury), mixed live so the music builds and strips back with the

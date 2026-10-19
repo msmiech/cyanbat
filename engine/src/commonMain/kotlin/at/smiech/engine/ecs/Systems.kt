@@ -982,10 +982,14 @@ class BounceSystem(
  * A moving entity is only culled at an edge it is travelling out through, so one still on its way
  * in is left alone; swarms and formations spawn their trailing members further off screen than
  * their leader. An entity with no velocity is culled wherever it lies.
+ *
+ * @param onLeave told of each entity culled for leaving the frame, just before it goes, so a game
+ *   can tell an enemy that got away from one that was shot down.
  */
 class LifetimeSystem(
     private val worldWidth: Int,
     private val worldHeight: Int? = null,
+    private val onLeave: ((EntityId) -> Unit)? = null,
 ) : GameSystem() {
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var lifetimes: ComponentMapper<LifetimeComponent>
@@ -1020,6 +1024,7 @@ class LifetimeSystem(
                     ((rect.bottom < -VERTICAL_MARGIN && vy <= 0f) ||
                             (rect.top > worldHeight + VERTICAL_MARGIN && vy >= 0f))
             if (lifetimes.require(id).removeIfOutOfBounds && (offLeft || offRight || offVertically)) {
+                onLeave?.invoke(id)
                 world.removeEntity(id)
             }
         }

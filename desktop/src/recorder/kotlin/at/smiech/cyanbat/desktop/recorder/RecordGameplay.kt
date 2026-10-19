@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.desktop.recorder
 
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
@@ -325,6 +326,7 @@ private class Flight(
             haptics = Haptics.None,
             highscores = Unsaved,
             stageUnlocks = StageUnlockStore.InMemory(),
+            achievements = AchievementStore.InMemory(),
             onExitToMenu = {},
             audioSettings = Silent,
         ),

@@ -232,4 +232,43 @@
     <string name="power_up_frost_beam">Frost Beam</string>
     <string name="power_up_frost_beam_description">A beam freezes a line of enemies</string>
     <string name="power_up_frost_beam_held">Fires more often, freezes for longer</string>
+
+    <!-- The achievements: the menu's button and screen, and the notice a run shows as one is earned. -->
+    <string name="button_achievements">Achievements</string>
+    <string name="achievements_title">Achievements</string>
+    <string name="achievements_progress">%1$d of %2$d earned</string>
+    <!-- Across a picture of an achievement not yet earned. -->
+    <string name="achievement_locked_badge">LOCKED</string>
+    <!-- Along the bottom of the frame, in the run, as an achievement is earned. -->
+    <string name="achievement_notice">Achievement: %1$s</string>
+    <string name="achievement_level_10">Fledgling</string>
+    <string name="achievement_level_10_description">Reach level 10.</string>
+    <string name="achievement_level_20">Night Flyer</string>
+    <string name="achievement_level_20_description">Reach level 20.</string>
+    <string name="achievement_level_30">Echo Hunter</string>
+    <string name="achievement_level_30_description">Reach level 30.</string>
+    <string name="achievement_level_40">Terror of the Night</string>
+    <string name="achievement_level_40_description">Reach level 40.</string>
+    <string name="achievement_level_50">Living Legend</string>
+    <string name="achievement_level_50_description">Reach level 50.</string>
+    <string name="achievement_stage_1_easy">Into the Jungle</string>
+    <string name="achievement_stage_1_easy_description">Beat the jungle on any difficulty.</string>
+    <string name="achievement_stage_1_normal">Jungle Runner</string>
+    <string name="achievement_stage_1_normal_description">Beat the jungle on Normal or Hard.</string>
+    <string name="achievement_stage_1_hard">King of the Jungle</string>
+    <string name="achievement_stage_1_hard_description">Beat the jungle on Hard.</string>
+    <string name="achievement_stage_2">Out of the Dark</string>
+    <string name="achievement_stage_2_description">Beat the cave.</string>
+    <string name="achievement_stage_3">Sunstruck</string>
+    <string name="achievement_stage_3_description">Beat the desert.</string>
+    <string name="achievement_stage_4">Tidebreaker</string>
+    <string name="achievement_stage_4_description">Beat the lagoon.</string>
+    <string name="achievement_untouchable">Untouchable</string>
+    <string name="achievement_untouchable_description">Beat a stage without getting hit.</string>
+    <string name="achievement_nothing_gets_past">Nothing Gets Past</string>
+    <string name="achievement_nothing_gets_past_description">Beat a stage without letting a single enemy get away.</string>
+    <string name="achievement_maxed_out">Maxed Out</string>
+    <string name="achievement_maxed_out_description">Max out a power-up.</string>
+    <string name="achievement_first_fall">First Fall</string>
+    <string name="achievement_first_fall_description">Go down for the first time.</string>
 </resources>

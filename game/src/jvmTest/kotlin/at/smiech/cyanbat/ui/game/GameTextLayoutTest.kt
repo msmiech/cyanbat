@@ -2,11 +2,13 @@ package at.smiech.cyanbat.ui.game
 
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.text.font.createFontFamilyResolver
+import at.smiech.cyanbat.Achievement
 import at.smiech.cyanbat.progress.PowerUp
 import at.smiech.cyanbat.resource.GameText
 import at.smiech.cyanbat.resource.LANGUAGES
 import at.smiech.cyanbat.resource.textIn
 import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.achievement_notice
 import at.smiech.cyanbat.resources.allStringResources
 import at.smiech.cyanbat.resources.banner_poisoned
 import at.smiech.cyanbat.resources.banner_second_life
@@ -35,6 +37,7 @@ import at.smiech.cyanbat.resources.stage_complete_menu
 import at.smiech.cyanbat.resources.stage_complete_next
 import at.smiech.cyanbat.resources.stage_complete_title
 import at.smiech.cyanbat.resources.stage_highscore
+import at.smiech.cyanbat.util.ACHIEVEMENT_NOTICE_FONT_SIZE
 import at.smiech.cyanbat.util.BANNER_FONT_SIZE
 import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
@@ -91,6 +94,17 @@ class GameTextLayoutTest {
                     text.format(Res.string.banner_wave, 5) + text[Res.string.banner_second_life] +
                     text[Res.string.banner_poisoned]
             for (line in lines) assertFits(language, line, BANNER_FONT_SIZE, room)
+        }
+    }
+
+    @Test
+    fun `every achievement's notice fits across the frame`() {
+        val room = FRAME_BUFFER_WIDTH - 2 * margin
+        for ((language, text) in texts) {
+            for (achievement in Achievement.entries) {
+                val line = text.format(Res.string.achievement_notice, text[achievement.title])
+                assertFits(language, line, ACHIEVEMENT_NOTICE_FONT_SIZE, room)
+            }
         }
     }
 

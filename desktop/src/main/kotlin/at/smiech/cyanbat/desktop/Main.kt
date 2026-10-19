@@ -17,6 +17,7 @@ import androidx.compose.ui.window.application
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AudioSettings
@@ -66,6 +67,8 @@ fun main() = application {
     // Shared for the same reason: the stage select shows each stage's highscore, and a run that
     // raises one has to be seen raising it.
     val highscores = remember { PreferencesHighscoreStore() }
+    // Shared too: the menu shows what a run has just achieved.
+    val achievements = remember { desktopAchievementStore() }
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
     // The menu outlives any single game instance, so it owns its own Audio.
@@ -93,6 +96,7 @@ fun main() = application {
         controls,
         highscores,
         stageUnlocks,
+        achievements,
         audioSettings,
     ) {
         controls.releaseAll()
@@ -155,6 +159,7 @@ fun main() = application {
                             menuMusic = menuMusic,
                             stageUnlocks = stageUnlocks,
                             highscores = highscores,
+                            achievements = achievements,
                             // Cleared on the way in as well as on the way out, so that nothing
                             // pressed before the run is waiting to act the moment it starts.
                             onStartGame = { id, chosen ->
@@ -185,6 +190,7 @@ private fun rememberRun(
     controls: ControlHandler,
     highscores: PreferencesHighscoreStore,
     stageUnlocks: PreferencesStageUnlockStore,
+    achievements: AchievementStore,
     audioSettings: AudioSettings,
     onExitToMenu: () -> Unit,
 ): DesktopGame? {
@@ -199,6 +205,7 @@ private fun rememberRun(
                     haptics = Haptics.None,
                     highscores = highscores,
                     stageUnlocks = stageUnlocks,
+                    achievements = achievements,
                     onExitToMenu = onExitToMenu,
                     audioSettings = audioSettings,
                 )

@@ -48,6 +48,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import at.smiech.cyanbat.resources.Res
+import at.smiech.cyanbat.resources.button_achievements
 import at.smiech.cyanbat.resources.button_credits
 import at.smiech.cyanbat.resources.button_exit
 import at.smiech.cyanbat.resources.button_help
@@ -66,7 +67,7 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 /** The main screen's buttons, top to bottom and then Exit: the places its cursor can be. */
-private enum class MainChoice { START, SETTINGS, HELP, CREDITS, EXIT }
+private enum class MainChoice { START, ACHIEVEMENTS, SETTINGS, HELP, CREDITS, EXIT }
 
 /**
  * The title screen's cursor. Its buttons sit on a dark sky and are filled with the theme's primary,
@@ -102,6 +103,7 @@ fun MainMenuScreen(
     onNavigateToSettings: () -> Unit,
     onNavigateToCredits: () -> Unit,
     onNavigateToStageSelect: () -> Unit,
+    onNavigateToAchievements: () -> Unit,
     /** Starts the stage with this id, once the player has said how hard; see [DifficultyDialog]. */
     onStartStage: (stageId: Int) -> Unit,
     /** Quits the game; null where it cannot quit, and there is no Exit. */
@@ -132,6 +134,7 @@ fun MainMenuScreen(
                 onStartStage(1)
             }
 
+            MainChoice.ACHIEVEMENTS -> onNavigateToAchievements()
             MainChoice.SETTINGS -> onNavigateToSettings()
             MainChoice.HELP -> showHelpDialog = true
             MainChoice.CREDITS -> onNavigateToCredits()
@@ -263,6 +266,7 @@ private fun MainMenuLayout(
                 ) {
                     for (choice in listOf(
                         MainChoice.START,
+                        MainChoice.ACHIEVEMENTS,
                         MainChoice.SETTINGS,
                         MainChoice.HELP,
                         MainChoice.CREDITS
@@ -319,6 +323,7 @@ private fun MenuButton(
 private val MainChoice.label: StringResource
     get() = when (this) {
         MainChoice.START -> Res.string.button_start_game
+        MainChoice.ACHIEVEMENTS -> Res.string.button_achievements
         MainChoice.SETTINGS -> Res.string.button_settings
         MainChoice.HELP -> Res.string.button_help
         MainChoice.CREDITS -> Res.string.button_credits

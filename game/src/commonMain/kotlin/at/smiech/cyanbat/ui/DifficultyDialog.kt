@@ -152,8 +152,8 @@ private fun DifficultyChoice(
 }
 
 /**
- * A row of stars, [earned] of them filled and the rest of the [MOST_STARS] drawn as outlines in
- * [emptyColor], read by a screen reader as [description] when there is one.
+ * A row of [count] stars, by default [MOST_STARS], [earned] of them filled and the rest drawn as
+ * outlines in [emptyColor], read by a screen reader as [description] when there is one.
  *
  * Drawn rather than set as text: not every platform's font has a star in it, the browser's least.
  */
@@ -164,11 +164,12 @@ internal fun Stars(
     modifier: Modifier = Modifier,
     size: Dp = 16.dp,
     description: String? = null,
+    count: Int = MOST_STARS,
 ) {
     val gap = size / 8
     Canvas(
         modifier
-            .size(width = size * MOST_STARS + gap * (MOST_STARS - 1), height = size)
+            .size(width = size * count + gap * (count - 1), height = size)
             .then(
                 if (description != null) {
                     Modifier.clearAndSetSemantics { contentDescription = description }
@@ -180,7 +181,7 @@ internal fun Stars(
         val side = this.size.height
         val step = side + gap.toPx()
         val rim = Stroke(width = side / 12f, join = StrokeJoin.Round)
-        repeat(MOST_STARS) { index ->
+        repeat(count) { index ->
             val star = starPath(Offset(index * step + side / 2f, side / 2f), side / 2f)
             if (index < earned) {
                 drawPath(star, STAR_GOLD)

@@ -26,7 +26,9 @@ import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AudioSettings
+import at.smiech.cyanbat.data.KeyValueAchievementStore
 import at.smiech.cyanbat.data.KeyValueHighscoreStore
+import at.smiech.cyanbat.data.KeyValueScreenshotStorage
 import at.smiech.cyanbat.data.KeyValueSettingsRepository
 import at.smiech.cyanbat.data.KeyValueStageUnlockStore
 import at.smiech.cyanbat.data.ObservedAudioSettings
@@ -103,6 +105,10 @@ private fun CyanBatPage(
     // records it; see KeyValueStores.
     val stageUnlocks = remember { KeyValueStageUnlockStore(storage) }
     val highscores = remember { KeyValueHighscoreStore(storage) }
+    // The pictures go into the page's storage beside the rest: a page has no files of its own.
+    val achievements = remember {
+        KeyValueAchievementStore(storage, KeyValueScreenshotStorage(storage))
+    }
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
     val steeringSettings = remember(scope) { ObservedSteeringSettings(settings, scope) }
@@ -126,6 +132,7 @@ private fun CyanBatPage(
         controls,
         highscores,
         stageUnlocks,
+        achievements,
         audioSettings,
         steeringSettings,
     ) {
@@ -149,6 +156,7 @@ private fun CyanBatPage(
                     menuMusic = menuMusic,
                     stageUnlocks = stageUnlocks,
                     highscores = highscores,
+                    achievements = achievements,
                     // Cleared on the way in as well as on the way out, so that nothing pressed
                     // before the run is waiting to act the moment it starts.
                     onStartGame = { id, chosen ->
@@ -182,6 +190,7 @@ private fun rememberRun(
     controls: ControlHandler,
     highscores: KeyValueHighscoreStore,
     stageUnlocks: KeyValueStageUnlockStore,
+    achievements: KeyValueAchievementStore,
     audioSettings: AudioSettings,
     steeringSettings: SteeringSettings,
     onExitToMenu: () -> Unit,
@@ -217,6 +226,7 @@ private fun rememberRun(
             haptics = Haptics.None,
             highscores = highscores,
             stageUnlocks = stageUnlocks,
+            achievements = achievements,
             onExitToMenu = onExitToMenu,
             audioSettings = audioSettings,
             steeringSettings = steeringSettings,

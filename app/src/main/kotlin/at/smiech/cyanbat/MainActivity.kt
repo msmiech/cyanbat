@@ -15,6 +15,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import at.smiech.cyanbat.activity.CyanBatGameActivity
 import at.smiech.cyanbat.data.AppLocale
 import at.smiech.cyanbat.data.ClearsBeforeDifficultiesMigration
+import at.smiech.cyanbat.data.DataStoreAchievementStore
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
 import at.smiech.cyanbat.data.DataStoreStageUnlockStore
@@ -26,6 +27,7 @@ import at.smiech.cyanbat.ui.rememberMenuBackStack
 import at.smiech.engine.Audio
 import at.smiech.engine.Music
 import at.smiech.engine.impl.AndroidAudio
+import java.io.File
 
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
 internal val PREFS_KEY_SOUNDS = booleanPreferencesKey("sounds_enabled")
@@ -86,6 +88,13 @@ internal val Context.dataStore by preferencesDataStore(
 )
 
 /**
+ * The achievements, in the same DataStore as the rest, with their pictures in the app's own files,
+ * where the menu and the game activity both find them.
+ */
+internal fun Context.achievementStore(): DataStoreAchievementStore =
+    DataStoreAchievementStore(dataStore, File(filesDir, "achievements"))
+
+/**
  * Android host for the shared menu. Its job is to supply the platform pieces - DataStore-backed
  * settings, the menu track, and how to start the game - and let [CyanBatMenu] do the rest.
  *
@@ -115,6 +124,7 @@ class MainActivity : ComponentActivity() {
         val settings = DataStoreSettingsRepository(dataStore)
         val stageUnlocks = DataStoreStageUnlockStore(dataStore)
         val highscores = DataStoreHighscoreStore(dataStore)
+        val achievements = achievementStore()
 
         setContent {
             // The shared back stack is host-owned so the Android back gesture can drive it;
@@ -129,6 +139,7 @@ class MainActivity : ComponentActivity() {
                     menuMusic = menuMusic,
                     stageUnlocks = stageUnlocks,
                     highscores = highscores,
+                    achievements = achievements,
                     onStartGame = { stageId, difficulty ->
                         startActivity(
                             Intent(this, CyanBatGameActivity::class.java)

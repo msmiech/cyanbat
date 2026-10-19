@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.sp
 import at.smiech.engine.Dither
 import at.smiech.engine.FrameCache
+import at.smiech.engine.FrameCapture
 import at.smiech.engine.Gloss
 import at.smiech.engine.Graphics
 import at.smiech.engine.Lighting
@@ -593,6 +594,20 @@ class ComposeGraphics(
      * draws at the screen's resolution.
      */
     fun drawInto(image: ImageBitmap) = drawInto(Canvas(image), image.width, image.height)
+
+    /**
+     * The recorded frame drawn into a new picture at the frame's size, on the CPU, as [drawInto]
+     * draws it for the recorder. A new picture each time, since the capture is kept.
+     */
+    override fun capture(): FrameCapture {
+        val image = ImageBitmap(width, height)
+        drawInto(image)
+        return object : FrameCapture {
+            override val width: Int get() = image.width
+            override val height: Int get() = image.height
+            override fun encodePng(): ByteArray = image.encodePng()
+        }
+    }
 
     /**
      * Draws the recorded frame into [canvas], scaled to [targetWidth] by [targetHeight] and limited

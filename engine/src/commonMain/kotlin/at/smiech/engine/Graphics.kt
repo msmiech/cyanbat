@@ -289,6 +289,15 @@ interface Graphics {
      */
     fun measureString(s: String, fontSize: Int): Int
 
+    /**
+     * The frame drawn so far, as a picture of its own that outlives the next frame's [clear], to be
+     * kept: a moment of the run worth looking back on. Called at the end of a present, it is the
+     * frame the player is about to see, drawn at the frame's own size.
+     *
+     * The default, for test doubles, captures nothing.
+     */
+    fun capture(): FrameCapture? = null
+
     /** The frame's size in pixels. */
     val width: Int
     val height: Int

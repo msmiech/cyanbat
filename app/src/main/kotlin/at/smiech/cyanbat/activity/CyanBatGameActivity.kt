@@ -6,6 +6,7 @@ import android.os.Bundle
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.MainActivity
+import at.smiech.cyanbat.achievementStore
 import at.smiech.cyanbat.data.AppLocale
 import at.smiech.cyanbat.data.DataStoreHighscoreStore
 import at.smiech.cyanbat.data.DataStoreSettingsRepository
@@ -67,6 +68,7 @@ class CyanBatGameActivity : AndroidGameActivity() {
         haptics = ObservedHaptics(haptics, settings, activityScope),
         highscores = DataStoreHighscoreStore(dataStore),
         stageUnlocks = DataStoreStageUnlockStore(dataStore),
+        achievements = achievementStore(),
         onExitToMenu = {
             // CLEAR_TOP replaces the menu this game was started from instead of stacking a second
             // one on top of it. Without it every run left another menu behind, each one more press

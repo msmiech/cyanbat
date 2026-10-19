@@ -1,5 +1,7 @@
 package at.smiech.cyanbat.desktop
 
+import at.smiech.cyanbat.Achievement
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.HighscoreStore
@@ -87,6 +89,8 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.runBlocking
+import java.io.ByteArrayInputStream
+import javax.imageio.ImageIO
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.hypot
@@ -125,6 +129,7 @@ class GameScreenTest {
                 haptics = Haptics.None,
                 highscores = highscores,
                 stageUnlocks = StageUnlockStore.InMemory(),
+                achievements = AchievementStore.InMemory(),
                 onExitToMenu = {},
                 audioSettings = Silent,
             ),
@@ -1995,6 +2000,116 @@ class GameScreenTest {
 
     // endregion
 
+    // region Achievements
+
+    /**
+     * An achievement is kept with the frame the player saw as it was earned: the bat going down,
+     * here, drawn at the frame's own size and with nothing over it yet that says what it earned.
+     */
+    @Test
+    fun `the bat going down earns its first fall, with a picture of the moment`() {
+        val achievements = AchievementStore.InMemory()
+        flight(CAVE, achievements = achievements) {
+            holdFire()
+            clearStrays(keep = emptySet())
+            placeBat()
+            probe.world.getComponent(probe.batId, HealthComponent::class)!!.hitPoints = 1
+            val bat = batRect()
+            imp(x = bat.centerX - 14f, y = bat.centerY - IMP_ROW / 2f, elite = null)
+            screen.update(GameLoop.MAX_FRAME_DELTA_SECONDS)
+            screen.present(TICK_INITIAL)
+
+            assertEquals(setOf(Achievement.FIRST_FALL), runBlocking { achievements.unlocked.first() })
+            val png = assertNotNull(runBlocking { achievements.screenshot(Achievement.FIRST_FALL) })
+            val picture = ImageIO.read(ByteArrayInputStream(png))
+            assertEquals(FRAME_BUFFER_WIDTH, picture.width)
+            assertEquals(FRAME_BUFFER_HEIGHT, picture.height)
+            // The cave, not a blank: its rock and the bat's light make more than a handful of colors.
+            val colors = (0 until picture.height step 4).flatMap { y ->
+                (0 until picture.width step 4).map { x -> picture.getRGB(x, y) }
+            }.toSet()
+            assertTrue(colors.size > 20, "the picture has only ${colors.size} colors")
+        }
+    }
+
+    @Test
+    fun `a stage won untouched with nothing getting away earns both, besides its clear`() {
+        val achievements = AchievementStore.InMemory()
+        flight(CAVE, difficulty = Difficulty.EASY, achievements = achievements) {
+            winTheStage()
+            assertEquals(
+                setOf(Achievement.STAGE_2, Achievement.UNTOUCHABLE, Achievement.NOTHING_GETS_PAST),
+                runBlocking { achievements.unlocked.first() },
+            )
+        }
+    }
+
+    @Test
+    fun `the jungle won on Hard earns its Easy and Normal clears too`() {
+        val achievements = AchievementStore.InMemory()
+        flight(JUNGLE, achievements = achievements) {
+            winTheStage()
+            val earned = runBlocking { achievements.unlocked.first() }
+            assertTrue(
+                earned.containsAll(
+                    listOf(Achievement.STAGE_1_EASY, Achievement.STAGE_1_NORMAL, Achievement.STAGE_1_HARD)
+                ),
+                "earned $earned",
+            )
+        }
+    }
+
+    @Test
+    fun `an enemy getting away, or a hit on the bat, is remembered to the end of the stage`() {
+        val achievements = AchievementStore.InMemory()
+        flight(CAVE, achievements = achievements) {
+            holdFire()
+            sturdyBat()
+            clearStrays(keep = emptySet())
+            placeBat()
+            // Gone out past the left edge, alive: it got past the bat.
+            imp(x = -60f, y = 40f, elite = null)
+            // And one into the bat.
+            val bat = batRect()
+            imp(x = bat.centerX - 14f, y = bat.centerY - IMP_ROW / 2f, elite = null)
+            screen.update(GameLoop.MAX_FRAME_DELTA_SECONDS)
+            screen.present(TICK_INITIAL)
+
+            winTheStage()
+            val earned = runBlocking { achievements.unlocked.first() }
+            assertTrue(Achievement.STAGE_2 in earned, "earned $earned")
+            assertFalse(Achievement.UNTOUCHABLE in earned, "earned $earned")
+            assertFalse(Achievement.NOTHING_GETS_PAST in earned, "earned $earned")
+        }
+    }
+
+    /**
+     * Brings the stage's boss on and down with one shot, as the first test here does, and draws the
+     * frame it went down on.
+     */
+    private fun Flight.winTheStage() {
+        val world = probe.world
+        clearStrays(keep = emptySet())
+        screen.enmGen.update(screen.enmGen.progression.bossTimeSeconds)
+        val bossId = assertNotNull(screen.enmGen.bossId, "the boss should have arrived")
+        world.getComponent(bossId, HealthComponent::class)!!.hitPoints = 1
+        val boss = world.getComponent(bossId, TransformComponent::class)!!.rect
+        val shot = assets.graphics.shot
+        EntityFactory(world).createShot(
+            x = boss.centerX - SHOT_FRAME_WIDTH / 2f,
+            y = boss.centerY - shot.height / 2f,
+            width = SHOT_FRAME_WIDTH.toFloat(),
+            height = shot.height.toFloat(),
+            pixmap = shot,
+            isPlayer = true,
+        )
+        screen.update(GameLoop.MAX_FRAME_DELTA_SECONDS)
+        screen.present(TICK_INITIAL)
+        assertTrue(probe.stageComplete, "the boss should be down")
+    }
+
+    // endregion
+
     /** Puts the bat at the same place every time, its middle on [BAT_MIDDLE_X] and [ROCK_ROW]. */
     private fun Flight.placeBat() {
         probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect =
@@ -2060,6 +2175,7 @@ class GameScreenTest {
         onExit: () -> Unit = {},
         difficulty: Difficulty = Difficulty.HARD,
         stageUnlocks: StageUnlockStore = StageUnlockStore.InMemory(),
+        achievements: AchievementStore = AchievementStore.InMemory(),
         steering: TouchSteering = TouchSteering.DRAG,
         sensitivity: StickSensitivity = StickSensitivity.DEFAULT,
         pauseButton: Boolean = false,
@@ -2076,6 +2192,7 @@ class GameScreenTest {
                 haptics = Haptics.None,
                 highscores = RecordingHighscores(),
                 stageUnlocks = stageUnlocks,
+                achievements = achievements,
                 onExitToMenu = onExit,
                 audioSettings = if (sounds != null) SoundsOnly else Silent,
                 steeringSettings = object : SteeringSettings {

@@ -11,6 +11,7 @@ import androidx.compose.ui.unit.Density
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
 import androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner
+import at.smiech.cyanbat.AchievementStore
 import at.smiech.cyanbat.HighscoreStore
 import at.smiech.cyanbat.StageUnlockStore
 import at.smiech.cyanbat.data.AppLanguage
@@ -64,6 +65,7 @@ class MenuLanguageTest {
                                 menuMusic = null,
                                 stageUnlocks = StageUnlockStore.InMemory(),
                                 highscores = NoHighscores,
+                                achievements = AchievementStore.InMemory(),
                                 onStartGame = { _, _ -> },
                                 onExit = {},
                             )
