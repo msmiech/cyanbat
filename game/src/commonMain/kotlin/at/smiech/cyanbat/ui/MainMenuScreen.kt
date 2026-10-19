@@ -8,12 +8,16 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.BasicAlertDialog
@@ -96,6 +100,12 @@ private val TITLE_HEIGHT = 88.dp
 
 /** The narrowest the buttons are: wide enough to read as a column, whatever their words. */
 private val BUTTON_WIDTH = 180.dp
+
+/**
+ * The room between the screen's edges and the title and buttons, where nothing of the system's is
+ * nearer the edge than that.
+ */
+private val MARGINS = WindowInsets(left = 24.dp, top = 16.dp, right = 24.dp, bottom = 16.dp)
 
 /**
  * The title screen: the title over the flowing sky, and the menu's buttons. Plays the menu music.
@@ -251,7 +261,11 @@ private fun MainMenuLayout(
     canExit: Boolean,
     onChoose: (MainChoice) -> Unit,
 ) {
-    Box(Modifier.fillMaxSize().padding(horizontal = 24.dp, vertical = 16.dp)) {
+    // Clear of the system's bars and a display's cutout, which an Android window is drawn under,
+    // while the sky behind runs on to the screen's edges. A bar or a cutout takes the place of the
+    // margin on its side rather than adding to it, or a phone held landscape would lose the height
+    // its buttons need to the status bar and the gesture bar.
+    Box(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing.union(MARGINS))) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = if (upright) Arrangement.Center else Arrangement.Top,

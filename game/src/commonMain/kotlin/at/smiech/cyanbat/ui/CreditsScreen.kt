@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.rememberScrollState
@@ -35,10 +36,12 @@ fun CreditsScreen() {
     Surface {
         // Scrolls, since it runs longer than a small phone held landscape is tall; and kept to a
         // column a line of which reads at a glance, in the middle of a screen wider than that.
+        // Clear of the system's bars and a display's cutout, as Settings is.
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
+                .safeDrawingPadding()
                 .padding(SCREEN_PADDING)
                 .wrapContentWidth()
                 .widthIn(max = CONTENT_WIDTH)

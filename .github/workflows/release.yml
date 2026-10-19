@@ -156,13 +156,24 @@ jobs:
           else
             cp "$apk" "artifacts/cyanBat-release-$VERSION-unsigned.apk"
           fi
+          # R8 renames the release's classes and methods, so a stack trace from a player's device
+          # can only be read back with the mapping from this exact build. The source is public, so
+          # publishing it gives nothing away.
+          mapping=app/build/outputs/mapping/release/mapping.txt
+          if [ -f "$mapping" ]; then
+            cp "$mapping" "artifacts/cyanBat-release-$VERSION-mapping.txt"
+          else
+            echo "::warning::No R8 mapping was produced; the release's stack traces cannot be retraced."
+          fi
           ls -l artifacts
 
       - name: Upload the APK
         uses: actions/upload-artifact@v7
         with:
           name: release-android
-          path: artifacts/*.apk
+          path: |
+            artifacts/*.apk
+            artifacts/*-mapping.txt
           if-no-files-found: error
           retention-days: 7
 
@@ -325,6 +336,9 @@ jobs:
               echo "::warning::No .$kind among the assets."
             fi
           done
+          if ! find artifacts -type f -name '*-mapping.txt' | grep -q .; then
+            echo "::warning::No R8 mapping among the assets."
+          fi
 
       - name: Publish the release
         if: needs.version.outputs.publish == 'true'
