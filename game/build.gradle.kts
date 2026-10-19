@@ -51,6 +51,12 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.test)
             }
         }
+        wasmJsMain {
+            dependencies {
+                // The page's navigator, typed, for whether the browser has a touch screen.
+                implementation(libs.kotlinx.browser)
+            }
+        }
         androidMain {
             dependencies {
                 // WindowCompat, for the menu's status and navigation bar icons.

@@ -1,0 +1,40 @@
+# Updates arrive as pull requests, a month's worth at a time and grouped, so a bump of Kotlin, its
+# Compose compiler and its tests lands as one change that CI builds as a whole. Dependabot's own
+# titles ("Bump x from 1 to 2") are already plain sentences, as the repository's are.
+version: 2
+updates:
+  - package-ecosystem: gradle
+    directory: /
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 5
+    groups:
+      # Kotlin, its plugins and Compose Multiplatform move in lockstep: a Compose release is built
+      # against one Kotlin.
+      kotlin-and-compose:
+        patterns:
+          - "org.jetbrains.kotlin*"
+          - "org.jetbrains.compose*"
+          - "org.jetbrains.androidx*"
+          - "org.jetbrains.kotlinx*"
+      android:
+        patterns:
+          - "com.android*"
+          - "androidx*"
+      everything-else:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    groups:
+      actions:
+        patterns:
+          - "*"
+    ignore:
+      # v6 puts the caching under separate, proprietary terms of use; moving to it is the owner's
+      # call, not a routine bump.
+      - dependency-name: "gradle/actions*"
+        versions: [ ">= 6" ]
