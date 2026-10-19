@@ -67,6 +67,7 @@ import at.smiech.engine.GameButton
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Haptics
 import at.smiech.engine.Sound
+import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AuraComponent
 import at.smiech.engine.ecs.CollisionComponent
 import at.smiech.engine.ecs.CollisionGroup
@@ -1422,7 +1423,16 @@ class GameScreenTest {
         val size = (ORB_FRAME * scale).roundToInt().toFloat()
         assertEquals(size, rect.width, 0.01f, "the orb's box did not grow")
         assertEquals(size, rect.height, 0.01f, "the orb's box did not grow")
-        assertEquals(scale, probe.world.getComponent(orb, SpriteComponent::class)!!.scale)
+        // Drawn from art at its size, a pixel of art to a pixel, rather than stretched.
+        val sprite = probe.world.getComponent(orb, SpriteComponent::class)!!
+        assertEquals(1f, sprite.scale)
+        assertEquals(size.roundToInt(), sprite.srcWidth)
+        assertEquals(size.roundToInt(), sprite.srcHeight)
+        assertEquals(
+            size.roundToInt(),
+            probe.world.getComponent(orb, AnimationComponent::class)!!.frameWidth,
+            "the swirl steps by the small orb's frames"
+        )
         assertEquals(ORB_RADIUS * scale, distanceFromBat(orb), 0.5f, "the ring did not widen")
 
         // One picked up later comes in at the size, on the wider ring.
@@ -1484,7 +1494,11 @@ class GameScreenTest {
         val shot = ownShots().first()
         val rect = probe.world.getComponent(shot, TransformComponent::class)!!.rect
         assertEquals((SHOT_FRAME_WIDTH * scale).roundToInt().toFloat(), rect.width, 0.01f)
-        assertEquals(scale, probe.world.getComponent(shot, SpriteComponent::class)!!.scale)
+        // Drawn from art at its size, a pixel of art to a pixel, rather than stretched.
+        val sprite = probe.world.getComponent(shot, SpriteComponent::class)!!
+        assertEquals(1f, sprite.scale)
+        assertEquals(rect.width.roundToInt(), sprite.srcWidth)
+        assertEquals(rect.height.roundToInt(), sprite.srcHeight)
         val bat = batRect()
         assertEquals(bat.centerY, rect.centerY, 1f, "the bigger bolt left off center")
     }

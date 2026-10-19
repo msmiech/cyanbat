@@ -46,10 +46,14 @@ data class GameAssets(
         val shatter: Pixmap,
         /** Every projectile, one colorway per row. */
         val shot: Pixmap,
+        /** The bat's bolt at each size Heavy Rounds gives it, one band per size; see `heavyShotTop`. */
+        val heavyShot: Pixmap,
         /** A shot's hit, played where it strikes, in the colorways of [shot] in the same order. */
         val impact: Pixmap,
-        /** The orb Guardian Orb sends round the bat: six frames of a glint going round it. */
+        /** The orb Guardian Orb sends round the bat: six frames of the energy swirling in it. */
         val orb: Pixmap,
+        /** The orb at each size Heavy Rounds gives it, one band per size; see `heavyOrbTop`. */
+        val heavyOrb: Pixmap,
         /** The power-up an elite drops: eight frames of a silver plus spinning half a turn. */
         val powerUpDrop: Pixmap,
     )
@@ -92,8 +96,10 @@ data class GameAssets(
                     explosion = pixmap("explosion.png"),
                     shatter = pixmap("shatter.png"),
                     shot = pixmap("shot.png"),
+                    heavyShot = pixmap("shotHeavy.png"),
                     impact = pixmap("impact.png"),
                     orb = pixmap("orb.png"),
+                    heavyOrb = pixmap("orbHeavy.png"),
                     powerUpDrop = pixmap("powerUpDrop.png"),
                 ),
                 audio = Audio(

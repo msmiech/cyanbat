@@ -30,9 +30,9 @@ import at.smiech.cyanbat.util.ORB_SECONDS_PER_TURN
 import at.smiech.cyanbat.util.PLAYER_HIT_COOLDOWN_SECONDS
 import at.smiech.cyanbat.util.PLAYER_MAX_HIT_POINTS
 import at.smiech.cyanbat.util.SHOT_INTERVAL_SECONDS
-import at.smiech.cyanbat.util.SHOT_SCALE_PER_LEVEL
 import at.smiech.cyanbat.util.WAKE_DAMAGE_FRACTION
 import at.smiech.cyanbat.util.WAKE_SECONDS
+import at.smiech.cyanbat.util.shotScaleAt
 import kotlin.math.ceil
 import kotlin.math.pow
 import kotlin.math.roundToInt
@@ -154,7 +154,7 @@ class PlayerLoadout(difficulty: Difficulty = Difficulty.HARD) {
      * a share bigger per Heavy Rounds pick, up to [MAX_SHOT_SIZE_LEVEL] of them.
      */
     val shotScale: Float
-        get() = 1f + shotSizeLevel * SHOT_SCALE_PER_LEVEL
+        get() = shotScaleAt(shotSizeLevel)
 
     /** How far out the orbs circle the bat: widened with [shotScale], so the bigger orbs stay clear. */
     val orbRadius: Float
