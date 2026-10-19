@@ -2,6 +2,7 @@ package at.smiech.engine.impl
 
 import androidx.compose.ui.input.key.Key
 import at.smiech.engine.GameButton
+import at.smiech.engine.InputMethod
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
@@ -170,5 +171,16 @@ class ComposeKeyAdapterTest {
 
         assertTrue(handler.consumePress(GameButton.CHOICE_2))
         assertFalse(handler.consumePress(GameButton.CHOICE_2))
+    }
+
+    @Test
+    fun `a game key takes the prompts off a controller and other keys do not`() {
+        val handler = ControlHandler(InputMethod.XBOX_PAD)
+
+        handler.applyKey(Key.F1, pressed = true)
+        assertEquals(InputMethod.XBOX_PAD, handler.inputMethod)
+
+        handler.applyKey(Key.Escape, pressed = true)
+        assertEquals(InputMethod.KEYBOARD_MOUSE, handler.inputMethod)
     }
 }

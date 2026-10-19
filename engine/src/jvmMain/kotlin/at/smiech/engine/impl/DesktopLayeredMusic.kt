@@ -75,46 +75,63 @@ class DesktopLayeredMusic(
     }
 
     private fun pump() {
-        val format = AudioFormat(mixer.sampleRate.toFloat(), 16, 2, true, false)
-        val line = try {
-            AudioSystem.getSourceDataLine(format)
-                .apply { open(format, BUFFER_FRAMES * BYTES_PER_FRAME) }
-        } catch (exc: Exception) {
-            // No device, or none that takes this format: the game plays on in silence.
-            System.err.println("CyanBat: layered music unavailable - $exc")
-            return
-        }
         val pcm = ShortArray(WRITE_FRAMES * 2)
         val bytes = ByteArray(WRITE_FRAMES * BYTES_PER_FRAME)
+        var line: SourceDataLine? = null
         var sounding = false
+        // When to ask for a line again after failing to get one; 0 to ask straight away.
+        var retryAt = 0L
+        // Whether the music has gone without a line since it last had one, so an outage is
+        // reported once rather than every retry.
+        var lost = false
         try {
             while (!disposed) {
+                val open = line
                 when {
-                    wantPlaying -> {
-                        if (!sounding) {
-                            mixer.fadeTransport(on = true)
-                            line.start()
-                            sounding = true
+                    wantPlaying && open == null -> {
+                        if (System.nanoTime() >= retryAt) {
+                            line = openLine(lost)
+                            lost = line == null
+                            if (line == null) {
+                                retryAt = System.nanoTime() +
+                                        TimeUnit.MILLISECONDS.toNanos(RETRY_MILLIS)
+                            }
                         }
-                        write(line, pcm, bytes)
-                        // Music that does not loop stops itself at its end, as if paused there.
-                        if (mixer.hasEnded) wantPlaying = false
+                        if (line == null) idle(whilePlaying = true)
                     }
 
-                    sounding -> {
+                    wantPlaying && open != null -> {
+                        if (!sounding) {
+                            mixer.fadeTransport(on = true)
+                            open.start()
+                            sounding = true
+                        }
+                        if (write(open, pcm, bytes)) {
+                            // Music that does not loop stops itself at its end, as if paused there.
+                            if (mixer.hasEnded) wantPlaying = false
+                        } else {
+                            // The device went away under the line, or stopped taking what was
+                            // written to it. A new line goes to whatever plays sound now; the
+                            // music picks up there from where it had got to.
+                            System.err.println("CyanBat: music lost its sound device, reopening")
+                            open.close()
+                            line = null
+                            sounding = false
+                            lost = true
+                            SoundDevices.lineFailed()
+                        }
+                    }
+
+                    sounding && open != null -> {
                         mixer.fadeTransport(on = false)
-                        while (!mixer.isSilenced) write(line, pcm, bytes)
-                        line.drain()
-                        line.stop()
+                        var delivered = true
+                        while (delivered && !mixer.isSilenced) delivered = write(open, pcm, bytes)
+                        if (delivered) drain(open)
+                        open.stop()
                         sounding = false
                     }
 
-                    else -> lock.withLock {
-                        if (!wantPlaying && !disposed) wake.await(
-                            IDLE_WAIT_MILLIS,
-                            TimeUnit.MILLISECONDS
-                        )
-                    }
+                    else -> idle(whilePlaying = false)
                 }
             }
         } catch (_: InterruptedException) {
@@ -122,19 +139,90 @@ class DesktopLayeredMusic(
         } catch (exc: Exception) {
             System.err.println("CyanBat: layered music stopped - $exc")
         } finally {
-            line.close()
+            line?.close()
         }
     }
 
-    private fun write(line: SourceDataLine, pcm: ShortArray, bytes: ByteArray) {
+    /**
+     * Sleeps until there is something to do, or [IDLE_WAIT_MILLIS] at most: while the music is
+     * paused, until it plays, and while it waits for a line, until it is paused or disposed.
+     */
+    private fun idle(whilePlaying: Boolean) = lock.withLock {
+        if (wantPlaying == whilePlaying && !disposed) {
+            wake.await(IDLE_WAIT_MILLIS, TimeUnit.MILLISECONDS)
+        }
+    }
+
+    /**
+     * A line on the system's output, open and stopped, or null when none can be had: no device, or
+     * none that takes the music's format, which is also what a device that has just arrived can
+     * look like for a moment.
+     *
+     * @param retrying whether this follows a failure already reported.
+     */
+    private fun openLine(retrying: Boolean): SourceDataLine? {
+        val format = AudioFormat(mixer.sampleRate.toFloat(), 16, 2, true, false)
+        var line: SourceDataLine? = null
+        return try {
+            line = AudioSystem.getSourceDataLine(format)
+            line.open(format, BUFFER_FRAMES * BYTES_PER_FRAME)
+            if (retrying) System.err.println("CyanBat: layered music back on a sound device")
+            line
+        } catch (exc: Exception) {
+            line?.close()
+            // The game plays on in silence, and asks again in a moment.
+            if (!retrying) System.err.println("CyanBat: layered music unavailable - $exc")
+            SoundDevices.lineFailed()
+            null
+        }
+    }
+
+    /**
+     * Mixes the next frames and hands them to [line], waiting for room rather than blocking in the
+     * line's own write, which on a device that has gone away can wait forever.
+     *
+     * @return false when the line takes nothing for [STALL_MILLIS], or fails outright.
+     */
+    private fun write(line: SourceDataLine, pcm: ShortArray, bytes: ByteArray): Boolean {
         mixer.render(pcm, WRITE_FRAMES)
         for (i in pcm.indices) {
             val sample = pcm[i].toInt()
             bytes[2 * i] = sample.toByte()
             bytes[2 * i + 1] = (sample shr 8).toByte()
         }
-        line.write(bytes, 0, bytes.size)
+        return try {
+            var offset = 0
+            var progressAt = System.nanoTime()
+            while (offset < bytes.size) {
+                val available = line.available()
+                val room = available - available % BYTES_PER_FRAME
+                if (room > 0) {
+                    offset += line.write(bytes, offset, minOf(room, bytes.size - offset))
+                    progressAt = System.nanoTime()
+                } else if (stalledSince(progressAt)) {
+                    return false
+                } else {
+                    Thread.sleep(WAIT_FOR_ROOM_MILLIS)
+                }
+            }
+            true
+        } catch (exc: InterruptedException) {
+            throw exc
+        } catch (_: Exception) {
+            false
+        }
     }
+
+    /** Lets what is in [line] play out, as [SourceDataLine.drain] would, but not forever. */
+    private fun drain(line: SourceDataLine) {
+        val since = System.nanoTime()
+        while (line.available() < line.bufferSize && !stalledSince(since)) {
+            Thread.sleep(WAIT_FOR_ROOM_MILLIS)
+        }
+    }
+
+    private fun stalledSince(nanos: Long) =
+        System.nanoTime() - nanos > TimeUnit.MILLISECONDS.toNanos(STALL_MILLIS)
 
     private companion object {
         const val BYTES_PER_FRAME = 4
@@ -151,5 +239,14 @@ class DesktopLayeredMusic(
 
         /** How long a paused pump sleeps between checks, should a wake-up be missed. */
         const val IDLE_WAIT_MILLIS = 250L
+
+        /** How long the music goes without a line before it asks for one again. */
+        const val RETRY_MILLIS = 1_000L
+
+        /** How long a line may take nothing before it is taken for lost: many times its buffer. */
+        const val STALL_MILLIS = 1_000L
+
+        /** How long to wait for a line to make room: a fraction of a write's length. */
+        const val WAIT_FOR_ROOM_MILLIS = 4L
     }
 }

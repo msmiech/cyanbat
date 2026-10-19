@@ -10,7 +10,8 @@ internal actual val helpControls: StringResource = Res.string.dialog_help_contro
 
 internal actual val hasSystemBack: Boolean = false
 
-internal actual val canVibrate: Boolean = false
+// A game controller rumbles, through SDL; see DesktopGamepads.
+internal actual val canVibrate: Boolean = true
 
 // The desktop is flown by the mouse, which the bat follows with no button held, or by the keys.
 internal actual val hasTouchScreen: Boolean = false

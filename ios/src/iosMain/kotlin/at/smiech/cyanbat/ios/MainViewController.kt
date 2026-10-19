@@ -47,6 +47,7 @@ import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.DisplayMode
 import at.smiech.engine.Haptics
+import at.smiech.engine.InputMethod
 import at.smiech.engine.impl.ComposeGame
 import at.smiech.engine.impl.ComposeGraphics
 import at.smiech.engine.impl.ControlHandler
@@ -84,7 +85,7 @@ fun MainViewController(): UIViewController {
 private fun CyanBatApp(assets: IosAssets, sound: IosAudioDevice, focus: AppFocus) {
     // Keys reach the run through the game surface, but the handler has to outlive a single run: an
     // iPad's keyboard flies the bat as a desktop's does.
-    val controls = remember { ControlHandler() }
+    val controls = remember { ControlHandler(InputMethod.TOUCH) }
     // The stage being played, or null while the menu is up.
     var playingStage by remember { mutableStateOf<Int?>(null) }
     // How hard it is flown, which the player chose as it started.

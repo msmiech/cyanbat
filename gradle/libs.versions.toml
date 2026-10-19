@@ -16,6 +16,8 @@ composeMultiplatformMaterial3 = "1.9.0"
 kotlinxCoroutines = "1.11.0"
 # The browser's DOM for Kotlin/Wasm, which no longer comes with the standard library.
 kotlinxBrowser = "0.5.0"
+# Game controllers on the desktop, through SDL 3, whose natives LWJGL publishes for every desktop.
+lwjgl = "3.4.3"
 android-compileSdk = "37"
 android-minSdk = "26"
 android-targetSdk = "37"
@@ -41,6 +43,8 @@ kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-c
 kotlinx-coroutines-swing = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-swing", version.ref = "kotlinxCoroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "kotlinxCoroutines" }
 kotlinx-browser = { module = "org.jetbrains.kotlinx:kotlinx-browser", version.ref = "kotlinxBrowser" }
+lwjgl = { module = "org.lwjgl:lwjgl", version.ref = "lwjgl" }
+lwjgl-sdl = { module = "org.lwjgl:lwjgl-sdl", version.ref = "lwjgl" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-test-junit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 

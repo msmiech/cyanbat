@@ -595,6 +595,14 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   `SourceDataLine` or an `AudioTrack`. `WebLayeredMusic` is a timer on the page's one thread,
   scheduling chunks on the `AudioContext`'s clock back to back, a little ahead of it. The context
   runs at the assets' 22.05 kHz, so nothing is resampled at the chunks' joins.
+- The desktop's sound outlives a change of output device, as when a DualSense connects and Windows
+  makes its speaker the default. `DesktopLayeredMusic` waits on its line's room rather than in its
+  blocking `write`, takes a line that has taken nothing for a second for lost, and asks for another,
+  every second until one comes, carrying on where the music had got to; `DesktopSound` lets go of a
+  clip that fails and opens another on a later play. Nothing a device does throws into the game's
+  thread. A failure also drops the JDK's list of DirectSound devices (`SoundDevices`, which the
+  launcher's `--add-opens java.desktop/com.sun.media.sound` allows): the JDK reads each device's
+  formats once, and one read while a device was arriving kept none, failing every line after.
 - The menu's, the game over's and the victory's music go through the same mixer: `Audio.newMusic`
   is one stem at full level (`TrackMusic`), looping or played once. A track that does not loop stops
   at its end (`StemMixer.isLooping`, `hasEnded`) and starts from the top when played again.
@@ -639,7 +647,30 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   with `StickSensitivity.DEFAULT` and `STICK_*` in `CyanBatConstants`.
 - `ControlHandler` turns keyboard and gamepad into the `Controls` intent: two axes plus
   edge-triggered `GameButton`s. `ComposeKeyAdapter` (desktop) and `AndroidKeyAdapter` (keyboard and
-  pads) feed it.
+  pads) feed it, and on the desktop `PadRouter`.
+- A pad's bottom face button (A, Cross) is Confirm, its right one (B, Circle) Back, Start Pause, and
+  the d-pad wins over the left stick. Confirm resumes the pause screen, and the level up has a
+  cursor (`offerCursor`), moved by a lean of `moveX` and taken by Confirm; the number keys still
+  pick by position.
+- The desktop reads pads through SDL 3, by way of LWJGL (`DesktopGamepads`), polled on the window's
+  thread every few milliseconds and heard only while the window has focus, since SDL reads a pad
+  whatever window is in front. SDL 3 rather than Jamepad's SDL 2, whose Windows build has no HIDAPI
+  drivers, without which a DualSense cannot rumble. The build takes LWJGL's natives for the system
+  it runs on (`lwjglNatives`), as Compose's `currentOs` does Skia's, and LWJGL is told to reach
+  native memory through FFM rather than `sun.misc.Unsafe`, which Java 25 warns of. Every
+  connected pad counts, merged. `PadRouter` turns each poll into the run's controls, or in the menu,
+  which reads nothing but keys, into the keys a keyboard would press: arrows that repeat while
+  held, Enter and Escape, dispatched to the window as AWT events (`PadKeyEvent`). Whatever is held
+  as the run and the menu hand over stays with the side it was pressed on. The browser does not
+  read pads yet, and iOS has not been given them.
+- The prompts follow what the player last played with, `Controls.inputMethod`: touch, keyboard and
+  mouse, an Xbox pad or a PlayStation pad, told apart by maker or name (`InputMethod.padOf`). Every
+  adapter reports what it was fed (`ControlHandler.use`; a mouse or a touch through
+  `onComposePointerUse`), and it is snapshot state, so the menu's help follows it as the run's
+  overlays do. Touch keeps the overlays' sentences; the others draw the buttons beside short words
+  (`ButtonPrompts`): key caps and a mouse, an Xbox pad's colored letters, a PlayStation pad's
+  shapes, as pixel art, since not every font has the shapes. On Android the menu hands its method
+  to the run (`EXTRA_INPUT_METHOD`), so a run started with a pad prompts for it from the start.
 - Android's Back arrives as `GameButton.BACK` from the back-pressed dispatcher, because gesture
   navigation raises no key event.
 - iOS has no Back, so a run there draws a pause button at the top right (`TouchButton`, on where
@@ -664,8 +695,9 @@ action. Past the tune the layers are a trap beat growing under the stage's own i
   remembers the device of the last key, or stick past its dead zone, that the game took, and a touch
   hands it back to the phone; `AndroidHaptics` rumbles that device's motors if it has any, and the
   phone's otherwise. The player's switch is applied by `ObservedHaptics`, which the host wraps round
-  the haptics it hands the game. The desktop reads no pads, so it has nothing to vibrate and its
-  Settings leave the switch out (`canVibrate`).
+  the haptics it hands the game. The desktop rumbles the pad last used, and only while the player
+  plays with a pad; the browser has nothing to vibrate, and its Settings leave the switch out
+  (`canVibrate`).
 
 **Rendering.** One `Graphics` for every platform: `ComposeGraphics`, in the engine's common code,
 drawn through Compose's Canvas - HWUI, and so the GPU, on Android; Skia on the desktop, in the

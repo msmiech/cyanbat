@@ -32,6 +32,19 @@ sourceSets {
 configurations["recorderImplementation"].extendsFrom(configurations.implementation.get())
 configurations["recorderRuntimeOnly"].extendsFrom(configurations.runtimeOnly.get())
 
+// The classifier of LWJGL's natives for the machine building: each installer is built on the system
+// it is for, and carries only that system's.
+val lwjglNatives: String = run {
+    val os = System.getProperty("os.name").lowercase()
+    val arm = System.getProperty("os.arch") in setOf("aarch64", "arm64")
+    val system = when {
+        os.startsWith("windows") -> "windows"
+        os.startsWith("mac") -> "macos"
+        else -> "linux"
+    }
+    if (arm) "natives-$system-arm64" else "natives-$system"
+}
+
 dependencies {
     implementation(project(":game"))
     // The menu's view models outlive the window they are shown in, which is made again whenever
@@ -42,6 +55,12 @@ dependencies {
     implementation(libs.kotlinx.coroutines.core)
     // Provides Dispatchers.Main on the JVM, backed by the Swing event queue.
     implementation(libs.kotlinx.coroutines.swing)
+    // Reads game controllers, which the JDK and Compose have no way to, through SDL 3, with the
+    // natives for the machine building it, as compose.desktop.currentOs picks Skia's.
+    implementation(libs.lwjgl)
+    implementation(libs.lwjgl.sdl)
+    runtimeOnly(variantOf(libs.lwjgl) { classifier(lwjglNatives) })
+    runtimeOnly(variantOf(libs.lwjgl.sdl) { classifier(lwjglNatives) })
 }
 
 // Flies every stage on an autopilot, headless and faster than real time, and writes one reel of
@@ -72,6 +91,9 @@ compose.desktop {
     application {
         // Skia loads its native library through System.load, which the JDK warns about otherwise.
         jvmArgs += "--enable-native-access=ALL-UNNAMED"
+        // Lets the sound code have the JDK list the audio devices again once they have changed,
+        // which on Windows it otherwise does only when their number does; see SoundDevices.
+        jvmArgs += "--add-opens=java.desktop/com.sun.media.sound=ALL-UNNAMED"
         mainClass = "at.smiech.cyanbat.desktop.MainKt"
         // Left alone, the run task and the installers take the JDK Gradle itself runs on, not the
         // toolchain the classes are compiled for: a daemon on an older JDK cannot load them, and
@@ -79,6 +101,10 @@ compose.desktop {
         javaHome = javaToolchains.launcherFor(java.toolchain).get()
             .metadata.installationPath.asFile.absolutePath
         nativeDistributions {
+            // The installers bundle a runtime cut down to the modules the app needs, and the cut
+            // leaves out sun.misc.Unsafe. The game asks LWJGL for its other way to native memory
+            // (see DesktopGamepads), but kept, it is there should LWJGL fall back on it.
+            modules("jdk.unsupported")
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "CyanBat"
             // jpackage insists on major.minor.patch; see the root build.gradle.kts.

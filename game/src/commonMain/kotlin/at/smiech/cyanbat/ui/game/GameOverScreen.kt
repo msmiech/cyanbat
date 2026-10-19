@@ -4,6 +4,7 @@ import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.resources.Res
 import at.smiech.cyanbat.resources.game_over_hint
 import at.smiech.cyanbat.resources.game_over_wave
+import at.smiech.cyanbat.resources.prompt_main_menu
 import at.smiech.cyanbat.resources.score
 import at.smiech.cyanbat.resources.stage_highscore
 import at.smiech.cyanbat.util.GAME_OVER_ARMING_SECONDS
@@ -11,6 +12,7 @@ import at.smiech.cyanbat.util.HIT_VIBRATION_MILLIS
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
+import at.smiech.engine.InputMethod
 import at.smiech.engine.Screen
 
 /**
@@ -76,12 +78,26 @@ class GameOverScreen(
                     size,
                     color,
                 )
-            drawCentered(
-                env.text[Res.string.game_over_hint],
-                HINT_BASELINE,
-                HINT_SIZE,
-                EngineColors.WHITE
-            )
+            // Touched, the way back is said; with a keyboard or a controller, its button is drawn.
+            val method = game.input?.controls?.inputMethod ?: InputMethod.TOUCH
+            if (method == InputMethod.TOUCH) {
+                drawCentered(
+                    env.text[Res.string.game_over_hint],
+                    HINT_BASELINE,
+                    HINT_SIZE,
+                    EngineColors.WHITE
+                )
+            } else {
+                val prompt = Prompt(PromptAction.CONFIRM, env.text[Res.string.prompt_main_menu])
+                ButtonPrompts(graphics).drawCentered(
+                    method,
+                    listOf(prompt),
+                    artworkLeft + ARTWORK_CENTER_X,
+                    artworkTop + HINT_BASELINE,
+                    HINT_SIZE,
+                    EngineColors.WHITE,
+                )
+            }
             drawCentered(
                 env.text.format(Res.string.score, score),
                 SCORE_BASELINE,

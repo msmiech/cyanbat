@@ -1,5 +1,7 @@
 package at.smiech.cyanbat.desktop
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
@@ -11,6 +13,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.awt.ComposeWindow
+import androidx.compose.ui.awt.awtEventOrNull
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.application
@@ -22,6 +31,7 @@ import at.smiech.cyanbat.CyanBatEnvironment
 import at.smiech.cyanbat.Difficulty
 import at.smiech.cyanbat.data.AudioSettings
 import at.smiech.cyanbat.data.ObservedAudioSettings
+import at.smiech.cyanbat.data.ObservedHaptics
 import at.smiech.cyanbat.data.WindowMode
 import at.smiech.cyanbat.resource.GameAssets
 import at.smiech.cyanbat.resource.GameText
@@ -33,12 +43,19 @@ import at.smiech.cyanbat.util.FRAME_BUFFER_HEIGHT
 import at.smiech.cyanbat.util.FRAME_BUFFER_WIDTH
 import at.smiech.engine.DisplayMode
 import at.smiech.engine.Haptics
+import at.smiech.engine.InputMethod
 import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.impl.DesktopAudio
 import at.smiech.engine.impl.GameSurface
+import at.smiech.engine.impl.PadMenuKey
+import at.smiech.engine.impl.PadRouter
+import at.smiech.engine.impl.onComposePointerUse
 import at.smiech.engine.impl.onComposeKeyEvent
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import java.awt.Component
+import java.awt.event.KeyEvent
 import kotlin.system.exitProcess
 
 /**
@@ -55,6 +72,14 @@ fun main() = application {
     // Keys are delivered to the window rather than to whatever the game is showing, and the
     // handler has to outlive a single run.
     val controls = remember { ControlHandler() }
+    // Game controllers, polled for as long as the game runs; see the loop below.
+    val gamepads = remember { DesktopGamepads() }
+    // The window open now, which a pad's keys go to in the menu, and whether the player is at it.
+    var padWindow by remember { mutableStateOf<ComposeWindow?>(null) }
+    var padWindowFocused by remember { mutableStateOf(false) }
+    val pads = remember {
+        PadRouter(controls) { key, pressed -> padWindow?.let { pressMenuKey(it, key, pressed) } }
+    }
     // The stage being played, or null while the menu is up. The window's keys go one way or the
     // other by it.
     var playingStage by remember { mutableStateOf<Int?>(null) }
@@ -71,6 +96,15 @@ fun main() = application {
     val achievements = remember { desktopAchievementStore() }
     val scope = rememberCoroutineScope()
     val audioSettings = remember(scope) { ObservedAudioSettings(settings, scope) }
+    // Vibration goes to the controller in the player's hands, and nowhere while they play with the
+    // keys or the mouse: the desktop has nothing else to vibrate. The player's switch applies.
+    val haptics = remember(scope) {
+        ObservedHaptics(
+            { millis -> if (controls.inputMethod.isPad) gamepads.vibrate(millis) },
+            settings,
+            scope,
+        )
+    }
     // The menu outlives any single game instance, so it owns its own Audio.
     val menuAudio = remember {
         DesktopAudio { name ->
@@ -98,6 +132,7 @@ fun main() = application {
         stageUnlocks,
         achievements,
         audioSettings,
+        haptics,
     ) {
         controls.releaseAll()
         playingStage = null
@@ -121,6 +156,21 @@ fun main() = application {
         }
     }
 
+    // On the window's own thread, as everything that reads the controls is. Polled whether or not
+    // the player is at the window, so SDL keeps up with the pads, but heard only while they are,
+    // since SDL reads a pad whatever window is in front.
+    LaunchedEffect(Unit) {
+        while (true) {
+            val pad = gamepads.poll()
+            val inGame = playingStage != null
+            pads.update(pad.takeIf { padWindowFocused }, inGame, System.currentTimeMillis())
+            delay(PAD_POLL_MILLIS)
+        }
+    }
+    DisposableEffect(Unit) {
+        onDispose { gamepads.dispose() }
+    }
+
     key(windowModes.windowKey) {
         Window(
             onCloseRequest = ::exitApplication,
@@ -131,7 +181,13 @@ fun main() = application {
             // over the whole screen is where the mouse flies the bat to.
             resizable = windowModes.applied == WindowMode.WINDOWED,
             // Ahead of the menu and the game, so the keys work wherever the player is.
-            onPreviewKeyEvent = fullscreenKeys::onKeyEvent,
+            onPreviewKeyEvent = { event ->
+                // The keys a pad presses in the menu are its own, and keep its prompts.
+                if (event.type == KeyEventType.KeyDown && event.awtEventOrNull !is PadKeyEvent) {
+                    controls.use(InputMethod.KEYBOARD_MOUSE)
+                }
+                fullscreenKeys.onKeyEvent(event)
+            },
             // A backstop for the game. The game surface claims focus and handles these itself;
             // this catches the moment between the surface appearing and its focus request landing.
             // Not for the menu, which reads its own keys, and to which the game's handler would
@@ -147,30 +203,48 @@ fun main() = application {
             val windowFocused = LocalWindowInfo.current.isWindowFocused
             LaunchedEffect(windowFocused) {
                 if (!windowFocused) fullscreenKeys.releaseAll()
+                padWindowFocused = windowFocused
             }
-            CompositionLocalProvider(LocalViewModelStoreOwner provides viewModels) {
-                if (game != null) {
-                    val displayMode by settings.displayMode.collectAsState(DisplayMode.DEFAULT)
-                    GameSurface(game, displayMode)
-                } else {
-                    CyanBatMenu(
-                        MenuHost(
-                            settings = settings,
-                            menuMusic = menuMusic,
-                            stageUnlocks = stageUnlocks,
-                            highscores = highscores,
-                            achievements = achievements,
-                            // Cleared on the way in as well as on the way out, so that nothing
-                            // pressed before the run is waiting to act the moment it starts.
-                            onStartGame = { id, chosen ->
-                                controls.releaseAll()
-                                difficulty = chosen
-                                playingStage = id
-                            },
-                            onExit = { exitProcess(0) },
-                        ),
-                        backStack,
-                    )
+            DisposableEffect(window) {
+                padWindow = window
+                onDispose { if (padWindow === window) padWindow = null }
+            }
+            // The mouse, over the menu and the game alike, seen before either takes it.
+            Box(
+                Modifier.fillMaxSize().pointerInput(controls) {
+                    awaitPointerEventScope {
+                        while (true) {
+                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                            controls.onComposePointerUse(event)
+                        }
+                    }
+                }
+            ) {
+                CompositionLocalProvider(LocalViewModelStoreOwner provides viewModels) {
+                    if (game != null) {
+                        val displayMode by settings.displayMode.collectAsState(DisplayMode.DEFAULT)
+                        GameSurface(game, displayMode)
+                    } else {
+                        CyanBatMenu(
+                            MenuHost(
+                                settings = settings,
+                                menuMusic = menuMusic,
+                                stageUnlocks = stageUnlocks,
+                                highscores = highscores,
+                                achievements = achievements,
+                                // Cleared on the way in as well as on the way out, so that nothing
+                                // pressed before the run is waiting to act the moment it starts.
+                                onStartGame = { id, chosen ->
+                                    controls.releaseAll()
+                                    difficulty = chosen
+                                    playingStage = id
+                                },
+                                onExit = { exitProcess(0) },
+                                inputMethod = { controls.inputMethod },
+                            ),
+                            backStack,
+                        )
+                    }
                 }
             }
         }
@@ -192,6 +266,7 @@ private fun rememberRun(
     stageUnlocks: PreferencesStageUnlockStore,
     achievements: AchievementStore,
     audioSettings: AudioSettings,
+    haptics: Haptics,
     onExitToMenu: () -> Unit,
 ): DesktopGame? {
     val game = remember(stage, difficulty) {
@@ -202,7 +277,7 @@ private fun rememberRun(
                     // Blocking, as Compose's own string lookups are on the desktop: there is no run
                     // to show without its text, and it is one small file, read once.
                     text = runBlocking { GameText.load() },
-                    haptics = Haptics.None,
+                    haptics = haptics,
                     highscores = highscores,
                     stageUnlocks = stageUnlocks,
                     achievements = achievements,
@@ -227,4 +302,31 @@ private fun rememberRun(
         }
     }
     return game
+}
+
+/** How often the game controllers are read: oftener than the frame, so no press waits long. */
+private const val PAD_POLL_MILLIS = 8L
+
+/**
+ * A key a game controller pressed in the menu: an arrow, Enter or Escape, so the menu reads the pad
+ * as it reads the keyboard, and a pad's A takes whatever the cursor is on as Enter does. Its own
+ * class, so the window can tell it from the keyboard's.
+ */
+private class PadKeyEvent(source: Component, id: Int, keyCode: Int) :
+    KeyEvent(source, id, System.currentTimeMillis(), 0, keyCode, KeyEvent.CHAR_UNDEFINED)
+
+/** Presses [key], or lets it go, in [window]'s menu, as the keyboard would. */
+private fun pressMenuKey(window: ComposeWindow, key: PadMenuKey, pressed: Boolean) {
+    // Keys go to whatever in the window has focus, which in Compose's window is its canvas.
+    val target = window.mostRecentFocusOwner ?: return
+    val code = when (key) {
+        PadMenuKey.UP -> KeyEvent.VK_UP
+        PadMenuKey.DOWN -> KeyEvent.VK_DOWN
+        PadMenuKey.LEFT -> KeyEvent.VK_LEFT
+        PadMenuKey.RIGHT -> KeyEvent.VK_RIGHT
+        PadMenuKey.CONFIRM -> KeyEvent.VK_ENTER
+        PadMenuKey.BACK -> KeyEvent.VK_ESCAPE
+    }
+    val id = if (pressed) KeyEvent.KEY_PRESSED else KeyEvent.KEY_RELEASED
+    target.dispatchEvent(PadKeyEvent(target, id, code))
 }

@@ -210,9 +210,9 @@ class MenuKeysTest {
         press(Key.Spacebar)
         assertFalse(menu.settings.music.value, "Space did not turn the music off")
 
-        // Down past Sounds, the theme and the language to the display: the window's segments, which
-        // only the desktop has, then the choices Stretch, Black bars, Ambient bars.
-        press(Key.DirectionDown, times = 4)
+        // Down past Sounds, Vibration, the theme and the language to the display: the window's
+        // segments, which only the desktop has, then the choices Stretch, Black bars, Ambient bars.
+        press(Key.DirectionDown, times = 5)
         cursorOn("Window")
         press(Key.DirectionRight)
         cursorOn("Fullscreen")
@@ -229,7 +229,8 @@ class MenuKeysTest {
     fun `the theme's segments take the cursor one at a time`() = menu { menu ->
         press(Key.DirectionDown, times = 2)
         press(Key.Enter)
-        press(Key.DirectionDown, times = 2)
+        // Down past Sounds and Vibration.
+        press(Key.DirectionDown, times = 3)
         cursorOn("System")
         press(Key.DirectionRight)
         cursorOn("Dark")
@@ -247,7 +248,7 @@ class MenuKeysTest {
     fun `the language's segments take the cursor one at a time`() = menu { menu ->
         press(Key.DirectionDown, times = 2)
         press(Key.Enter)
-        press(Key.DirectionDown, times = 3)
+        press(Key.DirectionDown, times = 4)
         // Down from the theme's System lands on the segment under it, the language row being longer.
         cursorOn("English")
         press(Key.DirectionLeft)
@@ -258,7 +259,7 @@ class MenuKeysTest {
         press(Key.Enter)
         assertEquals(AppLanguage.GERMAN, menu.settings.chosenLanguage.value)
         cursorOn("Music")
-        press(Key.DirectionDown, times = 5)
+        press(Key.DirectionDown, times = 6)
         cursorOn("Stretch to fit screen")
     }
 
@@ -445,9 +446,9 @@ class MenuKeysTest {
         menu(touchScreen = true) { menu ->
             press(Key.DirectionDown, times = 2)
             press(Key.Enter)
-            // Down past Sounds and Vibration, which is only offered where there is something to
-            // vibrate, and the desktop the tests run on has nothing.
-            press(Key.DirectionDown, times = 2)
+            // Down past Sounds and Vibration, which is offered where there is something to vibrate:
+            // on the desktop the tests run on, a game controller.
+            press(Key.DirectionDown, times = 3)
             cursorOn("On-screen stick")
             press(Key.Enter)
             assertEquals(TouchSteering.STICK, menu.settings.steering.value)
@@ -463,7 +464,7 @@ class MenuKeysTest {
         menu(touchScreen = true) { menu ->
             press(Key.DirectionDown, times = 2)
             press(Key.Enter)
-            press(Key.DirectionDown, times = 2)
+            press(Key.DirectionDown, times = 3)
             cursorOn("On-screen stick")
             onAllNodesWithText("Stick sensitivity").assertCountEquals(0)
 

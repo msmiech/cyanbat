@@ -70,7 +70,14 @@ import at.smiech.cyanbat.resources.pause_quit
 import at.smiech.cyanbat.resources.pause_quit_button
 import at.smiech.cyanbat.resources.pause_resume
 import at.smiech.cyanbat.resources.pause_title
+import at.smiech.cyanbat.resources.prompt_choose
+import at.smiech.cyanbat.resources.prompt_continue
+import at.smiech.cyanbat.resources.prompt_menu
+import at.smiech.cyanbat.resources.prompt_next_stage
+import at.smiech.cyanbat.resources.prompt_resume
+import at.smiech.cyanbat.resources.prompt_take
 import at.smiech.cyanbat.resources.score
+import at.smiech.cyanbat.resources.stage_5_name
 import at.smiech.cyanbat.resources.stage_complete_continue
 import at.smiech.cyanbat.resources.stage_complete_endless
 import at.smiech.cyanbat.resources.stage_complete_fresh_start
@@ -169,6 +176,7 @@ import at.smiech.engine.EngineColors
 import at.smiech.engine.Game
 import at.smiech.engine.GameButton
 import at.smiech.engine.Graphics
+import at.smiech.engine.InputMethod
 import at.smiech.engine.LayeredMusic
 import at.smiech.engine.Music
 import at.smiech.engine.Pixmap
@@ -470,6 +478,19 @@ class GameScreen(
     private var offerArmingTime = 0f
 
     /**
+     * The card the level up dialog's cursor is on, for a keyboard or a controller: moved by the
+     * arrows, the d-pad or the stick, and taken by Confirm. It starts on the leftmost, which
+     * Confirm took before there was a cursor.
+     */
+    private var offerCursor = 0
+
+    /**
+     * Which way the stick or the keys leaned as the cursor last moved: -1, 0 or 1. The cursor moves
+     * once a lean, so a player still steering as the dialog opens moves it only by leaning again.
+     */
+    private var offerLean = 0
+
+    /**
      * Taps on whichever overlay is up: level up, pause or stage complete. One detector is enough,
      * since only one overlay reads the events in a frame (pause first, over the level-up dialog),
      * and each [TapDetector.reset]s it as it opens.
@@ -565,6 +586,25 @@ class GameScreen(
      * gesture that paused the game does not unpause it.
      */
     private var resumeArmingTime = 0f
+
+    /**
+     * Whether the pause screen shows its Quit button: where there is no Back, and only while the
+     * screen is touched. A keyboard or a controller sees its buttons' prompts in the button's
+     * place, and a tap there does not quit. The tap itself makes the screen touched, ahead of the
+     * update that reads it, so the button is there for it.
+     */
+    private val quitButtonShown: Boolean
+        get() = pauseButton.enabled && inputMethod == InputMethod.TOUCH
+
+    /** The button prompts the overlays draw; see [inputMethod]. */
+    private val prompts by lazy { ButtonPrompts(g) }
+
+    /**
+     * What the player last played with, whose buttons the overlays name: touch says it in words, a
+     * keyboard or a controller by drawing its buttons.
+     */
+    private val inputMethod: InputMethod
+        get() = game.input?.controls?.inputMethod ?: InputMethod.TOUCH
 
     init {
         game.graphics?.let { g = it }
@@ -1842,6 +1882,8 @@ class GameScreen(
         pendingLevelUps--
         offer = PowerUp.offer(loadout)
         offerArmingTime = POWER_UP_ARMING_SECONDS
+        offerCursor = 0
+        offerLean = leanOf(game.input?.controls?.moveX ?: 0f)
         overlayTaps.reset()
         // The music plays on, muffled while the offer is up; [steerMusic] reads that off the offer.
     }
@@ -1858,7 +1900,8 @@ class GameScreen(
     }
 
     /**
-     * Reads a pick off the level-up dialog: a tap on a card, or its number key.
+     * Reads a pick off the level-up dialog: a tap on a card, its number key, or Confirm on the card
+     * the cursor is on.
      *
      * Armed on a delay, like the pause overlay, so the finger that was steering when it opened does
      * not pick. It cannot be dismissed without picking: the pick is the reward.
@@ -1871,18 +1914,36 @@ class GameScreen(
         // Read whether or not they can act yet, so no backlog reaches the run when the dialog
         // closes. Only taps begun on the dialog count; see [TapDetector].
         val touches = overlayTaps.taps(input?.touchEvents.orEmpty())
-        // CONFIRM picks the leftmost card: a pad has no number keys, and A is what a player reaches
-        // for first.
+        // CONFIRM takes the card under the cursor, which the arrows, the d-pad and the stick move:
+        // a pad has no number keys. Moved while the dialog is still arming, since moving takes
+        // nothing.
         val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
         val pressed = GameButton.CHOICES.map { controls?.consumePress(it) == true }
+        moveOfferCursor(controls?.moveX ?: 0f)
 
         if (offerArmingTime > 0f) return
 
         val byKey = pressed.indexOfFirst { it }.takeIf { it >= 0 }
-            ?: 0.takeIf { confirmed }
+            ?: offerCursor.takeIf { confirmed }
         val chosen = byKey ?: touches.firstNotNullOfOrNull { cardIndexAt(it.x, it.y) }
 
         if (chosen != null && chosen in offer.indices) choosePowerUp(offer[chosen])
+    }
+
+    /** Moves the level up's cursor a card the way [moveX] newly leans, if it does. */
+    private fun moveOfferCursor(moveX: Float) {
+        val lean = leanOf(moveX)
+        if (lean != 0 && lean != offerLean) {
+            offerCursor = (offerCursor + lean).coerceIn(0, offer.lastIndex.coerceAtLeast(0))
+        }
+        offerLean = lean
+    }
+
+    /** Which way [moveX] leans, -1, 0 or 1, counting only a stick pushed well over. */
+    private fun leanOf(moveX: Float): Int = when {
+        moveX <= -OFFER_CURSOR_LEAN -> -1
+        moveX >= OFFER_CURSOR_LEAN -> 1
+        else -> 0
     }
 
     /** Which card covers ([x], [y]) in framebuffer pixels, or null for a tap that missed. */
@@ -2278,12 +2339,18 @@ class GameScreen(
         if (!paused) return false
 
         resumeArmingTime -= deltaTime
-        // Read even when it cannot resume, so events do not pile up and reach the bat all at once.
+        // Read even when it cannot resume, so events do not pile up and reach the bat all at once,
+        // and so a Confirm pressed in play, before the pause, does not end it.
         val taps = overlayTaps.taps(input?.touchEvents.orEmpty())
+        val confirmed = controls?.consumePress(GameButton.CONFIRM) == true
+        if (confirmed && resumeArmingTime <= 0f) {
+            setPaused(false)
+            return true
+        }
         if (taps.isNotEmpty() && resumeArmingTime <= 0f) {
             // Where there is no Back, the pause screen's Quit button is the way out; a tap anywhere
             // else resumes, as it does everywhere.
-            if (pauseButton.enabled && taps.any { onQuitButton(it.x, it.y) }) {
+            if (quitButtonShown && taps.any { onQuitButton(it.x, it.y) }) {
                 saveHighscore()
                 env.onExitToMenu()
                 return true
@@ -2336,12 +2403,19 @@ class GameScreen(
     }
 
     /**
-     * The pause overlay: the run dimmed, and how to resume or quit. Where there is no Back to quit
-     * with, quitting is a button, drawn as a power-up card is, as something to press.
+     * The pause overlay: the run dimmed, and how to resume or quit. With a keyboard or a
+     * controller, those are its buttons, drawn. Touched, they are said, and where there is no Back
+     * to quit with, quitting is a button, drawn as a power-up card is, as something to press.
      */
     private fun drawPauseOverlay() {
         g.drawRect(0, 0, game.frameBufferWidth, game.frameBufferHeight, PAUSE_DIM)
         drawCentered(text[Res.string.pause_title], 160, 30, EngineColors.CYAN)
+        val method = inputMethod
+        if (method != InputMethod.TOUCH) {
+            drawPrompt(method, PromptAction.RESUME, text[Res.string.prompt_resume], 195)
+            drawPrompt(method, PromptAction.BACK, text[Res.string.pause_quit_button], 219)
+            return
+        }
         drawCentered(text[Res.string.pause_resume], 195, 15, EngineColors.WHITE)
         if (!pauseButton.enabled) {
             drawCentered(text[Res.string.pause_quit], 217, 15, EngineColors.WHITE)
@@ -2352,6 +2426,18 @@ class GameScreen(
         g.drawRect(left, QUIT_BUTTON_TOP, QUIT_BUTTON_WIDTH, 2, EngineColors.CYAN)
         val label = text[Res.string.pause_quit_button]
         drawCentered(label, QUIT_BUTTON_TOP + 21, 15, EngineColors.WHITE)
+    }
+
+    /** One prompt, [action]'s buttons for [method] and then [label], centered on [baseline]. */
+    private fun drawPrompt(
+        method: InputMethod,
+        action: PromptAction,
+        label: String,
+        baseline: Int,
+    ) {
+        val row = listOf(Prompt(action, label))
+        val center = game.frameBufferWidth / 2
+        prompts.drawCentered(method, row, center, baseline, 15, EngineColors.WHITE)
     }
 
     /** The left edge of the pause screen's Quit button, which is centered on the frame. */
@@ -2422,7 +2508,21 @@ class GameScreen(
         g.drawString(record, left, 217, 15, EngineColors.CYAN)
 
         val next = nextStageId
-        if (next != null) {
+        val method = inputMethod
+        if (method != InputMethod.TOUCH) {
+            // The way on, and the way out, by their buttons.
+            val onward = when {
+                next == null -> text[Res.string.prompt_continue]
+                env.assets.stage(next).endless -> text[Res.string.stage_5_name]
+                else -> text.format(Res.string.prompt_next_stage, next)
+            }
+            drawPrompt(method, PromptAction.CONFIRM, onward, 247)
+            if (next != null) {
+                drawPrompt(method, PromptAction.BACK, text[Res.string.prompt_menu], 271)
+                val fresh = text[Res.string.stage_complete_fresh_start]
+                drawCentered(fresh, 296, 13, EngineColors.CYAN)
+            }
+        } else if (next != null) {
             val onward = if (env.assets.stage(next).endless) {
                 text[Res.string.stage_complete_endless]
             } else {
@@ -2454,6 +2554,37 @@ class GameScreen(
         offer.forEachIndexed { index, powerUp ->
             drawPowerUpCard(index, powerUp)
         }
+
+        // A keyboard or a controller picks with a cursor, ringing the card it is on, and says how.
+        val method = inputMethod
+        if (method == InputMethod.TOUCH || offer.isEmpty()) return
+        val cursor = offerCursor.coerceIn(0, offer.lastIndex)
+        drawRing(
+            cardLeft(cursor) - OFFER_CURSOR_GAP,
+            POWER_UP_CARD_TOP - OFFER_CURSOR_GAP,
+            POWER_UP_CARD_WIDTH + 2 * OFFER_CURSOR_GAP,
+            POWER_UP_CARD_HEIGHT + 2 * OFFER_CURSOR_GAP,
+        )
+        prompts.drawCentered(
+            method,
+            listOf(
+                Prompt(PromptAction.CHOOSE, text[Res.string.prompt_choose]),
+                Prompt(PromptAction.TAKE, text[Res.string.prompt_take]),
+            ),
+            game.frameBufferWidth / 2,
+            POWER_UP_CARD_TOP + POWER_UP_CARD_HEIGHT + 30,
+            15,
+            EngineColors.WHITE,
+        )
+    }
+
+    /** The level up's cursor: a two-pixel ring, in the yellow of the dialog's title. */
+    private fun drawRing(left: Int, top: Int, width: Int, height: Int) {
+        val color = EngineColors.YELLOW
+        g.drawRect(left, top, width, 2, color)
+        g.drawRect(left, top + height - 2, width, 2, color)
+        g.drawRect(left, top, 2, height, color)
+        g.drawRect(left + width - 2, top, 2, height, color)
     }
 
     /** Card [index] of the offer: its panel, title and wrapped description. */
@@ -2821,6 +2952,12 @@ class GameScreen(
     private companion object {
         /** A power-up card's panel: dark enough to read white text on, over a dimmed run. */
         const val CARD_FILL = 0xE6101820.toInt()
+
+        /** How far the stick has to lean to move the level up's cursor. */
+        const val OFFER_CURSOR_LEAN = 0.5f
+
+        /** How far outside its card the level up's cursor is drawn. */
+        const val OFFER_CURSOR_GAP = 3
 
         /** The unfilled part of the experience bar. */
         const val XP_BAR_EMPTY = 0x80000000.toInt()

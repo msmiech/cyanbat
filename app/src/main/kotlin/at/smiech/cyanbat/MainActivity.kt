@@ -4,10 +4,19 @@ import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
+import android.view.InputDevice
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.Window
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.key.onPreviewKeyEvent
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -25,9 +34,13 @@ import at.smiech.cyanbat.ui.CyanBatMenu
 import at.smiech.cyanbat.ui.MenuHost
 import at.smiech.cyanbat.ui.rememberMenuBackStack
 import at.smiech.engine.Audio
+import at.smiech.engine.InputMethod
 import at.smiech.engine.Music
 import at.smiech.engine.impl.AndroidAudio
+import at.smiech.engine.impl.ControlHandler
+import at.smiech.engine.impl.inputMethodOf
 import java.io.File
+import kotlin.math.abs
 
 internal val PREFS_KEY_MUSIC = booleanPreferencesKey("music_enabled")
 internal val PREFS_KEY_SOUNDS = booleanPreferencesKey("sounds_enabled")
@@ -114,6 +127,12 @@ class MainActivity : ComponentActivity() {
     /** Whether [onStop] silenced the menu track, so [onStart] knows to bring it back. */
     private var resumeMusicOnStart = false
 
+    /**
+     * What the menu was last worked with, for the help's controls and for the run it starts, whose
+     * first prompts are then for the same. Only touched on the main thread.
+     */
+    private var inputMethod by mutableStateOf(InputMethod.TOUCH)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         requestWindowFeature(Window.FEATURE_NO_TITLE)
@@ -132,25 +151,64 @@ class MainActivity : ComponentActivity() {
             val backStack = rememberMenuBackStack()
             BackHandler(enabled = backStack.canGoBack) { backStack.back() }
 
-            CyanBatMenu(
-                backStack = backStack,
-                host = MenuHost(
-                    settings = settings,
-                    menuMusic = menuMusic,
-                    stageUnlocks = stageUnlocks,
-                    highscores = highscores,
-                    achievements = achievements,
-                    onStartGame = { stageId, difficulty ->
-                        startActivity(
-                            Intent(this, CyanBatGameActivity::class.java)
-                                .putExtra(CyanBatGameActivity.EXTRA_STAGE_ID, stageId)
-                                .putExtra(CyanBatGameActivity.EXTRA_DIFFICULTY, difficulty.name)
-                        )
-                    },
-                    onExit = { finishAffinity() },
+            // Keys seen on their way in, ahead of whatever in the menu takes them. Back, Home and
+            // the volume keys are the system's, pressed on a phone as much as with a keyboard, so
+            // they say nothing.
+            Box(
+                Modifier.onPreviewKeyEvent { event ->
+                    val key = event.nativeKeyEvent
+                    if (key.action == KeyEvent.ACTION_DOWN && !key.isSystem) {
+                        inputMethod = inputMethodOf(key.device)
+                    }
+                    false
+                }
+            ) {
+                CyanBatMenu(
+                    backStack = backStack,
+                    host = MenuHost(
+                        settings = settings,
+                        menuMusic = menuMusic,
+                        stageUnlocks = stageUnlocks,
+                        highscores = highscores,
+                        achievements = achievements,
+                        onStartGame = { stageId, difficulty ->
+                            startActivity(
+                                Intent(this@MainActivity, CyanBatGameActivity::class.java)
+                                    .putExtra(CyanBatGameActivity.EXTRA_STAGE_ID, stageId)
+                                    .putExtra(CyanBatGameActivity.EXTRA_DIFFICULTY, difficulty.name)
+                                    .putExtra(
+                                        CyanBatGameActivity.EXTRA_INPUT_METHOD,
+                                        inputMethod.name,
+                                    )
+                            )
+                        },
+                        onExit = { finishAffinity() },
+                        inputMethod = { inputMethod },
+                    )
                 )
-            )
+            }
         }
+    }
+
+    override fun dispatchGenericMotionEvent(event: MotionEvent): Boolean {
+        val deflection = ControlHandler.PAD_USE_DEFLECTION
+        if (event.isFromSource(InputDevice.SOURCE_JOYSTICK) &&
+            (abs(event.getAxisValue(MotionEvent.AXIS_X)) > deflection ||
+                    abs(event.getAxisValue(MotionEvent.AXIS_Y)) > deflection ||
+                    event.getAxisValue(MotionEvent.AXIS_HAT_X) != 0f ||
+                    event.getAxisValue(MotionEvent.AXIS_HAT_Y) != 0f)
+        ) {
+            inputMethod = inputMethodOf(event.device)
+        }
+        return super.dispatchGenericMotionEvent(event)
+    }
+
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        if (event.actionMasked == MotionEvent.ACTION_DOWN) {
+            val mouse = event.getToolType(0) == MotionEvent.TOOL_TYPE_MOUSE
+            inputMethod = if (mouse) InputMethod.KEYBOARD_MOUSE else InputMethod.TOUCH
+        }
+        return super.dispatchTouchEvent(event)
     }
 
     /** The language goes back on, or is read again, before the menu next reads a string. */

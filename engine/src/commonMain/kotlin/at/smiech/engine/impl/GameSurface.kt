@@ -92,7 +92,9 @@ fun GameSurface(
                 .pointerInput(fit) {
                     awaitPointerEventScope {
                         while (true) {
-                            game.touchHandler.onComposePointerEvent(awaitPointerEvent(), fit)
+                            val event = awaitPointerEvent()
+                            game.controlHandler.onComposePointerUse(event)
+                            game.touchHandler.onComposePointerEvent(event, fit)
                         }
                     }
                 }

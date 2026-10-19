@@ -62,7 +62,10 @@
     <string name="dialog_help_title">Help</string>
     <!-- Controls differ per platform; Platform.kt picks the one to show above the rest. -->
     <string name="dialog_help_controls_touch">• Fly: drag CyanBat with your finger, or, if you chose the stick in Settings, put a thumb down anywhere and push it the way to go. A keyboard or controller works too.\n• Pause: swipe or press Back. Back again quits to the menu.</string>
-    <string name="dialog_help_controls_desktop">• Fly: drag CyanBat with the mouse, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.\n• Fullscreen: F11 or Alt+Enter.</string>
+    <string name="dialog_help_controls_desktop">• Fly: drag CyanBat with the mouse, or use the arrow keys or WASD.\n• Pause: Q. Press Q again to quit to the menu.\n• Fullscreen: F11 or Alt+Enter.\n• Controller: an Xbox or a PlayStation pad works too.</string>
+    <!-- Shown in place of the platform's while a controller is in use, named by its buttons. -->
+    <string name="dialog_help_controls_xbox">• Fly: the left stick or the d-pad.\n• Pause: Menu or B. B again quits to the menu, A plays on.\n• Level up: the d-pad picks a card, A takes it.\n• Menus: A chooses, B goes back.</string>
+    <string name="dialog_help_controls_playstation">• Fly: the left stick or the d-pad.\n• Pause: Options or Circle. Circle again quits to the menu, Cross plays on.\n• Level up: the d-pad picks a card, Cross takes it.\n• Menus: Cross chooses, Circle goes back.</string>
     <string name="dialog_help_controls_web">• Fly: drag CyanBat with the mouse or a finger, or use the arrow keys or WASD. On a touch screen, Settings can give you a stick instead: put a thumb down anywhere and push.\n• Pause: Q. Press Q again to quit to the menu.</string>
     <string name="dialog_help_controls_ios">• Fly: drag CyanBat with your finger, or, if you chose the stick in Settings, put a thumb down anywhere and push it the way to go. A keyboard works too.\n• Pause: tap the button at the top right, or press Q. Quit to the menu from the pause screen.</string>
     <string name="dialog_help_text">• Shoot: CyanBat fires automatically. Shoot enemies and obstacles, and avoid touching them or their shots.\n• Health: every hit drains the bar under the bat. When it is empty, the run is over.\n• Score: points come from surviving and from kills. Kills in a row raise the multiplier, and taking a hit resets it.\n• Level up: kills earn experience. Each new level lets you pick one of three power-ups.\n• Waves: a tougher wave arrives every minute. After five, the boss appears. Defeat it to clear the stage for a big bonus.\n• Difficulty: choose Easy, Normal or Hard as a stage starts. An easier one sends fewer enemies, pays more experience, and gives you a bat that takes more hits, hits harder and starts with power-ups. The stars on each stage show the hardest difficulty you have cleared it on: one for Easy, three for Hard.
@@ -167,20 +170,20 @@
     <string name="boss_sky_viper_enraged">VIPER ENRAGED</string>
     <string name="boss_sky_viper_falls">THE SKY VIPER FALLS</string>
 
-    <!-- The pause screen. Back is Android's, Q the desktop's. -->
+    <!-- The pause screen. Said while the screen is touched; with a keyboard or a controller, the prompt_ lines below say it beside its buttons. Back is Android's. -->
     <string name="pause_title">PAUSED</string>
-    <string name="pause_resume">Tap or click to resume</string>
-    <string name="pause_quit">Back or Q to quit</string>
+    <string name="pause_resume">Tap to resume</string>
+    <string name="pause_quit">Back to quit</string>
     <string name="pause_quit_button">Quit to menu</string>
 
-    <!-- The stage complete screen; the stage's name and the score lines come between the title and the rest. -->
+    <!-- The stage complete screen; the stage's name and the score lines come between the title and the rest. Touch's wording, as the pause screen's is. -->
     <string name="stage_complete_title">STAGE COMPLETE</string>
-    <string name="stage_complete_next">Tap or press Enter for stage %1$d</string>
-    <string name="stage_complete_menu">Back or Q for the menu</string>
+    <string name="stage_complete_next">Tap for stage %1$d</string>
+    <string name="stage_complete_menu">Back for the menu</string>
     <string name="stage_complete_fresh_start">Score, level and power-ups start over</string>
-    <string name="stage_complete_continue">Tap or press Enter to continue</string>
+    <string name="stage_complete_continue">Tap to continue</string>
     <!-- On the last stage's complete screen, which flies on into the endless stage. -->
-    <string name="stage_complete_endless">Tap or press Enter for Endless Mode</string>
+    <string name="stage_complete_endless">Tap for Endless Mode</string>
 
     <!-- The game over screen, under GAME OVER, which is drawn into gameover.png and stays English. -->
     <string name="game_over_hint">Touch the screen for main menu</string>
@@ -190,6 +193,15 @@
     <!-- The level up dialog, over three power-up cards. -->
     <string name="level_up_title">LEVEL %1$d</string>
     <string name="level_up_choose">Choose an upgrade</string>
+
+    <!-- The words beside a button's picture, in the run's prompts while a keyboard or a controller is in use: the pause screen's, the stage complete screen's, the game over screen's and the level up dialog's. The pause screen's quit and the endless stage's name are said by pause_quit_button and stage_5_name. -->
+    <string name="prompt_resume">Resume</string>
+    <string name="prompt_next_stage">Stage %1$d</string>
+    <string name="prompt_continue">Continue</string>
+    <string name="prompt_menu">Menu</string>
+    <string name="prompt_main_menu">Main menu</string>
+    <string name="prompt_choose">Choose</string>
+    <string name="prompt_take">Take</string>
 
     <!--
         The power-up cards. A title has one line of a card, and a description three, wrapped on

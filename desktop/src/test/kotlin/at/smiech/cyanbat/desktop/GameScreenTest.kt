@@ -66,6 +66,7 @@ import at.smiech.engine.Direction
 import at.smiech.engine.GameButton
 import at.smiech.engine.GameLoop
 import at.smiech.engine.Haptics
+import at.smiech.engine.InputMethod
 import at.smiech.engine.Sound
 import at.smiech.engine.ecs.AnimationComponent
 import at.smiech.engine.ecs.AuraComponent
@@ -84,6 +85,7 @@ import at.smiech.engine.ecs.TintComponent
 import at.smiech.engine.ecs.TransformComponent
 import at.smiech.engine.ecs.VelocityComponent
 import at.smiech.engine.ecs.WeaponComponent
+import at.smiech.engine.impl.ControlHandler
 import at.smiech.engine.math.Rect
 import at.smiech.engine.math.Vector2
 import kotlinx.coroutines.awaitCancellation
@@ -2280,7 +2282,9 @@ class GameScreenTest {
         pauseButton: Boolean = false,
         test: Flight.() -> Unit,
     ) {
-        val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT)
+        // A run with the pause button is an iPhone's, touched, as its host starts it.
+        val method = if (pauseButton) InputMethod.TOUCH else InputMethod.KEYBOARD_MOUSE
+        val game = DesktopGame(FRAME_BUFFER_WIDTH, FRAME_BUFFER_HEIGHT, ControlHandler(method))
         val assets = GameAssets.load(game.graphics, game.audio)
         if (sounds != null) assets.audio.effects = sounds
         val screen = GameScreen(
