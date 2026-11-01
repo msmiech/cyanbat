@@ -89,6 +89,22 @@ jobs:
         with:
           persist-credentials: false
 
+      # F-Droid builds the tagged source as it is, with nothing passed in, so a release's version
+      # has to be stamped in gradle.properties before it is tagged; the build itself holds the
+      # versionCode written beside it to the version. A pre-release is not built by F-Droid and
+      # need not be stamped.
+      - name: Check that the tag was stamped
+        if: needs.version.outputs.publish == 'true' && needs.version.outputs.prerelease != 'true'
+        env:
+          VERSION: ${{ needs.version.outputs.version }}
+        run: |
+          set -euo pipefail
+          stamped=$(sed -n 's/^cyanbat\.version=//p' gradle.properties)
+          if [ "$stamped" != "$VERSION" ]; then
+            echo "::error::gradle.properties says cyanbat.version=$stamped, but the tag is $VERSION. Stamp the version (and cyanbat.versionCode) in a PR first, then tag its merge. See README.md, Cutting a release."
+            exit 1
+          fi
+
       - name: Set up JDK 25
         uses: actions/setup-java@v6
         with:

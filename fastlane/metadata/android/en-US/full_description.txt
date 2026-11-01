@@ -1,0 +1,26 @@
+<p>CyanBat is a side-scrolling 2D shooter in pixel art. You fly a little cyan bat through four stages, each with waves of its own creatures and a boss at the end, and then on into an endless mode that never runs out.</p>
+
+<p><b>Four stages</b></p>
+<ul>
+<li><b>The Jungle</b>: wasp swarms, wisps, diving owls and shielded beetles among overgrown ruins, ending in the Moth Queen.</li>
+<li><b>The Cave</b>: flown in the dark by the bat's own light. Every shot lights its way, everything in the light throws a shadow, and the Caco Imp can put its own light out.</li>
+<li><b>The Desert</b>: flown from noon into nightfall, as the sun sets over the dunes and things leap out of the sand. The Sand Wyrm rises after dark.</li>
+<li><b>The Lagoon</b>: the hardest stage, flown from night into noon across a bay of limestone islands, with sharks coming from behind. The Naga rises from the temple's moat.</li>
+</ul>
+
+<p><b>Endless Mode</b> opens once the lagoon is cleared: round after round of waves and bosses from every stage, harder with every wave, over country made up as it scrolls in, with peaks, volcanoes, swamps and foggy forests, a day and night, and rain, snow, ash and storms.</p>
+
+<p><b>Level up as you fly.</b> Every kill earns experience, and every level offers three power-ups to choose from: a spread or piercing shot, heavier rounds, orbs circling the bat, a charged trail, a beam that freezes, more health, a second life and more. Keep a streak going for a bigger score multiplier.</p>
+
+<p><b>Music that plays along.</b> Each stage's music is mixed live from eight layers, building up with the waves and your combo, and dropping into a break when the boss arrives. Every piece of music and every sound was composed and synthesized in code for the game.</p>
+
+<ul>
+<li>Three difficulties, Easy, Normal and Hard, and stars on each stage for the hardest one you have cleared</li>
+<li>Achievements, each kept with a picture of the moment it was earned</li>
+<li>Fly by dragging the bat, or with a stick on the screen; keyboards and game pads work too, with Xbox and PlayStation button prompts</li>
+<li>A highscore for every stage</li>
+<li>In English, German and Polish</li>
+<li>No ads, no tracking, no accounts, and no internet permission</li>
+</ul>
+
+<p>CyanBat is free software under the GPL-3.0. The same game runs on the desktop (Windows, macOS and Linux), in the browser, and on iPhone and iPad.</p>
