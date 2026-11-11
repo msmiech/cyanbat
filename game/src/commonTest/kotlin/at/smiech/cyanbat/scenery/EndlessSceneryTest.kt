@@ -1,5 +1,6 @@
 package at.smiech.cyanbat.scenery
 
+import at.smiech.cyanbat.util.ENDLESS_DUSK_LIGHT_REACH
 import at.smiech.cyanbat.util.TICK_INITIAL
 import at.smiech.engine.Graphics
 import at.smiech.engine.PixelPixmap
@@ -115,6 +116,56 @@ class EndlessSceneryTest {
         )
         scenery.update(TICK_INITIAL)
         assertNotEquals(LightingSystem.DAYLIGHT, scenery.ambient())
+    }
+
+    /**
+     * With every light whole from the dusk's first tick, the dusk began with a jolt: colored discs
+     * round the shots and a brighter frame, in a land still as good as daylit.
+     */
+    @Test
+    fun `the lights come up with the dark rather than all at once`() {
+        // The peaks, where it snows: no lightning to lift the dark while the dusk is watched.
+        val scenery = EndlessScenery(
+            PixelsOnly,
+            640,
+            Random(3),
+            seed = 11,
+            first = Biome.PEAKS,
+            startSeconds = secondsAt(0.58f)
+        )
+        assertEquals(0f, scenery.lights(), "lights by day")
+        assertEquals(ENDLESS_DUSK_LIGHT_REACH, scenery.lightReach(), "their reach by day")
+        var before = 0f
+        var reachBefore = scenery.lightReach()
+        var fallen = false
+        while (scenery.position < 0.75f) {
+            scenery.update(TICK_INITIAL)
+            assertEquals(0f, scenery.flash, "lightning over the peaks")
+            val now = scenery.lights()
+            val reach = scenery.lightReach()
+            if (!fallen && scenery.ambient() != LightingSystem.DAYLIGHT) {
+                fallen = true
+                assertTrue(now < 0.02f, "the dark began with the lights at $now")
+                assertTrue(
+                    reach < ENDLESS_DUSK_LIGHT_REACH + 0.02f,
+                    "the dark began with the lights reaching $reach of their radius"
+                )
+            }
+            // A hair under nothing allowed: the curve is worked out in floats.
+            assertTrue(
+                now - before in -1e-5f..0.005f,
+                "the lights went from $before to $now in a tick"
+            )
+            assertTrue(
+                reach - reachBefore in -1e-5f..0.005f,
+                "the lights' reach went from $reachBefore to $reach in a tick"
+            )
+            before = now
+            reachBefore = reach
+        }
+        assertTrue(fallen, "the dark never fell")
+        assertEquals(1f, before, "the lights at the dead of night")
+        assertEquals(1f, reachBefore, "their reach at the dead of night")
     }
 
     @Test

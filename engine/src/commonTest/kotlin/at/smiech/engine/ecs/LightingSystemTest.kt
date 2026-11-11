@@ -105,7 +105,8 @@ private class ShapeSheet(private val size: Int, private val round: Boolean) : Pi
 class LightingSystemTest {
 
     private val graphics = LightRecordingGraphics()
-    private val world = World().apply { addSystem(LightingSystem(640, 360, AMBIENT, glow = 0.1f)) }
+    private val system = LightingSystem(640, 360, AMBIENT, glow = 0.1f)
+    private val world = World().apply { addSystem(system) }
 
     private fun light(
         x: Float,
@@ -306,6 +307,51 @@ class LightingSystemTest {
         behind.update(TICK, null)
         behind.draw(shaded)
         assertEquals(0, shaded.lighting!!.glintCount, "in the shadow of the one in front")
+    }
+
+    /** A dusk: the lights come up with the dark, rather than stand whole in a land still bright. */
+    @Test
+    fun `at part strength every light and its glint and the glow are that much of their own`() {
+        occluder(100f, 100f, shine = 0.5f)
+        light(60f, 108f)
+        val whole = frame()
+        assertEquals(1f, whole[0].intensity)
+        // Read now: the next frame's light is worked out into the same object.
+        val wholeGlint = whole.glint(0).strength
+
+        system.strength = 0.25f
+        val part = frame()
+        assertEquals(AMBIENT, part.ambient, "the dark is the ambient's to set")
+        assertEquals(0.25f, part[0].intensity, 1e-6f)
+        assertEquals(0.025f, part.glow, 1e-6f)
+        assertEquals(wholeGlint * 0.25f, part.glint(0).strength, 1e-6f)
+        assertEquals(1, part[0].shadowCount, "a dim light still throws its shadows")
+
+        system.strength = 0f
+        val none = frame()
+        assertEquals(0, none.count)
+        assertEquals(0f, none.glow)
+        assertEquals(3, graphics.draws, "the dark is still drawn with every light out")
+    }
+
+    /** A dusk again: a light reaches less far under a sky still pale, and its shadows with it. */
+    @Test
+    fun `at part range every light reaches that much of its radius and no further`() {
+        light(100f, 100f, radius = 60)
+        light(-40f, 100f, radius = 60)
+        occluder(130f, 92f)
+        val whole = frame()
+        assertEquals(listOf(60, 60), whole.lights().map { it.radius })
+        assertEquals(1, whole[0].shadowCount)
+
+        system.range = 0.4f
+        val part = frame()
+        assertEquals(listOf(24), part.lights().map { it.radius }, "the far one is out of reach")
+        assertEquals(1f, part[0].intensity, "its strength is not the range's to set")
+        assertEquals(0, part[0].shadowCount, "a shadow from past the light's reach")
+
+        system.range = 0f
+        assertEquals(0, frame().count)
     }
 
     /** A frame no tick has moved on since the last is lit the same, and says so by its version. */

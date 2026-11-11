@@ -359,7 +359,14 @@ round after round of waves and a boss, over country made up as it scrolls, until
 - The night is dark: the stage is `lit`, and the scenery sets the `LightingSystem`'s ambient every
   tick, `DAYLIGHT` by day, storm or none (when the dark costs nothing, and a shot's colored light
   would read as a balloon in a bright land), down to `ENDLESS_NIGHT_AMBIENT` at the dead of night,
-  lit up for a moment by a storm's lightning.
+  lit up for a moment by a storm's lightning. It sets the system's `strength` with it
+  (`EndlessScenery.lights`), which scales every light, its glints and the glow, and its `range`
+  (`lightReach`), which scales every light's radius from `ENDLESS_DUSK_LIGHT_REACH` of it: the
+  lights come up from nothing and grow as the dusk brings the ambient down, and shrink and go out as
+  the dawn lifts it. Whole from the dusk's first tick, they were those balloons, and the glow lifted
+  the whole frame a step at once. Lightning dims them and leaves them their size: a light's picture
+  is kept by radius and color, and the range makes one for every radius it passes through, so it
+  goes by the hour alone.
 - `WeatherSystem` is rain, snow, ash with embers, dust, and fireflies at night, in a far layer
   behind every sprite and a near one (`front`) after them. Only the near one lands, on the bat and
   anything hostile, read against the outline of the frame each shows: snow settles and piles, rain
@@ -393,8 +400,8 @@ every entity carrying a `CrossfadeComponent` (the obstacles) in the same light.
 
 **The cave's dark.** The cave is flown in the dark (`Stage.lighting`, a `StageLighting`); the jungle
 and the desert are flown in daylight, and none of this runs there. The endless stage is flown in it
-by night only: its ambient is set as the day goes round, and at `LightingSystem.DAYLIGHT` nothing is
-computed or drawn.
+by night only: its ambient and its lights' strength and reach are set as the day goes round, and at
+`LightingSystem.DAYLIGHT` nothing is computed or drawn.
 
 - `LightingSystem` sits between two `RenderSystem` passes split at `LIGHTS_FROM` (z 15). Under it
   are the scenery, the halos, the obstacles and everything hostile, as lit as whatever reaches them;

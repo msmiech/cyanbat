@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.scenery
 
 import at.smiech.cyanbat.util.ENDLESS_BIOME_SECONDS
+import at.smiech.cyanbat.util.ENDLESS_DUSK_LIGHT_REACH
 import at.smiech.engine.EngineColors
 import at.smiech.engine.Graphics
 import at.smiech.engine.Pixmap
@@ -338,6 +339,23 @@ class EndlessScenery(
         if (flash > 0f) ambient = EngineColors.lerp(ambient, LightingSystem.DAYLIGHT, flash)
         return if (ambient or OPAQUE == LightingSystem.DAYLIGHT) LightingSystem.DAYLIGHT else ambient
     }
+
+    /**
+     * How much of the stage's lights shows, for [LightingSystem.strength]: nothing by day, all of
+     * it at the dead of night. They come up as the dusk brings the dark down and go out as the dawn
+     * lifts it, so neither begins with every light whole in a land still bright; and lightning,
+     * which lifts the dark for a moment, drowns them for as long.
+     */
+    fun lights(): Float = darkness * (1f - flash)
+
+    /**
+     * How far the stage's lights reach, for [LightingSystem.range]: [ENDLESS_DUSK_LIGHT_REACH] of
+     * their radius as the dark begins, all of it at the dead of night. It goes by the hour alone:
+     * lightning dims the lights ([lights]) and leaves them their size, since a radius is a picture
+     * kept for every light of it, and a flash would run through them all.
+     */
+    fun lightReach(): Float =
+        ENDLESS_DUSK_LIGHT_REACH + (1f - ENDLESS_DUSK_LIGHT_REACH) * darkness
 
     /** How thick the fog lies, 0..1, as the air turns from one land's to the next. */
     val fog: Float
