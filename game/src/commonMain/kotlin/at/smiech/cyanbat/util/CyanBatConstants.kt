@@ -1466,6 +1466,15 @@ const val ENDLESS_NIGHT_AMBIENT = 0xFF7480A8.toInt()
 const val ENDLESS_NIGHT_GLOW = CAVE_GLOW
 
 /**
+ * How far the endless stage's lights reach as its dusk begins, as a share of their radius; they
+ * grow from here to all of it as the dark deepens, and shrink back to it through the dawn. A light
+ * shows only as far out as it is brighter than the land round it, which under a sky still pale is
+ * close in. Not from nothing: a light is faint for the first of the dusk anyway, and one that was
+ * small as well would be a speck on its shot until the dark had half fallen.
+ */
+const val ENDLESS_DUSK_LIGHT_REACH = 0.3f
+
+/**
  * How long the endless stage stays over one land before it turns into the next: long enough to be
  * a place, short enough that a round sees two.
  */

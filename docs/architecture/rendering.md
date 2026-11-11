@@ -62,8 +62,8 @@ browser and on iOS. There is no framebuffer bitmap.
 
 **The cave's dark.** The cave is flown in the dark (`Stage.lighting`, a `StageLighting`); the jungle
 and the desert are flown in daylight, and none of this runs there. The endless stage is flown in it
-by night only: its ambient is set as the day goes round, and at `LightingSystem.DAYLIGHT` nothing is
-computed or drawn.
+by night only: its ambient and its lights' strength and reach are set as the day goes round, and at
+`LightingSystem.DAYLIGHT` nothing is computed or drawn.
 
 - `LightingSystem` sits between two `RenderSystem` passes split at `LIGHTS_FROM` (z 15). Under it
   are the scenery, the halos, the obstacles and everything hostile, as lit as whatever reaches them;
