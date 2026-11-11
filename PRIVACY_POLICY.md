@@ -1,6 +1,6 @@
 ## CyanBat privacy policy
 
-_Last updated: October 13, 2026_
+_Last updated: November 11, 2026_
 
 Welcome to CyanBat!
 
@@ -27,14 +27,19 @@ The game keeps only the following, and only on your own device:
 | The highscore of each stage | Shown on the stage select and after each run, so you have something to beat.                     |
 | Which stages are open       | Keeps a stage open once you have cleared the stage before it.                                    |
 | Each stage's best clear     | Shown as stars on the stage select: the hardest difficulty you have cleared the stage on.        |
+| Achievements                | Shown under Achievements: which you have earned, each with a picture of the game at that moment. |
 | Difficulty                  | Remembers the difficulty you last chose, to offer it again.                                      |
 | Music and sound effects     | Remembers whether you turned the music or the sound effects off.                                 |
 | Vibration                   | Remembers whether you turned vibration off.                                                      |
 | Touch steering              | Remembers whether you fly the bat by dragging it or with the stick on the screen.                |
+| Stick sensitivity           | Remembers how far the stick on the screen has to be pushed for full speed.                       |
 | Display mode                | Remembers whether the game is stretched to fill your screen or shown with black or ambient bars. |
 | Screen (desktop only)       | Remembers whether the game is played in a window, full screen or borderless.                     |
 | Menu theme                  | Remembers whether the menu follows your system's theme or is always dark or always light.        |
 | Language                    | Remembers the language you chose for the game, if you chose one rather than your system's.       |
+
+An achievement's picture is of the game's own frame, as the game drew it, and never of anything
+else on your screen.
 
 Where it is kept, and how to erase it:
 
@@ -42,10 +47,10 @@ Where it is kept, and how to erase it:
   If you have enabled your device's own backup (for example Android backup to your Google account),
   Android may include this data in that backup; this is handled by your device, not by the game. On
   Android 13 and later, the language is your system's language setting for the app.
-- **iPhone and iPad:** in the app's own settings storage (user defaults), inside the app's
-  container. Deleting the app erases it. If you back up your device to iCloud or a computer, the
-  backup may include it; this is handled by your device, not by the game. The language is the one
-  set for CyanBat in your device's Settings app.
+- **iPhone and iPad:** in the app's own settings storage (user defaults), and the achievements'
+  pictures as files beside it, all inside the app's container. Deleting the app erases it. If you
+  back up your device to iCloud or a computer, the backup may include it; this is handled by your
+  device, not by the game. The language is the one set for CyanBat in your device's Settings app.
 - **Browser:** in the site's local storage in your browser, under keys starting with `cyanbat.`.
   Clearing the site's data in your browser erases it; in a private window it is gone when the window
   closes.
@@ -55,6 +60,13 @@ Where it is kept, and how to erase it:
     - **macOS:** the `at/smiech/cyanbat` entry in
       `~/Library/Preferences/com.apple.java.util.prefs.plist`
     - **Linux:** the folder `~/.java/.userPrefs/at/smiech/cyanbat`
+
+  The achievements' pictures are files in a folder of the game's own, which it does not remove
+  either. To erase them, delete:
+    - **Windows:** the folder `%APPDATA%\CyanBat`
+    - **macOS:** the folder `~/Library/Application Support/CyanBat`
+    - **Linux:** the folder `~/.local/share/cyanbat`, or `cyanbat` in `$XDG_DATA_HOME` if you have
+      set that
 
 ### Permissions
 
@@ -68,7 +80,6 @@ https://github.com/msmiech/cyanbat/blob/main/app/src/main/AndroidManifest.xml
 |           Permission           | Why it is required                                                                                                                                                                                                                          |
 |:------------------------------:|---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 |  `android.permission.VIBRATE`  | Required to vibrate the device, or the game controller you are playing with, briefly when the bat gets hit and when the game is over. You can turn vibration off under Settings. Granted automatically by the system; you cannot revoke it. |
-| `android.permission.WAKE_LOCK` | Allows the game engine to keep the device awake while you play. The engine does not currently use it. Granted automatically by the system; you cannot revoke it.                                                                            |
 
 ### Changes to this policy
 
