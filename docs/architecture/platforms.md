@@ -1,0 +1,99 @@
+# Hosts and the menu
+
+Part of the notes for coding agents; [AGENTS.md](../../AGENTS.md) has the rules that hold everywhere
+and the list of these files.
+
+## Two kinds of UI, and the four hosts
+
+**Two kinds of UI.** The menu - main screen, stage select, settings, credits - is shared Compose:
+`CyanBatMenu`, fed by a `MenuHost`, navigated by a hand-rolled `MenuBackStack`. The game itself is
+not laid out by Compose, but it is drawn through it: screens draw a fixed **640x360 frame**
+through the engine's `Graphics`, and the host draws that into a Compose `Canvas` - see
+[Rendering](rendering.md).
+
+- Android: `MainActivity` shows the menu and starts `CyanBatGameActivity` (a subclass of the
+  engine's `AndroidGameActivity`), passing the stage as the `at.smiech.cyanbat.STAGE_ID` extra.
+  Both are landscape, on a tablet and a foldable too, only because the manifest says the app is a
+  game (`android:appCategory`): from Android 16 a large screen ignores any other app's orientation.
+- Desktop and the browser host a run the same way: a `ComposeGame`, drawn and driven by the engine's
+  `GameSurface`, which pauses the run when the player leaves the window. `DesktopGame` is the
+  desktop's, which loads its assets off the classpath and can `capture` a frame.
+- Desktop: one window swaps between `CyanBatMenu` and `GameSurface`/`DesktopGame`. It takes the
+  screen by the player's `WindowMode`: a window, full screen, or borderless (not on a Mac, whose
+  full screen already is). Settings offers the modes only on the desktop (`windowModes`); phones
+  always fill the screen. On a Steam Deck (`SteamDeck=1` in the environment Steam gives a game) it
+  starts in full screen until the player chooses.
+    - F11 and Alt+Enter (`FullscreenKeys`, read ahead of the menu and the game) toggle between the
+      window and the full screen last chosen. `WindowFollowsSettings` keeps the setting and the
+      window in step both ways, so a Mac's green button counts as a choice too.
+    - Either full screen has no frame off a Mac, because Windows' own full screen leaves a framed
+      window's title bar across the screen. A frame cannot be changed on a window that is up: AWT
+      refuses, and a native window let go of and made again (`removeNotify`, `addNotify`) leaves
+      Compose's `SurfaceSkiaLayerComponent` marked disposed, so it never asks for another frame -
+      the window froze while the music played on.
+    - So off a Mac every mode is a window of its own: `main` keys its `Window` on
+      `WindowModes.windowKey`, and `WindowModes` only sets the shared `WindowState` for the mode the
+      next window opens in, as the first one opens in the mode it was left in. Whatever has to
+      outlive a window lives in `main`, above it: the run (`rememberRun`), the menu's back stack and
+      view models (a window clears its own, and the main menu's disposes the menu's music), the
+      stores and the menu's music. A switch mid-run pauses it, since the new window starts without
+      focus.
+    - On a Mac one window does for every mode, and only its placement changes, as the green button
+      changes it.
+- Browser: `:web`'s `main` puts the menu or a run in a `ComposeViewport` filling the page, as the
+  desktop's window does. The page fills the browser's window, so Settings offers no window modes,
+  and the main screen has no Exit, since a page cannot close its tab (`MenuHost.onExit` is null).
+    - A run's pictures and sounds are loaded synchronously on every platform, so the page fetches
+      them ahead (`WebAssets.preload`) from the index the build writes beside them
+      (`assets/index.txt`, by `stageWebAssets`), while the player is still in the menu; a run
+      started sooner waits for them. Music is fetched as each piece is made, being 21 of the 22 MB:
+      until its stems arrive, a piece is a `PendingLayeredMusic` or `PendingMusic`, which takes
+      whatever the game asks of it and hands on the latest once they do.
+    - `PageFocus` tells `GameSurface` whether the player is at the page, from the browser's own
+      `focus`, `blur` and `visibilitychange`, since Compose's window info could not be seen to
+      follow them. `WebAudioDevice` suspends the page's one `AudioContext` while it is hidden, and
+      starts it on the first key or click, which is when a browser lets a page make sound.
+    - Settings, highscores and unlocks are in the page's local storage (`WebStorage`), under the
+      desktop's key names; a browser that refuses storage leaves them in memory.
+    - `index.html` checks for WebAssembly's garbage collection before it loads the game, which
+      Kotlin/Wasm needs, and says so in a browser without it.
+- iOS: `:ios`'s `MainViewController()` is a Compose `UIViewController` showing the menu or a run, as
+  the desktop's window and the browser's page do; it is built into a static framework,
+  `CyanBatGame`, which the Xcode project in `iosApp/` links. That project is generated by XcodeGen
+  from `iosApp/project.yml` and not committed; its Swift only puts the controller on screen, hiding
+  the status bar and home indicator and deferring edge swipes (`GameViewController`). Its build
+  phase runs `:ios:embedAndSignAppleFrameworkForXcode`, and it copies the root's `assets/` into the
+  bundle. Nothing iOS has been tried on a device yet; `docs/ios-release.md` lists what to check, and
+  how to take it to the App Store.
+    - The platform pieces are in `:engine`'s `iosMain`: `IosAudioDevice` is the app's one
+      `AVAudioEngine` and its ambient session, restarted after a call or a route change;
+      `IosLayeredMusic` feeds the `StemMixer` to a player node from a serial dispatch queue, which
+      is the mixer's audio thread; effects are `AVAudioPlayer`s; `IosHaptics` is the Taptic Engine.
+    - iOS has no Back, so the run draws a pause button and the pause screen a Quit button
+      (`CyanBatEnvironment.pauseButton`; see [Input](input.md)).
+    - `AppFocus` tells `GameSurface` whether the player is at the app, from UIKit's active and
+      resign-active notifications, and pauses the menu's music when they leave.
+    - The menu is edge to edge, as on Android: the host leaves the safe area to the menu's
+      screens, which keep what is on them clear of the Dynamic Island, the rounded corners and the
+      home indicator (see below), and the main screen's sky runs on under them. Padded by the host,
+      the menu would consume the insets, and the screens' own padding would come to nothing.
+    - An iPhone is landscape only, as on Android; an iPad takes every orientation and any window
+      size, as iPadOS 26 expects, the frame fitted with bars as in a desktop window.
+- The menu is drawn light or dark by the player's `ThemeMode` (System, the default, follows
+  `isSystemInDarkTheme`). The main screen's night sky is the same in both, so the status bar's icons
+  stay light over it (`SystemBarIcons`). The game's frame is not themed.
+- Android draws the menu's window under the status bar, the navigation bar and a display's cutout
+  (edge to edge, which SDK 35 and up enforce), and iOS under the Dynamic Island, the rounded
+  corners and the home indicator, so each menu screen pads what is on it to
+  `WindowInsets.safeDrawing` and lets its background, the main screen's sky among them, run on
+  under them. The scrolling screens pad inside the scroll, so their rows pass under the bars but
+  the last stops clear of them; the main screen's margins give way to an inset rather than add to
+  it, since a phone held landscape has no height to spare. The way back that a screen draws where
+  the platform has no Back (`SubScreen`) pads to the top and leading insets, the corner an iPhone's
+  Dynamic Island or rounded corner can take. On the desktop and in the browser the insets are
+  nothing.
+- Each host builds a `CyanBatEnvironment` (assets, haptics, highscore, stage unlock and achievement
+  stores, audio settings, exit-to-menu) and hands it to `GameScreen`. Persistence is interfaces in
+  `:game`, backed by DataStore in `:app`, `java.util.prefs` in `:desktop`, and in `:web` and `:ios`
+  by the shared
+  `KeyValueStores` over the page's local storage and the app's user defaults.
