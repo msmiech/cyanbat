@@ -97,4 +97,11 @@ enum class SoundEffect(val file: String, val volume: Float, val gapSeconds: Floa
      * it rolls under the fight rather than over it. Never two at once.
      */
     THUNDER("thunder.wav", 0.5f, gapSeconds = 1f),
+
+    /**
+     * The Caco Imp winding up a charge, the length of the wind-up and swelling to the rush. The
+     * tell a frame full of the bat's light and the boss's hit flashes cannot hide, so it is set
+     * over the music, about level with a boss's blows.
+     */
+    IMP_WINDUP("impWindup.wav", 0.75f, gapSeconds = 0.5f),
 }

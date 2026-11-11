@@ -432,15 +432,32 @@ computed or drawn.
 - Silhouettes and glints read the art through `Pixmap.readPixels`. A test double reads nothing and
   counts as its whole frame.
 
-**The Caco Imp's dark.** The cave's boss uses the dark as a weapon. `CacoImpBrain` runs its fight in
-three phases off its health, as the other bosses' brains do: it smoulders, alight; at its first
-wound it puts its light out and goes round a prowl (`CacoImpBrain.Prowl`) - douse, glide unlit to a
-station of its choosing (`EnemyMovementType.GLIDE`), lurk, flare up, fire, burn - and at its second
-it blazes for good and calls in strikers. It never fires in the dark, since its bolts are lights.
-What finds it there is light: the bat's, its shots', the flash of a hit. Its health bar is pinned
-under the timer (`BOSS_BAR_*`, shared with the Sand Wyrm), because one hung under it would show
-where it had got to. Its light is the factory's `LightComponent`, changed in place, and only its
-intensity moves tick to tick: a light's sprite is cached by radius and color, never by strength.
+**The Caco Imp's fight.** The cave's boss is fought in five phases at fifths of its health
+(`CACO_IMP_PHASE_*_AT`, as the Naga's), with `CACO_IMP_VITALITY` its extra health. By the time a
+player reaches it their shots, orbs and wake light the cave from end to end, so nothing in the fight
+rests on the dark: it is fought the same by day, as an endless round's boss.
+
+- `CacoImpBrain` runs it: it smoulders on station; then charges (`CacoImpBrain.Move`: rest, wind up,
+  rush, return); then spits embers; then by turns burns inside a fire shield and goes cold and
+  charges; and ends ablaze, charging, spitting and calling in strikers.
+- The charge: a wind-up of `CACO_IMP_WINDUP_SECONDS` - rearing back, shuddering, washed white-hot
+  (`TintComponent`), its light flaring and `SoundEffect.IMP_WINDUP` playing - then a rush along the
+  line through where the bat was, aimed once, out of whichever edge it crosses, and back in from the
+  right. A run's every tell must survive a frame lit by the bat: the boss is drawn under the dark,
+  so the bat's cyan light tints its wash, and its hit flash would bury it, which is why the brain
+  swaps in a colorless `HitFlashComponent` through the wind-up and the rush. The sound and the
+  shudder are what nothing on screen can hide. It fires only on station.
+- Embers (`ShotPattern.EMBER`, `EmberComponent`, `EmberSystem`) are enemy shots fanned wide of the
+  bat, so its own gun, firing ahead, does not put them out by the way; they slow to a hang, flash,
+  and burst into a ring where they hang. One shot down or spent on the bat goes without its ring.
+  The system holds no ember across ticks, and the run fires the ring (`burstEmber`).
+- The fire shield is the factory's `ShieldComponent`, down until the brain raises it, in the shield's
+  ordinary bubble; shot down or burnt out, the imp goes cold - light out, washed ashen, silent - and
+  only charges, every shot landing.
+- Its health bar is pinned under the timer (`BOSS_BAR_*`, shared with the Sand Wyrm), since it
+  charges out of the frame. Its light is the factory's `LightComponent`, changed in place: only its
+  intensity moves tick to tick, between two radii and colors, since a light's sprite is cached by
+  radius and color, never by strength.
 
 **Bosses with a body.** The Sand Wyrm is a head plus nine plates, each an entity, laid by
 `SandWyrmBrain` along the path the head has flown. The Naga is a hooded head plus twelve parts, laid

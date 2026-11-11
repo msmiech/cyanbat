@@ -18,6 +18,12 @@ enum class ShotPattern {
 
     /** Straight down, falling from whatever passes overhead. */
     DOWN,
+
+    /**
+     * Embers, fanned at the player as [AIMED_FAN] is, that slow to a stop, hang, and burst into a
+     * ring where they hang; see [EmberComponent].
+     */
+    EMBER,
 }
 
 /**

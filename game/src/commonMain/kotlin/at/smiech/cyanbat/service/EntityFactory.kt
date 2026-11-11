@@ -6,6 +6,7 @@ import at.smiech.cyanbat.ecs.ContactWeapon
 import at.smiech.cyanbat.ecs.ContactWeaponComponent
 import at.smiech.cyanbat.ecs.EliteComponent
 import at.smiech.cyanbat.ecs.ElitePalette
+import at.smiech.cyanbat.ecs.EmberComponent
 import at.smiech.cyanbat.ecs.GunComponent
 import at.smiech.cyanbat.ecs.OrbComponent
 import at.smiech.cyanbat.ecs.OrbitSystem
@@ -19,11 +20,17 @@ import at.smiech.cyanbat.util.BLAST_LIGHT_STEP
 import at.smiech.cyanbat.util.BURST_DRIFT
 import at.smiech.cyanbat.util.CACO_IMP_LIGHT_COLOR
 import at.smiech.cyanbat.util.CACO_IMP_LIGHT_RADIUS
+import at.smiech.cyanbat.util.CACO_IMP_SHIELD_COLOR
 import at.smiech.cyanbat.util.CACO_IMP_SMOULDER_INTENSITY
 import at.smiech.cyanbat.util.CREATURE_SHINE
 import at.smiech.cyanbat.util.CRITICAL_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.CRITICAL_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
+import at.smiech.cyanbat.util.EMBER_FRAME
+import at.smiech.cyanbat.util.EMBER_FRAME_COUNT
+import at.smiech.cyanbat.util.EMBER_FRAME_SECONDS
+import at.smiech.cyanbat.util.EMBER_LIGHT_COLOR
+import at.smiech.cyanbat.util.EMBER_LIGHT_RADIUS
 import at.smiech.cyanbat.util.DAMAGE_TEXT_DURATION_SECONDS
 import at.smiech.cyanbat.util.DAMAGE_TEXT_FONT_SIZE
 import at.smiech.cyanbat.util.DAMAGE_TEXT_RISE_PER_TICK
@@ -136,6 +143,7 @@ import at.smiech.engine.ecs.PlayerControlComponent
 import at.smiech.engine.ecs.ProjectileStyleComponent
 import at.smiech.engine.ecs.ShieldComponent
 import at.smiech.engine.ecs.SpriteComponent
+import at.smiech.engine.ecs.TintComponent
 import at.smiech.engine.ecs.TrailComponent
 import at.smiech.engine.ecs.TrailEmitterComponent
 import at.smiech.engine.ecs.TransformComponent
@@ -343,11 +351,11 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
      * bar, as only the bat otherwise does; it holds station rather than closing; and it carries no
      * [PaceComponent], so wounds never slow it.
      *
-     * In the dark it is alight, so the fight can be read across the cave; its brain
-     * dims, douses and relights it.
+     * In the dark it is alight, so the fight can be read across the cave; its brain flares, dims
+     * and douses it. It carries a tint, which its brain washes it with for its tells, and a fire
+     * shield, down until its brain raises it.
      *
-     * @param bar where its health bar is pinned, since a bar hanging under it would show where it
-     *   prowls in the dark.
+     * @param bar where its health bar is pinned, since it charges out of the frame and back.
      */
     fun createBoss(
         x: Float,
@@ -374,6 +382,8 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
     ).also { id ->
         world.addComponent(id, GunComponent(gun.volleys))
         world.addComponent(id, HealthBarComponent(pinnedTo = bar))
+        world.addComponent(id, TintComponent())
+        world.addComponent(id, ShieldComponent(0, color = CACO_IMP_SHIELD_COLOR))
         if (lit) {
             world.addComponent(
                 id,
@@ -1001,6 +1011,54 @@ class EntityFactory(val world: World, private val lit: Boolean = false) {
             val radius = if (isPlayer) PLAYER_SHOT_LIGHT_RADIUS else ENEMY_SHOT_LIGHT_RADIUS
             world.addComponent(id, LightComponent(color, radius, SHOT_LIGHT_INTENSITY))
         }
+        world.addComponent(id, LifetimeComponent(true))
+        world.addComponent(id, ZIndexComponent(15))
+        return id
+    }
+
+    /**
+     * One of the Caco Imp's embers, centered on ([centerX], [centerY]) and thrown at [speed] along
+     * [angleDegrees] (off straight ahead to the left, positive downward, as an enemy shot's): a
+     * coal that [at.smiech.cyanbat.ecs.EmberSystem] slows, flashes and bursts.
+     *
+     * It is an enemy shot in every other way: it hurts the bat on contact and is spent doing so,
+     * and one of the bat's shots puts it out, and in either case it never bursts. Round, so it does
+     * not turn to its heading. In the dark it is a small light of its own.
+     *
+     * @param variant the colorway of `shot.png` its hit is drawn in, and the ring it bursts into.
+     */
+    fun createEmber(
+        centerX: Float,
+        centerY: Float,
+        pixmap: Pixmap,
+        damage: Int,
+        variant: Int,
+        angleDegrees: Float,
+        speed: Float,
+    ): EntityId {
+        val size = EMBER_FRAME.toFloat()
+        val radians = angleDegrees * PI_OVER_180
+        val id = world.createEntity()
+        world.addComponent(
+            id,
+            TransformComponent(Rect.fromLTWH(centerX - size / 2f, centerY - size / 2f, size, size))
+        )
+        world.addComponent(
+            id,
+            VelocityComponent(Vector2(-speed * cos(radians), speed * sin(radians)))
+        )
+        world.addComponent(id, SpriteComponent(pixmap, srcWidth = EMBER_FRAME))
+        world.addComponent(
+            id,
+            AnimationComponent(EMBER_FRAME, EMBER_FRAME, EMBER_FRAME_COUNT, EMBER_FRAME_SECONDS)
+        )
+        world.addComponent(id, ColorwayComponent(variant))
+        world.addComponent(id, EmberComponent())
+        world.addComponent(id, TintComponent())
+        world.addComponent(id, CollisionComponent(2f, CollisionGroup.ENEMY_PROJECTILE))
+        world.addComponent(id, HealthComponent(SHOT_HIT_POINTS))
+        world.addComponent(id, DamageComponent(damage))
+        if (lit) world.addComponent(id, LightComponent(EMBER_LIGHT_COLOR, EMBER_LIGHT_RADIUS))
         world.addComponent(id, LifetimeComponent(true))
         world.addComponent(id, ZIndexComponent(15))
         return id

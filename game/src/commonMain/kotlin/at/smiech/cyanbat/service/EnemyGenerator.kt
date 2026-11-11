@@ -57,6 +57,7 @@ import kotlin.random.Random
  *   the screen can announce it. Not fired for the opening wave, which needs no announcing.
  * @param onBossSpawned fired once, with the boss entity, when the stage's boss arrives.
  * @param onBossPhaseChanged fired when a boss with phases enters a new one.
+ * @param onBossWindup fired as the Caco Imp starts to wind up a charge, for the screen to sound it.
  * @param encorePixmap the sheet of the stage's second boss, for a stage with one; see
  *   [StageDesign.encore] and [spawnEncore].
  * @param onEncoreBite fired the moment the second boss's entrance bites the bat.
@@ -77,6 +78,7 @@ class EnemyGenerator(
     private val onBossSpawned: (EntityId) -> Unit = {},
     private val bossPixmap: Pixmap? = null,
     private val onBossPhaseChanged: (Int) -> Unit = {},
+    private val onBossWindup: () -> Unit = {},
     private val encorePixmap: Pixmap? = null,
     private val onEncoreBite: () -> Unit = {},
     private val onEncoreArrived: () -> Unit = {},
@@ -424,9 +426,9 @@ class EnemyGenerator(
                     imp,
                     frameWidth = xSpawnPosition,
                     frameHeight = worldHeight,
-                    random = random,
                     onSummon = ::summonImps,
                     onPhaseChanged = onBossPhaseChanged,
+                    onWindup = onBossWindup,
                 )
             }
 
