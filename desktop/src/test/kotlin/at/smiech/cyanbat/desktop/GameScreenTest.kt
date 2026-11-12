@@ -13,6 +13,7 @@ import at.smiech.cyanbat.data.TouchSteering
 import at.smiech.cyanbat.desktop.recorder.RunProbe
 import at.smiech.cyanbat.ecs.BossPartComponent
 import at.smiech.cyanbat.ecs.ElitePalette
+import at.smiech.cyanbat.ecs.EmberComponent
 import at.smiech.cyanbat.ecs.FrostComponent
 import at.smiech.cyanbat.ecs.FrostSystem
 import at.smiech.cyanbat.ecs.OrbComponent
@@ -33,7 +34,7 @@ import at.smiech.cyanbat.util.BAT_LIGHT_FADE_SECONDS
 import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SECONDS
 import at.smiech.cyanbat.util.BOSS_SPRITE_SCALE
 import at.smiech.cyanbat.util.BURROW_SHOWING
-import at.smiech.cyanbat.util.CACO_IMP_PROWL_BAT_CLEARANCE
+import at.smiech.cyanbat.util.CACO_IMP_EMBER_RING_COUNT
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.ELITE_EXPERIENCE_FACTOR
 import at.smiech.cyanbat.util.ELITE_SCORE_FACTOR
@@ -80,6 +81,7 @@ import at.smiech.engine.ecs.OccluderComponent
 import at.smiech.engine.ecs.PaceComponent
 import at.smiech.engine.ecs.PierceComponent
 import at.smiech.engine.ecs.PlayerControlComponent
+import at.smiech.engine.ecs.ShieldComponent
 import at.smiech.engine.ecs.SpriteComponent
 import at.smiech.engine.ecs.TintComponent
 import at.smiech.engine.ecs.TransformComponent
@@ -1228,12 +1230,13 @@ class GameScreenTest {
     }
 
     /**
-     * The Caco Imp is alight, and lit by it; with its light out it is a shape in the dark. Read off
-     * the frame, over the imp's own box, with it put back in the same place both times - and with the
-     * bat's gun held, since every bolt it fires is a light of its own.
+     * The Caco Imp is alight, and lit by it; gone cold in its fourth phase, its light is out and it
+     * is a shape in the dark. Read off the frame, over the imp's own box, with it put back in the
+     * same place both times - and with the bat's gun held, since every bolt it fires is a light of
+     * its own.
      */
     @Test
-    fun `the Caco Imp is seen by its own light, and hides in the dark with it out`() = impFight {
+    fun `the Caco Imp is seen by its own light, and goes dark when it goes cold`() = impFight {
         fun impBrightness(): Double {
             imp().rect = STATION
             placeBat()
@@ -1251,54 +1254,95 @@ class GameScreenTest {
         screen.update(TICK_INITIAL * 1.5f)
         val lit = impBrightness()
 
-        wound(0.6f)
-        flyUntil { brain.dark }
+        wound(0.3f)
+        screen.update(TICK_INITIAL * 1.5f)
+        probe.world.getComponent(boss, ShieldComponent::class)!!.points = 0
+        flyUntil { !brain.burning }
         assertEquals(0f, probe.world.getComponent(boss, LightComponent::class)!!.intensity)
         val dark = impBrightness()
 
-        // Wide of what was measured - about two thirds brighter lit, on Windows and on Linux alike -
-        // since the box takes in the rock behind the imp as well as the imp, and the platforms' Skia
-        // builds put a frame read on the CPU a few steps apart.
+        // Wide of what was measured - about a third brighter lit, since cold it is washed ashen,
+        // which the dark dims but does not hide - as the box takes in the rock behind the imp as
+        // well as the imp, and the platforms' Skia builds put a frame read on the CPU a few steps
+        // apart.
         val measured = "lit %.1f against dark %.1f, of 765".format(lit, dark)
-        assertTrue(lit > dark * 1.35, measured)
+        assertTrue(lit > dark * 1.2, measured)
         assertTrue(lit - dark > 25.0, measured)
         assertTrue(dark > 0.0, "unlit, it is still there to be seen")
     }
 
     @Test
     fun `the Caco Imp announces each phase of its fight`() = impFight {
-        wound(0.6f)
-        screen.update(TICK_INITIAL * 1.5f)
-        assertEquals("LIGHTS OUT", probe.banner)
+        for ((fraction, banner) in listOf(
+            0.7f to "THE IMP CHARGES",
+            0.5f to "EMBERS FLY",
+            0.3f to "WREATHED IN FIRE",
+            0.1f to "THE IMP BLAZES",
+        )) {
+            wound(fraction)
+            screen.update(TICK_INITIAL * 1.5f)
+            assertEquals(banner, probe.banner)
+        }
+    }
 
-        wound(0.3f)
-        screen.update(TICK_INITIAL * 1.5f)
-        assertEquals("THE IMP BLAZES", probe.banner)
+    /** Its charge is a body blow: a bat that stays where the imp wound up to rush takes the hit. */
+    @Test
+    fun `the Caco Imp's charge hits a bat that stays in its path`() = impFight {
+        wound(0.7f)
+        placeBat()
+        val bat = probe.world.getComponent(probe.batId, HealthComponent::class)!!
+        val before = bat.hitPoints
+        flyUntil { brain.move == CacoImpBrain.Move.CHARGE }
+        flyUntil(5f) { bat.hitPoints < before || brain.move == CacoImpBrain.Move.RETURN }
+        assertTrue(bat.hitPoints < before, "the rush went through the bat and did nothing")
     }
 
     /**
-     * Its brain is what moves it in the dark, through the run's own systems: to a station clear of the
-     * bat, which in a run is wherever the bat happens to be.
+     * An ember that is left alone bursts into a ring where it hangs: bolts going out from its point
+     * every way, in the run, from its own gun.
      */
     @Test
-    fun `the Caco Imp prowls to a new station in the dark, clear of the bat`() = impFight {
-        wound(0.6f)
-        flyUntil { brain.prowl == CacoImpBrain.Prowl.PROWL }
-        val start = imp().rect
-        flyUntil { brain.prowl == CacoImpBrain.Prowl.LURK }
-
-        val now = imp().rect
-        assertEquals(brain.stationX, now.left, 1f)
-        assertEquals(brain.stationY, now.top, 1f)
-        assertTrue(hypot(now.left - start.left, now.top - start.top) > 20f, "it hardly moved")
-        val bat = probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect
-        assertTrue(
-            hypot(
-                now.centerX - bat.centerX,
-                now.centerY - bat.centerY
-            ) >= CACO_IMP_PROWL_BAT_CLEARANCE
-        )
+    fun `the Caco Imp's embers hang and burst into rings`() = impFight {
+        wound(0.5f)
+        // Kept up at the top left, out of the embers' way, so none is spent on the bat.
+        probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect =
+            Rect.fromLTWH(20f, 10f, 45f, 40f)
+        flyUntil { probe.world.query(EmberComponent::class).isNotEmpty() }
+        val ember = probe.world.query(EmberComponent::class).first()
+        var at = probe.world.getComponent(ember, TransformComponent::class)!!.rect
+        flyUntil(5f) {
+            val now = probe.world.getComponent(ember, EmberComponent::class) ?: return@flyUntil true
+            at = probe.world.getComponent(ember, TransformComponent::class)!!.rect
+            now.fuse <= 0f
+        }
+        screen.update(TICK_INITIAL)
+        val ring = probe.world.query(CollisionComponent::class, TransformComponent::class).count {
+            val rect = probe.world.getComponent(it, TransformComponent::class)!!.rect
+            probe.world.getComponent(it, CollisionComponent::class)!!.group ==
+                    CollisionGroup.ENEMY_PROJECTILE &&
+                    hypot(rect.centerX - at.centerX, rect.centerY - at.centerY) < 12f
+        }
+        assertEquals(CACO_IMP_EMBER_RING_COUNT, ring, "the ember burst into $ring bolts")
     }
+
+    /** Burning, its shield takes the bat's shots, and its health is spared until it is down. */
+    @Test
+    fun `the Caco Imp's fire shield takes the bat's shots`() = impFight {
+        wound(0.3f)
+        screen.update(TICK_INITIAL * 1.5f)
+        assertTrue(brain.burning)
+        val shield = probe.world.getComponent(boss, ShieldComponent::class)!!
+        val health = probe.world.getComponent(boss, HealthComponent::class)!!
+        val before = health.hitPoints
+        val full = shield.points
+        // The bat level with it, firing.
+        probe.world.getComponent(probe.batId, WeaponComponent::class)!!.interval = 0.2f
+        probe.world.getComponent(probe.batId, TransformComponent::class)!!.rect =
+            Rect.fromLTWH(60f, imp().rect.centerY - 20f, 45f, 40f)
+        flyUntil(5f) { shield.points < full }
+        assertEquals(before, health.hitPoints, "a shot got through the shield")
+    }
+
 
     // region the bat's weapons of its own
 

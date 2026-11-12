@@ -1086,17 +1086,33 @@ const val SAND_WYRM_SHOT_VARIANT = 7
 
 // --- The Caco Imp ------------------------------------------------------------------------------
 //
-// Stage 2's boss: the cave's crimson imp drawn three times over, alight in the dark. It weaves on
-// station and fires; at its first wound it puts its light out and prowls the dark between ambushes;
-// at its second it blazes up for good and calls in its own kind. See CacoImpBrain.
-
-/** The health fractions at which it changes phase; see [WOUND_MARKS]. */
-const val CACO_IMP_PHASE_2_AT = WOUNDED_AT
-const val CACO_IMP_PHASE_3_AT = BATTERED_AT
+// Stage 2's boss: the cave's crimson imp drawn three times over, alight in the dark. Five phases at
+// fifths of its health: it smoulders on station, then charges the bat, then spits embers that hang
+// and burst, then wreathes itself in a fire shield it has to be shot out of, and ends ablaze with
+// all of it at once. See CacoImpBrain.
 
 /**
- * Its light in the first phase: a smouldering crimson glow, breathing slowly about its strength,
- * that shows it from across the cave.
+ * The health fractions at which it enters its second to fifth phases: a fifth apiece, as the
+ * Naga's, where most bosses change phase at their wounds' marks. Its wounds still show at
+ * [WOUND_MARKS].
+ */
+const val CACO_IMP_PHASE_2_AT = 0.8f
+const val CACO_IMP_PHASE_3_AT = 0.6f
+const val CACO_IMP_PHASE_4_AT = 0.4f
+const val CACO_IMP_PHASE_5_AT = 0.2f
+
+/**
+ * Its extra health over its stage's boss health, for a fight of five phases rather than three. Kept
+ * under what would outlast the Sand Wyrm, the next stage's boss: the fight is made longer more by
+ * what it does than by its health - the seconds it spends charging out of the frame and back, the
+ * fire shields of its fourth phase, the embers that want shooting rather than the imp.
+ */
+const val CACO_IMP_VITALITY = 1.25f
+
+/**
+ * Its light: a smouldering crimson glow, breathing slowly about its strength, that shows it from
+ * across the cave. In daylight, as on the endless stage by day, it has none, and every tell below
+ * is also drawn on its sprite.
  */
 const val CACO_IMP_LIGHT_COLOR = 0xFFFF6A50.toInt()
 const val CACO_IMP_LIGHT_RADIUS = 130
@@ -1104,27 +1120,74 @@ const val CACO_IMP_SMOULDER_INTENSITY = 0.75f
 const val CACO_IMP_BREATH = 0.1f
 const val CACO_IMP_BREATHS_PER_SECOND = 0.6f
 
-/**
- * Its second phase's round: its light dies over the douse, it glides unlit to a station of its
- * choosing at the prowl's speed and lurks there, then flares (the only warning of where it is),
- * fires, and burns lit before going dark again. The prowl, about 90 pixels a second, is a fifth of
- * the bat's top speed: the dark is where it hides, not where it hunts.
- */
-const val CACO_IMP_DOUSE_SECONDS = 0.6f
-const val CACO_IMP_PROWL_SPEED = 1.7f
-const val CACO_IMP_LURK_SECONDS = 0.6f
-const val CACO_IMP_FLARE_SECONDS = 0.5f
+/** How bright its light flares as it winds up a charge, and holds through it. */
 const val CACO_IMP_FLARE_INTENSITY = 1f
-const val CACO_IMP_BURN_SECONDS = 1.8f
 
 /**
- * Where it may settle in the dark: no further left than this fraction of the frame,
- * at least this far from the bat center to center, and at least this far from where
- * it was, so every prowl is a real move.
+ * Its charge: it rears back for the wind-up, burning white-hot (the tell, on its sprite and in its
+ * light), then rushes along the line through the bat as it was at the wind-up's end, out of the
+ * left edge, and slides back in from the right. Aimed once and never steered, so moving dodges it.
+ * The rush, about 340 pixels a second, crosses the frame in under two seconds; the wind-up gives a
+ * bat at its top speed time to clear the imp's height twice over.
  */
-const val CACO_IMP_PROWL_LEFTMOST = 0.35f
-const val CACO_IMP_PROWL_BAT_CLEARANCE = 170f
-const val CACO_IMP_PROWL_LEAST_MOVE = 110f
+const val CACO_IMP_WINDUP_SECONDS = 0.9f
+const val CACO_IMP_CHARGE_SPEED = 6.5f
+
+/**
+ * How long it holds station between charges: in the second phase, cold in the fourth (when charging
+ * is all it does), and ablaze in the fifth.
+ */
+const val CACO_IMP_CHARGE_REST_SECONDS = 3.5f
+const val CACO_IMP_COLD_CHARGE_REST_SECONDS = 1.2f
+const val CACO_IMP_ABLAZE_CHARGE_REST_SECONDS = 6f
+
+/**
+ * The wash on its sprite as it winds up and charges, a white-hot yellow, and as it goes cold in the
+ * fourth phase, an ashen blue-grey: the tells that read in daylight and in a frame full of the
+ * bat's lights alike. Their alpha is set as they are drawn.
+ */
+const val CACO_IMP_WINDUP_TINT = 0xFFFFE6A0.toInt()
+const val CACO_IMP_COLD_TINT = 0xFF8C9CB4.toInt()
+
+/**
+ * Its embers, from the third phase on: coals spat in pairs either side of the bat that slow to a
+ * stop, hang a moment, flashing quicker as they go, and burst into a ring of bolts where they hang,
+ * about 150 pixels out (what the drag leaves of the throw). Shot down first, one goes out without
+ * its ring. What one deals on contact, as a share of the imp's contact damage, is an aimed bolt's;
+ * its ring's bolts deal [CACO_IMP_EMBER_RING_SHARE] of that, about what a ring bolt does.
+ */
+const val CACO_IMP_EMBER_DAMAGE = 0.45f
+const val CACO_IMP_EMBER_FUSE_SECONDS = 1.7f
+const val CACO_IMP_EMBER_DRAG = 1.4f
+const val CACO_IMP_EMBER_RING_COUNT = 8
+const val CACO_IMP_EMBER_RING_SPEED = 1.6f
+const val CACO_IMP_EMBER_RING_SHARE = 0.6f
+
+/**
+ * An ember's sheet: a coal, throbbing, four 18x18 frames from tools/generate_ember_sprite.py. In
+ * the dark it is a small light of its own, so every ember hanging in the cave is a warning in
+ * sight.
+ */
+const val EMBER_FRAME = 18
+const val EMBER_FRAME_COUNT = 4
+const val EMBER_FRAME_SECONDS = 0.08f
+const val EMBER_LIGHT_COLOR = 0xFFFF8A40.toInt()
+const val EMBER_LIGHT_RADIUS = 40
+
+/** The flash an ember gives as its fuse runs down: a white-hot wash, pulsing quicker to the end. */
+const val EMBER_FLASH_TINT = 0xFFFFF0C0.toInt()
+
+/**
+ * Its fourth phase, by turns burning and cold. Burning, it holds station inside a fire shield worth
+ * [CACO_IMP_SHIELD_FRACTION] of its health and fires rings; it burns until the shield is shot down
+ * or [CACO_IMP_BURN_SECONDS] are up. Then it goes cold for [CACO_IMP_COLD_SECONDS]: no shield, no
+ * light, no gun, only charges, and every shot lands. The shield is the light here, not the dark: in
+ * daylight it is the same bubble.
+ */
+const val CACO_IMP_SHIELD_FRACTION = 0.06f
+const val CACO_IMP_SHIELD_COLOR = 0xFFFFA040.toInt()
+const val CACO_IMP_BURN_SECONDS = 7f
+const val CACO_IMP_COLD_SECONDS = 5f
 
 /**
  * Its last phase: a brighter, wider light guttering like a fire, a quicker weave, and two of its

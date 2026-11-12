@@ -1,6 +1,7 @@
 package at.smiech.cyanbat.service
 
 import at.smiech.cyanbat.Difficulty
+import at.smiech.cyanbat.util.CACO_IMP_VITALITY
 import at.smiech.cyanbat.util.ENDLESS_DIFFICULTY_PER_ROUND
 import at.smiech.cyanbat.util.ENDLESS_OPENING_DIFFICULTY
 import at.smiech.cyanbat.util.ENDLESS_ROUND_WAVES
@@ -106,10 +107,11 @@ class EndlessCourse(
             ENDLESS_OPENING_DIFFICULTY + round * ENDLESS_DIFFICULTY_PER_ROUND
 
         /**
-         * A boss's health against an ordinary one's: the Naga's and the Sky Viper's longer fights
-         * keep the extra health their stage gives them.
+         * A boss's health against an ordinary one's: the Caco Imp's, the Naga's and the Sky Viper's
+         * longer fights keep the extra health their stage gives them.
          */
         fun vitalityOf(boss: BossKind): Float = when (boss) {
+            BossKind.CACO_IMP -> CACO_IMP_VITALITY
             BossKind.NAGA -> NAGA_VITALITY
             BossKind.SKY_VIPER -> SKY_VIPER_VITALITY
             else -> 1f

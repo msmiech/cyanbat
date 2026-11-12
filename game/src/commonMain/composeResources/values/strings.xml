@@ -152,7 +152,9 @@
     <string name="boss_moth_queen_enraged">QUEEN ENRAGED</string>
     <string name="boss_moth_queen_falls">THE MOTH QUEEN FALLS</string>
     <string name="boss_caco_imp">THE CACO IMP</string>
-    <string name="boss_caco_imp_lights_out">LIGHTS OUT</string>
+    <string name="boss_caco_imp_charges">THE IMP CHARGES</string>
+    <string name="boss_caco_imp_embers">EMBERS FLY</string>
+    <string name="boss_caco_imp_fire_shield">WREATHED IN FIRE</string>
     <string name="boss_caco_imp_blazes">THE IMP BLAZES</string>
     <string name="boss_caco_imp_falls">THE CACO IMP FALLS</string>
     <string name="boss_sand_wyrm">THE SAND WYRM</string>

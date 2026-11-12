@@ -122,7 +122,9 @@
     <string name="boss_moth_queen_enraged">KRÓLOWA WPADA W SZAŁ</string>
     <string name="boss_moth_queen_falls">KRÓLOWA CIEM POKONANA</string>
     <string name="boss_caco_imp">CACO-CHOCHLIK</string>
-    <string name="boss_caco_imp_lights_out">ŚWIATŁO GAŚNIE</string>
+    <string name="boss_caco_imp_charges">CHOCHLIK SZARŻUJE</string>
+    <string name="boss_caco_imp_embers">ŻAR LECI</string>
+    <string name="boss_caco_imp_fire_shield">OTULONY OGNIEM</string>
     <string name="boss_caco_imp_blazes">CHOCHLIK PŁONIE</string>
     <string name="boss_caco_imp_falls">CACO-CHOCHLIK POKONANY</string>
     <string name="boss_sand_wyrm">PIASKOWY CZERW</string>

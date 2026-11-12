@@ -110,6 +110,13 @@ class SpriteSheetTest {
         )
     }
 
+    /** Four 18x18 frames of the Caco Imp's ember throbbing; see `EMBER_FRAME`. */
+    @Test
+    fun `the ember sheet holds four frames`() {
+        assertEquals(18 * 4 to 18, sizeOf("ember.png"))
+        assertNoBlankFrames("ember.png", frameWidth = 18, frames = 4)
+    }
+
     /**
      * Eight 19x19 frames of an elite's drop spinning half a turn; see `POWER_UP_DROP_FRAME` and
      * `POWER_UP_DROP_FRAME_COUNT`.
@@ -781,6 +788,7 @@ class SpriteSheetTest {
             "orb.png",
             "orbHeavy.png",
             "powerUpDrop.png",
+            "ember.png",
             "background.png",
             "explosion.png",
             "shatter.png",

@@ -120,7 +120,9 @@
     <string name="boss_moth_queen_enraged">DIE KÖNIGIN TOBT</string>
     <string name="boss_moth_queen_falls">DIE MOTTENKÖNIGIN FÄLLT</string>
     <string name="boss_caco_imp">DER CACO-KOBOLD</string>
-    <string name="boss_caco_imp_lights_out">LICHT AUS</string>
+    <string name="boss_caco_imp_charges">DER KOBOLD STÜRMT</string>
+    <string name="boss_caco_imp_embers">GLUT FLIEGT</string>
+    <string name="boss_caco_imp_fire_shield">IN FLAMMEN GEHÜLLT</string>
     <string name="boss_caco_imp_blazes">DER KOBOLD LODERT</string>
     <string name="boss_caco_imp_falls">DER CACO-KOBOLD FÄLLT</string>
     <string name="boss_sand_wyrm">DER SANDWURM</string>

@@ -56,6 +56,8 @@ data class GameAssets(
         val heavyOrb: Pixmap,
         /** The power-up an elite drops: eight frames of a silver plus spinning half a turn. */
         val powerUpDrop: Pixmap,
+        /** The Caco Imp's ember: four frames of a coal throbbing. */
+        val ember: Pixmap,
     )
 
     /** The sounds and music shared by every stage. */
@@ -102,6 +104,7 @@ data class GameAssets(
                     orb = pixmap("orb.png"),
                     heavyOrb = pixmap("orbHeavy.png"),
                     powerUpDrop = pixmap("powerUpDrop.png"),
+                    ember = pixmap("ember.png"),
                 ),
                 audio = Audio(
                     // Generated like the stages' music, by tools/generate_game_over_music.py.

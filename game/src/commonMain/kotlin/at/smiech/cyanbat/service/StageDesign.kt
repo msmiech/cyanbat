@@ -18,6 +18,7 @@ import at.smiech.cyanbat.service.EnemySpecies.WASP
 import at.smiech.cyanbat.service.EnemySpecies.WEAVER
 import at.smiech.cyanbat.service.EnemySpecies.WISP
 import at.smiech.cyanbat.service.EnemySpecies.WYRMLING
+import at.smiech.cyanbat.util.CACO_IMP_VITALITY
 import at.smiech.cyanbat.util.NAGA_VITALITY
 import at.smiech.cyanbat.util.SKY_VIPER_VITALITY
 import at.smiech.cyanbat.util.STAGE_DIFFICULTY_STEP
@@ -49,9 +50,9 @@ enum class BossKind {
     MOTH_QUEEN,
 
     /**
-     * The cave's Caco Imp, a giant crimson imp alight in the dark: it weaves on
-     * station, then puts its light out and prowls between ambushes, and ends
-     * ablaze, calling in imps. See [CacoImpBrain].
+     * The cave's Caco Imp, a giant crimson imp alight in the dark: it weaves on station, then
+     * charges, spits embers that burst, burns in a fire shield it has to be shot out of, and ends
+     * ablaze, calling in imps. Five phases. See [CacoImpBrain].
      */
     CACO_IMP,
 
@@ -163,7 +164,8 @@ data class StageDesign(
          * Stage 2, flown in the dark by the bat's own light. Each minute brings a
          * group that moves in a new way, and the escort is the two hardest to lead.
          * None shoots or carries a shield: the cave's difficulty is its tougher,
-         * quicker enemies and the dark. Its boss turns the dark on the player.
+         * quicker enemies and the dark. Its boss is fought in five phases, so it carries the extra
+         * health of a longer fight.
          */
         val CAVE = StageDesign(
             waves = listOf(
@@ -179,6 +181,7 @@ data class StageDesign(
                 WaveDesign(listOf(WEAVER, STRIKER), eliteChance = 0.07f),
             ),
             boss = BossKind.CACO_IMP,
+            bossVitality = CACO_IMP_VITALITY,
         )
 
         /**

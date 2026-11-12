@@ -13,6 +13,7 @@ import at.smiech.cyanbat.ecs.ContactCooldownComponent
 import at.smiech.cyanbat.ecs.ContactWeapon
 import at.smiech.cyanbat.ecs.ContactWeaponComponent
 import at.smiech.cyanbat.ecs.EliteComponent
+import at.smiech.cyanbat.ecs.EmberSystem
 import at.smiech.cyanbat.ecs.EndlessScenerySystem
 import at.smiech.cyanbat.ecs.FrostBeamSystem
 import at.smiech.cyanbat.ecs.FrostSystem
@@ -40,8 +41,10 @@ import at.smiech.cyanbat.resources.banner_second_life
 import at.smiech.cyanbat.resources.banner_wave
 import at.smiech.cyanbat.resources.boss_caco_imp
 import at.smiech.cyanbat.resources.boss_caco_imp_blazes
+import at.smiech.cyanbat.resources.boss_caco_imp_charges
+import at.smiech.cyanbat.resources.boss_caco_imp_embers
 import at.smiech.cyanbat.resources.boss_caco_imp_falls
-import at.smiech.cyanbat.resources.boss_caco_imp_lights_out
+import at.smiech.cyanbat.resources.boss_caco_imp_fire_shield
 import at.smiech.cyanbat.resources.boss_moth_queen
 import at.smiech.cyanbat.resources.boss_moth_queen_enraged
 import at.smiech.cyanbat.resources.boss_moth_queen_falls
@@ -106,6 +109,9 @@ import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_FALLOFF
 import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SCALE
 import at.smiech.cyanbat.util.BOSS_AFTERSHOCK_SECONDS
 import at.smiech.cyanbat.util.BURST_DRIFT
+import at.smiech.cyanbat.util.CACO_IMP_EMBER_RING_COUNT
+import at.smiech.cyanbat.util.CACO_IMP_EMBER_RING_SHARE
+import at.smiech.cyanbat.util.CACO_IMP_EMBER_RING_SPEED
 import at.smiech.cyanbat.util.DAMAGE_PER_HIT
 import at.smiech.cyanbat.util.DEATH_GRAVITY
 import at.smiech.cyanbat.util.DEATH_PUFF_INTERVAL_SECONDS
@@ -334,6 +340,7 @@ class GameScreen(
             announce(text[bossPhaseBanner(phase)])
             director?.onBossPhaseChanged()
         },
+        onBossWindup = { sounds.play(SoundEffect.IMP_WINDUP) },
         encorePixmap = currentStage.encoreSheet,
         onEncoreBite = ::venomBite,
         onEncoreArrived = ::beginEncoreFight,
@@ -661,6 +668,9 @@ class GameScreen(
         // Straight after the movement that carries a shot into an edge, and before the culling
         // that would remove it there.
         world.addSystem(BounceSystem(game.frameBufferWidth, game.frameBufferHeight))
+        // After the movement, so an ember bursts where it has drifted to, and before the
+        // collisions, so one that burst is not also met; its ring is met from the next tick.
+        world.addSystem(EmberSystem { emberId -> burstEmber(emberId) })
         // After the movement, which a frozen enemy's pace holds still, so drifting with the scenery
         // is all it does; and before the weapons, which its pace holds too.
         world.addSystem(FrostSystem { id -> thaw(id) })
@@ -851,6 +861,22 @@ class GameScreen(
             ?: PLAYER_SHOT_VARIANT
         val damage = (damageOf(shooterId) * volley.damageFactor).roundToInt().coerceAtLeast(1)
 
+        if (volley.pattern == ShotPattern.EMBER) {
+            for (angle in volleyAngles(volley, gun, rect)) {
+                factory.createEmber(
+                    rect.centerX,
+                    rect.centerY,
+                    env.assets.graphics.ember,
+                    damage,
+                    variant,
+                    angle,
+                    volley.speed,
+                )
+            }
+            sounds.play(SoundEffect.ENEMY_SHOT)
+            return
+        }
+
         val straight = volley.pattern == ShotPattern.STRAIGHT
         val x = if (straight) rect.left - SHOT_FRAME_WIDTH else rect.centerX - SHOT_FRAME_WIDTH / 2f
         val y = rect.centerY - shot.height / 2f
@@ -881,7 +907,7 @@ class GameScreen(
         when (volley.pattern) {
             ShotPattern.STRAIGHT -> listOf(0f)
             ShotPattern.AIMED -> listOf(aimAt(rect))
-            ShotPattern.AIMED_FAN -> {
+            ShotPattern.AIMED_FAN, ShotPattern.EMBER -> {
                 val aim = aimAt(rect)
                 val middle = (volley.count - 1) / 2f
                 List(volley.count) { aim + (it - middle) * volley.spreadDegrees }
@@ -898,6 +924,38 @@ class GameScreen(
 
             ShotPattern.DOWN -> listOf(DOWNWARD_DEGREES)
         }
+
+    /**
+     * An ember whose fuse has burnt down bursts where it hangs, into a ring of bolts in its
+     * colorway, each dealing a share of what the ember would have. Not once the stage is won or in
+     * an interlude, when nothing fires; [clearHostiles] takes the embers then anyway.
+     */
+    private fun burstEmber(emberId: EntityId) {
+        if (stageComplete || interlude != null) return
+        val rect = world.getComponent(emberId, TransformComponent::class)?.rect ?: return
+        val variant = world.getComponent(emberId, ColorwayComponent::class)?.variant
+            ?: PLAYER_SHOT_VARIANT
+        val damage = (damageOf(emberId) * CACO_IMP_EMBER_RING_SHARE).roundToInt().coerceAtLeast(1)
+        val shot = env.assets.graphics.shot
+        val step = 360f / CACO_IMP_EMBER_RING_COUNT
+        // Turned by the ember's own id, so embers bursting together do not leave the same lanes.
+        val start = (emberId % CACO_IMP_EMBER_RING_COUNT) * step / 2f
+        for (i in 0 until CACO_IMP_EMBER_RING_COUNT) {
+            factory.createShot(
+                x = rect.centerX - SHOT_FRAME_WIDTH / 2f,
+                y = rect.centerY - shot.height / 2f,
+                width = SHOT_FRAME_WIDTH.toFloat(),
+                height = shot.height.toFloat(),
+                pixmap = shot,
+                isPlayer = false,
+                damage = damage,
+                variant = variant,
+                angleDegrees = start + i * step,
+                speed = CACO_IMP_EMBER_RING_SPEED,
+            )
+        }
+        sounds.play(SoundEffect.ENEMY_SHOT)
+    }
 
     /**
      * The heading from [rect]'s center to the bat's, or straight ahead with no bat to aim at.
@@ -1585,8 +1643,12 @@ class GameScreen(
         BossKind.SKY_VIPER ->
             if (phase >= 3) Res.string.boss_sky_viper_enraged else Res.string.boss_sky_viper_rain
 
-        BossKind.CACO_IMP ->
-            if (phase >= 3) Res.string.boss_caco_imp_blazes else Res.string.boss_caco_imp_lights_out
+        BossKind.CACO_IMP -> when (phase) {
+            2 -> Res.string.boss_caco_imp_charges
+            3 -> Res.string.boss_caco_imp_embers
+            4 -> Res.string.boss_caco_imp_fire_shield
+            else -> Res.string.boss_caco_imp_blazes
+        }
 
         BossKind.MOTH_QUEEN ->
             if (phase >= 3) Res.string.boss_moth_queen_enraged else Res.string.boss_moth_queen_swarm

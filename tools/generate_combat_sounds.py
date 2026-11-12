@@ -22,6 +22,9 @@ the frost beam and the drop an elite leaves:
 * rockShatter.wav  - a spire breaking: a crack and then stone clattering down, with a chip of crystal
                      in it. No roar - the shatter sheet has no fire in it, and nor does this.
 * batHit.wav       - the bat taking a blow: a dull thump and a squeak.
+* impWindup.wav    - the Caco Imp winding up a charge: fire drawn in with a roar that swells, and a
+                     snarl climbing through it, cut off as it rushes. As long as the wind-up, so the
+                     player hears it coming in a frame too full of light to see it by.
 * batDeath.wav     - the bat going down, and the run with it: its cry falling away, then a game over
                      sting as a 16-bit console would play one - two orchestra hits over timpani, and
                      strings left holding the last chord, under the console's echo. In the game
@@ -650,6 +653,33 @@ def thunder(rng) -> np.ndarray:
     return finish(out, release=0.8)
 
 
+def imp_windup(rng) -> np.ndarray:
+    """The Caco Imp drawing breath to charge: a roar of fire swelling as it is drawn in, a snarl
+    climbing through it, roughened by a growl, and a thump as it lets go.
+
+    Warm and rough, as everything hostile is. It lasts the wind-up, CACO_IMP_WINDUP_SECONDS in the
+    game, and swells all the way, so the rush comes where it peaks.
+    """
+    seconds = 0.95
+    out = silence(seconds)
+    n = seconds_to_samples(0.9)
+    t = np.arange(n) / RENDER_RATE
+    swell = (t / 0.9) ** 1.6
+
+    roar = falling_roar(rng, 0.9, ((90, 420, 10.0), (420, 1800, 10.0), (1800, 5000, 10.0)))
+    lay(out, normalized(roar) * swell, 0, 0.55)
+
+    snarl = buzz(85, 300, 0.9, glide=0.4, harmonics=18)
+    growl = 1 + 0.6 * np.sin(2 * np.pi * 34 * t)
+    snarl = one_shot_filter(snarl * growl, bandpass(120, 4200))
+    lay(out, normalized(snarl) * swell, 0, 0.75)
+    lay(out, presence(snarl, drive=4.0) * swell, 0, 0.25)
+
+    thump = boom(150, 55, 0.12, fall=0.04, drive=2.0)
+    lay(out, thump, 0.83, 0.7)
+    return finish(out, release=0.05)
+
+
 # --- Writing it out ----------------------------------------------------------------------------
 
 
@@ -667,6 +697,7 @@ EFFECTS = {
     "venomBite.wav": (venom_bite, 11),
     "thunder.wav": (thunder, 12),
     "batDeath.wav": (bat_death, 13),
+    "impWindup.wav": (imp_windup, 14),
 }
 
 SEED = 20261001
