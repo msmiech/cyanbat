@@ -20,7 +20,8 @@ rather than work around it.
 - Commit, push and open a PR only when the task asks for it.
 - Never create, move or push a tag, and never run the Release workflow: a tag publishes a release to
   players.
-- Leave `cyanbat.version` and the iOS app's versions alone outside a version bump PR.
+- Leave `cyanbat.version`, `cyanbat.versionCode` and the iOS app's versions alone outside a PR
+  that stamps a release.
 - Never skip a check to get a change through: no `--no-verify`, no disabled or deleted test, no
   loosened lint, no `@Suppress` added to quiet one.
 - Other sessions may be at work in this checkout. Check which branch you are on before you commit,
@@ -43,6 +44,8 @@ rather than work around it.
 - Do not add a dependency, or change a version in `gradle/libs.versions.toml` or of a workflow's
   action, unless asked: Dependabot brings them monthly, grouped so Kotlin and Compose move
   together. `gradle/actions` stays below v6, which is the owner's call (`.github/dependabot.yml`).
+- Nothing the Android app cannot be built from source with: no Play Services, Firebase or other
+  closed library, and no prebuilt binary. F-Droid builds it from source and refuses the rest.
 - No new opt-in to an experimental API (`@OptIn`, `languageSettings.optIn`): find a stable, typed
   one. The few in the code are older than this rule; do not add to them.
 - Do not take out a workaround because it looks odd - `StageComposeResources`, the download URLs the
@@ -241,13 +244,22 @@ every change goes in this file, and what explains one part goes in that part's.
       commands run, test counts, what the emulator showed.
 - **Versions and releases.**
     - Every artifact's version comes from `cyanbat.version` in `gradle.properties`. The root build
-      derives `versionCode` as `major * 10000 + minor * 100 + patch`.
-    - Pushing a bare tag makes the Release workflow build and publish the APK, the desktop
-      installers and an unsigned iOS `.ipa`. A `-rcN` suffix publishes a pre-release. Running the
+      derives `versionCode` as `major * 10000 + minor * 100 + patch`, and `cyanbat.versionCode`
+      writes it out beside it for F-Droid's update check; the build fails when the two disagree,
+      unless the version is given on the command line.
+    - F-Droid builds the tagged source as it is, so a release is stamped before it is tagged: a
+      `chore/release-X.Y` PR titled "Stamp release X.Y" sets `cyanbat.version` and
+      `cyanbat.versionCode`, the iOS app's `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in
+      `iosApp/Configuration/Config.xcconfig`, and adds what is new as
+      `fastlane/metadata/android/{en-US,de-DE,pl-PL}/changelogs/<versionCode>.txt`, 500 characters
+      at most each.
+    - Pushing a bare tag on its merge makes the Release workflow build and publish the APK, the
+      desktop installers and an unsigned iOS `.ipa`; it refuses a tag `gradle.properties` does not
+      agree with. A `-rcN` suffix publishes a pre-release, which needs no stamp. Running the
       workflow by hand is a rehearsal that publishes nothing. Both are the owner's to do.
-    - `cyanbat.version` is kept in step with the newest tag through a `chore/bump-version-X.Y` PR
-      titled "Stamp untagged builds X.Y". The same PR bumps the iOS app's `MARKETING_VERSION` and
-      `CURRENT_PROJECT_VERSION` in `iosApp/Configuration/Config.xcconfig`.
+    - F-Droid then builds and signs the tag itself, from the recipe in fdroiddata, and shows the
+      listing in `fastlane/metadata/android`; see `docs/fdroid-release.md`.
+    - The repository is GPL-3.0-or-later (`LICENSE`), the art, music and sound included.
     - The iOS app goes to the App Store from a Mac, by `iosApp/archive.sh X.Y` on the tagged commit,
       not from the Release workflow, whose `.ipa` is unsigned; see `docs/ios-release.md`.
 

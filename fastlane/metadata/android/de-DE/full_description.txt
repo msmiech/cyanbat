@@ -1,0 +1,26 @@
+<p>CyanBat ist ein seitlich scrollender 2D-Shooter in Pixelart. Du fliegst eine kleine cyanblaue Fledermaus durch vier Abschnitte, jeden mit eigenen Gegnerwellen und einem Boss am Ende, und danach weiter in einen Endlosmodus, der nie aufhört.</p>
+
+<p><b>Vier Abschnitte</b></p>
+<ul>
+<li><b>Dschungel</b>: Wespenschwärme, Irrlichter, herabstoßende Eulen und Käfer hinter Schilden zwischen überwucherten Ruinen. Am Ende wartet die Mottenkönigin.</li>
+<li><b>Höhle</b>: im Dunkeln geflogen, nur im Licht der Fledermaus. Jeder Schuss leuchtet sich den Weg, alles im Licht wirft einen Schatten, und der Caco-Kobold kann sein eigenes Licht löschen.</li>
+<li><b>Wüste</b>: vom Mittag in die Nacht geflogen, während die Sonne über den Dünen untergeht und Dinge aus dem Sand springen. Nach Einbruch der Dunkelheit erhebt sich der Sandwurm.</li>
+<li><b>Lagune</b>: der schwerste Abschnitt, von der Nacht in den Mittag über eine Bucht voller Kalksteininseln, und Haie kommen von hinten. Die Naga steigt aus dem Graben des Tempels.</li>
+</ul>
+
+<p>Der <b>Endlosmodus</b> öffnet sich, sobald die Lagune geschafft ist: Runde um Runde Wellen und Bosse aus jedem Abschnitt, mit jeder Welle schwerer, über ein Land, das beim Scrollen entsteht, mit Gipfeln, Vulkanen, Sümpfen und nebligen Wäldern, Tag und Nacht, Regen, Schnee, Asche und Gewittern.</p>
+
+<p><b>Im Flug aufsteigen.</b> Jeder Abschuss bringt Erfahrung, und jede neue Stufe bietet drei Verbesserungen zur Wahl: Streu- oder Durchschlagsschüsse, schwerere Geschosse, Kugeln, die um die Fledermaus kreisen, eine geladene Spur, ein Strahl, der einfriert, mehr Gesundheit, ein zweites Leben und mehr. Eine lange Serie bringt einen höheren Punktemultiplikator.</p>
+
+<p><b>Musik, die mitspielt.</b> Die Musik jedes Abschnitts wird live aus acht Ebenen gemischt, baut sich mit den Wellen und deiner Combo auf und bricht ein, wenn der Boss erscheint. Alle Musik und alle Klänge wurden für das Spiel im Code komponiert und synthetisiert.</p>
+
+<ul>
+<li>Drei Schwierigkeitsgrade, Leicht, Normal und Schwer, und Sterne auf jedem Abschnitt für den schwersten, auf dem du ihn geschafft hast</li>
+<li>Erfolge, jeder mit einem Bild des Moments, in dem er errungen wurde</li>
+<li>Die Fledermaus ziehen oder mit einem Stick auf dem Bildschirm steuern; Tastaturen und Gamepads gehen auch, mit Tastensymbolen für Xbox und PlayStation</li>
+<li>Ein Highscore für jeden Abschnitt</li>
+<li>Auf Englisch, Deutsch und Polnisch</li>
+<li>Keine Werbung, kein Tracking, keine Konten und keine Internetberechtigung</li>
+</ul>
+
+<p>CyanBat ist freie Software unter der GPL-3.0. Dasselbe Spiel läuft auch am Desktop (Windows, macOS und Linux), im Browser und auf iPhone und iPad.</p>

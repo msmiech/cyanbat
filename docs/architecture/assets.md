@@ -34,6 +34,9 @@ and the list of these files.
   The window hands the OS every size in `desktop/src/main/resources/icons` itself (`WindowIcon`),
   because Compose's `icon` parameter renders one image and Windows shrinks it into noise.
   `AppIconTest` checks both sets, since nothing else reads the installers' before a release.
+- F-Droid's listing shows `fastlane/metadata/android/en-US/images/icon.png`, the desktop's rounded
+  tile at 512px, also written by `generate_icons.py`. The listing's screenshots beside it are taken
+  on a phone, not generated.
 
 ## The art is generated
 

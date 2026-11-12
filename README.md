@@ -280,15 +280,24 @@ away from the README's copy, and also writes its frames out as PNGs to look thro
 
 ## 📦 Cutting a release
 
-Every artifact takes its version from `cyanbat.version` in `gradle.properties`. The release workflow
-overrides it with the tag being built, so tagging is what sets the version — the property is only
-what an untagged build stamps.
+Every artifact takes its version from `cyanbat.version` in `gradle.properties`, and Android's
+versionCode from it (`major * 10000 + minor * 100 + patch`), written out beside it as
+`cyanbat.versionCode`. F-Droid builds the tagged source as it is, so a release is stamped before it
+is tagged, in one PR:
 
-Pushing a version tag builds and publishes everything:
+- `cyanbat.version` and `cyanbat.versionCode` in `gradle.properties` (the build fails if the two
+  disagree),
+- `MARKETING_VERSION` and `CURRENT_PROJECT_VERSION` in `iosApp/Configuration/Config.xcconfig`,
+- what is new, for F-Droid's listing: `fastlane/metadata/android/<language>/changelogs/<versionCode>.txt`
+  in English, German and Polish, 500 characters at most.
+
+Once it is merged, pushing a version tag on the merge builds and publishes everything:
 
 ```bash
 git tag 2.0 && git push origin 2.0
 ```
+
+The workflow refuses a tag that `gradle.properties` does not agree with, except a pre-release's.
 
 That produces a signed Android APK, Windows, macOS and Linux desktop installers, and an unsigned
 iPhone and iPad app (`ios-arm64.ipa`) for sideloading, and attaches them to a GitHub release. Tags
@@ -348,6 +357,14 @@ always has.
 Desktop installers are unsigned, so Windows SmartScreen and macOS Gatekeeper will warn on first run.
 Fixing that needs a paid code-signing certificate and an Apple developer account.
 
+### F-Droid
+
+F-Droid builds the APK itself from the tagged source and signs it with its own key, so its builds and
+the GitHub release's cannot update each other. The listing - descriptions, changelogs, icon and
+screenshots - is in `fastlane/metadata/android`, where F-Droid reads it from the tagged source.
+[docs/fdroid-release.md](docs/fdroid-release.md) has the build recipe for F-Droid's data repository
+and how to submit it; after that, F-Droid builds every new tag by itself.
+
 ## 🛠 Tech stack
 
 - **Language**: Kotlin 2.x, Kotlin Multiplatform
@@ -367,6 +384,13 @@ principles from *Beginning Android Games* by Mario Zechner and Robert Green. The
 implementation of the game framework was provided by DI Robert Grüneis. In 2026 it was rewritten
 from legacy OOP to a completely new data-driven ECS architecture, and then from an Android-only app
 to Kotlin Multiplatform with a desktop target, and later a web target and an iOS app.
+
+## 📄 License
+
+CyanBat is free software: you can redistribute it and/or modify it under the terms of the GNU
+General Public License as published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version. That covers everything in this repository, the
+art, music and sound included. See [LICENSE](LICENSE).
 
 ---
 *Developed with ❤️ using Kotlin.*
