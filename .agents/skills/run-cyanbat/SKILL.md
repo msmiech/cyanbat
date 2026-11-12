@@ -32,7 +32,7 @@ instead. A bare `./gradlew` on an Android task there still fails with "SDK locat
 set `ANDROID_HOME`, or copy `local.properties` over from the main checkout.
 
 Verified on Windows 11 + Git Bash against `Medium_Phone` (API 37, 1080x2400). Nothing in the driver
-is Windows-specific. JDK 21 comes from the Gradle toolchain; no separate install needed.
+is Windows-specific. JDK 25 comes from the Gradle toolchain; no separate install needed.
 
 ```bash
 emulator -list-avds

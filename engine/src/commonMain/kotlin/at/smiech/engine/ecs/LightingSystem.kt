@@ -32,8 +32,8 @@ import kotlin.math.sqrt
  * it by its version and does not render it again.
  *
  * The dark can change as the run goes on, for a stage whose nights fall and lift: set [ambient] and
- * [glow] between ticks. At [DAYLIGHT] there is no dark, and nothing is computed or drawn, so a stage
- * flown partly by day pays for the light only while it is needed.
+ * [strength], and [range] with them, between ticks. At [DAYLIGHT] there is no dark, and nothing is
+ * computed or drawn, so a stage flown partly by day pays for the light only while it is needed.
  *
  * @param ambient the light where no other reaches; see [Lighting.ambient].
  * @param glow see [Lighting.glow].
@@ -49,6 +49,34 @@ class LightingSystem(
 
     /** How much of the light shows in the air; see [Lighting.glow]. */
     var glow: Float = glow
+
+    /**
+     * How much of the lights shows, 0..1: every light's strength, its glints with it, and the
+     * [glow] are this much of their own. For a dark that falls and lifts, to go with its [ambient]:
+     * a light whole against an ambient only just short of daylight brightens nothing and stains
+     * what it falls on with its color, and the glow lifts the whole frame a step, so a dusk that
+     * only brought the ambient down began with a jolt. Brought up from nothing as the ambient comes
+     * down, the lights grow out of the day.
+     */
+    var strength: Float = 1f
+        set(value) {
+            field = value.coerceIn(0f, 1f)
+        }
+
+    /**
+     * How far the lights reach, 0..1: every light's radius is this much of its own, and its shadows
+     * and glints go by the radius it is left with. For a dark that falls and lifts, with
+     * [strength]: a light shows only as far out as it is brighter than what is round it, which in
+     * a dusk is not far, and further as the dark deepens.
+     *
+     * A light is drawn from a picture kept for its radius and color, so a radius that changes by
+     * the tick would make one for every step; change this slowly, as the hour does, not for a
+     * flash.
+     */
+    var range: Float = 1f
+        set(value) {
+            field = value.coerceIn(0f, 1f)
+        }
 
     private lateinit var transforms: ComponentMapper<TransformComponent>
     private lateinit var lights: ComponentMapper<LightComponent>
@@ -100,12 +128,13 @@ class LightingSystem(
      * shadows and glints.
      */
     private fun light(world: World) {
-        lighting.begin(ambient, glow)
+        val shown = strength
+        lighting.begin(ambient, glow * shown)
         gatherOccluders(world)
         world.forEach(transforms, lights) { id ->
             val light = lights.require(id)
-            val strength = light.strength
-            val radius = light.radius
+            val strength = light.strength * shown
+            val radius = (light.radius * range).roundToInt()
             if (strength <= 0f || radius <= 0) return@forEach
             val rect = transforms.require(id).rect
             val x = floor(rect.centerX).toInt()

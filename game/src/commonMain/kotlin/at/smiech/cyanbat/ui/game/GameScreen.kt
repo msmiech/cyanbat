@@ -1931,7 +1931,13 @@ class GameScreen(
             if (!enmGen.bossSpawned) obsGen.update(tick)
             // The endless stage's breather between rounds, and its dark, which follows the hour.
             if (roundBreak > 0f) breathe(tick)
-            scenery?.let { lighting?.ambient = it.ambient() }
+            scenery?.let { land ->
+                lighting?.let { dark ->
+                    dark.ambient = land.ambient()
+                    dark.strength = land.lights()
+                    dark.range = land.lightReach()
+                }
+            }
 
             // A won stage's score is banked once the winning tick has resolved, not as the boss
             // goes down partway through the collision pass, after which the kill and any later
