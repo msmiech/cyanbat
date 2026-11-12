@@ -55,7 +55,7 @@ class EmberSystemTest {
     }
 
     @Test
-    fun `it is an enemy shot, thrown to the left`() {
+    fun `it is an enemy shot thrown to the left`() {
         val id = ember()
         assertEquals(
             CollisionGroup.ENEMY_PROJECTILE,
@@ -66,7 +66,7 @@ class EmberSystemTest {
     }
 
     @Test
-    fun `it slows to a hang, and flashes before it bursts`() {
+    fun `it slows to a hang and flashes before it bursts`() {
         val id = ember()
         val thrown = speedOf(id)
         run(CACO_IMP_EMBER_FUSE_SECONDS * 0.3f)
@@ -84,7 +84,7 @@ class EmberSystemTest {
     }
 
     @Test
-    fun `it bursts once, where it hangs, and is gone`() {
+    fun `it bursts once where it hangs and is gone`() {
         val id = ember()
         run(CACO_IMP_EMBER_FUSE_SECONDS - 0.1f)
         assertEquals(emptyList(), bursts)

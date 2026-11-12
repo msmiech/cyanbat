@@ -135,7 +135,7 @@ class CacoImpBrainTest {
     }
 
     @Test
-    fun `it opens on straight bolts and fires on its own cadence, and never charges`() {
+    fun `it opens on straight bolts on its own cadence and never charges`() {
         assertEquals(
             CacoImpBrain.SMOULDERING_GUN.volleys,
             world.getComponent(imp, GunComponent::class)!!.volleys
@@ -154,7 +154,7 @@ class CacoImpBrainTest {
     }
 
     @Test
-    fun `its phases come at fifths of its health, each announced in turn`() {
+    fun `its phases come at fifths of its health and each is announced in turn`() {
         for ((fraction, phase) in listOf(0.79f to 2, 0.59f to 3, 0.39f to 4, 0.19f to 5)) {
             woundTo(fraction)
             tick()
@@ -169,7 +169,7 @@ class CacoImpBrainTest {
      * rushes.
      */
     @Test
-    fun `charging, it rests, then winds up white-hot before it rushes`() {
+    fun `a charge rests and then winds up white-hot before it rushes`() {
         woundTo(0.7f)
         tick()
         run(CACO_IMP_CHARGE_REST_SECONDS - 0.2f)
@@ -190,7 +190,7 @@ class CacoImpBrainTest {
 
     /** Under fire its hit flash would hide the wind-up's wash, so the two take turns. */
     @Test
-    fun `no hit flashes it through a wind-up and a rush, and they come back after`() {
+    fun `no hit flashes it through a wind-up and a rush and they come back after`() {
         woundTo(0.7f)
         tick()
         runUntil { brain.move == CacoImpBrain.Move.WINDUP }
@@ -200,7 +200,7 @@ class CacoImpBrainTest {
     }
 
     @Test
-    fun `the rush is aimed once, leaves the frame and comes back in from the right`() {
+    fun `the rush is aimed once and leaves the frame and comes back in from the right`() {
         woundTo(0.7f)
         tick()
         runUntil { brain.move == CacoImpBrain.Move.CHARGE }
@@ -222,7 +222,7 @@ class CacoImpBrainTest {
     }
 
     @Test
-    fun `mid-rush, its middle runs along the line through the bat`() {
+    fun `mid-rush its middle runs along the line through the bat`() {
         woundTo(0.7f)
         tick()
         runUntil { brain.move == CacoImpBrain.Move.CHARGE }
@@ -248,7 +248,7 @@ class CacoImpBrainTest {
     }
 
     @Test
-    fun `spitting embers, it stops charging`() {
+    fun `spitting embers it stops charging`() {
         woundTo(0.5f)
         tick()
         assertEquals(3, brain.phase)
@@ -264,7 +264,7 @@ class CacoImpBrainTest {
     }
 
     @Test
-    fun `burning, it fights inside a fire shield it can be shot out of`() {
+    fun `burning it fights inside a fire shield it can be shot out of`() {
         woundTo(0.3f)
         tick()
         assertEquals(4, brain.phase)
@@ -284,7 +284,7 @@ class CacoImpBrainTest {
     }
 
     @Test
-    fun `cold, it holds its fire and charges, then burns again`() {
+    fun `cold it holds its fire and charges and then burns again`() {
         woundTo(0.3f)
         tick()
         shield.absorb(shield.points)
@@ -302,7 +302,7 @@ class CacoImpBrainTest {
     }
 
     @Test
-    fun `a shield left alone burns out, and it goes cold anyway`() {
+    fun `a shield left alone burns out and it goes cold anyway`() {
         woundTo(0.3f)
         tick()
         run(CACO_IMP_BURN_SECONDS - 0.2f)
@@ -313,7 +313,7 @@ class CacoImpBrainTest {
     }
 
     @Test
-    fun `ablaze, it lights up for good, charges and calls in its own kind`() {
+    fun `ablaze it lights up for good and charges and calls in its own kind`() {
         woundTo(0.3f)
         tick()
         woundTo(0.1f)
@@ -353,7 +353,7 @@ class CacoImpBrainTest {
 
     /** By day there is no light to read it by, so everything it does must still show and work. */
     @Test
-    fun `in daylight it fights the same fight, its tells on its sprite`() {
+    fun `in daylight it fights the same fight with its tells on its sprite`() {
         world.removeEntity(imp)
         imp = spawn(lit = false)
         brain = brainFor(imp)
